@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { redirect, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { checkToken, registerUser, userLogin } from "../services/userService";
-import { useAuth } from "../hooks/useAuth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

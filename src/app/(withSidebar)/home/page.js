@@ -1,10 +1,11 @@
 "use client";
 
 import { useAuth } from "@/app/hooks/useAuth";
-import { checkToken } from "@/app/services/userService";
+import TicksTest from "./components/TicksTest";
 
 export default function HomePage() {
   const auth = useAuth();
+
   if (!auth)
     return (
       <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -20,6 +21,7 @@ export default function HomePage() {
     <div className="bg-white p-6 rounded-lg shadow-md text-gray-800">
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
       <p>Conteúdo do dashboard.</p>
+      <TicksTest />
     </div>
   );
 }

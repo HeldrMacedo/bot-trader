@@ -9,7 +9,6 @@ export default function Home() {
     const token = localStorage.getItem("access_token");
     if (token) {
       const isAuthenticated = checkToken(token);
-      console.log("isAuthenticated", isAuthenticated);
       if (isAuthenticated) {
         redirect("/home");
       }
