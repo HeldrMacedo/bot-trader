@@ -10,7 +10,7 @@ export default function Sidebar() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const menuItems = [
-    { name: "Dashboard", href: "/home" },
+    { name: "Operar", href: "/home" },
     { name: "Minha conta", href: "/profile" },
     { name: "Sair", href: "/login" },
   ];
@@ -29,7 +29,7 @@ export default function Sidebar() {
       </button>
 
       <div
-        className={`fixed inset-y-0 left-0 w-64 bg-gray-800 text-white p-4 transform transition-transform duration-300 z-50 ease-in-out ${
+        className={`fixed inset-y-0 left-0 w-52 bg-gray-800 text-white p-4 transform transition-transform duration-300 z-50 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0 md:relative md:flex md:flex-col`}
       >
