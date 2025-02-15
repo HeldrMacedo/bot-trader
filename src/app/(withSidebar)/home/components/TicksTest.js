@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 import TicksGraph from "./TicksGraph";
 
 const TicksTest = () => {
-  const [ticks, setTicks] = useState({ R_100: [], R_50: [] });
+  const [ticks, setTicks] = useState({
+    R_100: [],
+    R_75: [],
+    R_50: [],
+    R_25: [],
+    R_10: [],
+  });
   const [volatility, setVolatility] = useState("R_100");
 
   useEffect(() => {
@@ -21,12 +27,34 @@ const TicksTest = () => {
         end: new Date(),
       });
       const listTicks = listTicksReturn.map((tick) =>
-        parseInt(tick.raw.quote.toFixed(2).toString().slice(-1))
+        parseInt(
+          tick.raw.quote
+            .toFixed(
+              symbol == "R_100"
+                ? 2
+                : symbol == "R_25" || symbol == "R_10"
+                ? 3
+                : 4
+            )
+            .toString()
+            .slice(-1)
+        )
       );
       setTicks((prev) => ({ ...prev, [symbol]: listTicks }));
       ticksStream.onUpdate((tick) => {
+        if (symbol == "R_25" || symbol == "R_10")
+          console.log(symbol, tick.raw.quote);
         const lastDigit = parseInt(
-          tick.raw.quote.toFixed(2).toString().slice(-1)
+          tick.raw.quote
+            .toFixed(
+              symbol == "R_100"
+                ? 2
+                : symbol == "R_25" || symbol == "R_10"
+                ? 3
+                : 4
+            )
+            .toString()
+            .slice(-1)
         );
         setTicks((prev) => ({
           ...prev,
@@ -36,7 +64,10 @@ const TicksTest = () => {
     };
 
     fetchTicks("R_100");
+    fetchTicks("R_75");
     fetchTicks("R_50");
+    fetchTicks("R_25");
+    fetchTicks("R_10");
 
     return () => {
       connection.close();
@@ -76,6 +107,29 @@ const TicksTest = () => {
           </div>
 
           <div
+            onClick={() => setVolatility("R_75")}
+            className="mb-4 p-1 bg-white rounded-md shadow-md"
+            style={{
+              cursor: "pointer",
+              border: volatility === "R_75" ? "1px solid red" : "",
+            }}
+          >
+            <h2 className="text-lg font-semibold mb-1">
+              Índice de volatilidade 75
+            </h2>
+            <div className="flex space-x-1">
+              {ticks.R_75.slice(-10).map((digit, index) => (
+                <span
+                  key={index}
+                  className="p-2 bg-blue-500 text-white rounded-lg"
+                >
+                  {digit}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div
             onClick={() => setVolatility("R_50")}
             className="mb-4 p-1 bg-white rounded-md shadow-md"
             style={{
@@ -88,6 +142,52 @@ const TicksTest = () => {
             </h2>
             <div className="flex space-x-1">
               {ticks.R_50.slice(-10).map((digit, index) => (
+                <span
+                  key={index}
+                  className="p-2 bg-blue-500 text-white rounded-lg"
+                >
+                  {digit}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div
+            onClick={() => setVolatility("R_25")}
+            className="mb-4 p-1 bg-white rounded-md shadow-md"
+            style={{
+              cursor: "pointer",
+              border: volatility === "R_25" ? "1px solid red" : "",
+            }}
+          >
+            <h2 className="text-lg font-semibold mb-1">
+              Índice de volatilidade 25
+            </h2>
+            <div className="flex space-x-1">
+              {ticks.R_25.slice(-10).map((digit, index) => (
+                <span
+                  key={index}
+                  className="p-2 bg-blue-500 text-white rounded-lg"
+                >
+                  {digit}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div
+            onClick={() => setVolatility("R_10")}
+            className="mb-4 p-1 bg-white rounded-md shadow-md"
+            style={{
+              cursor: "pointer",
+              border: volatility === "R_10" ? "1px solid red" : "",
+            }}
+          >
+            <h2 className="text-lg font-semibold mb-1">
+              Índice de volatilidade 10
+            </h2>
+            <div className="flex space-x-1">
+              {ticks.R_10.slice(-10).map((digit, index) => (
                 <span
                   key={index}
                   className="p-2 bg-blue-500 text-white rounded-lg"
