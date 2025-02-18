@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { redirect, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { checkToken, registerUser, userLogin } from "../services/userService";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -128,138 +129,205 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative">
-      {/* <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/imagemDeFundo.webp"
-          alt="imagem de fundo"
-          fill
-          className="object-cover object-bottom"
-        />
-        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-      </div> */}
+    <div className="min-h-screen flex">
+      <div className="flex w-full md:w-1/3  justify-center p-6">
+        <div className="w-full max-w-md">
+          <Image
+            src="/img/form-login.png"
+            alt="Imagem Login"
+            width={500}
+            height={500}
+            className="w-full h-auto max-w-[500px] mx-auto rounded-lg shadow-md"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
 
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md z-10">
-        <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500 mb-8 z-10 shadow-lg text-center">
-          Trade Platform
-        </h1>
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+          <div className="w-full max-w-md mt-5">
+            <h1 className="text-[#36344D] text-3xl font-semibold text-center">
+              {isRegistering ? "Cadastro" : "Login"}
+            </h1>
+            {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+            {isRegistering ? (
+              <form onSubmit={handleRegister} className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm/6 font-medium text-gray-900"
+                  >
+                    Nome:
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="block w-full rounded-md px-3 border border-gray-300 py-1.5 text-base text-gray-900 outline-none focus:outline-none focus:border-indigo-600 placeholder:text-gray-400 sm:text-sm/6"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm/6 font-medium text-gray-900"
+                  >
+                    Email:
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="block w-full rounded-md px-3 border border-gray-300 py-1.5 text-base text-gray-900 outline-none focus:outline-none focus:border-indigo-600 placeholder:text-gray-400 sm:text-sm/6"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="telephone"
+                    className="block text-sm/6 font-medium text-gray-900"
+                  >
+                    Telefone para contato:
+                  </label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={handlePhoneChange}
+                    className="block w-full rounded-md px-3 border border-gray-300 py-1.5 text-base text-gray-900 outline-none focus:outline-none focus:border-indigo-600 placeholder:text-gray-400 sm:text-sm/6"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm/6 font-medium text-gray-900"
+                  >
+                    Senha:
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full rounded-md px-3 border border-gray-300 py-1.5 text-base text-gray-900 outline-none focus:outline-none focus:border-indigo-600 placeholder:text-gray-400 sm:text-sm/6"
+                    required
+                  />
+                </div>
+                <button className="flex w-full justify-center rounded-md bg-green-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+                  Cadastrar
+                </button>
+                <p className="mt-10 text-center text-sm/6 text-gray-500">
+                  <a
+                    href="javascript:void(0)"
+                    onClick={() => setIsRegistering(false)}
+                    className="font-semibold text-indigo-600 hover:text-indigo-500 inline-flex items-center"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 mr-2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6.75 15.75 3 12m0 0 3.75-3.75M3 12h18"
+                      />
+                    </svg>
+                    Voltar para login
+                  </a>
+                </p>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm/6 font-medium text-gray-900"
+                  >
+                    Email:
+                  </label>
+                  <div className="mt-2">
+                    <input
+                      id="email"
+                      value={email}
+                      name="email"
+                      onChange={(e) => setEmail(e.target.value)}
+                      type="email"
+                      required
+                      autoComplete="email"
+                      className="block w-full rounded-md px-3 border border-gray-300 py-1.5 text-base text-gray-900 outline-none focus:outline-none focus:border-indigo-600 placeholder:text-gray-400 sm:text-sm/6"
+                    />
+                  </div>
+                </div>
 
-        {isRegistering ? (
-          <form onSubmit={handleRegister} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Nome:
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email:
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Telefone para contato:
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={handlePhoneChange}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Senha:
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            >
-              Cadastrar
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsRegistering(false)}
-              className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            >
-              Voltar para Login
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email:
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Senha:
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Entrar
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsRegistering(true)}
-              className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
-            >
-              Novo usuário
-            </button>
-          </form>
-        )}
-      </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="password"
+                      className="block text-sm/6 font-medium text-gray-900"
+                    >
+                      Senha
+                    </label>
+                    <div className="text-sm">
+                      <a
+                        href="#"
+                        className="font-semibold text-indigo-600 hover:text-indigo-500"
+                      >
+                        Esqueceu a senha?
+                      </a>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <input
+                      id="password"
+                      value={password}
+                      name="password"
+                      onChange={(e) => setPassword(e.target.value)}
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      className="block w-full rounded-md px-3 border border-gray-300 py-1.5 text-base text-gray-900 outline-none focus:outline-none focus:border-indigo-600 placeholder:text-gray-400 sm:text-sm/6"
+                    />
+                  </div>
+                </div>
 
-      {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 border-4 border-t-transparent border-blue-500 rounded-full animate-spin mb-4"></div>
-            <p className="text-white text-lg">Carregando...</p>
+                <div>
+                  <button
+                    type="submit"
+                    className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  >
+                    Entrar
+                  </button>
+                </div>
+                <p className="mt-10 text-center text-sm/6 text-gray-500">
+                  Novo usuário?{" "}
+                  <a
+                    href="javascript:void(0)"
+                    onClick={() => setIsRegistering(true)}
+                    className="font-semibold text-indigo-600 hover:text-indigo-500"
+                  >
+                    Crie sua conta
+                  </a>
+                </p>
+              </form>
+            )}
           </div>
+          {isLoading && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 border-4 border-t-transparent border-blue-500 rounded-full animate-spin mb-4"></div>
+                <p className="text-white text-lg">Carregando...</p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+      <div className="hidden md:flex w-2/3 relative">
+        <Image
+          src="/img/background-login-2.jpg"
+          alt="Imagem lateral"
+          layout="fill"
+          objectFit="cover"
+        />
+      </div>
     </div>
   );
 }
