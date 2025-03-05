@@ -12,6 +12,7 @@ export default function Sidebar() {
   const menuItems = [
     { name: "Operar", href: "/home" },
     { name: "Minha conta", href: "/profile" },
+    { name: "Usuários", href: "/users" },
     { name: "Sair", href: "/login" },
   ];
 

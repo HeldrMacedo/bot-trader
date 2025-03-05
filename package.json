@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@deriv/deriv-api": "^1.0.15",
+    "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.3.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
