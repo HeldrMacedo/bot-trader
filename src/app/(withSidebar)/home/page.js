@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/app/hooks/useAuth";
 import TicksTest from "./components/TicksTest";
+import Authentication from "./components/Authentication";
 
 export default function HomePage() {
   const auth = useAuth();
@@ -18,9 +19,16 @@ export default function HomePage() {
       </div>
     );
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md text-gray-800">
+    <div>
+      {/*<div className="bg-white p-6 rounded-lg shadow-md text-gray-800">*/}
       {/* <h1 className="text-2xl font-bold mb-4">Dashboard</h1> */}
+      
+      {/*</div>*/}
       <TicksTest />
+
+      <Authentication />
     </div>
+    
+    
   );
 }

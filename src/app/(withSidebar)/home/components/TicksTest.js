@@ -75,15 +75,51 @@ const TicksTest = () => {
   }, []);
 
   return (
-    <div className="p-6 bg-gray-100 rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold mb-4">Distribuição</h1>
-      <div className="grid grid-cols-4 gap-2">
-        <TicksGraph ticksProp={ticks[volatility]} selectedLastTicksProp={10} />
-        <TicksGraph ticksProp={ticks[volatility]} selectedLastTicksProp={25} />
-        <TicksGraph ticksProp={ticks[volatility]} selectedLastTicksProp={50} />
+    <div>
+      <span className="flex items-center gap-2 text-lg font-bold mb-4 text-gray-800">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth="1.5"
+          stroke="currentColor"
+          className="w-6 h-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+          />
+        </svg>
+        Distribuição
+      </span>
+      
+      {/*<div className="flex flex-col md:flex-row gap-4">*/}
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
+          <TicksGraph
+            ticksProp={ticks[volatility]}
+            selectedLastTicksProp={10}
+          />
+        </div>
 
-        <div>
-          <div
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
+          <TicksGraph
+            ticksProp={ticks[volatility]}
+            selectedLastTicksProp={25}
+          />
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
+          <TicksGraph
+            ticksProp={ticks[volatility]}
+            selectedLastTicksProp={50}
+          />
+        </div>
+      </div>
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+        <div
             onClick={() => setVolatility("R_100")}
             className="mb-4 p-1 bg-white rounded-md shadow-md"
             style={{
@@ -91,7 +127,7 @@ const TicksTest = () => {
               border: volatility === "R_100" ? "1px solid red" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1">
+            <h2 className="text-lg font-semibold mb-1 text-gray-800">
               Índice de volatilidade 100
             </h2>
             <div className="flex space-x-1">
@@ -114,7 +150,7 @@ const TicksTest = () => {
               border: volatility === "R_75" ? "1px solid red" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1">
+            <h2 className="text-lg font-semibold mb-1 text-gray-800">
               Índice de volatilidade 75
             </h2>
             <div className="flex space-x-1">
@@ -137,7 +173,7 @@ const TicksTest = () => {
               border: volatility === "R_50" ? "1px solid red" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1">
+            <h2 className="text-lg font-semibold mb-1 text-gray-800">
               Índice de volatilidade 50
             </h2>
             <div className="flex space-x-1">
@@ -160,7 +196,7 @@ const TicksTest = () => {
               border: volatility === "R_25" ? "1px solid red" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1">
+            <h2 className="text-lg font-semibold mb-1 text-gray-800">
               Índice de volatilidade 25
             </h2>
             <div className="flex space-x-1">
@@ -183,7 +219,7 @@ const TicksTest = () => {
               border: volatility === "R_10" ? "1px solid red" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1">
+            <h2 className="text-lg font-semibold mb-1 text-gray-800">
               Índice de volatilidade 10
             </h2>
             <div className="flex space-x-1">
