@@ -24,9 +24,13 @@ export default function HomePage() {
       {/* <h1 className="text-2xl font-bold mb-4">Dashboard</h1> */}
       
       {/*</div>*/}
-      <TicksTest />
-
-      <Authentication />
+      <div className="w-full">
+        <div className="container mx-auto flex flex-col items-center">
+          <TicksTest />
+        </div>
+        
+      </div>
+      
     </div>
     
     

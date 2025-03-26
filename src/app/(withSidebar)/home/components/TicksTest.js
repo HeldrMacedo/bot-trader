@@ -3,6 +3,7 @@
 import DerivAPI from "@deriv/deriv-api";
 import { useEffect, useState } from "react";
 import TicksGraph from "./TicksGraph";
+import Authentication from "./Authentication";
 
 const TicksTest = () => {
   const [ticks, setTicks] = useState({
@@ -76,66 +77,85 @@ const TicksTest = () => {
 
   return (
     <div>
-      <span className="flex items-center gap-2 text-lg font-bold mb-4 text-gray-800">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth="1.5"
-          stroke="currentColor"
-          className="w-6 h-6"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
-          />
-        </svg>
-        Distribuição
+      <span className="flex justify-between gap-2 text-lg font-bold  text-gray-800 mb-4 mt-4">
+        <div className="flex items-center gap-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            className="w-6 h-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+            />
+          </svg>
+          Distribuição
+        </div>
+        <div>Índ. Volatilidade {volatility.split("_")[1]}</div>
       </span>
-      
+
       {/*<div className="flex flex-col md:flex-row gap-4">*/}
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
-          <TicksGraph
-            ticksProp={ticks[volatility]}
-            selectedLastTicksProp={10}
-          />
+      <div className="grid grid-cols-4 gap-4">
+        <div className="col-span-3 grid grid-cols-3 auto-rows-min gap-4 items-start">
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
+            <TicksGraph
+              ticksProp={ticks[volatility]}
+              selectedLastTicksProp={10}
+            />
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
+            <TicksGraph
+              ticksProp={ticks[volatility]}
+              selectedLastTicksProp={25}
+            />
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
+            <TicksGraph
+              ticksProp={ticks[volatility]}
+              selectedLastTicksProp={50}
+            />
+          </div>
+          <div className="grid col-span-3">
+            <div className="flex justify-between w-full">
+              <div className="flex items-center gap-2 text-lg font-bold  text-gray-800">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="size-6"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                  />
+                </svg>
+                Conta conectada
+              </div>
+              <div><Authentication /></div>
+              
+            </div>
+          </div>
         </div>
-
-        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
-          <TicksGraph
-            ticksProp={ticks[volatility]}
-            selectedLastTicksProp={25}
-          />
-        </div>
-
-        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
-          <TicksGraph
-            ticksProp={ticks[volatility]}
-            selectedLastTicksProp={50}
-          />
-        </div>
-      </div>
-        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-        <div
+        <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+          <div
             onClick={() => setVolatility("R_100")}
-            className="mb-4 p-1 bg-white rounded-md shadow-md"
+            className="mb-4 p-2  text-gray-800 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
             style={{
               cursor: "pointer",
-              border: volatility === "R_100" ? "1px solid red" : "",
+              border: volatility === "R_100" ? "1px solid #111827" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1 text-gray-800">
-              Índice de volatilidade 100
-            </h2>
-            <div className="flex space-x-1">
-              {ticks.R_100.slice(-10).map((digit, index) => (
-                <span
-                  key={index}
-                  className="p-2 bg-blue-500 text-white rounded-lg"
-                >
+            <h2 className="text-base mb-1">Índice de volatilidade 100</h2>
+            <div className="flex">
+              {ticks.R_100.slice(-18).map((digit, index) => (
+                <span key={index} className="pr-1 pl-1 text-[12px] border">
                   {digit}
                 </span>
               ))}
@@ -144,21 +164,16 @@ const TicksTest = () => {
 
           <div
             onClick={() => setVolatility("R_75")}
-            className="mb-4 p-1 bg-white rounded-md shadow-md"
+            className="mb-4 p-2 text-gray-800 rounded-md shadow-md border-b-[4px] border-b-[#111827] "
             style={{
               cursor: "pointer",
-              border: volatility === "R_75" ? "1px solid red" : "",
+              border: volatility === "R_75" ? "1px solid #111827" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1 text-gray-800">
-              Índice de volatilidade 75
-            </h2>
-            <div className="flex space-x-1">
-              {ticks.R_75.slice(-10).map((digit, index) => (
-                <span
-                  key={index}
-                  className="p-2 bg-blue-500 text-white rounded-lg"
-                >
+            <h2 className="text-base mb-1">Índice de volatilidade 75</h2>
+            <div className="flex">
+              {ticks.R_75.slice(-18).map((digit, index) => (
+                <span key={index} className="pr-1 pl-1 text-[12px] border">
                   {digit}
                 </span>
               ))}
@@ -167,21 +182,16 @@ const TicksTest = () => {
 
           <div
             onClick={() => setVolatility("R_50")}
-            className="mb-4 p-1 bg-white rounded-md shadow-md"
+            className="mb-4 p-2 text-gray-800 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
             style={{
               cursor: "pointer",
-              border: volatility === "R_50" ? "1px solid red" : "",
+              border: volatility === "R_50" ? "1px solid #111827" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1 text-gray-800">
-              Índice de volatilidade 50
-            </h2>
-            <div className="flex space-x-1">
-              {ticks.R_50.slice(-10).map((digit, index) => (
-                <span
-                  key={index}
-                  className="p-2 bg-blue-500 text-white rounded-lg"
-                >
+            <h2 className="text-base mb-1">Índice de volatilidade 50</h2>
+            <div className="flex">
+              {ticks.R_50.slice(-18).map((digit, index) => (
+                <span key={index} className="pr-1 pl-1 text-[12px] border">
                   {digit}
                 </span>
               ))}
@@ -190,21 +200,16 @@ const TicksTest = () => {
 
           <div
             onClick={() => setVolatility("R_25")}
-            className="mb-4 p-1 bg-white rounded-md shadow-md"
+            className="mb-4 p-2 text-gray-800 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
             style={{
               cursor: "pointer",
-              border: volatility === "R_25" ? "1px solid red" : "",
+              border: volatility === "R_25" ? "1px solid #111827" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1 text-gray-800">
-              Índice de volatilidade 25
-            </h2>
-            <div className="flex space-x-1">
-              {ticks.R_25.slice(-10).map((digit, index) => (
-                <span
-                  key={index}
-                  className="p-2 bg-blue-500 text-white rounded-lg"
-                >
+            <h2 className="text-base mb-1">Índice de volatilidade 25</h2>
+            <div className="flex ">
+              {ticks.R_25.slice(-18).map((digit, index) => (
+                <span key={index} className="pr-1 pl-1 text-[12px] border">
                   {digit}
                 </span>
               ))}
@@ -213,21 +218,16 @@ const TicksTest = () => {
 
           <div
             onClick={() => setVolatility("R_10")}
-            className="mb-4 p-1 bg-white rounded-md shadow-md"
+            className="mb-4 p-2 text-gray-800 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
             style={{
               cursor: "pointer",
-              border: volatility === "R_10" ? "1px solid red" : "",
+              border: volatility === "R_10" ? "1px solid #111827" : "",
             }}
           >
-            <h2 className="text-lg font-semibold mb-1 text-gray-800">
-              Índice de volatilidade 10
-            </h2>
-            <div className="flex space-x-1">
-              {ticks.R_10.slice(-10).map((digit, index) => (
-                <span
-                  key={index}
-                  className="p-2 bg-blue-500 text-white rounded-lg"
-                >
+            <h2 className="text-base mb-1 ">Índice de volatilidade 10</h2>
+            <div className="flex">
+              {ticks.R_10.slice(-18).map((digit, index) => (
+                <span key={index} className="pr-1 pl-1 text-[12px] border">
                   {digit}
                 </span>
               ))}

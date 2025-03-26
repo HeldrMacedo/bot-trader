@@ -104,9 +104,14 @@ const Authentication = () => {
   return (
     <div className="container text-gray-800">
       {!isAuthenticated ? (
-        <button className="login-button" onClick={handleLogin}>
-          Login com Deriv
+        <button className="login-button flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" onClick={handleLogin}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+</svg>
+Adicionar Conta
         </button>
+
+
       ) : (
         <div className="account-container">
           {error && <div className="error">{error}</div>}

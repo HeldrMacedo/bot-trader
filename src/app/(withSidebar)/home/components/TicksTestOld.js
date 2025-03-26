@@ -4,7 +4,7 @@ import DerivAPI from "@deriv/deriv-api";
 import { useEffect, useState } from "react";
 import TicksGraph from "./TicksGraph";
 
-const TicksTest = () => {
+const TicksTestOLDD = () => {
   const [ticks, setTicks] = useState({
     R_100: [],
     R_75: [],
@@ -203,4 +203,4 @@ const TicksTest = () => {
   );
 };
 
-export default TicksTest;
+export default TicksTestOLDD;
