@@ -4,6 +4,7 @@ import DerivAPI from "@deriv/deriv-api";
 import { useEffect, useState } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication from "./Authentication";
+import { ChevronDownIcon } from "@heroicons/react/16/solid";
 
 const TicksTest = () => {
   const [ticks, setTicks] = useState({
@@ -14,6 +15,59 @@ const TicksTest = () => {
     R_10: [],
   });
   const [volatility, setVolatility] = useState("R_100");
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const storedAccounts = JSON.parse(
+      localStorage.getItem("deriv_accounts") || "[]"
+    );
+    console.log(storedAccounts);
+    if (storedAccounts.length > 0) {
+      setAccounts(storedAccounts);
+    }
+  }, []);
+
+  const authorizeAccount = async (token) => {
+    try {
+      const ws = new WebSocket(
+        "wss://ws.derivws.com/websockets/v3?app_id=" + APP_ID
+      );
+
+      await new Promise((resolve) => {
+        ws.onopen = resolve;
+      });
+
+      ws.send(
+        JSON.stringify({
+          authorize: token,
+        })
+      );
+
+      ws.onmessage = (message) => {
+        const response = JSON.parse(message.data);
+
+        if (response.error) {
+          setError(response.error.message);
+          ws.close();
+          return;
+        }
+
+        if (response.authorize) {
+          setUserData({
+            ...response.authorize,
+            balance: response.authorize.balance,
+            accounts: response.authorize.account_list,
+          });
+          ws.close();
+        }
+      };
+    } catch (err) {
+      setError("Erro na conexão com a API Deriv");
+    }
+  }; 
 
   useEffect(() => {
     const connection = new WebSocket(
@@ -138,8 +192,52 @@ const TicksTest = () => {
                 </svg>
                 Conta conectada
               </div>
-              <div><Authentication /></div>
-              
+              <div>
+                <Authentication />
+              </div>
+            </div>
+            <div className="w-full bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+              <div className="flex justify-between w-full text-gray-800 border-b">
+                <div>Bem vindo</div>
+                <div className="flex gap-6">
+                  <div>Wins: 0</div>
+                  <div>Loss: 0</div>
+                  <div>Resultado: $0</div>
+                </div>
+              </div>
+              <div className="flex w-full">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Conta:
+                  </label>
+                  <div className="mt-2 grid grid-cols-1">
+                    <select
+                      onChange={(e) => {
+                        const account = JSON.parse(e.target.value);
+                        setSelectedAccount(account);
+                        authorizeAccount(account.token);
+                      }}
+                      className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+                    >
+                      <option value="">Selecione uma Conta</option>
+                      {accounts.map((account, index) => (
+                        <option
+                          key={index}
+                          value={JSON.stringify(account)}
+                          selected={account.is_virtual}
+                        >
+                          {account.is_virtual ? "Conta Virtual" : "Conta Real"}{" "}
+                          ({account.currency.toUpperCase()})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDownIcon
+                      aria-hidden="true"
+                      className="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-gray-400"
+                    />{" "}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
