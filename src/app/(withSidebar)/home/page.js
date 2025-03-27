@@ -2,7 +2,6 @@
 
 import { useAuth } from "@/app/hooks/useAuth";
 import TicksTest from "./components/TicksTest";
-import Authentication from "./components/Authentication";
 
 export default function HomePage() {
   const auth = useAuth();

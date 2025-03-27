@@ -1,10 +1,12 @@
 "use client";
 
 import DerivAPI from "@deriv/deriv-api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef  } from "react";
 import TicksGraph from "./TicksGraph";
-import Authentication from "./Authentication";
+import Authentication, {AuthenticationHandle} from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
+
+const APP_ID = 67957;
 
 const TicksTest = () => {
   const [ticks, setTicks] = useState({
@@ -19,6 +21,7 @@ const TicksTest = () => {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [userData, setUserData] = useState(null);
   const [error, setError] = useState(null);
+  const authenticationRef = useRef<AuthenticationHandle>(null);
 
   useEffect(() => {
     const storedAccounts = JSON.parse(
@@ -67,7 +70,14 @@ const TicksTest = () => {
     } catch (err) {
       setError("Erro na conexão com a API Deriv");
     }
-  }; 
+  };
+
+  const handleLougout = () => {
+    if (authenticationRef.current) {
+      authenticationRef.current.handleLogout();
+    }
+    
+  };
 
   useEffect(() => {
     const connection = new WebSocket(
@@ -182,7 +192,7 @@ const TicksTest = () => {
                   viewBox="0 0 24 24"
                   stroke-width="1.5"
                   stroke="currentColor"
-                  class="size-6"
+                  className="size-6"
                 >
                   <path
                     stroke-linecap="round"
@@ -193,24 +203,25 @@ const TicksTest = () => {
                 Conta conectada
               </div>
               <div>
-                <Authentication />
+                <Authentication ref={authenticationRef} />
               </div>
             </div>
-            <div className="w-full bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-              <div className="flex justify-between w-full text-gray-800 border-b">
+            <div className="w-full bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow mt-4">
+              <div className="flex justify-between w-full text-gray-800 border-b pb-4">
                 <div>Bem vindo</div>
-                <div className="flex gap-6">
-                  <div>Wins: 0</div>
-                  <div>Loss: 0</div>
-                  <div>Resultado: $0</div>
+                <div className="flex gap-2">
+                  <div className="border-r-[2px] pr-2">Wins: 0</div>
+                  <div className="border-r-[2px] pr-2">Loss: 0</div>
+                  <div className="border-r-[2px] pr-2">Resultado: $0</div>
+                  <button onClick={handleLougout}>Logout</button>
                 </div>
               </div>
-              <div className="flex w-full">
-                <div>
+              <div className="flex w-full gap-4">
+                <div className="mt-2 w-full">
                   <label className="text-sm font-medium text-gray-700">
                     Conta:
                   </label>
-                  <div className="mt-2 grid grid-cols-1">
+                  <div className="grid grid-cols-1">
                     <select
                       onChange={(e) => {
                         const account = JSON.parse(e.target.value);
@@ -235,6 +246,70 @@ const TicksTest = () => {
                       aria-hidden="true"
                       className="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-gray-400"
                     />{" "}
+                  </div>
+                </div>
+                <div className="mt-2 w-full">
+                  <label
+                    htmlFor="input-group-1"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Entrada inicial:
+                  </label>
+                  <div className="relative mb-6">
+                    <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        className="size-6"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      type="text text-gray-700 "
+                      id="input-group-1"
+                      className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 ps-10 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+                      placeholder="name@flowbite.com"
+                    />
+                  </div>
+                </div>
+                <div className="mt-2 w-full">
+                  <label
+                    htmlFor="input-group-1"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Entrada Real (Com Gale):
+                  </label>
+                  <div className="relative mb-6">
+                    <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        className="size-6"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      type="text text-gray-700 "
+                      id="input-group-1"
+                      className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 ps-10 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+                      placeholder="name@flowbite.com"
+                    />
                   </div>
                 </div>
               </div>
