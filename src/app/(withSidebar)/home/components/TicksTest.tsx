@@ -7,7 +7,7 @@ import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
 import BuyTable from "./buyTable";
 
-const APP_ID = 70251;
+const APP_ID = process.env.NEXT_PUBLIC_APPID;
 
 const TicksTest = () => {
   const [ticks, setTicks] = useState({
@@ -25,13 +25,13 @@ const TicksTest = () => {
   const authenticationRef = useRef<AuthenticationHandle>(null);
   const [valorEntrada, setValorEntrada] = useState("");
   const [valorReal, setValorReal] = useState("0.00");
-  const [multiplicador, setMultiplicador] = useState(2);
+  const [multiplicador, setMultiplicador] = useState(1);
 
   useEffect(() => {
     const storedAccounts = JSON.parse(
       localStorage.getItem("deriv_accounts") || "[]"
     );
-    console.log(storedAccounts);
+
     if (storedAccounts.length > 0) {
       setAccounts(storedAccounts);
     }
@@ -103,6 +103,12 @@ const TicksTest = () => {
     setValorReal(calculatedValue);
   };
 
+  const handleMultiplicador = (value) =>{
+    console.log("handleMultiplicador");
+    console.log(value)
+    setMultiplicador(value);
+  }
+
   useEffect(() => {
     const connection = new WebSocket(
       "wss://ws.derivws.com/websockets/v3?app_id=1089"
@@ -167,7 +173,14 @@ const TicksTest = () => {
     <div>
       <span className="flex justify-between gap-2 text-lg font-bold  text-gray-800 mb-4 mt-4">
         <div className="flex items-center gap-2">
-          <svg
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
+</svg>
+
+          Distribuição
+        </div>
+        <div className="flex items-center gap-2">
+        <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -181,15 +194,12 @@ const TicksTest = () => {
               d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
             />
           </svg>
-          Distribuição
-        </div>
-        <div>Índ. Volatilidade {volatility.split("_")[1]}</div>
+Índ. Volatilidade {volatility.split("_")[1]}</div>
       </span>
 
-      {/*<div className="flex flex-col md:flex-row gap-4">*/}
       <div className="grid grid-cols-4 gap-4">
         <div className="col-span-3 grid grid-cols-3 auto-rows-min gap-4 items-start">
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
+        <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow self-start">
             <TicksGraph
               ticksProp={ticks[volatility]}
               selectedLastTicksProp={10}
@@ -342,26 +352,21 @@ const TicksTest = () => {
                       type="text"
                       id="entrada-real"
                       readOnly
-                      value={`${valorReal}`} // Garante o formato string
+                      value={`${valorReal}`}
+                      onChange={(e) => setValorReal(e.target.value)}
                       className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                       placeholder="0.00"
                     />
                   </div>
-                  <div>
-                    <h1>Vou testar aqui</h1>
-                    <BuyTable
-                      authToken={selectedAccount?.token}
-                      currency={selectedAccount?.currency}
-                      isVirtual={selectedAccount?.is_virtual}
-                    />
-                  </div>
+                  
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-          <div
+        <div>
+       <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow space-y-4">
+        <div
             onClick={() => setVolatility("R_100")}
             className="mb-4 p-2  text-gray-800 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
             style={{
@@ -450,8 +455,17 @@ const TicksTest = () => {
               ))}
             </div>
           </div>
+          </div>
+          <BuyTable
+            authToken={selectedAccount?.token}
+            currency={selectedAccount?.currency}
+            isVirtual={selectedAccount?.is_virtual}
+            multiplicadorProp={handleMultiplicador}
+            className="mt-4 pt-4 border-t border-gray-200"
+          />
         </div>
       </div>
+      
     </div>
   );
 };

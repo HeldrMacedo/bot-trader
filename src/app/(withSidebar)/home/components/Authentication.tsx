@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 
-const APP_ID = 70251;
+const APP_ID = process.env.NEXT_PUBLIC_APPID;
 const REDIRECT_URI =
   "https://869a-2804-29b8-50df-f39f-d30c-dff0-594f-ed22.ngrok-free.app/home"; // Substitua pela sua URI de redirecionamento
 // const REDIRECT_URI = "http://localhost:3000/home";
