@@ -5,8 +5,9 @@ import { useEffect, useState, useRef } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
+import BuyTable from "./buyTable";
 
-const APP_ID = 67957;
+const APP_ID = 70251;
 
 const TicksTest = () => {
   const [ticks, setTicks] = useState({
@@ -25,7 +26,6 @@ const TicksTest = () => {
   const [valorEntrada, setValorEntrada] = useState("");
   const [valorReal, setValorReal] = useState("0.00");
   const [multiplicador, setMultiplicador] = useState(2);
-
 
   useEffect(() => {
     const storedAccounts = JSON.parse(
@@ -84,25 +84,24 @@ const TicksTest = () => {
 
   const formatInputMoney = (value) => {
     // Limpa caracteres não numéricos exceto ponto
-    let cleanedValue = value.replace(/[^0-9.]/g, '');
-    
+    let cleanedValue = value.replace(/[^0-9.]/g, "");
+
     // Divide em partes inteira e decimal
-    const parts = cleanedValue.split('.');
-    
+    const parts = cleanedValue.split(".");
+
     // Limita para apenas um ponto decimal
     if (parts.length > 2) {
-      cleanedValue = parts[0] + '.' + parts.slice(1).join('');
+      cleanedValue = parts[0] + "." + parts.slice(1).join("");
     }
-  
+
     // Formata o valor de entrada
     setValorEntrada(cleanedValue);
-  
+
     // Calcula e formata o valor real
     const numericValue = parseFloat(cleanedValue) || 0;
     const calculatedValue = (numericValue * multiplicador).toFixed(2);
     setValorReal(calculatedValue);
   };
-  
 
   useEffect(() => {
     const connection = new WebSocket(
@@ -329,26 +328,34 @@ const TicksTest = () => {
                   </div>
                 </div>
                 <div className="mt-2 w-full">
-  <label
-    htmlFor="entrada-real"
-    className="text-sm font-medium text-gray-700"
-  >
-    Entrada Real (Com Gale):
-  </label>
-  <div className="relative mb-6">
-    <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
-      <span className="text-gray-500">$</span>
-    </div>
-    <input
-      type="text"
-      id="entrada-real"
-      readOnly
-      value={`${valorReal}`} // Garante o formato string
-      className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
-      placeholder="0.00"
-    />
-  </div>
-</div>
+                  <label
+                    htmlFor="entrada-real"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Entrada Real (Com Gale):
+                  </label>
+                  <div className="relative mb-6">
+                    <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
+                      <span className="text-gray-500">$</span>
+                    </div>
+                    <input
+                      type="text"
+                      id="entrada-real"
+                      readOnly
+                      value={`${valorReal}`} // Garante o formato string
+                      className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <h1>Vou testar aqui</h1>
+                    <BuyTable
+                      authToken={selectedAccount?.token}
+                      currency={selectedAccount?.currency}
+                      isVirtual={selectedAccount?.is_virtual}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
