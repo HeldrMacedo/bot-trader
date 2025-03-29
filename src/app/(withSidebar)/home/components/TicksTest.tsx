@@ -104,8 +104,6 @@ const TicksTest = () => {
   };
 
   const handleMultiplicador = (value) =>{
-    console.log("handleMultiplicador");
-    console.log(value)
     setMultiplicador(value);
   }
 

@@ -100,6 +100,7 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
         }
 
         if (response.authorize) {
+          
           const accountData = {
             ...response.authorize,
             balance: response.authorize.balance,
