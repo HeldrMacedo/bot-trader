@@ -1,4 +1,5 @@
 "use client";
+import DerivService from "@/app/services/DerivService";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
@@ -16,6 +17,7 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [userData, setUserData] = useState(null);
   const [error, setError] = useState(null);
+  const derivService = DerivService.getInstance();
 
   useImperativeHandle(ref, () => ({
     handleLogout: () => {
@@ -29,49 +31,11 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
   }));
 
   useEffect(() => {
-    const storedAccounts = JSON.parse(
-      localStorage.getItem("deriv_accounts") || "[]"
-    );
-
-    if (storedAccounts.length > 0) {
-      setAccounts(storedAccounts);
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  // Processar redirecionamento após login
-  useEffect(() => {
-    const parseQueryParams = () => {
-      const params = new URLSearchParams(window.location.search);
-      const accounts = [];
-
-      // Extrair contas dos parâmetros de query
-      let index = 1;
-      while (params.get(`acct${index}`)) {
-        accounts.push({
-          account: params.get(`acct${index}`),
-          token: params.get(`token${index}`),
-          currency: params.get(`cur${index}`),
-          is_virtual: params.get(`acct${index}`).startsWith("VRTC"),
-        });
-        index++;
-      }
-
-      if (accounts.length > 0) {
-        localStorage.setItem("deriv_accounts", JSON.stringify(accounts));
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
-
-        setAccounts(accounts);
-        setIsAuthenticated(true);
-      }
-    };
-
-    parseQueryParams();
-  }, []);
+    
+    
+    //derivService.processLoginResponse();
+    
+  }, [derivService]);
 
   // Autorizar conta selecionada
   const authorizeAccount = async (token) => {
@@ -121,11 +85,9 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
     }
   };
 
-  // Handlers
+
   const handleLogin = () => {
-    window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}&redirect_uri=${encodeURIComponent(
-      REDIRECT_URI
-    )}`;
+    derivService.loginDeriv();
   };
 
   useImperativeHandle(ref, () => ({

@@ -6,6 +6,7 @@ import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
 import BuyTable from "./buyTable";
+import DerivService from "@/app/services/DerivService";
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
 
@@ -20,14 +21,22 @@ const TicksTest = () => {
   const [volatility, setVolatility] = useState("R_100");
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState([]);
   const [error, setError] = useState(null);
   const authenticationRef = useRef<AuthenticationHandle>(null);
   const [valorEntrada, setValorEntrada] = useState("");
   const [valorReal, setValorReal] = useState("0.00");
   const [multiplicador, setMultiplicador] = useState(1);
+  
 
   useEffect(() => {
+    const derivService = DerivService.getInstance();
+    derivService.init();
+    derivService.processAuthenticatedUserData();
+    setUserData(derivService.getStorageDerivAccount());
+    console.log(userData);
+
+   
     const storedAccounts = JSON.parse(
       localStorage.getItem("deriv_accounts") || "[]"
     );
@@ -109,10 +118,10 @@ const TicksTest = () => {
 
   useEffect(() => {
     const connection = new WebSocket(
-      "wss://ws.derivws.com/websockets/v3?app_id=1089"
+      "wss://ws.derivws.com/websockets/v3?app_id=" + process.env.NEXT_PUBLIC_APPID
     );
     const api = new DerivAPI({ connection });
-
+    
     const fetchTicks = async (symbol) => {
       const ticksStream = await api.ticks(symbol);
       const listTicksReturn = await ticksStream.history({
@@ -302,7 +311,7 @@ const TicksTest = () => {
                           selected={account.is_virtual}
                         >
                           {account.is_virtual ? "Conta Virtual" : "Conta Real"}{" "}
-                          ({account.currency.toUpperCase()})
+                          ({account.currency})
                         </option>
                       ))}
                     </select>

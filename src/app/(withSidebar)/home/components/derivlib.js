@@ -45,25 +45,13 @@ const Deriv = {
     },
 
     init() {
-        let metaElementScope = document.createElement('meta');
-        metaElementScope.setAttribute('name', 'token_scope');
-        metaElementScope.setAttribute('content', 'tradeplatatform');
-
-        let metaElementAppId = document.createElement('meta');
-        metaElementAppId.setAttribute('name', 'app_id');
-        metaElementAppId.setAttribute('content', '67957');
-
-
-        let getElementHead = document.querySelector('head');
-        getElementHead.appendChild(metaElementScope);
-        getElementHead.appendChild(metaElementAppId);
 
         const scope = document.querySelector('meta[name="token_scope"]')
         
         if (scope) {
             Deriv.deriv_token_scope = scope.content + '-';
         }
-        console.log(Deriv.deriv_token_scope);
+
         const appId = document.querySelector('meta[name="app_id"]')
         
         if (appId && !Number.isNaN(Number(appId.content))) {
@@ -401,78 +389,5 @@ const Deriv = {
         }, {}))
     }
 };
-{
-    "account_list": [
-        {
-            "account_category": "trading",
-            "account_type": "binary",
-            "broker": "CR",
-            "created_at": 1610072090,
-            "currency": "USD",
-            "currency_type": "fiat",
-            "is_disabled": 0,
-            "is_virtual": 0,
-            "landing_company_name": "svg",
-            "linked_to": [],
-            "loginid": "CR2042620"
-        },
-        {
-            "account_category": "trading",
-            "account_type": "binary",
-            "broker": "VRTC",
-            "created_at": 1610058653,
-            "currency": "USD",
-            "currency_type": "fiat",
-            "is_disabled": 0,
-            "is_virtual": 1,
-            "landing_company_name": "virtual",
-            "linked_to": [],
-            "loginid": "VRTC3742841"
-        }
-    ],
-    "balance": 10002.85,
-    "country": "br",
-    "currency": "USD",
-    "email": "helder.macedo@outlook.com",
-    "fullname": "Mr Helder Macedo",
-    "is_virtual": 1,
-    "landing_company_fullname": "Deriv Limited",
-    "landing_company_name": "virtual",
-    "linked_to": [],
-    "local_currencies": {
-        "BRL": {
-            "fractional_digits": 2
-        }
-    },
-    "loginid": "VRTC3742841",
-    "preferred_language": "PT",
-    "scopes": [
-        "payments",
-        "read",
-        "trade",
-        "trading_information"
-    ],
-    "upgradeable_landing_companies": [
-        "maltainvest",
-        "svg"
-    ],
-    "user_id": 7855692
 
-    
-}
-
-[
-    {
-        "loginid": "CR2042620",
-        "token": "a1-CtCcjhnAQ8cQrrvRcGRtRDGJP5O6U",
-        "currency": "USD",
-        "balance": 0
-    },
-    {
-        "loginid": "VRTC3742841",
-        "token": "a1-lGS4Ah9EkYRhv7EZrzl2YA4bkpx9O",
-        "currency": "USD",
-        "balance": 10002.2
-    }
-]
 Deriv.init();
