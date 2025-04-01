@@ -98,7 +98,7 @@ export default class DerivService {
     const userData = this.getStorageDerivAccount();
     if (userData && userData.length > 0) {
       this.setAccount(userData);
-      return null;
+      return this.getUser()[0];
     
     }
     const tokens = this.getTokens();

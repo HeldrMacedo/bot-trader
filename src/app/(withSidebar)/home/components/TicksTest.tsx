@@ -1,7 +1,7 @@
 "use client";
 
 import DerivAPI from "@deriv/deriv-api";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
@@ -21,30 +21,44 @@ const TicksTest = () => {
   const [volatility, setVolatility] = useState("R_100");
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
-  const [userData, setUserData] = useState([]);
+  const [userData, setUserData] = useState(null);
   const [error, setError] = useState(null);
   const authenticationRef = useRef<AuthenticationHandle>(null);
   const [valorEntrada, setValorEntrada] = useState("");
   const [valorReal, setValorReal] = useState("0.00");
   const [multiplicador, setMultiplicador] = useState(1);
   
+  
 
   useEffect(() => {
     const derivService = DerivService.getInstance();
     derivService.init();
-    derivService.processAuthenticatedUserData();
-    setUserData(derivService.getStorageDerivAccount());
-    console.log(userData);
-
-   
-    const storedAccounts = JSON.parse(
-      localStorage.getItem("deriv_accounts") || "[]"
-    );
-
-    if (storedAccounts.length > 0) {
-      setAccounts(storedAccounts);
+    derivService.processAuthenticatedUserData().then((response) => {
+      setUserData(response);
+    });
+    
+    if (userData) {
+      console.log("entrou"+ userData.amount);
+      formatInputMoney(userData.amount);
     }
-  }, []);
+    console.log(userData);
+  });
+
+
+  const formatInputMoney = (value: any) => {
+    let cleanedValue = String(value).replace(/[^0-9.]/g, "");
+    const parts = cleanedValue.split(".");
+
+    if (parts.length > 2) {
+      cleanedValue = parts[0] + "." + parts.slice(1).join("");
+    }
+
+    setValorEntrada(cleanedValue);
+
+    const numericValue = parseFloat(cleanedValue) || 0;
+    const calculatedValue = (numericValue * multiplicador).toFixed(2);
+    setValorReal(calculatedValue);
+  };
 
   const authorizeAccount = async (token) => {
     try {
@@ -91,26 +105,7 @@ const TicksTest = () => {
     }
   };
 
-  const formatInputMoney = (value) => {
-    // Limpa caracteres não numéricos exceto ponto
-    let cleanedValue = value.replace(/[^0-9.]/g, "");
-
-    // Divide em partes inteira e decimal
-    const parts = cleanedValue.split(".");
-
-    // Limita para apenas um ponto decimal
-    if (parts.length > 2) {
-      cleanedValue = parts[0] + "." + parts.slice(1).join("");
-    }
-
-    // Formata o valor de entrada
-    setValorEntrada(cleanedValue);
-
-    // Calcula e formata o valor real
-    const numericValue = parseFloat(cleanedValue) || 0;
-    const calculatedValue = (numericValue * multiplicador).toFixed(2);
-    setValorReal(calculatedValue);
-  };
+  
 
   const handleMultiplicador = (value) =>{
     setMultiplicador(value);
@@ -247,13 +242,14 @@ const TicksTest = () => {
                 <Authentication ref={authenticationRef} />
               </div>
             </div>
+            {userData && (
             <div className="w-full bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow mt-4">
               <div className="flex justify-between items-center w-full text-gray-800 border-b pb-4">
-                <div>Bem vindo</div>
+                <div>Bem vindo {userData.name}</div>
                 <div className="flex gap-2 items-center">
-                  <div className="border-r-[2px] pr-2">Wins: 0</div>
-                  <div className="border-r-[2px] pr-2">Loss: 0</div>
-                  <div className="border-r-[2px] pr-2">Resultado: $0</div>
+                  <div className="border-r-[2px] pr-2">Wins: {userData.results.wins}</div>
+                  <div className="border-r-[2px] pr-2">Loss: {userData.results.loss}</div>
+                  <div className="border-r-[2px] pr-2">Resultado: ${userData.results.result}</div>
                   <div className="group relative inline-block">
                     <button
                       className="flex items-center gap-2 rounded-md bg-red-600 px-1 py-1 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
@@ -338,9 +334,6 @@ const TicksTest = () => {
                       className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                       placeholder="0.00"
                       value={valorEntrada}
-                      onChange={(e) => {
-                        formatInputMoney(e.target.value);
-                      }}
                     />
                   </div>
                 </div>
@@ -360,7 +353,6 @@ const TicksTest = () => {
                       id="entrada-real"
                       readOnly
                       value={`${valorReal}`}
-                      onChange={(e) => setValorReal(e.target.value)}
                       className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                       placeholder="0.00"
                     />
@@ -369,6 +361,7 @@ const TicksTest = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
         <div>
