@@ -1,7 +1,7 @@
 "use client";
 
 import DerivAPI from "@deriv/deriv-api";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, use } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
@@ -35,17 +35,18 @@ const TicksTest = () => {
     derivService.init();
     derivService.processAuthenticatedUserData().then((response) => {
       setUserData(response);
-    });
+    });   
     
-    if (userData) {
-      console.log("entrou"+ userData.amount);
+  }, []);
+  
+  useEffect(() => {
+    if (userData && userData.amount) {
       formatInputMoney(userData.amount);
     }
-    console.log(userData);
-  });
-
+  }, [userData]);
 
   const formatInputMoney = (value: any) => {
+    console.log("Valor recebido:", value, multiplicador);
     let cleanedValue = String(value).replace(/[^0-9.]/g, "");
     const parts = cleanedValue.split(".");
 
@@ -58,7 +59,8 @@ const TicksTest = () => {
     const numericValue = parseFloat(cleanedValue) || 0;
     const calculatedValue = (numericValue * multiplicador).toFixed(2);
     setValorReal(calculatedValue);
-  };
+  }; 
+  
 
   const authorizeAccount = async (token) => {
     try {
@@ -105,11 +107,14 @@ const TicksTest = () => {
     }
   };
 
-  
-
-  const handleMultiplicador = (value) =>{
+  const handleMultiplicador = (value) => {
     setMultiplicador(value);
-  }
+  };
+  
+  useEffect(() => {
+    formatInputMoney(valorEntrada);
+  }, [multiplicador, valorEntrada]);
+
 
   useEffect(() => {
     const connection = new WebSocket(
@@ -334,6 +339,9 @@ const TicksTest = () => {
                       className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                       placeholder="0.00"
                       value={valorEntrada}
+                      onChange={(e) => {
+                        formatInputMoney(e.target.value);
+                      }}
                     />
                   </div>
                 </div>
