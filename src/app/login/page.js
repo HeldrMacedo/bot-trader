@@ -105,6 +105,7 @@ export default function LoginPage() {
 
     try {
       setIsLoading(true);
+
       const response = await registerUser(name, email, password, phone);
 
       const data = await response.json();
