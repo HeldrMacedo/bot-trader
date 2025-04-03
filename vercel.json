@@ -1,9 +1,0 @@
-{
-  "version": 2,
-  "regions": ["gru1"],
-  "build": {
-    "env": {
-      "DATABASE_URL": "postgresql://postgres:N_EuXPzpu7J%403%23d@db.iicfobkvbklvrmrmuqum.supabase.co:5432/postgres"
-    }
-  }
-}
