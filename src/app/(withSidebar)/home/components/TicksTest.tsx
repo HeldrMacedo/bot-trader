@@ -326,7 +326,7 @@ const TicksTest = () => {
                           <option
                             key={index}
                             value={JSON.stringify(account)}
-                            defaultValue={userData.activeToken === account.token}
+                            defaultValue={"Default"}
                           >
                             {account.is_virtual
                               ? "Conta Virtual"
@@ -490,7 +490,7 @@ const TicksTest = () => {
             currency={selectedAccount?.currency}
             isVirtual={selectedAccount?.is_virtual}
             multiplicadorProp={handleMultiplicador}
-            className="mt-4 pt-4 border-t border-gray-200"
+            // className="mt-4 pt-4 border-t border-gray-200"
           />
         </div>
       </div>

@@ -5,7 +5,9 @@ import { User } from "@prisma/client";
 interface UserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Omit<User, "id" | "createdAt" | "updatedAt">) => void;
+  onSubmit: (
+    data: Omit<User, "id" | "createdAt" | "updatedAt" | "deletedAt">
+  ) => void;
   initialData?: User | null;
 }
 
@@ -16,11 +18,11 @@ export default function UserModal({
   initialData,
 }: UserModalProps) {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    role: 'user' as 'user' | 'admin',
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "user" as "user" | "admin",
   });
 
   useEffect(() => {
@@ -29,14 +31,14 @@ export default function UserModal({
         name: initialData.name,
         email: initialData.email,
         phone: initialData.phone,
-        password: '',
-        role: initialData.role as 'user' | 'admin',
+        password: "",
+        role: initialData.role as "user" | "admin",
       });
     }
   }, [initialData]);
 
-  const handleRoleChange = (role: 'user' | 'admin') => {
-    setFormData(prev => ({
+  const handleRoleChange = (role: "user" | "admin") => {
+    setFormData((prev) => ({
       ...prev,
       role,
     }));
@@ -49,13 +51,11 @@ export default function UserModal({
 
   if (!isOpen) return null;
 
-
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <h2 className="text-xl font-bold mb-4">
-          {initialData ? 'Editar Usuário' : 'Novo Usuário'}
+          {initialData ? "Editar Usuário" : "Novo Usuário"}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -115,14 +115,16 @@ export default function UserModal({
           </div>
 
           <div>
-            <span className="block text-sm font-medium mb-1">Tipo de usuário</span>
+            <span className="block text-sm font-medium mb-1">
+              Tipo de usuário
+            </span>
             <div className="space-y-2">
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
                   name="role"
-                  checked={formData.role === 'user'}
-                  onChange={() => handleRoleChange('user')}
+                  checked={formData.role === "user"}
+                  onChange={() => handleRoleChange("user")}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 Usuário
@@ -131,8 +133,8 @@ export default function UserModal({
                 <input
                   type="radio"
                   name="role"
-                  checked={formData.role === 'admin'}
-                  onChange={() => handleRoleChange('admin')}
+                  checked={formData.role === "admin"}
+                  onChange={() => handleRoleChange("admin")}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 Administrador
