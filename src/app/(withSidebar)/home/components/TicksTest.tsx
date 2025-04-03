@@ -92,7 +92,7 @@ const TicksTest = () => {
         }
       };
     } catch (err) {
-      setError("Erro na conexão com a API Deriv ");
+      setError("Erro na conexão com a API Deriv");
     }
   };
 
