@@ -43,43 +43,41 @@ interface AccountToken {
       wins: number;
     };
     selectedLoginId: string;
+    loginId: string;
     tokens: AccountToken[];
   }
 
+type BalanceCallback = (newBalance: number) => void;
 export default class DerivService {
-  private user: AccountData;
-  private appId = "";
-  private error = "";
-  static instance;
-  
+  private static instance: DerivService;
+  private socket!: WebSocket;
+  private appId: string;
+  private accountData: AccountData | null = null;
+  private activeLoginId: string = '';
+  private userInfo: any = null;
+  private balanceCallbacks: BalanceCallback[] = [];
+  private pingInterval: NodeJS.Timeout | null = null;
+  private isConnected: boolean = false;
+  private isAuthenticated: boolean = false;
 
-  constructor() {
+  private constructor() {
     this.appId = process.env.NEXT_PUBLIC_APPID;
-    if (DerivService.instance) {
-      return DerivService.instance;
-    }
-
-    DerivService.instance = this;
+    this.connect();
   }
 
-  static getInstance() {
+  public static getInstance(): DerivService {
     if (!DerivService.instance) {
       DerivService.instance = new DerivService();
     }
     return DerivService.instance;
   }
-  /**
-   * 
-   * Ao iniciar a aplicação, é necessário verificar se há parametros de login no URL.
-   * Caso haja, os token são processados e armazenados no localStorage.
-   */
-  public async init() {
-    
-    const params = new URLSearchParams(window.location.search);
-    
-    if (params.size > 0) {
-      const tokens = await this.processLoginResponse(params);
 
+  public async init(){
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.size > 0) {
+      const tokens = await this.processLoginResponse(params);  
+      
       if (tokens.length == 0) {
         return;
       }
@@ -95,12 +93,22 @@ export default class DerivService {
    * Processa o token de login salvo no localStorage e monta um array com os tokens e valores atualizidos
    */
   public async processAuthenticatedUserData(){
-    const userData = this.getStorageDerivAccount();
-    if (userData && userData.length > 0) {
-      this.setAccount(userData);
-      return this.getUser()[0];
+    await new Promise(resolve => {
+      const checkConnection = () => {
+        if (this.isConnected) resolve(true);
+        else setTimeout(checkConnection, 100);
+      };
+      checkConnection();
+    });
     
+    const derivAcountStorage = this.getStorageDerivAccount();
+    if (derivAcountStorage && derivAcountStorage.length > 0) {
+      // Atualiza o estado da conta com os dados do localStorage
+      //TODO: Criar um algoritmo para adcionar os dados atualizados
+      this.setAccountData(derivAcountStorage[0]);
+      return;
     }
+
     const tokens = this.getTokens();
 
     if (!tokens || tokens.length === 0) {
@@ -108,57 +116,45 @@ export default class DerivService {
     }
 
     let accountVRT = tokens.find((item) => item.is_virtual);
-    accountVRT.balance = 0
-
     let accountCRT = tokens.find((item) => !item.is_virtual);
 
-    if (!accountVRT || !accountCRT) {
-      return;
-    }
+    await this.authenticate(accountVRT.token);
+    const userInfoVRT = await this.getUserInfo();
+    await this.authenticate(accountCRT.token);
+    const userInfoCRT = await this.getUserInfo();
 
-    const authorizeDataVRT = await this.authorizeAccount(accountVRT.token);
-    const authorizeDataCRT = await this.authorizeAccount(accountCRT.token);
-    
-    accountVRT.balance = authorizeDataVRT.balance;
-    accountCRT.balance = authorizeDataCRT.balance;
+    accountVRT.balance = userInfoVRT.balance;
+    accountCRT.balance = userInfoCRT.balance;
 
-    this.user = {
+    const info = {
       activeToken: accountVRT.token,
       amount: 0.35,
       finishedTradeList: [],
       lastTrade: null,
-      name: authorizeDataVRT.fullname,
+      name: userInfoVRT.fullname,
       openTradeId: null,
       results: {
         loss: 0,
         result: 0,
-        wins: 0,
+        wins: 0
       },
       selectedLoginId: accountVRT.acct,
-      tokens: [accountVRT, accountCRT],
+      loginId: accountVRT.loginid,
+      tokens: [accountVRT, accountCRT]
     };
-    
-    localStorage.setItem("deriv_accounts", JSON.stringify([this.user]));
-    
+    this.setAccountData(info);
+    localStorage.setItem("deriv_accounts", JSON.stringify([info]));
+
   }
 
-
-  public clearTokens() {
-    localStorage.removeItem("tokens_list");
-    localStorage.removeItem("deriv_accounts");
+  private setAccountData(data) {
+    console.log(data);
+    this.accountData = data;
   }
 
-  /**
-   * 
-   * @returns {Array} Retorna uma lista com dados da conta
-   */
-  public getStorageDerivAccount(){
+  public getStorageDerivAccount(): string{
     const storedAccounts = JSON.parse(localStorage.getItem("deriv_accounts") || "[]");
     return storedAccounts;
-  }
-
-  public setStorageDerivAccount(account: any) {
-    localStorage.setItem("deriv_accounts", JSON.stringify(account));
   }
 
   /**
@@ -179,28 +175,12 @@ export default class DerivService {
     return tokens ? JSON.parse(tokens) : [];
   }
 
-  public setAccount(account: any) {
-    this.user = account;
-  }
-
-  public getUser() {
-    return this.user;
-  }
-
-  public createApiInstance() {
-    
-  }
-
-  public loginDeriv() {
-    window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${this.appId}`;
-  }
-
-   /**
+  /**
    * Processa a resposta da autorização do Deriv.
    * @param param - Parametros de autorização.
+   * @returns Object - Objeto com os tokens autorizados.
    */
-  public async processLoginResponse(params) {
-    
+  private async processLoginResponse(params) {
     return Object.values(params.toString().split('&').reduce((obj, item)=> {
       const testers = [
         /(acct)(\d)\=(.+)/gi,
@@ -230,128 +210,247 @@ export default class DerivService {
       return obj;
     }, {}));
   }
+
+  public loginDeriv() {
+    window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${this.appId}`;
+  }
+
+  private connect(): void {
     
-  public async authorizeAccount(token: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      try {
-        const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${this.appId}&l=pt`);
-        
-        ws.onopen = () => {
-          ws.send(JSON.stringify({ authorize: token }));
-        };
-  
-        ws.onmessage = (message: MessageEvent) => {
-          const response = JSON.parse(message.data);
-          
-          if (response.error) {
-            this.setError(response.error.message);
-            ws.close();
-            reject(response.error.message);
-            return;
-          }
-          
-          if (response.authorize) {
-            ws.close();
-            resolve(response.authorize);
-          }
-        };
-  
-        ws.onerror = () => {
-          this.setError("Erro na conexão com a API Deriv");
-          reject("Erro na conexão com a API Deriv");
-        };
-      } catch (err) {
-        this.setError("Erro na conexão com a API Deriv");
-        reject("Erro na conexão com a API Deriv");
+    this.socket = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${this.appId}`);
+    
+    this.socket.addEventListener('open', () => {
+      this.isConnected = true;
+      this.startPing();
+      console.log('WebSocket connection established.');
+      // if (this.accountData.activeToken) {
+      //   this.socket.send(JSON.stringify({ authorize: this.accountData.activeToken }));
+      // }
+    });
+
+    this.socket.addEventListener('message', (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Received message:', data);
+
+      if (data.msg_type === 'authorize') {
+        this.isAuthenticated = true;
+      }else {
+        this.isAuthenticated = false;
       }
+
+      this.handleMessage(data);
     });
+
+    this.socket.addEventListener('close', () => {
+      this.stopPing();
+      setTimeout(() => this.connect(), 5000); // Reconexão automática
+    });
+
+    this.socket.addEventListener('error', (error) => {
+      console.error('Erro de conexão:', error);
+      this.isConnected = false;
+      setTimeout(() => this.connect(), 5000); // Nova tentativa
+    });
+   
   }
 
-  /**
-   * Compra um contrato de opção binária do tipo "over" ou "under".
-   * 
-   * Exemplo de uso:
-   * // Exemplo de uso:
-    const derivService = DerivService.getInstance();
-    await derivService.buyContract('over', 5, 10.00, 'R_100')
-    .then(response => console.log('Contrato comprado:', response))
-    .catch(error => console.error('Erro:', error));
-   * 
-   * @param market  - O tipo de mercado, "under" ou "over".
-   * @param duration - A duração do contrato em segundos.
-   * @param amount  - A quantidade de contratos a serem comprados.
-   * @param symbol  - O símbolo do contrato, volatilidade.
-   * @returns  - Um objeto contendo informações sobre a compra do contrato.
-   */
-  public async buyContract(
-    market: 'under' | 'over',
-    duration: number,
-    amount: number,
-    symbol: string
-  ): Promise<BuyContractResponse> {
-    if (!this.user?.activeToken) {
-      throw new Error('Nenhum token ativo encontrado. Autentique-se primeiro.');
+  
+
+  private startPing(): void {
+    this.pingInterval = setInterval(() => {
+      this.socket.send(JSON.stringify({ ping: 1 }));
+    }, 60000);
+  }
+
+  private stopPing(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
     }
-  
-    const token = this.user.activeToken;
-    const currency = this.user.tokens.find(t => t.token === token)?.currency || 'USD';
-    const contractType = market === 'under' ? 'DIGITUNDER' : 'DIGITOVER';
-  
+  }
+
+  private handleMessage(data: any): void {
+    if (data.msg_type === 'authorize') {
+      this.userInfo = data.authorize;
+      this.activeLoginId = data.authorize.loginid;
+    }
+    
+    if (data.msg_type === 'balance') {
+      const newBalance = data.balance.balance;
+      this.balanceCallbacks.forEach(cb => cb(newBalance));
+    }
+  }
+
+  public async authenticate(token: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${this.appId}&l=pt`);
-  
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ authorize: token }));
+      if (!this.isConnected) {
+        reject(new Error('WebSocket não conectado'));
+        return;
+      }
+      const reqId = Date.now();
+      
+      const authMessage = {
+        authorize: token,
+        req_id: reqId
       };
-  
-      ws.onmessage = (message: MessageEvent) => {
-        const response = JSON.parse(message.data);
-  
-        if (response.error) {
-          reject(response.error.message);
-          ws.close();
-          return;
-        }
-  
-        if (response.authorize) {
-          // Envia proposta após autenticação
-          const proposalRequest = {
-            proposal: 1,
-            amount,
-            basis: 'stake',
-            contract_type: contractType,
-            currency,
-            duration,
-            duration_unit: 't', // 't' para ticks ou 's' para segundos
-            symbol,
-          };
-          ws.send(JSON.stringify(proposalRequest));
-        } else if (response.proposal) {
-          // Envia ordem de compra após proposta
-          const buyRequest = {
-            buy: response.proposal.id,
-            price: response.proposal.ask_price,
-          };
-          ws.send(JSON.stringify(buyRequest));
-        } else if (response.buy) {
-          resolve(response);
-          ws.close();
+
+      const handler = (event: MessageEvent) => {
+        const data = JSON.parse(event.data);
+        if (data.req_id === reqId) {
+          if (data.error) {
+            reject(data.error);
+          } else {
+            resolve();
+          }
+          this.socket.removeEventListener('message', handler);
         }
       };
-  
-      ws.onerror = (error) => {
-        reject(error);
-        ws.close();
-      };
+      this.socket.addEventListener('message', handler);
+      this.socket.send(JSON.stringify(authMessage));
     });
   }
 
-  public setError(error: string) {
-    this.error = error;
+  public async getTicks(symbol: string): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      const reqId = Date.now();
+      
+      const ticksMessage = {
+        ticks: symbol,
+        subscribe: 1,
+        req_id: reqId
+      };
+
+      const ticks: any[] = [];
+
+      const handler = (event: MessageEvent) => {
+        const data = JSON.parse(event.data);
+        if (data.req_id === reqId) {
+          if (data.error) {
+            reject(data.error);
+          } else {
+            if (data.subscription) {
+              ticks.push(data);
+            } else {
+              resolve(ticks);
+              this.socket.removeEventListener('message', handler);
+            }
+          }
+        }
+      };
+
+      this.socket.addEventListener('message', handler);
+      this.socket.send(JSON.stringify(ticksMessage));
+    });
   }
 
-  public getError(): string {
-    return this.error;
+  public async buyContract(amount: number, symbol: string, contractType: string, barrier: string): Promise<any> {
+    if (!this.isConnected) {
+        return Promise.reject(new Error('WebSocket não conectado'));
+    }
+
+    await this.authenticate(this.accountData.activeToken);
+    
+    if (!this.isAuthenticated) {
+        return Promise.reject(new Error('Não autenticado'));
+    }
+    
+    return new Promise((resolve, reject) => {
+        const generateValidID = () => {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0,
+                    v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        };
+        
+        const reqId = Date.now();
+        const buyID = generateValidID();
+
+        const buyMessage = {
+            buy: buyID,
+            price: 0.35,
+            parameters: {
+              amount:0.35,
+              app_markup_percentage:"3",
+              barrier:"4",
+              basis:"stake",
+              contract_type:"DIGITOVER",
+              currency:"USD",
+              duration:1,
+              duration_unit:"t",
+              symbol:"R_100"
+            },
+            req_id: reqId
+        };
+
+        const handler = (event: MessageEvent) => {
+            const data = JSON.parse(event.data);
+            if (data.req_id === reqId) {
+                if (data.error) {
+                    reject(data.error);
+                } else {
+                    resolve(data);
+                }
+                this.socket.removeEventListener('message', handler);
+            }
+        };
+
+        this.socket.addEventListener('message', handler);
+        this.socket.send(JSON.stringify(buyMessage));
+    });
+}
+
+  public async getBalance(): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const reqId = Date.now();
+      
+      const balanceMessage = {
+        balance: 1,
+        account: 'current',
+        req_id: reqId
+      };
+
+      const handler = (event: MessageEvent) => {
+        const data = JSON.parse(event.data);
+        if (data.req_id === reqId) {
+          if (data.error) {
+            reject(data.error);
+          } else {
+            resolve(data.balance.balance);
+          }
+          this.socket.removeEventListener('message', handler);
+        }
+      };
+
+      this.socket.addEventListener('message', handler);
+      this.socket.send(JSON.stringify(balanceMessage));
+    });
+  }
+
+  public switchAccount(accountType: 'real' | 'virtual'): void {
+    const account = this.userInfo?.account_list.find(
+      (acc: any) => accountType === 'virtual' ? acc.is_virtual : !acc.is_virtual
+    );
+    
+    if (account) {
+      this.activeLoginId = account.loginid;
+    }
+  }
+
+  public getUserInfo(): any {
+    return this.userInfo;
+  }
+
+  public getAcccountData(){
+    console.log("getAcccountData", this.accountData);
+    return this.accountData;
+  }
+
+  public onBalanceUpdate(callback: BalanceCallback): void {
+    this.balanceCallbacks.push(callback);
+  }
+
+  public disconnect(): void {
+    this.socket.close();
   }
 
 }

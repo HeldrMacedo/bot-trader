@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import DerivService from "@/app/services/DerivService";
 
 interface BuyTableProps {
   authToken?: string;
@@ -21,6 +22,16 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [multiplicador, setMultiplicador] = useState("1");
+  const derivService = DerivService.getInstance();
+
+  const handleBuy = async (contractType: string) => {
+    try{
+      await derivService.buyContract(0.35, "R_100", "DIGITOVER", "5");
+    }catch(error){
+      console.log(error);
+    }
+    
+  }
 
   const handleSelect = (number: number) => {
     setSelected(selected === number ? null : number);
@@ -43,147 +54,7 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
     }
   }, []);
 
-  useEffect(() => {
-    const connectWebSocket = () => {
-      const socket = new WebSocket(
-        `wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`
-      );
 
-      socket.onopen = () => {
-        console.log("✅ Conectado à Deriv API");
-        setIsConnected(true);
-        setErrorMessage("");
-
-        // Autoriza imediatamente se tivermos um token
-        if (authTokenRef.current) {
-          authorizeConnection(socket);
-        }
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("Dados recebidos:", data);
-
-          if (data.error) {
-            console.error("❌ Erro da API:", data.error.message);
-            setErrorMessage(`Erro: ${data.error.message}`);
-
-            if (
-              data.error.code === "AuthorizationRequired" &&
-              authTokenRef.current
-            ) {
-              authorizeConnection(socket);
-            }
-            return;
-          }
-
-          if (data.authorize) {
-            console.log("✅ Autorizado com sucesso");
-            setIsAuthorized(true);
-            return;
-          }
-
-          if (data.proposal) {
-            setProposalId(data.proposal.id);
-            console.log("Proposal ID recebido:", data.proposal.id);
-          }
-
-          if (data.buy) {
-            setPurchaseStatus(
-              `✅ ${isVirtual ? "Demonstração" : "Compra"} realizada! ID: ${
-                data.buy.contract_id
-              }`
-            );
-            console.log("Operação realizada:", data.buy);
-          }
-        } catch (error) {
-          console.error("Erro ao processar mensagem:", error);
-        }
-      };
-
-      socket.onclose = () => {
-        console.warn("⚠️ WebSocket fechado. Tentando reconectar...");
-        setIsConnected(false);
-        setIsAuthorized(false);
-        setTimeout(connectWebSocket, 5000);
-      };
-
-      socket.onerror = (err) => {
-        console.error("❌ Erro de WebSocket:", err);
-        setErrorMessage("Erro de conexão com WebSocket.");
-        setIsConnected(false);
-        setIsAuthorized(false);
-      };
-
-      wsRef.current = socket;
-    };
-
-    connectWebSocket();
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [isVirtual, authorizeConnection]);
-
-  const requestProposal = (contractType: string) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      setErrorMessage("Conexão não está ativa");
-      return;
-    }
-
-    if (authTokenRef.current) {
-      authorizeConnection(wsRef.current);
-    }
-
-    setPurchaseStatus("");
-    setErrorMessage("");
-    setProposalId(null);
-
-    const request = {
-      proposal: 1,
-      amount: 10,
-      basis: "stake",
-      contract_type: contractType,
-      currency: currency || "USD",
-      duration: 1,
-      duration_unit: "t",
-      symbol: isVirtual ? "1HZ100V" : "R_100",
-    };
-
-    console.log("Enviando proposta:", request);
-    wsRef.current.send(JSON.stringify(request));
-  };
-
-  const buyContract = () => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      setErrorMessage("Conexão não está ativa");
-      return;
-    }
-
-    if (!proposalId) {
-      setErrorMessage("Nenhuma proposta disponível");
-      return;
-    }
-
-    if (authTokenRef.current) {
-      authorizeConnection(wsRef.current);
-    }
-
-    setPurchaseStatus(
-      `🔄 Processando ${isVirtual ? "demonstração" : "compra"}...`
-    );
-
-    const buyRequest = {
-      buy: proposalId,
-      price: 10,
-    };
-
-    console.log("Enviando ordem de compra:", buyRequest);
-    wsRef.current.send(JSON.stringify(buyRequest));
-  };
 
   const handleMultiplicadorChange = (value: string) => {
     console.log("Valor do multiplicador:", value);
@@ -213,7 +84,7 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
           <span>Dígitos</span>
         </div>
         <div className="flex gap-1">
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((number) => (
+          {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => (
             <button
               key={number}
               onClick={() => handleSelect(number)}
@@ -269,75 +140,12 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
             onChange={(e) => handleMultiplicadorChange(e.target.value)}
           />
         </div>
-        <h2 className="text-xl font-bold mb-4">
-          {isVirtual ? "Demonstração" : "Comprar"} Contrato
-        </h2>
-
-        <div className="mb-4">
-          <p>
-            Status:{" "}
-            {isConnected ? (
-              <span className="text-green-600">Conectado</span>
-            ) : (
-              <span className="text-red-600">Desconectado</span>
-            )}
-          </p>
-          <p>
-            Conta:{" "}
-            {isVirtual ? (
-              <span className="text-blue-600">Virtual</span>
-            ) : (
-              <span className="text-green-600">Real</span>
-            )}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <button
-            className="bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
-            onClick={() => requestProposal("DIGITOVER")}
-            disabled={!isConnected || !isAuthorized}
-          >
-            Acima de 5
-          </button>
-
-          <button
-            className="bg-green-500 text-white p-3 rounded-md hover:bg-green-600 disabled:bg-green-300"
-            onClick={() => requestProposal("DIGITEVEN")}
-            disabled={!isConnected || !isAuthorized}
-          >
-            Par
-          </button>
-
-          <button
-            className="bg-red-500 text-white p-3 rounded-md hover:bg-red-600 disabled:bg-red-300"
-            onClick={() => requestProposal("DIGITODD")}
-            disabled={!isConnected || !isAuthorized}
-          >
-            Ímpar
-          </button>
-        </div>
-
-        <button
-          className="bg-purple-500 text-white p-3 rounded-md hover:bg-purple-600 disabled:bg-gray-400 w-full"
-          onClick={buyContract}
-          disabled={!proposalId || !isConnected || !isAuthorized}
-        >
-          {isVirtual ? "Confirmar Compra (Virtual)" : "Confirmar Compra"}
-        </button>
-
-        {purchaseStatus && (
-          <p
-            className={`mt-4 ${isVirtual ? "text-blue-700" : "text-green-700"}`}
-          >
-            {purchaseStatus}
-          </p>
-        )}
-        {errorMessage && <p className="mt-4 text-red-600">{errorMessage}</p>}
       </div>
       <div className="flex gap-2 mt-6 w-full">
         <div className="flex-1">
-          <button className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+          <button 
+          onClick={() => handleBuy('DIGITOVER')}
+          className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -357,7 +165,9 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
         </div>
 
         <div className="flex-1">
-          <button className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+          <button
+          onClick={() => handleBuy('DIGITUNDER')} 
+          className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"

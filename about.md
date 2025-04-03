@@ -80,3 +80,78 @@ token:"a1-7WcS1tZEAcQpOxSxYGCGUsoc0fJFD"
 "balance": 10002.2
 }
 ]
+
+public static void main(String[] args) {
+var stockData = new StockData();
+var consoleObserver = new ConsoleObserver();
+var emailObserver = new EmailObserver();
+var smsObserver = new SMSObserver();
+
+stockData.addObserver(consoleObserver);
+stockData.addObserver(emailObserver);
+stockData.addObserver(smsObserver);
+
+stockData.newStokeData("AAPL", 100.0);
+stockData.newStokeData("GOOG", 200.0);
+}
+
+interface Observer {
+void update(String stockName, double stockPrice);
+}
+
+class ConsoleObserver implements Observer {
+@override
+void update(String stockName, double stockPrice) {
+System.out.println("ConsoleObserver: $stockName $stockPrice");
+}
+}
+
+class EmailObserver implements Observer {
+@override
+void update(String stockName, double stockPrice) {
+System.out.println("EmailObserver: $stockName $stockPrice");
+}
+}
+
+class SMSObserver implements Observer {
+@override
+void update(String stockName, double stockPrice) {
+System.out.println("SMSObserver: $stockName $stockPrice");
+}
+}
+
+class Stock Data {
+private List<Observer> observers = new ArrayList<>();
+private String stockName;
+private double stockPrice;
+
+public void addObserver(Observer observer) {
+
+}
+
+public void removeObserver(Observer observer) {
+
+}
+
+public void newStockData(String stockName, double stockPrice) {
+this.stockName = stockName;
+this.stockPrice = stockPrice;
+notifyObservers();
+}
+
+private void notifyObservers() {
+for (Observer observer : observers) {
+observer.update(stockName, stockPrice);
+}
+}
+}
+
+"amount":0.35,
+"app_markup_percentage":"3",
+"barrier":"4",
+"basis":"stake",
+"contract_type":"DIGITOVER",
+"currency":"USD",
+"duration":1,
+"duration_unit":"t",
+"symbol":"R_100"

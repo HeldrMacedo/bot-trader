@@ -1,7 +1,7 @@
 "use client";
 
 import DerivAPI from "@deriv/deriv-api";
-import { useEffect, useState, useRef, useCallback, use } from "react";
+import { useEffect, useState, useRef } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
@@ -19,7 +19,6 @@ const TicksTest = () => {
     R_10: [],
   });
   const [volatility, setVolatility] = useState("R_100");
-  const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [userData, setUserData] = useState(null);
   const [error, setError] = useState(null);
@@ -27,26 +26,26 @@ const TicksTest = () => {
   const [valorEntrada, setValorEntrada] = useState("");
   const [valorReal, setValorReal] = useState("0.00");
   const [multiplicador, setMultiplicador] = useState(1);
-  
+  const derivService = DerivService.getInstance(); 
   
 
   useEffect(() => {
-    const derivService = DerivService.getInstance();
+    
     derivService.init();
-    derivService.processAuthenticatedUserData().then((response) => {
-      setUserData(response);
-    });   
+    derivService.processAuthenticatedUserData().then(() => {
+      setUserData(derivService.getAcccountData());
+    });
     
   }, []);
   
   useEffect(() => {
     if (userData && userData.amount) {
+      console.log("userData", userData);
       formatInputMoney(userData.amount);
     }
   }, [userData]);
 
   const formatInputMoney = (value: any) => {
-    console.log("Valor recebido:", value, multiplicador);
     let cleanedValue = String(value).replace(/[^0-9.]/g, "");
     const parts = cleanedValue.split(".");
 
@@ -115,6 +114,9 @@ const TicksTest = () => {
     formatInputMoney(valorEntrada);
   }, [multiplicador, valorEntrada]);
 
+  const teste = (value) => {
+    console.log("teste", value);
+  };
 
   useEffect(() => {
     const connection = new WebSocket(
@@ -299,20 +301,25 @@ const TicksTest = () => {
                     <select
                       onChange={(e) => {
                         const account = JSON.parse(e.target.value);
-                        setSelectedAccount(account);
-                        authorizeAccount(account.token);
+                        teste(account);
+                        //setSelectedAccount(account);
+                        //authorizeAccount(account.token);
                       }}
                       className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                     >
                       <option value="">Selecione uma Conta</option>
-                      {accounts.map((account, index) => (
+                      {userData.tokens.map((account, index) => (
                         <option
                           key={index}
                           value={JSON.stringify(account)}
-                          selected={account.is_virtual}
+                          selected={userData.activeToken === account.token}
                         >
                           {account.is_virtual ? "Conta Virtual" : "Conta Real"}{" "}
-                          ({account.currency})
+                          {new Intl.NumberFormat('en-Us', {
+                            style: 'currency',
+                            currency: 'USD',
+                          }).format(account.balance)}
+                          
                         </option>
                       ))}
                     </select>
