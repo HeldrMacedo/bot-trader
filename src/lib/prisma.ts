@@ -1,37 +1,24 @@
 import { PrismaClient } from "@prisma/client";
 
-declare global {
-  var prisma: PrismaClient | undefined;
-}
-
-const prisma =
-  global.prisma ||
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url:
+        process.env.DATABASE_URL +
+        (process.env.DATABASE_URL?.includes("?") ? "&" : "?") +
+        "connection_limit=5",
     },
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+  },
+  log: ["error"],
+});
+
+prisma
+  .$connect()
+  .then(() => console.log("✅ Conexão com Supabase estabelecida"))
+  .catch((err) => {
+    console.error("❌ Falha na conexão:");
+    console.error("URL usada:", process.env.DATABASE_URL);
+    console.error(err);
   });
-
-if (process.env.NODE_ENV === "development") {
-  global.prisma = prisma;
-}
-
-// Conexão de teste no startup (apenas em produção)
-if (process.env.NODE_ENV === "production") {
-  prisma
-    .$connect()
-    .then(() => console.log("✅ Conectado ao banco de dados no Supabase"))
-    .catch((err) => {
-      console.error("❌ Falha na conexão com o Supabase:");
-      console.error("URL do banco:", process.env.DATABASE_URL);
-      console.error(err);
-    });
-}
 
 export default prisma;
