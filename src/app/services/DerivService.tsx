@@ -22,30 +22,30 @@ interface ProposalResponse {
 }
 
 interface AccountToken {
-    loginid: string;
-    token: string;
-    currency: string;
-    balance: number | string;
-    is_virtual: boolean;
-  }
-  
-  // Interface para representar os dados consolidados da conta
-  interface AccountData {
-    activeToken: string;
-    amount: number;
-    finishedTradeList: any[];
-    lastTrade: any | null;
-    name: string;
-    openTradeId: string | null;
-    results: {
-      loss: number;
-      result: number;
-      wins: number;
-    };
-    selectedLoginId: string;
-    loginId: string;
-    tokens: AccountToken[];
-  }
+  loginid: string;
+  token: string;
+  currency: string;
+  balance: number | string;
+  is_virtual: boolean;
+}
+
+// Interface para representar os dados consolidados da conta
+interface AccountData {
+  activeToken: string;
+  amount: number;
+  finishedTradeList: any[];
+  lastTrade: any | null;
+  name: string;
+  openTradeId: string | null;
+  results: {
+    loss: number;
+    result: number;
+    wins: number;
+  };
+  selectedLoginId: string;
+  loginId: string;
+  tokens: AccountToken[];
+}
 
 type BalanceCallback = (newBalance: number) => void;
 export default class DerivService {
@@ -53,7 +53,7 @@ export default class DerivService {
   private socket!: WebSocket;
   private appId: string;
   private accountData: AccountData | null = null;
-  private activeLoginId: string = '';
+  private activeLoginId: string = "";
   private userInfo: any = null;
   private balanceCallbacks: BalanceCallback[] = [];
   private pingInterval: NodeJS.Timeout | null = null;
@@ -72,19 +72,19 @@ export default class DerivService {
     return DerivService.instance;
   }
 
-  public async init(){
+  public async init() {
     const params = new URLSearchParams(window.location.search);
 
     if (params.size > 0) {
-      const tokens = await this.processLoginResponse(params);  
-      
+      const tokens = await this.processLoginResponse(params);
+
       if (tokens.length == 0) {
         return;
       }
 
-      localStorage.setItem('tokens_list', JSON.stringify(tokens));
+      localStorage.setItem("tokens_list", JSON.stringify(tokens));
 
-      window.location.search = '';
+      window.location.search = "";
     }
   }
 
@@ -92,15 +92,15 @@ export default class DerivService {
    * Ao iniciar a aplicação, é necessário verificar se há tokens salvos no localStorage.
    * Processa o token de login salvo no localStorage e monta um array com os tokens e valores atualizidos
    */
-  public async processAuthenticatedUserData(){
-    await new Promise(resolve => {
+  public async processAuthenticatedUserData() {
+    await new Promise((resolve) => {
       const checkConnection = () => {
         if (this.isConnected) resolve(true);
         else setTimeout(checkConnection, 100);
       };
       checkConnection();
     });
-    
+
     const derivAcountStorage = this.getStorageDerivAccount();
     if (derivAcountStorage && derivAcountStorage.length > 0) {
       // Atualiza o estado da conta com os dados do localStorage
@@ -136,15 +136,14 @@ export default class DerivService {
       results: {
         loss: 0,
         result: 0,
-        wins: 0
+        wins: 0,
       },
       selectedLoginId: accountVRT.acct,
       loginId: accountVRT.loginid,
-      tokens: [accountVRT, accountCRT]
+      tokens: [accountVRT, accountCRT],
     };
     this.setAccountData(info);
     localStorage.setItem("deriv_accounts", JSON.stringify([info]));
-
   }
 
   private setAccountData(data) {
@@ -152,22 +151,24 @@ export default class DerivService {
     this.accountData = data;
   }
 
-  public getStorageDerivAccount(): string{
-    const storedAccounts = JSON.parse(localStorage.getItem("deriv_accounts") || "[]");
+  public getStorageDerivAccount(): string {
+    const storedAccounts = JSON.parse(
+      localStorage.getItem("deriv_accounts") || "[]"
+    );
     return storedAccounts;
   }
 
   /**
-   * 
+   *
    * @returns {string} Retorna o token virtual
    */
-  getTokenActive(){
-    const tokenVrtc = this.getTokens().find(item => item.is_virtual);
-    return tokenVrtc ? tokenVrtc.token : null
+  getTokenActive() {
+    const tokenVrtc = this.getTokens().find((item) => item.is_virtual);
+    return tokenVrtc ? tokenVrtc.token : null;
   }
 
   /**
-   * 
+   *
    * @returns {Array} Retorna uma lista de tokens
    */
   public getTokens() {
@@ -181,34 +182,39 @@ export default class DerivService {
    * @returns Object - Objeto com os tokens autorizados.
    */
   private async processLoginResponse(params) {
-    return Object.values(params.toString().split('&').reduce((obj, item)=> {
-      const testers = [
-        /(acct)(\d)\=(.+)/gi,
-        /(token)(\d)\=(.+)/gi,
-        /(cur)(\d)\=(.+)/gi
-      ]
-      for (let i = 0; i < testers.length; i++) {
-          const testResult = testers[i].exec(item)
+    return Object.values(
+      params
+        .toString()
+        .split("&")
+        .reduce((obj, item) => {
+          const testers = [
+            /(acct)(\d)\=(.+)/gi,
+            /(token)(\d)\=(.+)/gi,
+            /(cur)(\d)\=(.+)/gi,
+          ];
+          for (let i = 0; i < testers.length; i++) {
+            const testResult = testers[i].exec(item);
 
-          if (testResult) {
-              const name = testResult[1]
-              const index = testResult[2]
-              const value = testResult[3]
+            if (testResult) {
+              const name = testResult[1];
+              const index = testResult[2];
+              const value = testResult[3];
 
               if (!obj[index]) {
-                  obj[index] = {}
+                obj[index] = {};
               }
 
-              obj[index][name] = value
+              obj[index][name] = value;
 
-              if (name == 'acct') {
-                  obj[index].is_virtual = value.startsWith('VRTC');
+              if (name == "acct") {
+                obj[index].is_virtual = value.startsWith("VRTC");
               }
+            }
           }
-      }
 
-      return obj;
-    }, {}));
+          return obj;
+        }, {})
+    );
   }
 
   public loginDeriv() {
@@ -216,45 +222,43 @@ export default class DerivService {
   }
 
   private connect(): void {
-    
-    this.socket = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${this.appId}`);
-    
-    this.socket.addEventListener('open', () => {
+    this.socket = new WebSocket(
+      `wss://ws.derivws.com/websockets/v3?app_id=${this.appId}`
+    );
+
+    this.socket.addEventListener("open", () => {
       this.isConnected = true;
       this.startPing();
-      console.log('WebSocket connection established.');
+      console.log("WebSocket connection established.");
       // if (this.accountData.activeToken) {
       //   this.socket.send(JSON.stringify({ authorize: this.accountData.activeToken }));
       // }
     });
 
-    this.socket.addEventListener('message', (event) => {
+    this.socket.addEventListener("message", (event) => {
       const data = JSON.parse(event.data);
-      console.log('Received message:', data);
+      console.log("Received message:", data);
 
-      if (data.msg_type === 'authorize') {
+      if (data.msg_type === "authorize") {
         this.isAuthenticated = true;
-      }else {
+      } else {
         this.isAuthenticated = false;
       }
 
       this.handleMessage(data);
     });
 
-    this.socket.addEventListener('close', () => {
+    this.socket.addEventListener("close", () => {
       this.stopPing();
       setTimeout(() => this.connect(), 5000); // Reconexão automática
     });
 
-    this.socket.addEventListener('error', (error) => {
-      console.error('Erro de conexão:', error);
+    this.socket.addEventListener("error", (error) => {
+      console.error("Erro de conexão: ", error);
       this.isConnected = false;
       setTimeout(() => this.connect(), 5000); // Nova tentativa
     });
-   
   }
-
-  
 
   private startPing(): void {
     this.pingInterval = setInterval(() => {
@@ -269,28 +273,28 @@ export default class DerivService {
   }
 
   private handleMessage(data: any): void {
-    if (data.msg_type === 'authorize') {
+    if (data.msg_type === "authorize") {
       this.userInfo = data.authorize;
       this.activeLoginId = data.authorize.loginid;
     }
-    
-    if (data.msg_type === 'balance') {
+
+    if (data.msg_type === "balance") {
       const newBalance = data.balance.balance;
-      this.balanceCallbacks.forEach(cb => cb(newBalance));
+      this.balanceCallbacks.forEach((cb) => cb(newBalance));
     }
   }
 
   public async authenticate(token: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.isConnected) {
-        reject(new Error('WebSocket não conectado'));
+        reject(new Error("WebSocket não conectado"));
         return;
       }
       const reqId = Date.now();
-      
+
       const authMessage = {
         authorize: token,
-        req_id: reqId
+        req_id: reqId,
       };
 
       const handler = (event: MessageEvent) => {
@@ -301,10 +305,10 @@ export default class DerivService {
           } else {
             resolve();
           }
-          this.socket.removeEventListener('message', handler);
+          this.socket.removeEventListener("message", handler);
         }
       };
-      this.socket.addEventListener('message', handler);
+      this.socket.addEventListener("message", handler);
       this.socket.send(JSON.stringify(authMessage));
     });
   }
@@ -312,11 +316,11 @@ export default class DerivService {
   public async getTicks(symbol: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
       const reqId = Date.now();
-      
+
       const ticksMessage = {
         ticks: symbol,
         subscribe: 1,
-        req_id: reqId
+        req_id: reqId,
       };
 
       const ticks: any[] = [];
@@ -331,82 +335,90 @@ export default class DerivService {
               ticks.push(data);
             } else {
               resolve(ticks);
-              this.socket.removeEventListener('message', handler);
+              this.socket.removeEventListener("message", handler);
             }
           }
         }
       };
 
-      this.socket.addEventListener('message', handler);
+      this.socket.addEventListener("message", handler);
       this.socket.send(JSON.stringify(ticksMessage));
     });
   }
 
-  public async buyContract(amount: number, symbol: string, contractType: string, barrier: string): Promise<any> {
+  public async buyContract(
+    amount: number,
+    symbol: string,
+    contractType: string,
+    barrier: string
+  ): Promise<any> {
     if (!this.isConnected) {
-        return Promise.reject(new Error('WebSocket não conectado'));
+      return Promise.reject(new Error("WebSocket não conectado"));
     }
 
     await this.authenticate(this.accountData.activeToken);
-    
+
     if (!this.isAuthenticated) {
-        return Promise.reject(new Error('Não autenticado'));
+      return Promise.reject(new Error("Não autenticado"));
     }
-    
+
     return new Promise((resolve, reject) => {
-        const generateValidID = () => {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0,
-                    v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        };
-        
-        const reqId = Date.now();
-        const buyID = generateValidID();
+      const generateValidID = () => {
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+          /[xy]/g,
+          function (c) {
+            const r = (Math.random() * 16) | 0,
+              v = c === "x" ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          }
+        );
+      };
 
-        const buyMessage = {
-            buy: buyID,
-            price: 0.35,
-            parameters: {
-              amount:0.35,
-              app_markup_percentage:"3",
-              barrier:"4",
-              basis:"stake",
-              contract_type:"DIGITOVER",
-              currency:"USD",
-              duration:1,
-              duration_unit:"t",
-              symbol:"R_100"
-            },
-            req_id: reqId
-        };
+      const reqId = Date.now();
+      const buyID = generateValidID();
 
-        const handler = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
-            if (data.req_id === reqId) {
-                if (data.error) {
-                    reject(data.error);
-                } else {
-                    resolve(data);
-                }
-                this.socket.removeEventListener('message', handler);
-            }
-        };
+      const buyMessage = {
+        buy: buyID,
+        price: 0.35,
+        parameters: {
+          amount: 0.35,
+          app_markup_percentage: "3",
+          barrier: "4",
+          basis: "stake",
+          contract_type: "DIGITOVER",
+          currency: "USD",
+          duration: 1,
+          duration_unit: "t",
+          symbol: "R_100",
+        },
+        req_id: reqId,
+      };
 
-        this.socket.addEventListener('message', handler);
-        this.socket.send(JSON.stringify(buyMessage));
+      const handler = (event: MessageEvent) => {
+        const data = JSON.parse(event.data);
+        if (data.req_id === reqId) {
+          if (data.error) {
+            reject(data.error);
+          } else {
+            resolve(data);
+          }
+          this.socket.removeEventListener("message", handler);
+        }
+      };
+
+      this.socket.addEventListener("message", handler);
+      this.socket.send(JSON.stringify(buyMessage));
     });
-}
+  }
 
   public async getBalance(): Promise<number> {
     return new Promise((resolve, reject) => {
       const reqId = Date.now();
-      
+
       const balanceMessage = {
         balance: 1,
-        account: 'current',
-        req_id: reqId
+        account: "current",
+        req_id: reqId,
       };
 
       const handler = (event: MessageEvent) => {
@@ -417,20 +429,20 @@ export default class DerivService {
           } else {
             resolve(data.balance.balance);
           }
-          this.socket.removeEventListener('message', handler);
+          this.socket.removeEventListener("message", handler);
         }
       };
 
-      this.socket.addEventListener('message', handler);
+      this.socket.addEventListener("message", handler);
       this.socket.send(JSON.stringify(balanceMessage));
     });
   }
 
-  public switchAccount(accountType: 'real' | 'virtual'): void {
-    const account = this.userInfo?.account_list.find(
-      (acc: any) => accountType === 'virtual' ? acc.is_virtual : !acc.is_virtual
+  public switchAccount(accountType: "real" | "virtual"): void {
+    const account = this.userInfo?.account_list.find((acc: any) =>
+      accountType === "virtual" ? acc.is_virtual : !acc.is_virtual
     );
-    
+
     if (account) {
       this.activeLoginId = account.loginid;
     }
@@ -440,7 +452,7 @@ export default class DerivService {
     return this.userInfo;
   }
 
-  public getAcccountData(){
+  public getAcccountData() {
     console.log("getAcccountData", this.accountData);
     return this.accountData;
   }
@@ -452,5 +464,4 @@ export default class DerivService {
   public disconnect(): void {
     this.socket.close();
   }
-
 }
