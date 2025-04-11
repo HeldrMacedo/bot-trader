@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import DerivService from "@/app/services/DerivService";
+import {DerivService} from "@/app/services/DerivService";
 
 interface BuyTableProps {
   authToken?: string;
@@ -26,15 +26,65 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
 
   const handleBuy = async (contractType: string) => {
     try{
-      await derivService.buyContract(0.35, "R_100", "DIGITOVER", "5");
+      const accountInfo = derivService.getStorageDerivAccount()[0];
+      if (!accountInfo) {
+        setErrorMessage("Conta não encontrada");
+        return;
+      }
+
+      const valorBase = accountInfo.amount;
+      const valorReal = valorBase * parseInt(multiplicador);
+
+      const buyID = generateValidID();
+
+      const payload = {
+        buy: buyID,
+        price: valorReal,
+        parameters: {
+          amount: valorReal,
+          //app_markup_percentage: "3",
+          barrier: accountInfo.barrier,
+          basis: "stake",
+          contract_type: contractType,
+          currency: "USD",
+          duration: 1,
+          duration_unit: "t",
+          symbol: accountInfo.volatility,
+        },
+      };
+      
+      const response  = await derivService.send(payload);
+      console.log(response);
+
     }catch(error){
       console.log(error);
     }
     
   }
 
+  const generateValidID = () => {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0,
+          v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
+  };
+
+  useEffect(() => {
+    setSelected(derivService.currentBarrier);
+  }, []);
+
   const handleSelect = (number: number) => {
-    setSelected(selected === number ? null : number);
+    const newSelected = selected === number ? null : number;
+    setSelected(newSelected);
+    
+    // Atualiza o barrier no serviço quando um novo dígito é selecionado
+    if (newSelected !== null) {
+      derivService.updateBarrier(newSelected);
+    }
   };
 
   // Atualiza a referência do token quando ele muda

@@ -2,7 +2,6 @@
 
 import { useAuth } from "@/app/hooks/useAuth";
 import TicksTest from "./components/TicksTest";
-import { TradingInterface } from "./components/TradingInterface";
 
 export default function HomePage() {
   const auth = useAuth();
@@ -27,8 +26,6 @@ export default function HomePage() {
       <div className="w-full">
         <div className="container mx-auto flex flex-col items-center">
           <TicksTest />
-          {/*<TradingInterface/>*/}
-
         </div>
         
       </div>

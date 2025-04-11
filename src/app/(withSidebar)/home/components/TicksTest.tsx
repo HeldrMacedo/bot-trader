@@ -10,7 +10,7 @@ import {
   DerivService,
   AccountInfo,
   TokenData,
-} from "@/app/services/DerivServiceTest";
+} from "@/app/services/DerivService";
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
 interface AccountSelectorProps {
@@ -44,7 +44,6 @@ export const TicksTest = () => {
       const accounts: AccountInfo[] = JSON.parse(savedAccounts);
       if (accounts.length > 0) {
         setAccountInfo(accounts[0]);
-        
       }
     }
   }, []);
@@ -66,6 +65,10 @@ export const TicksTest = () => {
 
     return () => deriv.observerInstance.removeById(listener);
   }, []);
+
+  useEffect(() => {
+    deriv.updateVolatility(volatility);
+  },[volatility]);
 
   const handleAccountChange = async (token: string) => {
     if (!accountInfo) return;
@@ -105,30 +108,29 @@ export const TicksTest = () => {
     //setAccountInfo(newAccount);
   };
 
-
   const formatInputMoney = (value: string) => {
     let cleanedValue = value.replace(/[^0-9.]/g, "");
-    const parts = cleanedValue.split('.');
-  
+    const parts = cleanedValue.split(".");
+
     if (parts.length > 2) {
-      cleanedValue = parts[0] + '.' + parts.slice(1).join('');
+      cleanedValue = parts[0] + "." + parts.slice(1).join("");
     }
-  
+
     // Atualiza apenas o estado local
     setValorEntrada(cleanedValue);
-  
+
     // Atualiza o accountInfo após validação
     const numericValue = parseFloat(cleanedValue);
     if (!isNaN(numericValue) && accountInfo) {
       const updatedAccount = {
         ...accountInfo,
-        amount: numericValue
+        amount: numericValue,
       };
-      
+
       localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
       deriv.setAccountData(updatedAccount);
     }
-  
+
     // Atualiza valorReal
     const calculatedValue = (numericValue * multiplicador).toFixed(2);
     setValorReal(isNaN(numericValue) ? "0.00" : calculatedValue);
@@ -343,7 +345,7 @@ export const TicksTest = () => {
                 <div className="flex w-full gap-4">
                   <div className="mt-2 w-full">
                     <label className="text-sm font-medium text-gray-700">
-                      Conta: 
+                      Conta:
                     </label>
                     <div className="grid grid-cols-1">
                       <select
@@ -358,8 +360,7 @@ export const TicksTest = () => {
                             {new Intl.NumberFormat("en-Us", {
                               style: "currency",
                               currency: "USD",
-
-                            }).format(token.balance || "0.00")}                            
+                            }).format(token.balance || "0.00")}
                           </option>
                         ))}
                       </select>
@@ -381,14 +382,14 @@ export const TicksTest = () => {
                         <span className="text-gray-500">$</span>
                       </div>
                       <input
-  type="text"
-  id="entrada-inicial"
-  className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
-  placeholder="0.00"
-  value={valorEntrada}
-  disabled={loading}
-  onChange={(e) => formatInputMoney(e.target.value)}
-/>
+                        type="text"
+                        id="entrada-inicial"
+                        className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+                        placeholder="0.00"
+                        value={valorEntrada}
+                        disabled={loading}
+                        onChange={(e) => formatInputMoney(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="mt-2 w-full">

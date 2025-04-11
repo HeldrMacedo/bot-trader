@@ -1,5 +1,5 @@
 "use client";
-import DerivService from "@/app/services/DerivService";
+import {DerivService} from "@/app/services/DerivService";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
