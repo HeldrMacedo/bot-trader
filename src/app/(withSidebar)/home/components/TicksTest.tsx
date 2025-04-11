@@ -6,11 +6,18 @@ import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
 import BuyTable from "./buyTable";
-import DerivService from "@/app/services/DerivService";
+import {
+  DerivService,
+  AccountInfo,
+  TokenData,
+} from "@/app/services/DerivService";
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
+interface AccountSelectorProps {
+  onAccountChange: (accountInfo: any) => void;
+}
 
-const TicksTest = () => {
+export const TicksTest = () => {
   const [ticks, setTicks] = useState({
     R_100: [],
     R_75: [],
@@ -26,74 +33,107 @@ const TicksTest = () => {
   const [valorEntrada, setValorEntrada] = useState("");
   const [valorReal, setValorReal] = useState("0.00");
   const [multiplicador, setMultiplicador] = useState(1);
-  const derivService = DerivService.getInstance();
+  const deriv = DerivService.getInstance();
+  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
+  const [loading, setLoading] = useState(false);
 
+  // Carregar dados iniciais
   useEffect(() => {
-    derivService.init();
-    derivService.processAuthenticatedUserData().then(() => {
-      setUserData(derivService.getAcccountData());
-    });
+    const savedAccounts = localStorage.getItem("deriv_accounts");
+    if (savedAccounts) {
+      const accounts: AccountInfo[] = JSON.parse(savedAccounts);
+      if (accounts.length > 0) {
+        setAccountInfo(accounts[0]);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    if (userData && userData.amount) {
-      console.log("userData", userData);
-      formatInputMoney(userData.amount);
+    if (accountInfo) {
+      setValorEntrada(accountInfo.amount.toString());
     }
-  }, [userData]);
+  }, [accountInfo?.amount]);
 
-  const formatInputMoney = (value: any) => {
-    let cleanedValue = String(value).replace(/[^0-9.]/g, "");
+  // Atualizar quando houver mudanças via observer
+  useEffect(() => {
+    const listener = deriv.observerInstance.on(
+      "account.update",
+      (newAccount: AccountInfo) => {
+        setAccountInfo(newAccount);
+      }
+    );
+
+    return () => deriv.observerInstance.removeById(listener);
+  }, []);
+
+  useEffect(() => {
+    deriv.updateVolatility(volatility);
+  },[volatility]);
+
+  const handleAccountChange = async (token: string) => {
+    if (!accountInfo) return;
+
+    setLoading(true);
+    try {
+      // 1. Atualizar autenticação
+      const authResponse = await deriv.send({ authorize: token });
+
+      // 2. Atualizar dados locais
+      const updatedAccount: AccountInfo = {
+        ...accountInfo,
+        activeToken: token,
+        selectedLoginId:
+          accountInfo.tokens.find((t) => t.token === token)?.loginid || "",
+        tokens: accountInfo.tokens.map((t) => ({
+          ...t,
+          balance:
+            t.token === token ? authResponse.authorize.balance : t.balance,
+        })),
+      };
+
+      // 3. Persistir e notificar
+      localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
+      deriv.setAccountData(updatedAccount);
+      onAccountChange(updatedAccount);
+      setValorEntrada(updatedAccount.amount.toString());
+    } catch (error) {
+      console.error("Erro na autenticação:", error);
+    }
+    setLoading(false);
+  };
+
+  const onAccountChange = (newAccount: AccountInfo) => {
+    console.log("Nova conta selecionada:", newAccount);
+    //setSelectedAccount(newAccount);
+    //setAccountInfo(newAccount);
+  };
+
+  const formatInputMoney = (value: string) => {
+    let cleanedValue = value.replace(/[^0-9.]/g, "");
     const parts = cleanedValue.split(".");
 
     if (parts.length > 2) {
       cleanedValue = parts[0] + "." + parts.slice(1).join("");
     }
 
+    // Atualiza apenas o estado local
     setValorEntrada(cleanedValue);
 
-    const numericValue = parseFloat(cleanedValue) || 0;
-    const calculatedValue = (numericValue * multiplicador).toFixed(2);
-    setValorReal(calculatedValue);
-  };
-
-  const authorizeAccount = async (token) => {
-    try {
-      const ws = new WebSocket(
-        "wss://ws.derivws.com/websockets/v3?app_id=" + APP_ID
-      );
-
-      await new Promise((resolve) => {
-        ws.onopen = resolve;
-      });
-
-      ws.send(
-        JSON.stringify({
-          authorize: token,
-        })
-      );
-
-      ws.onmessage = (message) => {
-        const response = JSON.parse(message.data);
-
-        if (response.error) {
-          setError(response.error.message);
-          ws.close();
-          return;
-        }
-
-        if (response.authorize) {
-          setUserData({
-            ...response.authorize,
-            balance: response.authorize.balance,
-            accounts: response.authorize.account_list,
-          });
-          ws.close();
-        }
+    // Atualiza o accountInfo após validação
+    const numericValue = parseFloat(cleanedValue);
+    if (!isNaN(numericValue) && accountInfo) {
+      const updatedAccount = {
+        ...accountInfo,
+        amount: numericValue,
       };
-    } catch (err) {
-      setError("Erro na conexão com a API Deriv");
+
+      localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
+      deriv.setAccountData(updatedAccount);
     }
+
+    // Atualiza valorReal
+    const calculatedValue = (numericValue * multiplicador).toFixed(2);
+    setValorReal(isNaN(numericValue) ? "0.00" : calculatedValue);
   };
 
   const handleLougout = () => {
@@ -109,10 +149,6 @@ const TicksTest = () => {
   useEffect(() => {
     formatInputMoney(valorEntrada);
   }, [multiplicador, valorEntrada]);
-
-  const teste = (value) => {
-    console.log("teste", value);
-  };
 
   useEffect(() => {
     const connection = new WebSocket(
@@ -174,7 +210,7 @@ const TicksTest = () => {
       connection.close();
     };
   }, []);
-
+  //if (!accountInfo) return <div>Carregando contas...</div>;
   return (
     <div>
       <span className="flex justify-between gap-2 text-lg font-bold  text-gray-800 mb-4 mt-4">
@@ -257,19 +293,19 @@ const TicksTest = () => {
                 <Authentication ref={authenticationRef} />
               </div>
             </div>
-            {userData && (
+            {accountInfo && (
               <div className="w-full bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow mt-4">
                 <div className="flex justify-between items-center w-full text-gray-800 border-b pb-4">
-                  <div>Bem vindo {userData.name}</div>
+                  <div>Bem vindo {accountInfo.name}</div>
                   <div className="flex gap-2 items-center">
                     <div className="border-r-[2px] pr-2">
-                      Wins: {userData.results.wins}
+                      Wins: {accountInfo.results.wins}
                     </div>
                     <div className="border-r-[2px] pr-2">
-                      Loss: {userData.results.loss}
+                      Loss: {accountInfo.results.loss}
                     </div>
                     <div className="border-r-[2px] pr-2">
-                      Resultado: ${userData.results.result}
+                      Resultado: ${accountInfo.results.result}
                     </div>
                     <div className="group relative inline-block">
                       <button
@@ -313,28 +349,18 @@ const TicksTest = () => {
                     </label>
                     <div className="grid grid-cols-1">
                       <select
-                        onChange={(e) => {
-                          const account = JSON.parse(e.target.value);
-                          teste(account);
-                          //setSelectedAccount(account);
-                          //authorizeAccount(account.token);
-                        }}
+                        value={accountInfo.activeToken}
+                        onChange={(e) => handleAccountChange(e.target.value)}
+                        disabled={loading}
                         className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                       >
-                        <option value="">Selecione uma Conta</option>
-                        {userData.tokens.map((account, index) => (
-                          <option
-                            key={index}
-                            value={JSON.stringify(account)}
-                            defaultValue={"Default"}
-                          >
-                            {account.is_virtual
-                              ? "Conta Virtual"
-                              : "Conta Real"}{" "}
+                        {accountInfo.tokens.map((token) => (
+                          <option key={token.token} value={token.token}>
+                            {token.is_virtual ? "Virtual" : "Real"} -
                             {new Intl.NumberFormat("en-Us", {
                               style: "currency",
                               currency: "USD",
-                            }).format(account.balance)}
+                            }).format(token.balance || "0.00")}
                           </option>
                         ))}
                       </select>
@@ -361,9 +387,8 @@ const TicksTest = () => {
                         className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                         placeholder="0.00"
                         value={valorEntrada}
-                        onChange={(e) => {
-                          formatInputMoney(e.target.value);
-                        }}
+                        disabled={loading}
+                        onChange={(e) => formatInputMoney(e.target.value)}
                       />
                     </div>
                   </div>

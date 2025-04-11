@@ -1,5 +1,5 @@
 "use client";
-import DerivService from "@/app/services/DerivService";
+import {DerivService} from "@/app/services/DerivService";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
@@ -37,54 +37,6 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
     
   }, [derivService]);
 
-  // Autorizar conta selecionada
-  const authorizeAccount = async (token) => {
-    try {
-      const ws = new WebSocket(
-        "wss://ws.derivws.com/websockets/v3?app_id=" + APP_ID
-      );
-
-      await new Promise((resolve) => {
-        ws.onopen = resolve;
-      });
-
-      ws.send(
-        JSON.stringify({
-          authorize: token,
-        })
-      );
-
-      ws.onmessage = (message) => {
-        const response = JSON.parse(message.data);
-
-        if (response.error) {
-          setError(response.error.message);
-          ws.close();
-          return;
-        }
-
-        if (response.authorize) {
-          
-          const accountData = {
-            ...response.authorize,
-            balance: response.authorize.balance,
-            accounts: response.authorize.account_list,
-            token: token, // Garantir que o token está incluído
-          };
-          setUserData(accountData);
-          // Atualiza a selectedAccount com os dados completos
-          setSelectedAccount((prev) => ({
-            ...prev,
-            ...accountData,
-          }));
-          ws.close();
-        }
-      };
-    } catch (err) {
-      setError("Erro na conexão com a API Deriv");
-    }
-  };
-
 
   const handleLogin = () => {
     derivService.loginDeriv();
@@ -102,8 +54,7 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
   }));
 
   return (
-    <div className="container text-gray-800">
-      {!isAuthenticated ? (
+    <div className="container text-gray-800">   
         <div className="flex gap-2">
           <button
             className="login-button flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
@@ -143,55 +94,6 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
             Limpar histórico
           </button>
         </div>
-      ) : (
-        <div className="account-container">
-          {error && <div className="error">{error}</div>}
-
-          <div className="account-selector">
-            <select
-              onChange={(e) => {
-                const account = JSON.parse(e.target.value);
-                setSelectedAccount(account);
-                authorizeAccount(account.token);
-              }}
-            >
-              <option value="">Selecione uma conta</option>
-              {accounts.map((account, index) => (
-                <option key={index} value={JSON.stringify(account)}>
-                  {account.is_virtual ? "Conta Virtual" : "Conta Real"} (
-                  {account.currency.toUpperCase()})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {userData && (
-            <div className="user-info">
-              <h2>Bem-vindo, {userData.fullname}</h2>
-              <div className="details">
-                <p>Email: {userData.email}</p>
-                <p>
-                  Saldo: {userData.balance} {userData.currency}
-                </p>
-                <p>ID da Conta: {userData.loginid}</p>
-                <p>Tipo de Conta: {userData.is_virtual ? "Virtual" : "Real"}</p>
-              </div>
-
-              <div className="accounts-list">
-                <h3>Contas Disponíveis:</h3>
-                <ul>
-                  {userData.accounts.map((account, index) => (
-                    <li key={index}>
-                      {account.loginid} - {account.currency} (
-                      {account.account_type})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 });
