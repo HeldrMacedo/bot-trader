@@ -335,13 +335,15 @@ export class DerivService {
     }
 
     public send<T = any>(payload: Record<string, any>): Promise<T> {
+        console.log('Sending payload:', payload);
         return new Promise((resolve, reject) => {
             const reqId = this.reqId++;
             payload.req_id = reqId;
             
             const needAuthorize = this.checkNeedAuthorize(payload);
-            
+            console.log('Need authorize:', needAuthorize);
             const listenerId = this.observer.on('message', (data) => {
+                console.log('Received message:', data);
                 if (data.req_id === reqId) {
                     this.observer.removeById(listenerId);
                     data.error ? reject(data.error) : resolve(data);

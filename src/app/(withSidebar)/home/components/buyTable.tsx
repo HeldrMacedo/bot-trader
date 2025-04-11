@@ -27,6 +27,7 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
   const handleBuy = async (contractType: string) => {
     try{
       const accountInfo = derivService.getStorageDerivAccount()[0];
+      console.log(accountInfo);
       if (!accountInfo) {
         setErrorMessage("Conta não encontrada");
         return;
