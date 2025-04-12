@@ -352,6 +352,7 @@ export const TicksTest = () => {
                         value={accountInfo.activeToken}
                         onChange={(e) => handleAccountChange(e.target.value)}
                         disabled={loading}
+                        defaultValue={accountInfo.activeToken}
                         className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                       >
                         {accountInfo.tokens.map((token) => (

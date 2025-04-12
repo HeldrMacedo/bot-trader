@@ -23,28 +23,63 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
   const [selected, setSelected] = useState<number | null>(null);
   const [multiplicador, setMultiplicador] = useState("1");
   const derivService = DerivService.getInstance();
+  const [activeContractId, setActiveContractId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const contractListener = derivService.observerInstance.on('deriv.proposal_open_contract', (data) => {
+      if (data.proposal_open_contract?.contract_id === activeContractId) {
+        const status = data.proposal_open_contract.status;
+        console.log('Status do contrato:', status);
+        setPurchaseStatus(status);
+        
+        if (status === 'sold' || status === 'expired') {
+          // Atualiza saldo e histórico quando o contrato fecha
+          const account = derivService.getStorageDerivAccount()?.[0];
+          if (account) {
+            derivService.setAccountData(account);
+          }
+          setActiveContractId(null);
+        }
+      }
+    });
+  
+    return () => {
+      derivService.observerInstance.removeById(contractListener);
+      if (activeContractId) {
+        derivService.send({ forget: activeContractId });
+      }
+    };
+  }, [activeContractId]);
+
 
   const handleBuy = async (contractType: string) => {
     try{
+      
+      if (!derivService.hasAuthorized) {
+        throw new Error("Usuário não autenticado");
+      }
+
       const accountInfo = derivService.getStorageDerivAccount()[0];
-      console.log(accountInfo);
       if (!accountInfo) {
         setErrorMessage("Conta não encontrada");
         return;
+      }
+
+      if (!accountInfo.volatility || !accountInfo.barrier) {
+        throw new Error('Configuração de trade incompleta');
       }
 
       const valorBase = accountInfo.amount;
       const valorReal = valorBase * parseInt(multiplicador);
 
       const buyID = generateValidID();
-
       const payload = {
         buy: buyID,
         price: valorReal,
         parameters: {
           amount: valorReal,
           //app_markup_percentage: "3",
-          barrier: accountInfo.barrier,
+          barrier: accountInfo.barrier.toString(),
           basis: "stake",
           contract_type: contractType,
           currency: "USD",
@@ -54,8 +89,24 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
         },
       };
       
-      const response  = await derivService.send(payload);
-      console.log(response);
+      const buyResponse = await derivService.send(payload);
+      //console.log("Buy Response:", buyResponse);
+    
+      if (buyResponse.error) {
+        setErrorMessage(buyResponse.error.message);
+        return; 
+      }
+
+      const contractId = buyResponse.buy.contract_id;
+      setActiveContractId(contractId);
+      setPurchaseStatus('open');
+
+      await derivService.subscribe({
+        proposal_open_contract: 1,
+        contract_id: contractId
+      });
+
+
 
     }catch(error){
       console.log(error);
@@ -93,22 +144,8 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
     authTokenRef.current = authToken;
   }, [authToken]);
 
-  // Função de autorização que pode ser usada em qualquer lugar
-  const authorizeConnection = useCallback((socket: WebSocket) => {
-    if (authTokenRef.current && socket.readyState === WebSocket.OPEN) {
-      console.log("Enviando autorização...");
-      socket.send(
-        JSON.stringify({
-          authorize: authTokenRef.current,
-        })
-      );
-    }
-  }, []);
-
-
 
   const handleMultiplicadorChange = (value: string) => {
-    console.log("Valor do multiplicador:", value);
     setMultiplicador(value);
     multiplicadorProp(value);
   };

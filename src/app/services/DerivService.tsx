@@ -6,9 +6,11 @@ type DerivEventMap = {
     'error': Event;
     'message': any;
     'deriv.authorize': any;
+    'deriv.forget': any;
+    'deriv.buy': any;
     'deriv.balance': any;
     'deriv.tick': any;
-    'deriv.proposal': any;
+    'deriv.proposal_open_contract': any;
     'deriv.transaction': any;
     'account.update': AccountInfo;
     'auth.error': { code: string, message: string }
@@ -112,6 +114,8 @@ export class DerivService {
 
         if (savedAccounts?.length > 0) {
             this.setAccountData(savedAccounts[0]);
+            const response = await this.authenticate(this.currentAccount?.activeToken);
+            this.updateBalaceOfAccountSelected(response);
             return;
         }
 
@@ -140,6 +144,15 @@ export class DerivService {
         } catch (error) {
             this.handleAuthError(error);
         }
+    }
+
+    private updateBalaceOfAccountSelected(data: any){
+        this.currentAccount.tokens.forEach(token => {
+            if (data.loginid === token.acct) {
+                token.balance = data.balance;
+                this.observer.emit('account.update', this.currentAccount);
+            }
+        });
     }
 
     public setAccountData(data: AccountInfo) {
@@ -335,15 +348,11 @@ export class DerivService {
     }
 
     public send<T = any>(payload: Record<string, any>): Promise<T> {
-        console.log('Sending payload:', payload);
         return new Promise((resolve, reject) => {
             const reqId = this.reqId++;
             payload.req_id = reqId;
-            
             const needAuthorize = this.checkNeedAuthorize(payload);
-            console.log('Need authorize:', needAuthorize);
             const listenerId = this.observer.on('message', (data) => {
-                console.log('Received message:', data);
                 if (data.req_id === reqId) {
                     this.observer.removeById(listenerId);
                     data.error ? reject(data.error) : resolve(data);
@@ -526,7 +535,6 @@ export class DerivService {
     }
 
     public updateVolatility(value: string): void {
-        console.log('updateVolatility', value);
         if (!this.currentAccount) return;
 
         this.currentAccount.volatility = value;
@@ -538,5 +546,9 @@ export class DerivService {
         }
 
         this.observer.emit('account.update', this.currentAccount);
+    }
+
+    public get hasAuthorized(): boolean {
+        return this.isAuthorized;
     }
 }

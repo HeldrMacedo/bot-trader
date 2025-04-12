@@ -11,6 +11,7 @@ export class Observer<EventTypes extends Record<string, any>> {
 
         const id = this._id++;
         this.events.get(event)!.set(id, callback);
+        console.log(`Subscribed to ${String(event)} event with ID:`, id);
         return `${String(event)}-|/|-${id}`;
     }
 
@@ -24,6 +25,7 @@ export class Observer<EventTypes extends Record<string, any>> {
                 }
             });
         }
+        console.log(`Emitted ${String(event)} event with payload:`, payload);
     }
 
     removeById(fullId: string): void {
@@ -34,6 +36,8 @@ export class Observer<EventTypes extends Record<string, any>> {
         if (this.events.has(eventKey)) {
             this.events.get(eventKey)!.delete(numericId);
         }
+
+        console.log(`Removed listener with ID: ${fullId}`);
     }
 
     clear(): void {
