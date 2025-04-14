@@ -35,12 +35,13 @@ interface PendingRequest {
 export interface AccountInfo {
     activeToken: string;
     amount: number;
-    barrier: number;
+    barrier: string;
     volatility: string;
     finishedTradeList: any[];
     lastTrade: any | null;
     name: string;
     openTradeId: string | null;
+    digits: number;
     results: {
         loss: number;
         result: number;
@@ -168,7 +169,7 @@ export class DerivService {
         });
     }
 
-    private saveAccount(account: AccountInfo) {
+    public saveAccount(account: AccountInfo) {
         localStorage.setItem("deriv_accounts", JSON.stringify([account]));
     }
 
@@ -193,7 +194,8 @@ export class DerivService {
         return {
             activeToken: vrt.token,
             amount: 0.35,
-            barrier: 3,
+            barrier: "",
+            digits: 3,
             volatility: "R_100",
             finishedTradeList: [],
             lastTrade: null,
@@ -515,7 +517,7 @@ export class DerivService {
         window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${this.appId}`;
     }
 
-    public updateBarrier(value: number): void {
+    public updateBarrier(value: string): void {
         if (!this.currentAccount) return;
         
         this.currentAccount.barrier = value;
@@ -529,9 +531,28 @@ export class DerivService {
         this.observer.emit('account.update', this.currentAccount);
     }
 
-    public get currentBarrier(): number {
+    public get currentBarrier(): string {
         this.currentAccount = this.getStorageDerivAccount()?.[0];
-        return this.currentAccount?.barrier || 3; 
+        return this.currentAccount?.barrier || ""; 
+    }
+
+    public updateDigits(value: number): void {
+        if (!this.currentAccount) return;
+
+        this.currentAccount.digits = value;
+
+        const accounts = this.getStorageDerivAccount() || []
+        if (accounts.length > 0) {
+            accounts[0].digits = value;
+            this.saveAccount(this.currentAccount);
+        }
+
+        this.observer.emit('account.update', this.currentAccount)
+    }
+
+    public get currentDigits(): number {
+        this.currentAccount = this.getStorageDerivAccount()?.[0];
+        return this.currentAccount?.digits || 3;
     }
 
     public updateVolatility(value: string): void {

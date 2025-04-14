@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import {DerivService} from "@/app/services/DerivService";
+import { DerivService } from "@/app/services/DerivService";
+import { finished } from "stream";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 interface BuyTableProps {
   authToken?: string;
@@ -9,10 +11,14 @@ interface BuyTableProps {
   multiplicadorProp: (data: string) => void;
 }
 
-
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
 
-const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTableProps) => {
+const BuyTable = ({
+  authToken,
+  currency,
+  isVirtual,
+  multiplicadorProp,
+}: BuyTableProps) => {
   const wsRef = useRef<WebSocket | null>(null);
   const authTokenRef = useRef(authToken);
   const [proposalId, setProposalId] = useState<string | null>(null);
@@ -24,25 +30,58 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
   const [multiplicador, setMultiplicador] = useState("1");
   const derivService = DerivService.getInstance();
   const [activeContractId, setActiveContractId] = useState<string | null>(null);
+  const [tradeType, setTradeType] = useState<Number>(null);
 
   useEffect(() => {
-    const contractListener = derivService.observerInstance.on('deriv.proposal_open_contract', (data) => {
-      if (data.proposal_open_contract?.contract_id === activeContractId) {
-        const status = data.proposal_open_contract.status;
-        console.log('Status do contrato:', status);
-        setPurchaseStatus(status);
-        
-        if (status === 'sold' || status === 'expired') {
-          // Atualiza saldo e histórico quando o contrato fecha
-          const account = derivService.getStorageDerivAccount()?.[0];
-          if (account) {
-            derivService.setAccountData(account);
+    const contractListener = derivService.observerInstance.on(
+      "deriv.proposal_open_contract",
+      (data) => {
+        if (data.proposal_open_contract?.contract_id === activeContractId) {
+          const status = data.proposal_open_contract.status;
+          console.log("Status do contrato:", status);
+          console.log("Proposal data:", data);
+          
+
+          setPurchaseStatus(status);
+
+          if (status === "won" || status === "lost") {
+            const finishedTradeList = {
+              amount: data.proposal_open_contract.buy_price,
+              barrier: handleBarrieType(data.proposal_open_contract),
+              contract_type: data.proposal_open_contract.contract_type,
+              finished: true,
+              id: data.proposal_open_contract.id,
+              market: data.proposal_open_contract.underlying,
+              profit: data.proposal_open_contract.profit,
+              resultBarrier: data.proposal_open_contract.exit_tick_display_value.slice(-1),
+              status: status,
+            }
+
+            const account = derivService.getStorageDerivAccount()?.[0];
+            if (account) {
+              account.finishedTradeList.push(finishedTradeList);
+
+              const isWin =  data.proposal_open_contract.profit > 0;
+              account.results = {
+                wins: account.results.wins + (isWin ? 1 : 0),
+                loss: account.results.loss + (isWin ? 0 : 1),
+                result: account.results.result + data.proposal_open_contract.profit,
+              };
+
+              account.lastTrade = finishedTradeList;
+
+              derivService.setAccountData(account);
+              derivService.saveAccount(account);
+            }
+            console.log("Proposal Status do contrato 2:", status);
+            // Atualiza saldo e histórico quando o contrato fecha
+           
+            setActiveContractId(null);
           }
-          setActiveContractId(null);
         }
       }
-    });
-  
+    );
+
     return () => {
       derivService.observerInstance.removeById(contractListener);
       if (activeContractId) {
@@ -51,10 +90,16 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
     };
   }, [activeContractId]);
 
+  const handleBarrieType = (data: any) => {
+    if (data.contract_type === "DIGITEVEN" || data.contract_type === "DIGITODD") {
+      return data.contract_type === "DIGITEVEN" ? "Par" : "Ímpar";
+    }
+
+    return data.barrier;
+  }
 
   const handleBuy = async (contractType: string) => {
-    try{
-      
+    try {
       if (!derivService.hasAuthorized) {
         throw new Error("Usuário não autenticado");
       }
@@ -66,7 +111,7 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
       }
 
       if (!accountInfo.volatility || !accountInfo.barrier) {
-        throw new Error('Configuração de trade incompleta');
+        throw new Error("Configuração de trade incompleta");
       }
 
       const valorBase = accountInfo.amount;
@@ -79,40 +124,37 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
         parameters: {
           amount: valorReal,
           //app_markup_percentage: "3",
-          barrier: accountInfo.barrier.toString(),
           basis: "stake",
           contract_type: contractType,
           currency: "USD",
           duration: 1,
           duration_unit: "t",
           symbol: accountInfo.volatility,
+          ...( tradeType == 1 && { barrier: accountInfo.digits }) 
         },
       };
-      
+
+
       const buyResponse = await derivService.send(payload);
       //console.log("Buy Response:", buyResponse);
-    
+
       if (buyResponse.error) {
         setErrorMessage(buyResponse.error.message);
-        return; 
+        return;
       }
 
       const contractId = buyResponse.buy.contract_id;
       setActiveContractId(contractId);
-      setPurchaseStatus('open');
+      setPurchaseStatus("open");
 
       await derivService.subscribe({
         proposal_open_contract: 1,
-        contract_id: contractId
+        contract_id: contractId,
       });
-
-
-
-    }catch(error){
+    } catch (error) {
       console.log(error);
     }
-    
-  }
+  };
 
   const generateValidID = () => {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
@@ -126,16 +168,16 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
   };
 
   useEffect(() => {
-    setSelected(derivService.currentBarrier);
+    setSelected(derivService.currentDigits);
   }, []);
 
   const handleSelect = (number: number) => {
     const newSelected = selected === number ? null : number;
     setSelected(newSelected);
-    
+
     // Atualiza o barrier no serviço quando um novo dígito é selecionado
     if (newSelected !== null) {
-      derivService.updateBarrier(newSelected);
+      derivService.updateDigits(newSelected);
     }
   };
 
@@ -144,11 +186,14 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
     authTokenRef.current = authToken;
   }, [authToken]);
 
-
   const handleMultiplicadorChange = (value: string) => {
     setMultiplicador(value);
     multiplicadorProp(value);
   };
+
+  const onChangeTradeType = (value: Number) => {
+    setTradeType(value); 
+  }
 
   return (
     <div>
@@ -228,12 +273,31 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
             onChange={(e) => handleMultiplicadorChange(e.target.value)}
           />
         </div>
+        <div>
+          <span className="text-sm">Tipo de Trade</span>
+          <div className="grid grid-cols-1">
+            <select 
+            onChange={(e) => onChangeTradeType(Number(e.target.value))}
+            className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6">
+              <option>Selecione um tipo</option>
+              <option value={1}>Acima/Abaixo</option>
+              <option value={2}>Par/Ímpar</option>
+            </select>
+            <ChevronDownIcon
+                        aria-hidden="true"
+                        className="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-gray-400"
+                      />{" "}
+          </div>
+          
+        </div>
       </div>
+      { tradeType === 1 && (
       <div className="flex gap-2 mt-6 w-full">
         <div className="flex-1">
-          <button 
-          onClick={() => handleBuy('DIGITOVER')}
-          className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+          <button
+            onClick={() => handleBuy("DIGITOVER")}
+            className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -254,8 +318,9 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
 
         <div className="flex-1">
           <button
-          onClick={() => handleBuy('DIGITUNDER')} 
-          className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+            onClick={() => handleBuy("DIGITUNDER")}
+            className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -274,22 +339,25 @@ const BuyTable = ({ authToken, currency, isVirtual, multiplicadorProp }: BuyTabl
           </button>
         </div>
       </div>
-
-      <div className="flex gap-2 mt-6 w-full">
+      )}
+      { tradeType === 2 && (
+        <div className="flex gap-2 mt-6 w-full">
         <div className="flex-1">
-          <button className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
-          <i className="me-2">²</i>
+          <button onClick={() => handleBuy("DIGITEVEN")} className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+            <i className="me-2">²</i>
             Comprar Par
           </button>
         </div>
 
         <div className="flex-1">
-          <button className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
-          <i className="me-2">³</i>
+          <button onClick={() => handleBuy("DIGITODD")} className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+            <i className="me-2">³</i>
             Comprar Ímpar
           </button>
         </div>
       </div>
+      )}
+      
     </div>
   );
 };

@@ -146,6 +146,16 @@ export const TicksTest = () => {
     setMultiplicador(value);
   };
 
+  const labelContractType = (type) => {
+    switch (type) {
+      case "DIGITOVER":
+        return "Acima";
+      case "DIGITUNDER":
+        return "Abaixo";
+      
+    }
+  } 
+
   useEffect(() => {
     formatInputMoney(valorEntrada);
   }, [multiplicador, valorEntrada]);
@@ -299,13 +309,16 @@ export const TicksTest = () => {
                   <div>Bem vindo {accountInfo.name}</div>
                   <div className="flex gap-2 items-center">
                     <div className="border-r-[2px] pr-2">
-                      Wins: {accountInfo.results.wins}
+                      Wins: {accountInfo.results.wins ?? 0}
                     </div>
                     <div className="border-r-[2px] pr-2">
-                      Loss: {accountInfo.results.loss}
+                      Loss: {accountInfo.results.loss ?? 0}
                     </div>
                     <div className="border-r-[2px] pr-2">
-                      Resultado: ${accountInfo.results.result}
+                      Resultado: {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                      }).format(accountInfo.results.result ?? 0)}
                     </div>
                     <div className="group relative inline-block">
                       <button
@@ -357,7 +370,7 @@ export const TicksTest = () => {
                       >
                         {accountInfo.tokens.map((token) => (
                           <option key={token.token} value={token.token}>
-                            {token.is_virtual ? "Virtual" : "Real"} -
+                            {token.is_virtual ? "Virtual " : "Real "} 
                             {new Intl.NumberFormat("en-Us", {
                               style: "currency",
                               currency: "USD",
@@ -414,6 +427,20 @@ export const TicksTest = () => {
                       />
                     </div>
                   </div>
+                </div>
+                <div className="flex w-full justify-between text-gray-800 bg-slate-100 p-2 text-sm">
+                  <div>Última Operação</div>
+                  <div>Tipo: {labelContractType(accountInfo.lastTrade?.contract_type)}</div>
+                  <div>Digito Buscado: {accountInfo.lastTrade?.barrier}</div>
+                  <div>Digito Encontrado: {accountInfo.lastTrade?.resultBarrier}</div>
+                  <div>Entrada: {new Intl.NumberFormat("en-Us", {
+                              style: "currency",
+                              currency: "USD",
+                            }).format(accountInfo.lastTrade?.amount)}</div>
+                  <div className={`${accountInfo.lastTrade?.profit > 0 ? 'text-green-600' : 'text-red-600'}`}>Resultado: {new Intl.NumberFormat("en-Us", {
+                              style: "currency",
+                              currency: "USD",
+                            }).format(accountInfo.lastTrade?.profit)}</div>
                 </div>
               </div>
             )}
