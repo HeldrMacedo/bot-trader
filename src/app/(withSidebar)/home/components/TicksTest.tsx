@@ -12,7 +12,6 @@ import {
   TokenData,
 } from "@/app/services/DerivService";
 
-const APP_ID = process.env.NEXT_PUBLIC_APPID;
 interface AccountSelectorProps {
   onAccountChange: (accountInfo: any) => void;
 }
@@ -152,7 +151,10 @@ export const TicksTest = () => {
         return "Acima";
       case "DIGITUNDER":
         return "Abaixo";
-      
+      case "DIGITEVEN":
+        return "Par";
+      case "DIGITODD":
+        return "Ímpar";
     }
   } 
 
@@ -429,7 +431,7 @@ export const TicksTest = () => {
                   </div>
                 </div>
                 <div className="flex w-full justify-between text-gray-800 bg-slate-100 p-2 text-sm">
-                  <div>Última Operação</div>
+                  <div className="font-bold">Última Operação</div>
                   <div>Tipo: {labelContractType(accountInfo.lastTrade?.contract_type)}</div>
                   <div>Digito Buscado: {accountInfo.lastTrade?.barrier}</div>
                   <div>Digito Encontrado: {accountInfo.lastTrade?.resultBarrier}</div>
