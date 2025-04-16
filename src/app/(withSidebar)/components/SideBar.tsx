@@ -27,6 +27,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const navigation = [
     { name: "Dashboard", icon: HomeIcon, href: "/home" },
     { name: "Minha Conta", icon: UserIcon, href: "/profile" },
+    { name: "Meu Histórico", icon: UserIcon, href: "/history" },
     { name: "Usuários", icon: UserGroupIcon, href: "/users" },
     { name: "Sair", icon: ArrowLeftStartOnRectangleIcon, href: "/login" },
   ];
@@ -62,7 +63,9 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
-          <span className="text-xl font-semibold text-white">Trade Platform</span>
+          <span className="text-xl font-semibold text-white">
+            Trade Platform
+          </span>
         </div>
 
         {/* Navigation */}
@@ -71,6 +74,9 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
             <a
               key={item.name}
               href={item.href}
+              onClick={() =>
+                item.name === "Sair" && localStorage.removeItem("access_token")
+              }
               className="flex items-center space-x-3 px-3 py-2 rounded-md
                 hover:bg-gray-800 hover:text-white group transition-colors"
             >
@@ -79,7 +85,6 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
             </a>
           ))}
         </nav>
-
       </aside>
       {/* Main Content */}
       <main className="md:ml-64">
