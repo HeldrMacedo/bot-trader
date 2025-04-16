@@ -67,7 +67,7 @@ export const TicksTest = () => {
 
   useEffect(() => {
     deriv.updateVolatility(volatility);
-  },[volatility]);
+  }, [volatility]);
 
   const handleAccountChange = async (token: string) => {
     if (!accountInfo) return;
@@ -156,7 +156,7 @@ export const TicksTest = () => {
       case "DIGITODD":
         return "Ímpar";
     }
-  } 
+  };
 
   useEffect(() => {
     formatInputMoney(valorEntrada);
@@ -191,8 +191,8 @@ export const TicksTest = () => {
       );
       setTicks((prev) => ({ ...prev, [symbol]: listTicks }));
       ticksStream.onUpdate((tick) => {
-        if (symbol == "R_25" || symbol == "R_10")
-          console.log(symbol, tick.raw.quote);
+        // if (symbol == "R_25" || symbol == "R_10")
+        //   console.log(symbol, tick.raw.quote);
         const lastDigit = parseInt(
           tick.raw.quote
             .toFixed(
@@ -317,7 +317,8 @@ export const TicksTest = () => {
                       Loss: {accountInfo.results.loss ?? 0}
                     </div>
                     <div className="border-r-[2px] pr-2">
-                      Resultado: {new Intl.NumberFormat("en-US", {
+                      Resultado:{" "}
+                      {new Intl.NumberFormat("en-US", {
                         style: "currency",
                         currency: "USD",
                       }).format(accountInfo.results.result ?? 0)}
@@ -372,7 +373,7 @@ export const TicksTest = () => {
                       >
                         {accountInfo.tokens.map((token) => (
                           <option key={token.token} value={token.token}>
-                            {token.is_virtual ? "Virtual " : "Real "} 
+                            {token.is_virtual ? "Virtual " : "Real "}
                             {new Intl.NumberFormat("en-Us", {
                               style: "currency",
                               currency: "USD",
@@ -432,17 +433,34 @@ export const TicksTest = () => {
                 </div>
                 <div className="flex w-full justify-between text-gray-800 bg-slate-100 p-2 text-sm">
                   <div className="font-bold">Última Operação</div>
-                  <div>Tipo: {labelContractType(accountInfo.lastTrade?.contract_type)}</div>
+                  <div>
+                    Tipo:{" "}
+                    {labelContractType(accountInfo.lastTrade?.contract_type)}
+                  </div>
                   <div>Digito Buscado: {accountInfo.lastTrade?.barrier}</div>
-                  <div>Digito Encontrado: {accountInfo.lastTrade?.resultBarrier}</div>
-                  <div>Entrada: {new Intl.NumberFormat("en-Us", {
-                              style: "currency",
-                              currency: "USD",
-                            }).format(accountInfo.lastTrade?.amount)}</div>
-                  <div className={`${accountInfo.lastTrade?.profit > 0 ? 'text-green-600' : 'text-red-600'}`}>Resultado: {new Intl.NumberFormat("en-Us", {
-                              style: "currency",
-                              currency: "USD",
-                            }).format(accountInfo.lastTrade?.profit)}</div>
+                  <div>
+                    Digito Encontrado: {accountInfo.lastTrade?.resultBarrier}
+                  </div>
+                  <div>
+                    Entrada:{" "}
+                    {new Intl.NumberFormat("en-Us", {
+                      style: "currency",
+                      currency: "USD",
+                    }).format(accountInfo.lastTrade?.amount)}
+                  </div>
+                  <div
+                    className={`${
+                      accountInfo.lastTrade?.profit > 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    Resultado:{" "}
+                    {new Intl.NumberFormat("en-Us", {
+                      style: "currency",
+                      currency: "USD",
+                    }).format(accountInfo.lastTrade?.profit)}
+                  </div>
                 </div>
               </div>
             )}
