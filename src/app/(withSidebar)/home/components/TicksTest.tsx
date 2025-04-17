@@ -580,7 +580,7 @@ export const TicksTest = () => {
                     <span
                       key={index}
                       className={`pr-1 pl-1 text-[12px] border ${
-                        shouldHighlight ? "bg-indigo-600 text-white border-indigo-700" : ""
+                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
                       }`}
                     >
                       {digit}
@@ -612,7 +612,7 @@ export const TicksTest = () => {
                     <span
                       key={index}
                       className={`pr-1 pl-1 text-[12px] border ${
-                        shouldHighlight ? "bg-indigo-600 text-white border-indigo-700" : ""
+                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
                       }`}
                     >
                       {digit}
@@ -644,7 +644,7 @@ export const TicksTest = () => {
                     <span
                       key={index}
                       className={`pr-1 pl-1 text-[12px] border ${
-                        shouldHighlight ? "bg-indigo-600 text-white border-indigo-700" : ""
+                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
                       }`}
                     >
                       {digit}

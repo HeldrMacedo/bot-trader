@@ -18,6 +18,7 @@ import {
   ChartBarIcon,
   Cog6ToothIcon,
   ArrowLeftStartOnRectangleIcon,
+  DocumentChartBarIcon
 } from "@heroicons/react/24/outline";
 
 const Sidebar = ({ children }: { children: React.ReactNode }) => {
@@ -27,7 +28,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const navigation = [
     { name: "Dashboard", icon: HomeIcon, href: "/home" },
     { name: "Minha Conta", icon: UserIcon, href: "/profile" },
-    { name: "Meu Histórico", icon: UserIcon, href: "/history" },
+    { name: "Meu Histórico", icon: DocumentChartBarIcon, href: "/history" },
     { name: "Usuários", icon: UserGroupIcon, href: "/users" },
     { name: "Sair", icon: ArrowLeftStartOnRectangleIcon, href: "/login" },
   ];
