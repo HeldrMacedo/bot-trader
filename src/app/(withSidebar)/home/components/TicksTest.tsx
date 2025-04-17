@@ -35,6 +35,11 @@ export const TicksTest = () => {
   const deriv = DerivService.getInstance();
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [purchaseStatus, setPurchaseStatus] = useState<string>("");
+  const [hoveredTradeType, setHoveredTradeType] = useState<
+    "above" | "below" | "even" | "odd" | null
+  >(null);
+  const [activeDigit, setActiveDigit] = useState<number | null>(null);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -58,6 +63,7 @@ export const TicksTest = () => {
     const listener = deriv.observerInstance.on(
       "account.update",
       (newAccount: AccountInfo) => {
+        console.log("Account updated:", newAccount);
         setAccountInfo(newAccount);
       }
     );
@@ -67,7 +73,7 @@ export const TicksTest = () => {
 
   useEffect(() => {
     deriv.updateVolatility(volatility);
-  },[volatility]);
+  }, [volatility]);
 
   const handleAccountChange = async (token: string) => {
     if (!accountInfo) return;
@@ -102,7 +108,7 @@ export const TicksTest = () => {
   };
 
   const onAccountChange = (newAccount: AccountInfo) => {
-    console.log("Nova conta selecionada:", newAccount);
+    //console.log("Nova conta selecionada:", newAccount);
     //setSelectedAccount(newAccount);
     //setAccountInfo(newAccount);
   };
@@ -156,7 +162,7 @@ export const TicksTest = () => {
       case "DIGITODD":
         return "Ímpar";
     }
-  } 
+  };
 
   useEffect(() => {
     formatInputMoney(valorEntrada);
@@ -308,16 +314,35 @@ export const TicksTest = () => {
             {accountInfo && (
               <div className="w-full bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow mt-4">
                 <div className="flex justify-between items-center w-full text-gray-800 border-b pb-4">
-                  <div>Bem vindo {accountInfo.name}</div>
+                  <div className="text-sm">
+                    Bem vindo: {accountInfo.name}
+                    {purchaseStatus === "open" && (
+                      <span className="ml-2 p-1 text-[11px] bg-indigo-500 text-white rounded-sm font-bold">
+                        Operando
+                      </span>
+                    )}
+                    {purchaseStatus === "Comprando" && (
+                      <span className="ml-2 p-1 text-[11px] bg-green-500 text-white rounded-sm font-bold">
+                        Comprando
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-2 items-center">
-                    <div className="border-r-[2px] pr-2">
+                    <div className="border-r-[2px] pr-2 text-sm">
                       Wins: {accountInfo.results.wins ?? 0}
                     </div>
-                    <div className="border-r-[2px] pr-2">
+                    <div className="border-r-[2px] pr-2 text-sm">
                       Loss: {accountInfo.results.loss ?? 0}
                     </div>
-                    <div className="border-r-[2px] pr-2">
-                      Resultado: {new Intl.NumberFormat("en-US", {
+                    <div
+                      className={`${
+                        accountInfo.results.result > 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      } border-r-[2px] pr-2 text-sm`}
+                    >
+                      Resultado:{" "}
+                      {new Intl.NumberFormat("en-US", {
                         style: "currency",
                         currency: "USD",
                       }).format(accountInfo.results.result ?? 0)}
@@ -372,7 +397,7 @@ export const TicksTest = () => {
                       >
                         {accountInfo.tokens.map((token) => (
                           <option key={token.token} value={token.token}>
-                            {token.is_virtual ? "Virtual " : "Real "} 
+                            {token.is_virtual ? "Virtual " : "Real "}
                             {new Intl.NumberFormat("en-Us", {
                               style: "currency",
                               currency: "USD",
@@ -430,20 +455,39 @@ export const TicksTest = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex w-full justify-between text-gray-800 bg-slate-100 p-2 text-sm">
-                  <div className="font-bold">Última Operação</div>
-                  <div>Tipo: {labelContractType(accountInfo.lastTrade?.contract_type)}</div>
-                  <div>Digito Buscado: {accountInfo.lastTrade?.barrier}</div>
-                  <div>Digito Encontrado: {accountInfo.lastTrade?.resultBarrier}</div>
-                  <div>Entrada: {new Intl.NumberFormat("en-Us", {
-                              style: "currency",
-                              currency: "USD",
-                            }).format(accountInfo.lastTrade?.amount)}</div>
-                  <div className={`${accountInfo.lastTrade?.profit > 0 ? 'text-green-600' : 'text-red-600'}`}>Resultado: {new Intl.NumberFormat("en-Us", {
-                              style: "currency",
-                              currency: "USD",
-                            }).format(accountInfo.lastTrade?.profit)}</div>
-                </div>
+                {accountInfo.lastTrade && (
+                  <div className="flex w-full justify-between text-gray-800 bg-slate-100 p-2 text-sm">
+                    <div className="font-bold">Última Operação</div>
+                    <div>
+                      Tipo:{" "}
+                      {labelContractType(accountInfo.lastTrade.contract_type)}
+                    </div>
+                    <div>Digito Buscado: {accountInfo.lastTrade.barrier}</div>
+                    <div>
+                      Digito Encontrado: {accountInfo.lastTrade.resultBarrier}
+                    </div>
+                    <div>
+                      Entrada:{" "}
+                      {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                      }).format(accountInfo.lastTrade.amount)}
+                    </div>
+                    <div
+                      className={`${
+                        accountInfo.lastTrade.profit > 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      Resultado:{" "}
+                      {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                      }).format(accountInfo.lastTrade.profit)}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -460,11 +504,25 @@ export const TicksTest = () => {
             >
               <h2 className="text-base mb-1">Índice de volatilidade 100</h2>
               <div className="flex">
-                {ticks.R_100.slice(-18).map((digit, index) => (
-                  <span key={index} className="pr-1 pl-1 text-[12px] border">
-                    {digit}
-                  </span>
-                ))}
+                {ticks.R_100.slice(-18).map((digit, index) => {
+                  const shouldHighlight =
+                    activeDigit !== null &&
+                    ((hoveredTradeType === "above" && digit > activeDigit) ||
+                      (hoveredTradeType === "below" && digit < activeDigit) ||
+                    (hoveredTradeType === "even" && digit % 2 === 0) || 
+                    (hoveredTradeType === "odd" && digit % 2 !== 0));
+
+                  return (
+                    <span
+                      key={index}
+                      className={`pr-1 pl-1 text-[12px] border ${
+                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
+                      }`}
+                    >
+                      {digit}
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
@@ -478,11 +536,25 @@ export const TicksTest = () => {
             >
               <h2 className="text-base mb-1">Índice de volatilidade 75</h2>
               <div className="flex">
-                {ticks.R_75.slice(-18).map((digit, index) => (
-                  <span key={index} className="pr-1 pl-1 text-[12px] border">
-                    {digit}
-                  </span>
-                ))}
+                {ticks.R_75.slice(-18).map((digit, index) => {
+                  const shouldHighlight =
+                    activeDigit !== null &&
+                    ((hoveredTradeType === "above" && digit > activeDigit) ||
+                      (hoveredTradeType === "below" && digit < activeDigit)||
+                      (hoveredTradeType === "even" && digit % 2 === 0) || 
+                      (hoveredTradeType === "odd" && digit % 2 !== 0));
+
+                  return (
+                    <span
+                      key={index}
+                      className={`pr-1 pl-1 text-[12px] border ${
+                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
+                      }`}
+                    >
+                      {digit}
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
@@ -496,11 +568,25 @@ export const TicksTest = () => {
             >
               <h2 className="text-base mb-1">Índice de volatilidade 50</h2>
               <div className="flex">
-                {ticks.R_50.slice(-18).map((digit, index) => (
-                  <span key={index} className="pr-1 pl-1 text-[12px] border">
-                    {digit}
-                  </span>
-                ))}
+                {ticks.R_50.slice(-18).map((digit, index) => {
+                  const shouldHighlight =
+                    activeDigit !== null &&
+                    ((hoveredTradeType === "above" && digit > activeDigit) ||
+                    (hoveredTradeType === "below" && digit < activeDigit)||
+                    (hoveredTradeType === "even" && digit % 2 === 0) || 
+                    (hoveredTradeType === "odd" && digit % 2 !== 0));
+
+                  return (
+                    <span
+                      key={index}
+                      className={`pr-1 pl-1 text-[12px] border ${
+                        shouldHighlight ? "bg-indigo-600 text-white border-indigo-700" : ""
+                      }`}
+                    >
+                      {digit}
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
@@ -514,11 +600,25 @@ export const TicksTest = () => {
             >
               <h2 className="text-base mb-1">Índice de volatilidade 25</h2>
               <div className="flex ">
-                {ticks.R_25.slice(-18).map((digit, index) => (
-                  <span key={index} className="pr-1 pl-1 text-[12px] border">
-                    {digit}
-                  </span>
-                ))}
+                {ticks.R_25.slice(-18).map((digit, index) => {
+                  const shouldHighlight =
+                    activeDigit !== null &&
+                    ((hoveredTradeType === "above" && digit > activeDigit) ||
+                    (hoveredTradeType === "below" && digit < activeDigit)||
+                    (hoveredTradeType === "even" && digit % 2 === 0) || 
+                    (hoveredTradeType === "odd" && digit % 2 !== 0));
+
+                  return (
+                    <span
+                      key={index}
+                      className={`pr-1 pl-1 text-[12px] border ${
+                        shouldHighlight ? "bg-indigo-600 text-white border-indigo-700" : ""
+                      }`}
+                    >
+                      {digit}
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
@@ -532,11 +632,25 @@ export const TicksTest = () => {
             >
               <h2 className="text-base mb-1 ">Índice de volatilidade 10</h2>
               <div className="flex">
-                {ticks.R_10.slice(-18).map((digit, index) => (
-                  <span key={index} className="pr-1 pl-1 text-[12px] border">
-                    {digit}
-                  </span>
-                ))}
+                {ticks.R_10.slice(-18).map((digit, index) => {
+                  const shouldHighlight =
+                    activeDigit !== null &&
+                    ((hoveredTradeType === "above" && digit > activeDigit) ||
+                    (hoveredTradeType === "below" && digit < activeDigit)||
+                    (hoveredTradeType === "even" && digit % 2 === 0) || 
+                    (hoveredTradeType === "odd" && digit % 2 !== 0));
+
+                  return (
+                    <span
+                      key={index}
+                      className={`pr-1 pl-1 text-[12px] border ${
+                        shouldHighlight ? "bg-indigo-600 text-white border-indigo-700" : ""
+                      }`}
+                    >
+                      {digit}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -545,7 +659,9 @@ export const TicksTest = () => {
             currency={selectedAccount?.currency}
             isVirtual={selectedAccount?.is_virtual}
             multiplicadorProp={handleMultiplicador}
-            // className="mt-4 pt-4 border-t border-gray-200"
+            onPurchaseStatusChange={setPurchaseStatus}
+            onHoverTradeType={setHoveredTradeType}
+            onDigitHover={setActiveDigit}
           />
         </div>
       </div>

@@ -9,6 +9,9 @@ interface BuyTableProps {
   currency?: string;
   isVirtual?: boolean;
   multiplicadorProp: (data: string) => void;
+  onPurchaseStatusChange: (status: string) => void;
+  onHoverTradeType?: (type: 'above'|'below'|'even'|'odd'|null) => void;
+  onDigitHover?: (digit: number|null) => void;
 }
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
@@ -18,18 +21,18 @@ const BuyTable = ({
   currency,
   isVirtual,
   multiplicadorProp,
+  onPurchaseStatusChange,
+  onHoverTradeType,
+  onDigitHover 
 }: BuyTableProps) => {
   const wsRef = useRef<WebSocket | null>(null);
   const authTokenRef = useRef(authToken);
-  const [proposalId, setProposalId] = useState<string | null>(null);
-  const [purchaseStatus, setPurchaseStatus] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [isConnected, setIsConnected] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [multiplicador, setMultiplicador] = useState("1");
   const derivService = DerivService.getInstance();
   const [activeContractId, setActiveContractId] = useState<string | null>(null);
+  const [buyResponseId, setBuyResponseId] = useState<string | null>(null);
   const [tradeType, setTradeType] = useState<Number>(null);
 
   useEffect(() => {
@@ -38,13 +41,11 @@ const BuyTable = ({
       (data) => {
         if (data.proposal_open_contract?.contract_id === activeContractId) {
           const status = data.proposal_open_contract.status;
-          console.log("Status do contrato:", status);
-          console.log("Proposal data:", data);
+
+          onPurchaseStatusChange?.(status);
           
-
-          setPurchaseStatus(status);
-
           if (status === "won" || status === "lost") {
+            onPurchaseStatusChange("");
             const finishedTradeList = {
               amount: data.proposal_open_contract.buy_price,
               barrier: handleBarrieType(data.proposal_open_contract),
@@ -56,7 +57,7 @@ const BuyTable = ({
               resultBarrier: data.proposal_open_contract.exit_tick_display_value.slice(-1),
               status: status,
             }
-
+            
             const account = derivService.getStorageDerivAccount()?.[0];
             if (account) {
               account.finishedTradeList.push(finishedTradeList);
@@ -72,11 +73,8 @@ const BuyTable = ({
 
               derivService.setAccountData(account);
               derivService.saveAccount(account);
-            }
-            console.log("Proposal Status do contrato 2:", status);
-            // Atualiza saldo e histórico quando o contrato fecha
-           
-            setActiveContractId(null);
+            }           
+            setBuyResponseId(null);
           }
         }
       }
@@ -84,11 +82,11 @@ const BuyTable = ({
 
     return () => {
       derivService.observerInstance.removeById(contractListener);
-      if (activeContractId) {
-        derivService.send({ forget: activeContractId });
+      if (buyResponseId) {
+        derivService.send({ forget: buyResponseId });
       }
     };
-  }, [activeContractId]);
+  }, [buyResponseId]);
 
   const handleBarrieType = (data: any) => {
     if (data.contract_type === "DIGITEVEN" || data.contract_type === "DIGITODD") {
@@ -100,6 +98,7 @@ const BuyTable = ({
 
   const handleBuy = async (contractType: string) => {
     try {
+      
       if (!derivService.hasAuthorized) {
         throw new Error("Usuário não autenticado");
       }
@@ -110,7 +109,7 @@ const BuyTable = ({
         return;
       }
 
-      if (!accountInfo.volatility || !accountInfo.barrier) {
+      if (!accountInfo.volatility || !accountInfo.digits) {
         throw new Error("Configuração de trade incompleta");
       }
 
@@ -136,16 +135,20 @@ const BuyTable = ({
 
 
       const buyResponse = await derivService.send(payload);
-      //console.log("Buy Response:", buyResponse);
-
+      
       if (buyResponse.error) {
         setErrorMessage(buyResponse.error.message);
         return;
       }
 
       const contractId = buyResponse.buy.contract_id;
+
       setActiveContractId(contractId);
-      setPurchaseStatus("open");
+      if (buyResponse.echo_req) {
+        setBuyResponseId(buyResponse.echo_req.buy);
+      }
+      
+      onPurchaseStatusChange("Comprando");
 
       await derivService.subscribe({
         proposal_open_contract: 1,
@@ -175,13 +178,11 @@ const BuyTable = ({
     const newSelected = selected === number ? null : number;
     setSelected(newSelected);
 
-    // Atualiza o barrier no serviço quando um novo dígito é selecionado
     if (newSelected !== null) {
       derivService.updateDigits(newSelected);
     }
   };
 
-  // Atualiza a referência do token quando ele muda
   useEffect(() => {
     authTokenRef.current = authToken;
   }, [authToken]);
@@ -193,6 +194,16 @@ const BuyTable = ({
 
   const onChangeTradeType = (value: Number) => {
     setTradeType(value); 
+  }
+
+  const handleMouseEnter = (type: 'above'|'below'|'even'|'odd') => {
+    onHoverTradeType?.(type);
+    onDigitHover?.(selected);
+  }
+
+  const handleMouseLeave = () => {
+    onHoverTradeType?.(null);
+    onDigitHover?.(null);
   }
 
   return (
@@ -231,7 +242,7 @@ const BuyTable = ({
             font-medium 
             ${
               selected === number
-                ? "bg-blue-500 text-white border-blue-600"
+                ? "bg-indigo-600 text-white border-indigo-700"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }
           `}
@@ -296,6 +307,8 @@ const BuyTable = ({
         <div className="flex-1">
           <button
             onClick={() => handleBuy("DIGITOVER")}
+            onMouseEnter={() => handleMouseEnter('above')}
+            onMouseLeave={handleMouseLeave}
             className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
           >
             <svg
@@ -319,6 +332,8 @@ const BuyTable = ({
         <div className="flex-1">
           <button
             onClick={() => handleBuy("DIGITUNDER")}
+            onMouseEnter={() => handleMouseEnter('below')}
+            onMouseLeave={handleMouseLeave}
             className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
           >
             <svg
@@ -343,14 +358,20 @@ const BuyTable = ({
       { tradeType === 2 && (
         <div className="flex gap-2 mt-6 w-full">
         <div className="flex-1">
-          <button onClick={() => handleBuy("DIGITEVEN")} className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+          <button onClick={() => handleBuy("DIGITEVEN")} 
+          onMouseEnter={() => handleMouseEnter('even')}
+          onMouseLeave={handleMouseLeave}
+          className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
             <i className="me-2">²</i>
             Comprar Par
           </button>
         </div>
 
         <div className="flex-1">
-          <button onClick={() => handleBuy("DIGITODD")} className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+          <button onClick={() => handleBuy("DIGITODD")} 
+          onMouseEnter={() => handleMouseEnter('odd')}
+          onMouseLeave={handleMouseLeave}
+          className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
             <i className="me-2">³</i>
             Comprar Ímpar
           </button>
