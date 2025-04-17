@@ -509,14 +509,16 @@ export const TicksTest = () => {
                     activeDigit !== null &&
                     ((hoveredTradeType === "above" && digit > activeDigit) ||
                       (hoveredTradeType === "below" && digit < activeDigit) ||
-                    (hoveredTradeType === "even" && digit % 2 === 0) || 
-                    (hoveredTradeType === "odd" && digit % 2 !== 0));
+                      (hoveredTradeType === "even" && digit % 2 === 0) ||
+                      (hoveredTradeType === "odd" && digit % 2 !== 0));
 
                   return (
                     <span
                       key={index}
                       className={`pr-1 pl-1 text-[12px] border ${
-                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
+                        shouldHighlight
+                          ? "bg-slate-400  text-white border-slate-500"
+                          : ""
                       }`}
                     >
                       {digit}
@@ -540,15 +542,17 @@ export const TicksTest = () => {
                   const shouldHighlight =
                     activeDigit !== null &&
                     ((hoveredTradeType === "above" && digit > activeDigit) ||
-                      (hoveredTradeType === "below" && digit < activeDigit)||
-                      (hoveredTradeType === "even" && digit % 2 === 0) || 
+                      (hoveredTradeType === "below" && digit < activeDigit) ||
+                      (hoveredTradeType === "even" && digit % 2 === 0) ||
                       (hoveredTradeType === "odd" && digit % 2 !== 0));
 
                   return (
                     <span
                       key={index}
                       className={`pr-1 pl-1 text-[12px] border ${
-                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
+                        shouldHighlight
+                          ? "bg-slate-400  text-white border-slate-500"
+                          : ""
                       }`}
                     >
                       {digit}
@@ -572,15 +576,17 @@ export const TicksTest = () => {
                   const shouldHighlight =
                     activeDigit !== null &&
                     ((hoveredTradeType === "above" && digit > activeDigit) ||
-                    (hoveredTradeType === "below" && digit < activeDigit)||
-                    (hoveredTradeType === "even" && digit % 2 === 0) || 
-                    (hoveredTradeType === "odd" && digit % 2 !== 0));
+                      (hoveredTradeType === "below" && digit < activeDigit) ||
+                      (hoveredTradeType === "even" && digit % 2 === 0) ||
+                      (hoveredTradeType === "odd" && digit % 2 !== 0));
 
                   return (
                     <span
                       key={index}
                       className={`pr-1 pl-1 text-[12px] border ${
-                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
+                        shouldHighlight
+                          ? "bg-slate-400  text-white border-slate-500"
+                          : ""
                       }`}
                     >
                       {digit}
@@ -604,15 +610,17 @@ export const TicksTest = () => {
                   const shouldHighlight =
                     activeDigit !== null &&
                     ((hoveredTradeType === "above" && digit > activeDigit) ||
-                    (hoveredTradeType === "below" && digit < activeDigit)||
-                    (hoveredTradeType === "even" && digit % 2 === 0) || 
-                    (hoveredTradeType === "odd" && digit % 2 !== 0));
+                      (hoveredTradeType === "below" && digit < activeDigit) ||
+                      (hoveredTradeType === "even" && digit % 2 === 0) ||
+                      (hoveredTradeType === "odd" && digit % 2 !== 0));
 
                   return (
                     <span
                       key={index}
                       className={`pr-1 pl-1 text-[12px] border ${
-                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
+                        shouldHighlight
+                          ? "bg-slate-400  text-white border-slate-500"
+                          : ""
                       }`}
                     >
                       {digit}
@@ -636,15 +644,17 @@ export const TicksTest = () => {
                   const shouldHighlight =
                     activeDigit !== null &&
                     ((hoveredTradeType === "above" && digit > activeDigit) ||
-                    (hoveredTradeType === "below" && digit < activeDigit)||
-                    (hoveredTradeType === "even" && digit % 2 === 0) || 
-                    (hoveredTradeType === "odd" && digit % 2 !== 0));
+                      (hoveredTradeType === "below" && digit < activeDigit) ||
+                      (hoveredTradeType === "even" && digit % 2 === 0) ||
+                      (hoveredTradeType === "odd" && digit % 2 !== 0));
 
                   return (
                     <span
                       key={index}
                       className={`pr-1 pl-1 text-[12px] border ${
-                        shouldHighlight ? "bg-slate-400  text-white border-slate-500" : ""
+                        shouldHighlight
+                          ? "bg-slate-400  text-white border-slate-500"
+                          : ""
                       }`}
                     >
                       {digit}
@@ -665,6 +675,14 @@ export const TicksTest = () => {
           />
         </div>
       </div>
+      {purchaseStatus === "open" && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-t-transparent border-blue-500 rounded-full animate-spin mb-4"></div>
+            <p className="text-white text-lg">Operando...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
