@@ -9,6 +9,9 @@ interface BuyTableProps {
   currency?: string;
   isVirtual?: boolean;
   multiplicadorProp: (data: string) => void;
+  onPurchaseStatusChange: (status: string) => void;
+  onHoverTradeType?: (type: 'above'|'below'|'even'|'odd'|null) => void;
+  onDigitHover?: (digit: number|null) => void;
 }
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
@@ -18,18 +21,18 @@ const BuyTable = ({
   currency,
   isVirtual,
   multiplicadorProp,
+  onPurchaseStatusChange,
+  onHoverTradeType,
+  onDigitHover 
 }: BuyTableProps) => {
   const wsRef = useRef<WebSocket | null>(null);
   const authTokenRef = useRef(authToken);
-  const [proposalId, setProposalId] = useState<string | null>(null);
-  const [purchaseStatus, setPurchaseStatus] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [isConnected, setIsConnected] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [multiplicador, setMultiplicador] = useState("1");
   const derivService = DerivService.getInstance();
   const [activeContractId, setActiveContractId] = useState<string | null>(null);
+  const [buyResponseId, setBuyResponseId] = useState<string | null>(null);
   const [tradeType, setTradeType] = useState<Number>(null);
 
   useEffect(() => {
@@ -38,12 +41,11 @@ const BuyTable = ({
       (data) => {
         if (data.proposal_open_contract?.contract_id === activeContractId) {
           const status = data.proposal_open_contract.status;
-          console.log("Status do contrato:", status);
-          console.log("Proposal data:", data);
 
-          setPurchaseStatus(status);
-
+          onPurchaseStatusChange?.(status);
+          
           if (status === "won" || status === "lost") {
+            onPurchaseStatusChange("");
             const finishedTradeList = {
               amount: data.proposal_open_contract.buy_price,
               barrier: handleBarrieType(data.proposal_open_contract),
@@ -55,7 +57,7 @@ const BuyTable = ({
               resultBarrier:
                 data.proposal_open_contract.exit_tick_display_value.slice(-1),
               status: status,
-            };
+            }
 
             const account = derivService.getStorageDerivAccount()?.[0];
             if (account) {
@@ -73,11 +75,8 @@ const BuyTable = ({
 
               derivService.setAccountData(account);
               derivService.saveAccount(account);
-            }
-            console.log("Proposal Status do contrato 2:", status);
-            // Atualiza saldo e histórico quando o contrato fecha
-
-            setActiveContractId(null);
+            }           
+            setBuyResponseId(null);
           }
         }
       }
@@ -85,11 +84,11 @@ const BuyTable = ({
 
     return () => {
       derivService.observerInstance.removeById(contractListener);
-      if (activeContractId) {
-        derivService.send({ forget: activeContractId });
+      if (buyResponseId) {
+        derivService.send({ forget: buyResponseId });
       }
     };
-  }, [activeContractId]);
+  }, [buyResponseId]);
 
   const handleBarrieType = (data: any) => {
     if (
@@ -104,6 +103,7 @@ const BuyTable = ({
 
   const handleBuy = async (contractType: string) => {
     try {
+      
       if (!derivService.hasAuthorized) {
         throw new Error("Usuário não autenticado");
       }
@@ -139,16 +139,20 @@ const BuyTable = ({
       };
 
       const buyResponse = await derivService.send(payload);
-      //console.log("Buy Response:", buyResponse);
-
+      
       if (buyResponse.error) {
         setErrorMessage(buyResponse.error.message);
         return;
       }
 
       const contractId = buyResponse.buy.contract_id;
+
       setActiveContractId(contractId);
-      setPurchaseStatus("open");
+      if (buyResponse.echo_req) {
+        setBuyResponseId(buyResponse.echo_req.buy);
+      }
+      
+      onPurchaseStatusChange("Comprando");
 
       await derivService.subscribe({
         proposal_open_contract: 1,
@@ -178,13 +182,11 @@ const BuyTable = ({
     const newSelected = selected === number ? null : number;
     setSelected(newSelected);
 
-    // Atualiza o barrier no serviço quando um novo dígito é selecionado
     if (newSelected !== null) {
       derivService.updateDigits(newSelected);
     }
   };
 
-  // Atualiza a referência do token quando ele muda
   useEffect(() => {
     authTokenRef.current = authToken;
   }, [authToken]);
@@ -195,8 +197,18 @@ const BuyTable = ({
   };
 
   const onChangeTradeType = (value: Number) => {
-    setTradeType(value);
-  };
+    setTradeType(value); 
+  }
+
+  const handleMouseEnter = (type: 'above'|'below'|'even'|'odd') => {
+    onHoverTradeType?.(type);
+    onDigitHover?.(selected);
+  }
+
+  const handleMouseLeave = () => {
+    onHoverTradeType?.(null);
+    onDigitHover?.(null);
+  }
 
   return (
     <div>
@@ -234,7 +246,7 @@ const BuyTable = ({
             font-medium 
             ${
               selected === number
-                ? "bg-blue-500 text-white border-blue-600"
+                ? "bg-indigo-600 text-white border-indigo-700"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }
           `}
@@ -294,77 +306,81 @@ const BuyTable = ({
           </div>
         </div>
       </div>
-      {tradeType === 1 && (
-        <div className="flex gap-2 mt-6 w-full">
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITOVER")}
-              className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+      { tradeType === 1 && (
+      <div className="flex gap-2 mt-6 w-full">
+        <div className="flex-1">
+          <button
+            onClick={() => handleBuy("DIGITOVER")}
+            onMouseEnter={() => handleMouseEnter('above')}
+            onMouseLeave={handleMouseLeave}
+            className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="1.5"
+              stroke="currentColor"
+              className="size-6"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="size-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
-                />
-              </svg>
-              Comprar Acima
-            </button>
-          </div>
-
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITUNDER")}
-              className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="size-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181"
-                />
-              </svg>
-              Comprar Abaixo
-            </button>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+              />
+            </svg>
+            Comprar Acima
+          </button>
         </div>
+
+        <div className="flex-1">
+          <button
+            onClick={() => handleBuy("DIGITUNDER")}
+            onMouseEnter={() => handleMouseEnter('below')}
+            onMouseLeave={handleMouseLeave}
+            className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="1.5"
+              stroke="currentColor"
+              className="size-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181"
+              />
+            </svg>
+            Comprar Abaixo
+          </button>
+        </div>
+      </div>
       )}
       {tradeType === 2 && (
         <div className="flex gap-2 mt-6 w-full">
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITEVEN")}
-              className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-            >
-              <i className="me-2">²</i>
-              Comprar Par
-            </button>
-          </div>
-
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITODD")}
-              className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-            >
-              <i className="me-2">³</i>
-              Comprar Ímpar
-            </button>
-          </div>
+        <div className="flex-1">
+          <button onClick={() => handleBuy("DIGITEVEN")} 
+          onMouseEnter={() => handleMouseEnter('even')}
+          onMouseLeave={handleMouseLeave}
+          className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+            <i className="me-2">²</i>
+            Comprar Par
+          </button>
         </div>
+
+        <div className="flex-1">
+          <button onClick={() => handleBuy("DIGITODD")} 
+          onMouseEnter={() => handleMouseEnter('odd')}
+          onMouseLeave={handleMouseLeave}
+          className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+            <i className="me-2">³</i>
+            Comprar Ímpar
+          </button>
+        </div>
+      </div>
       )}
     </div>
   );

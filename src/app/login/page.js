@@ -21,7 +21,6 @@ export default function LoginPage() {
       const token = localStorage.getItem("access_token");
       if (token) {
         const isAuthenticated = await checkToken(token);
-        console.log("aquifiii", isAuthenticated);
         if (isAuthenticated) {
           redirect("/home");
         }
@@ -109,7 +108,6 @@ export default function LoginPage() {
       const response = await registerUser(name, email, password, phone);
 
       const data = await response.json();
-      console.log(response);
       if (response.ok) {
         toast.success("Cadastro realizado com sucesso!");
         setIsRegistering(false);

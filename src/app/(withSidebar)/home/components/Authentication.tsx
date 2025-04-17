@@ -22,6 +22,7 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
   useImperativeHandle(ref, () => ({
     handleLogout: () => {
       localStorage.removeItem("deriv_accounts");
+      localStorage.removeItem("token_list");
       setIsAuthenticated(false);
       setAccounts([]);
       setUserData(null);
@@ -53,6 +54,10 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
     getSelectedAccount: () => selectedAccount,
   }));
 
+  const handleClearHistory = () => {
+   derivService.clearHistory();
+  };
+
   return (
     <div className="container text-gray-800">   
         <div className="flex gap-2">
@@ -76,7 +81,7 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
             </svg>
             Adicionar Conta
           </button>
-          <button className="flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+          <button onClick={handleClearHistory} className="flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
