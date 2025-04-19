@@ -212,7 +212,7 @@ const BuyTable = ({
 
   return (
     <div>
-      <div className="bg-white rounded-lg mt-4 shadow-md p-6 hover:shadow-lg transition-shadow space-y-4 text-gray-800">
+      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow space-y-4 text-gray-800">
         <div className="flex items-center gap-2 text-sm">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -231,22 +231,21 @@ const BuyTable = ({
 
           <span>Dígitos</span>
         </div>
-        <div className="flex gap-1">
-          {Array.from({ length: 9 }, (_, i) => i + 1).map((number) => (
+        <div className="flex flex-wrap gap-1">
+          {Array.from({ length: 10 }, (_, i) => i ).map((number) => (
             <button
               key={number}
               onClick={() => handleSelect(number)}
               className={`
-            w-8 h-8 
+           w-8 h-8 sm:w-10 sm:h-10 text-sm sm:text-base
             rounded-lg 
             border-2 
             flex items-center justify-center 
             transition-colors 
-            text-lg 
             font-medium 
             ${
               selected === number
-                ? "bg-indigo-600 text-white border-indigo-700"
+                ? "bg-slate-400 text-white border-slate-500"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }
           `}

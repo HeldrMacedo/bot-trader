@@ -60,7 +60,7 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
 
   return (
     <div className="container text-gray-800">   
-        <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row gap-2">
           <button
             className="login-button flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             onClick={handleLogin}

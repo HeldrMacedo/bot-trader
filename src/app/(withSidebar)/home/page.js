@@ -18,16 +18,9 @@ export default function HomePage() {
       </div>
     );
   return (
-    <div>
-      {/*<div className="bg-white p-6 rounded-lg shadow-md text-gray-800">*/}
-      {/* <h1 className="text-2xl font-bold mb-4">Dashboard</h1> */}
-      
-      {/*</div>*/}
-      <div className="w-full">
-        <div className="container mx-auto flex flex-col items-center">
-          <TicksTest />
-        </div>
-        
+    <div>      
+      <div className="xl:container xl:mx-auto xl:flex xl:flex-col xl:items-center">
+      <TicksTest />
       </div>
       
     </div>

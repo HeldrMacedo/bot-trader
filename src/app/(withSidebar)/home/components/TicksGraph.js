@@ -42,14 +42,22 @@ const TicksGraph = ({ ticksProp, selectedLastTicksProp }) => {
   };
 
   return (
-    <div>
-      <div className="max-w-md mx-auto p-6 bg-gray-800 rounded-lg">
-        <div className="sm:col-span-3">
-          <div className="mt-2 grid grid-cols-1">
+      <div className="flex h-[180px] w-1/3 grow-1 flex-col bg-white rounded-lg shadow-md p-2">
+        <div className="grid grid-cols-1">
             <select
               onChange={handleSelectChange}
               value={selectedLastTicks}
-              className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+              className="
+              col-start-1 
+              row-start-1 
+              w-full 
+              appearance-none  
+              border 
+              border-gray-300 
+              bg-white 
+              py-1.5 
+              pl-3 
+              pr-8 text-sm md:text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 "
             >
               <option value="10">Últimos 10 dígitos</option>
               <option value="25">Últimos 25 dígitos</option>
@@ -63,36 +71,23 @@ const TicksGraph = ({ ticksProp, selectedLastTicksProp }) => {
               className="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-gray-400"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-10 items-end space-x-2 h-32">
-          {digitPercentages.map((data, index) => (
-            <div
-              key={index}
-              className="flex flex-col-reverse items-center h-full"
-            >
-              <div
-                className="w-full"
-                style={{
+          <div className="flex w-full h-full bg-gray-800">
+            {digitPercentages.map((data, index) => (
+              <div key={index} className="flex flex-col items-center h-full w-[10%]">
+              <span className="mt-auto text-[10px]">
+              {data.percentage.toFixed(0)}%
+              </span>
+              <div className="w-full transition-[height] duration-200 ease-linear" style={{
                   height: `${data.percentage * 2 + 1}%`,
                   backgroundColor: getBarColor(data.percentage),
-                }}
-              />
-              <span className="block text-xs text-center text-white">
-                {data.percentage.toFixed(0)}%
-              </span>
+                }}></div>
+              <span className="text-[14px]">{index}</span>
             </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-10 justify-between items-end space-x-2 text-center">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <span className="text-xs text-center text-white" key={index}>
-              {index}
-            </span>
-          ))}
-        </div>
+            ))}
+            
+          </div>
       </div>
-    </div>
+    
   );
 };
 

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  MagnifyingGlassIcon,
   Bars3Icon,
   XMarkIcon,
   UserCircleIcon,
@@ -12,11 +11,6 @@ import {
   HomeIcon,
   UserGroupIcon,
   UserIcon,
-  FolderIcon,
-  CalendarIcon,
-  DocumentTextIcon,
-  ChartBarIcon,
-  Cog6ToothIcon,
   ArrowLeftStartOnRectangleIcon,
   DocumentChartBarIcon
 } from "@heroicons/react/24/outline";
@@ -24,6 +18,22 @@ import {
 const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // useEffect(() => {
+  //   const handleResize = () => {
+
+  //     if (window.innerWidth <= 768) {
+  //       console.log("entrou");
+  //       setIsOpen(false);
+  //     }
+  //   };
+
+  //   handleResize();
+    
+  //   window.addEventListener("resize", handleResize);
+
+  //   return () => window.removeEventListener("resize", handleResize);
+  // }, []);
 
   const navigation = [
     { name: "Dashboard", icon: HomeIcon, href: "/home" },
@@ -38,7 +48,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed top-5 left-4 p-2 z-30 text-[oklch(0.373_0.034_259.733)] rounded-lg shadow-sm"
+        className="fixed top-5 left-4 p-2 z-30 text-[oklch(0.373_0.034_259.733)] rounded-lg shadow-sm"
       >
         <Bars3Icon className="w-6 h-6" />
       </button>
@@ -47,7 +57,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
       {isOpen && (
         <button
           onClick={() => setIsOpen(false)}
-          className="md:hidden fixed z-50 left-[calc(16rem+1rem)] top-4
+          className="fixed z-50 left-[calc(16rem+1rem)] top-4
               p-2  text-[oklch(0.373_0.034_259.733)] rounded-lg shadow-sm hover:bg-gray-700
               transition-colors duration-200"
         >
@@ -59,7 +69,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
       <aside
         className={`${isOpen ? "translate-x-0" : "-translate-x-full"} 
-        md:translate-x-0 fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 text-gray-300
+         fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 text-gray-300
         transition-transform duration-300 ease-in-out overflow-y-auto`}
       >
         {/* Sidebar Header */}
@@ -88,7 +98,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
         </nav>
       </aside>
       {/* Main Content */}
-      <main className="md:ml-64">
+      <main className="">
         {/* Header */}
         <header className="bg-white shadow-sm">
           <div className="flex items-center justify-end px-6 py-4">
@@ -147,16 +157,6 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
         </header>
-
-        {/* Page Content */}
-        {/* <div className="p-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Welcome to your dashboard
-            </h2>
-            <p className="text-gray-600">Your content goes here...</p>
-          </div>
-        </div> */}
         {children}
       </main>
     </div>
