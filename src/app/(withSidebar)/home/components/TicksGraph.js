@@ -42,7 +42,7 @@ const TicksGraph = ({ ticksProp, selectedLastTicksProp }) => {
   };
 
   return (
-      <div className="flex h-[180px] w-1/3 grow-1 flex-col bg-white rounded-lg shadow-md p-2">
+      <div className="flex h-[180px] w-[33.333%] grow-1 flex-col bg-white rounded-lg shadow-md p-2">
         <div className="grid grid-cols-1">
             <select
               onChange={handleSelectChange}

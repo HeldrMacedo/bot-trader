@@ -17,14 +17,8 @@ export default function HomePage() {
         </div>
       </div>
     );
-  return (
-    <div>      
-      <div className="xl:container xl:mx-auto xl:flex xl:flex-col xl:items-center">
-      <TicksTest />
-      </div>
-      
-    </div>
-    
+  return (    
+     <TicksTest />
     
   );
 }

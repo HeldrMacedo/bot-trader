@@ -98,7 +98,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
         </nav>
       </aside>
       {/* Main Content */}
-      <main className="">
+      <main className="flex-1">
         {/* Header */}
         <header className="bg-white shadow-sm">
           <div className="flex items-center justify-end px-6 py-4">
@@ -157,7 +157,10 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
         </header>
-        {children}
+        <div>
+          {children}  
+        </div>
+        
       </main>
     </div>
   );

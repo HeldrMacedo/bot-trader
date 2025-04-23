@@ -243,6 +243,7 @@ const BuyTable = ({
             flex items-center justify-center 
             transition-colors 
             font-medium 
+            nowrap
             ${
               selected === number
                 ? "bg-slate-400 text-white border-slate-500"
