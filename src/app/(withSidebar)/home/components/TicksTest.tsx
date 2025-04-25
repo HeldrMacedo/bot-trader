@@ -63,7 +63,7 @@ export const TicksTest = () => {
     const listener = deriv.observerInstance.on(
       "account.update",
       (newAccount: AccountInfo) => {
-        console.log("Account updated:", newAccount);
+        // console.log("Account updated:", newAccount);
         setAccountInfo(newAccount);
       }
     );

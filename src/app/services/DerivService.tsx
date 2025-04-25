@@ -1,4 +1,4 @@
-import { Observer } from './simpleObserver';
+import { Observer } from "./simpleObserver";
 
 type DerivEventMap = {
   open: void;
@@ -60,21 +60,21 @@ interface UserInfo {
 }
 
 export class DerivService {
-    private static instance: DerivService;
-    private observer = new Observer<DerivEventMap>();
-    private ws: WebSocket | null = null;
-    private appId = process.env.NEXT_PUBLIC_APPID;
-    private derivTokenScope = '';
-    private reqId = 1;
-    private isAuthorized = false;
-    private authorizeToken: string | null = null;
-    private pingInterval: NodeJS.Timeout | null = null;
-    private manualClose = false;
-    private pendingRequests: PendingRequest[] = [];
-    private subscribes = new Map<string, any>();
-    private pendingResubscribes = new Map<string, any>();
-    private currentAccount: AccountInfo | null = null;
-    private balanceSubscriptionId: string | null = null;
+  private static instance: DerivService;
+  private observer = new Observer<DerivEventMap>();
+  private ws: WebSocket | null = null;
+  private appId = process.env.NEXT_PUBLIC_APPID;
+  private derivTokenScope = "";
+  private reqId = 1;
+  private isAuthorized = false;
+  private authorizeToken: string | null = null;
+  private pingInterval: NodeJS.Timeout | null = null;
+  private manualClose = false;
+  private pendingRequests: PendingRequest[] = [];
+  private subscribes = new Map<string, any>();
+  private pendingResubscribes = new Map<string, any>();
+  private currentAccount: AccountInfo | null = null;
+  private balanceSubscriptionId: string | null = null;
 
   private needAuthorize = [
     "get_settings",
@@ -105,49 +105,57 @@ export class DerivService {
     return DerivService.instance;
   }
 
-    private initialize() {
-        if (window.location.search) {
-            const tokens = this.parseQueryTokens(window.location.search.substring(1));
-            if (tokens.length > 0) {
-                localStorage.setItem(`${this.derivTokenScope}token_list`, JSON.stringify(tokens));
-                window.location.search = '';
-            }
-        }
-        
-        this.observer.on('open', () => {        
-            this.processAuthenticatedUserData();
-            this.setupBalanceMonitoring();
-        });
-
-        this.observer.on('deriv.balance', (data) => {
-            if (this.currentAccount) {
-                this.currentAccount.tokens.forEach(token => {
-                    // Corrigido para usar data.balance.loginid que vem da resposta da API
-                    if (token.acct === data.balance.loginid) {
-                        token.balance = data.balance.balance;
-                        this.observer.emit('account.update', this.currentAccount);
-                    }
-                });
-            }
-        });
+  private initialize() {
+    if (window.location.search) {
+      const tokens = this.parseQueryTokens(window.location.search.substring(1));
+      if (tokens.length > 0) {
+        localStorage.setItem(
+          `${this.derivTokenScope}token_list`,
+          JSON.stringify(tokens)
+        );
+        window.location.search = "";
+      }
     }
 
-    private setupBalanceMonitoring() {
-        // Subscribe to balance updates for all accounts
-        this.subscribe({ balance: 1, account: "all" }).then(subscription => {
-            this.balanceSubscriptionId = subscription.subscription.id;
-        });
+    this.observer.on("open", () => {
+      this.processAuthenticatedUserData();
+      this.setupBalanceMonitoring();
+    });
 
-        // Setup periodic balance refresh (every 30 seconds)
-        setInterval(async () => {
-            if (this.currentAccount) {
-                await Promise.all(this.currentAccount.tokens.map(async (token) => {
-                    const response = await this.send({ balance: 1, account: token.acct });
-                    this.observer.emit('deriv.balance', response);
-                }));
-            }
-        }, 30000);
-    }
+    this.observer.on("deriv.balance", (data) => {
+      if (this.currentAccount) {
+        this.currentAccount.tokens.forEach((token) => {
+          // Corrigido para usar data.balance.loginid que vem da resposta da API
+          if (token.acct === data.balance.loginid) {
+            token.balance = data.balance.balance;
+            this.observer.emit("account.update", this.currentAccount);
+          }
+        });
+      }
+    });
+  }
+
+  private setupBalanceMonitoring() {
+    // Subscribe to balance updates for all accounts
+    this.subscribe({ balance: 1, account: "all" }).then((subscription) => {
+      this.balanceSubscriptionId = subscription.subscription.id;
+    });
+
+    // Setup periodic balance refresh (every 30 seconds)
+    setInterval(async () => {
+      if (this.currentAccount) {
+        await Promise.all(
+          this.currentAccount.tokens.map(async (token) => {
+            const response = await this.send({
+              balance: 1,
+              account: token.acct,
+            });
+            this.observer.emit("deriv.balance", response);
+          })
+        );
+      }
+    }, 30000);
+  }
 
   public async processAuthenticatedUserData() {
     await this.waitForConnection();
@@ -386,18 +394,18 @@ export class DerivService {
     if (!this.manualClose) this.reconnect();
   }
 
-    private cleanup() {
-        this.subscribes.clear();
-        if (this.balanceSubscriptionId) {
-            this.subscribes.delete(this.balanceSubscriptionId);
-        }
-        this.isAuthorized = false;
-        this.ws = null;
-        
-        if (this.pingInterval) {
-            clearInterval(this.pingInterval);
-        }
+  private cleanup() {
+    this.subscribes.clear();
+    if (this.balanceSubscriptionId) {
+      this.subscribes.delete(this.balanceSubscriptionId);
     }
+    this.isAuthorized = false;
+    this.ws = null;
+
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+    }
+  }
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
     return new Promise((resolve, reject) => {
@@ -450,6 +458,7 @@ export class DerivService {
       if (response.subscription?.id) {
         this.subscribes.set(response.subscription.id, payload);
       }
+      console.log("res subscribe", response);
       return response;
     });
   }
@@ -623,27 +632,26 @@ export class DerivService {
       this.saveAccount(this.currentAccount);
     }
 
-        this.observer.emit('account.update', this.currentAccount);
+    this.observer.emit("account.update", this.currentAccount);
+  }
+
+  public clearHistory(): void {
+    let accounts = this.getStorageDerivAccount() || [];
+
+    if (accounts.length > 0) {
+      this.currentAccount.finishedTradeList = [];
+      this.currentAccount.lastTrade = null;
+      this.currentAccount.results = {
+        loss: 0,
+        result: 0,
+        wins: 0,
+      };
+
+      this.saveAccount(this.currentAccount);
+
+      this.observer.emit("account.update", this.currentAccount);
     }
-
-    public clearHistory(): void {
-        let accounts = this.getStorageDerivAccount() || [];
-
-        if (accounts.length > 0) {
-            this.currentAccount.finishedTradeList = [];
-            this.currentAccount.lastTrade = null;
-            this.currentAccount.results = {
-                loss:0,
-                result: 0,
-                wins: 0
-            }
-
-            this.saveAccount(this.currentAccount);
-
-            this.observer.emit('account.update', this.currentAccount)
-        }
-        
-    }
+  }
 
   public get hasAuthorized(): boolean {
     return this.isAuthorized;
