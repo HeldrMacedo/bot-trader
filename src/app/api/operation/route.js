@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 
@@ -7,20 +8,17 @@ export async function POST(request) {
   try {
     const { operationId, account, deposit, result, token } =
       await request.json();
-
+    let userId;
     try {
-      // Verifica e decodifica o token usando a mesma chave secreta
+      const rs = process.env.JWT_SECRET;
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      console.log("dec userId", decoded.userId); // Dados do payload
-      console.log("dec exp", decoded.exp); // Timestamp de expiração
+      userId = decoded.userId;
     } catch (error) {
       console.error("Token inválido:", error.message);
-      // Token expirado, inválido ou manipulado
+      return NextResponse.json({ message: "Token inválido" }, { status: 404 });
     }
 
-    const operationDate = now();
-    const userId = decoded.userId;
+    const operationDate = new Date();
 
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
@@ -32,7 +30,7 @@ export async function POST(request) {
       );
     }
 
-    const existingOperation = await prisma.operation.findUnique({
+    const existingOperation = await prisma.operation.findFirst({
       where: { operationId },
     });
     if (existingOperation) {

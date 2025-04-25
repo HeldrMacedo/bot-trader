@@ -458,7 +458,6 @@ export class DerivService {
       if (response.subscription?.id) {
         this.subscribes.set(response.subscription.id, payload);
       }
-      console.log("res subscribe", response);
       return response;
     });
   }

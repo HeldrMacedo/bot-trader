@@ -59,21 +59,15 @@ const BuyTable = ({
                 data.proposal_open_contract.exit_tick_display_value.slice(-1),
               status: status,
             };
-            console.log("finishedTradeList", finishedTradeList);
             const accountInfo = derivService.getStorageDerivAccount()[0];
+            const token = localStorage.getItem("access_token");
             saveOperation({
               account: accountInfo.name,
               operationId: finishedTradeList.id,
               deposit: finishedTradeList.amount,
               result: finishedTradeList.profit,
-              token: authToken,
+              token: token,
             });
-            //operationId,
-            // account,
-            // operationDate,
-            // deposit,
-            // result,
-            // token
 
             const account = derivService.getStorageDerivAccount()?.[0];
             if (account) {
@@ -161,7 +155,6 @@ const BuyTable = ({
       }
 
       const contractId = buyResponse.buy.contract_id;
-      console.log("buy Resp: ", buyResponse);
 
       setActiveContractId(contractId);
       if (buyResponse.echo_req) {
