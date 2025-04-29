@@ -231,13 +231,65 @@ const BuyTable = ({
 
           <span>Dígitos</span>
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap justify-between items-center bloco-digits-sm-lg">
           {Array.from({ length: 10 }, (_, i) => i ).map((number) => (
             <button
               key={number}
               onClick={() => handleSelect(number)}
               className={`
-           w-8 h-8 sm:w-10 sm:h-10 text-sm sm:text-base
+            w-8 h-8  lg:w-10 lg:h-10 text-sm sm:text-base
+            rounded-lg 
+            border-2 
+            flex items-center justify-center 
+            transition-colors 
+            font-medium 
+            nowrap
+            ${
+              selected === number
+                ? "bg-slate-400 text-white border-slate-500"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            }
+          `}
+              aria-pressed={selected === number}
+              role="button"
+            >
+              {number}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap  items-center bloco-digits-md hidden">
+          {Array.from({ length: 5 }, (_, i) => i ).map((number) => (              
+            <button
+              key={number}
+              onClick={() => handleSelect(number)}
+              className={`
+            w-8 h-8  lg:w-10 lg:h-10 text-sm sm:text-base
+            rounded-lg 
+            border-2 
+            flex items-center justify-center 
+            transition-colors 
+            font-medium 
+            nowrap
+            ${
+              selected === number
+                ? "bg-slate-400 text-white border-slate-500"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            }
+          `}
+              aria-pressed={selected === number}
+              role="button"
+            >
+              {number}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap  items-center bloco-digits-md hidden">
+          {Array.from({ length: 5 }, (_, i) => i + 5 ).map((number) => (              
+            <button
+              key={number}
+              onClick={() => handleSelect(number)}
+              className={`
+            w-8 h-8  lg:w-10 lg:h-10 text-sm sm:text-base
             rounded-lg 
             border-2 
             flex items-center justify-center 
@@ -307,7 +359,7 @@ const BuyTable = ({
         </div>
       </div>
       { tradeType === 1 && (
-      <div className="flex gap-2 mt-6 w-full">
+      <div className="flex gap-2 mt-6 w-full bloco-botao-comprar">
         <div className="flex-1">
           <button
             onClick={() => handleBuy("DIGITOVER")}
@@ -360,7 +412,7 @@ const BuyTable = ({
       </div>
       )}
       {tradeType === 2 && (
-        <div className="flex gap-2 mt-6 w-full">
+        <div className="flex gap-2 mt-6 w-full bloco-botao-comprar">
         <div className="flex-1">
           <button onClick={() => handleBuy("DIGITEVEN")} 
           onMouseEnter={() => handleMouseEnter('even')}

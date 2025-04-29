@@ -33,3 +33,25 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@media  screen and (min-width: 768px) and (max-width: 1024px) {
+  .bloco-botao-comprar{
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bloco-digits-sm-lg{
+    display: none;
+  }
+
+  .bloco-digits-md {
+    display: flex;
+    justify-content: space-between;
+  }
+  /* .bloco-digits button{
+    font-size: small;
+    width: 2.5rem;
+    height: 1.5rem;
+    margin-left: 2px;
+  } */
+}
