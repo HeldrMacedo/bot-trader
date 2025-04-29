@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  DocumentChartBarIcon
-} from "@heroicons/react/24/outline";
+import { DocumentChartBarIcon } from "@heroicons/react/24/outline";
 
 export default function HistoryPage() {
   const [trades, setTrades] = useState([]);
@@ -23,7 +21,7 @@ export default function HistoryPage() {
     const sendAuthorizeAndRequest = () => {
       const token = tokenList[currentTokenIndex]?.token;
       if (!token) {
-        collectedTrades.sort((a,b) => b.purchase_time - a.purchase_time);
+        collectedTrades.sort((a, b) => b.purchase_time - a.purchase_time);
 
         setTrades(collectedTrades);
         setLoading(false);
@@ -116,10 +114,12 @@ export default function HistoryPage() {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md text-gray-800">
-      <h1 className="flex items-center gap-2 text-lg font-bold  text-gray-800 mb-4"><DocumentChartBarIcon className="w-6 h-6" /> Histórico de Operações</h1>
+      <h1 className="flex items-center gap-2 text-lg font-bold  text-gray-800 mb-4">
+        <DocumentChartBarIcon className="w-6 h-6" /> Histórico de Operações
+      </h1>
 
       {trades.length === 0 ? (
-        <p>Nenhuma negociação encontrada.</p>
+        <p>Nenhuma negociação encontrada</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">

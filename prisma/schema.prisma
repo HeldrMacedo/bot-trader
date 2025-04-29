@@ -21,7 +21,22 @@ model User {
   password  String
   phone     String
   role      String   @default("user")
+  operations  Operation[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
+}
+
+model Operation {
+  id            Int      @id @default(autoincrement())
+  operationId   String
+  account       String
+  operationDate DateTime
+  deposit       Float
+  result        Float
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

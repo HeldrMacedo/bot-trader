@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DerivService } from "@/app/services/DerivService";
 import { finished } from "stream";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { saveOperation } from "@/app/services/operationService";
 
 interface BuyTableProps {
   authToken?: string;
@@ -10,8 +11,8 @@ interface BuyTableProps {
   isVirtual?: boolean;
   multiplicadorProp: (data: string) => void;
   onPurchaseStatusChange: (status: string) => void;
-  onHoverTradeType?: (type: 'above'|'below'|'even'|'odd'|null) => void;
-  onDigitHover?: (digit: number|null) => void;
+  onHoverTradeType?: (type: "above" | "below" | "even" | "odd" | null) => void;
+  onDigitHover?: (digit: number | null) => void;
 }
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
@@ -23,7 +24,7 @@ const BuyTable = ({
   multiplicadorProp,
   onPurchaseStatusChange,
   onHoverTradeType,
-  onDigitHover 
+  onDigitHover,
 }: BuyTableProps) => {
   const wsRef = useRef<WebSocket | null>(null);
   const authTokenRef = useRef(authToken);
@@ -43,7 +44,7 @@ const BuyTable = ({
           const status = data.proposal_open_contract.status;
 
           onPurchaseStatusChange?.(status);
-          
+
           if (status === "won" || status === "lost") {
             onPurchaseStatusChange("");
             const finishedTradeList = {
@@ -57,7 +58,16 @@ const BuyTable = ({
               resultBarrier:
                 data.proposal_open_contract.exit_tick_display_value.slice(-1),
               status: status,
-            }
+            };
+            const accountInfo = derivService.getStorageDerivAccount()[0];
+            const token = localStorage.getItem("access_token");
+            saveOperation({
+              account: accountInfo.name,
+              operationId: finishedTradeList.id,
+              deposit: finishedTradeList.amount,
+              result: finishedTradeList.profit,
+              token: token,
+            });
 
             const account = derivService.getStorageDerivAccount()?.[0];
             if (account) {
@@ -75,7 +85,7 @@ const BuyTable = ({
 
               derivService.setAccountData(account);
               derivService.saveAccount(account);
-            }           
+            }
             setBuyResponseId(null);
           }
         }
@@ -103,7 +113,6 @@ const BuyTable = ({
 
   const handleBuy = async (contractType: string) => {
     try {
-      
       if (!derivService.hasAuthorized) {
         throw new Error("Usuário não autenticado");
       }
@@ -139,7 +148,7 @@ const BuyTable = ({
       };
 
       const buyResponse = await derivService.send(payload);
-      
+
       if (buyResponse.error) {
         setErrorMessage(buyResponse.error.message);
         return;
@@ -151,7 +160,7 @@ const BuyTable = ({
       if (buyResponse.echo_req) {
         setBuyResponseId(buyResponse.echo_req.buy);
       }
-      
+
       onPurchaseStatusChange("Comprando");
 
       await derivService.subscribe({
@@ -197,18 +206,18 @@ const BuyTable = ({
   };
 
   const onChangeTradeType = (value: Number) => {
-    setTradeType(value); 
-  }
+    setTradeType(value);
+  };
 
-  const handleMouseEnter = (type: 'above'|'below'|'even'|'odd') => {
+  const handleMouseEnter = (type: "above" | "below" | "even" | "odd") => {
     onHoverTradeType?.(type);
     onDigitHover?.(selected);
-  }
+  };
 
   const handleMouseLeave = () => {
     onHoverTradeType?.(null);
     onDigitHover?.(null);
-  }
+  };
 
   return (
     <div>
@@ -385,31 +394,31 @@ const BuyTable = ({
           </button>
         </div>
 
-        <div className="flex-1">
-          <button
-            onClick={() => handleBuy("DIGITUNDER")}
-            onMouseEnter={() => handleMouseEnter('below')}
-            onMouseLeave={handleMouseLeave}
-            className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="size-6"
+          <div className="flex-1">
+            <button
+              onClick={() => handleBuy("DIGITUNDER")}
+              onMouseEnter={() => handleMouseEnter("below")}
+              onMouseLeave={handleMouseLeave}
+              className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181"
-              />
-            </svg>
-            Comprar Abaixo
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                className="size-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181"
+                />
+              </svg>
+              Comprar Abaixo
+            </button>
+          </div>
         </div>
-      </div>
       )}
       {tradeType === 2 && (
         <div className="flex gap-2 mt-6 w-full bloco-botao-comprar">
@@ -423,16 +432,18 @@ const BuyTable = ({
           </button>
         </div>
 
-        <div className="flex-1">
-          <button onClick={() => handleBuy("DIGITODD")} 
-          onMouseEnter={() => handleMouseEnter('odd')}
-          onMouseLeave={handleMouseLeave}
-          className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
-            <i className="me-2">³</i>
-            Comprar Ímpar
-          </button>
+          <div className="flex-1">
+            <button
+              onClick={() => handleBuy("DIGITODD")}
+              onMouseEnter={() => handleMouseEnter("odd")}
+              onMouseLeave={handleMouseLeave}
+              className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+            >
+              <i className="me-2">³</i>
+              Comprar Ímpar
+            </button>
+          </div>
         </div>
-      </div>
       )}
     </div>
   );
