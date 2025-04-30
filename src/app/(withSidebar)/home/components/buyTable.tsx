@@ -11,7 +11,9 @@ interface BuyTableProps {
   isVirtual?: boolean;
   multiplicadorProp: (data: string) => void;
   onPurchaseStatusChange: (status: string) => void;
-  onHoverTradeType?: (type: "above" | "below" | "even" | "odd" | "diff" | null) => void;
+  onHoverTradeType?: (
+    type: "above" | "below" | "even" | "odd" | "diff" | null
+  ) => void;
   onDigitHover?: (digit: number | null) => void;
 }
 
@@ -83,9 +85,8 @@ const BuyTable = ({
 
             derivService.setAccountData(account);
             derivService.saveAccount(account);
-            
+
             setBuyResponseId(null);
-            
           }
         }
       }
@@ -122,7 +123,11 @@ const BuyTable = ({
         return;
       }
 
-      if (!accountInfo.volatility || accountInfo.digits === undefined || accountInfo.digits === null) {
+      if (
+        !accountInfo.volatility ||
+        accountInfo.digits === undefined ||
+        accountInfo.digits === null
+      ) {
         throw new Error("Configuração de trade incompleta");
       }
 
@@ -162,7 +167,6 @@ const BuyTable = ({
       if (buyResponse.echo_req) {
         setBuyResponseId(buyResponse.echo_req.buy);
       }
-
     } catch (error) {
       console.log(error);
     }
@@ -205,7 +209,9 @@ const BuyTable = ({
     setTradeType(value);
   };
 
-  const handleMouseEnter = (type: "above" | "below" | "even" | "odd" | "diff") => {
+  const handleMouseEnter = (
+    type: "above" | "below" | "even" | "odd" | "diff"
+  ) => {
     onHoverTradeType?.(type);
     onDigitHover?.(selected);
   };
@@ -237,7 +243,7 @@ const BuyTable = ({
           <span>Dígitos</span>
         </div>
         <div className="flex flex-wrap justify-between items-center bloco-digits-sm-lg">
-          {Array.from({ length: 10 }, (_, i) => i ).map((number) => (
+          {Array.from({ length: 10 }, (_, i) => i).map((number) => (
             <button
               key={number}
               onClick={() => handleSelect(number)}
@@ -263,7 +269,7 @@ const BuyTable = ({
           ))}
         </div>
         <div className="flex flex-wrap  items-center bloco-digits-md hidden">
-          {Array.from({ length: 5 }, (_, i) => i ).map((number) => (              
+          {Array.from({ length: 5 }, (_, i) => i).map((number) => (
             <button
               key={number}
               onClick={() => handleSelect(number)}
@@ -289,7 +295,7 @@ const BuyTable = ({
           ))}
         </div>
         <div className="flex flex-wrap  items-center bloco-digits-md hidden">
-          {Array.from({ length: 5 }, (_, i) => i + 5 ).map((number) => (              
+          {Array.from({ length: 5 }, (_, i) => i + 5).map((number) => (
             <button
               key={number}
               onClick={() => handleSelect(number)}
@@ -364,32 +370,32 @@ const BuyTable = ({
           </div>
         </div>
       </div>
-      { tradeType === 1 && (
-      <div className="flex gap-2 mt-6 w-full bloco-botao-comprar">
-        <div className="flex-1">
-          <button
-            onClick={() => handleBuy("DIGITOVER")}
-            onMouseEnter={() => handleMouseEnter('above')}
-            onMouseLeave={handleMouseLeave}
-            className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="size-6"
+      {tradeType === 1 && (
+        <div className="flex gap-2 mt-6 w-full bloco-botao-comprar">
+          <div className="flex-1">
+            <button
+              onClick={() => handleBuy("DIGITOVER")}
+              onMouseEnter={() => handleMouseEnter("above")}
+              onMouseLeave={handleMouseLeave}
+              className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
-              />
-            </svg>
-            Comprar Acima
-          </button>
-        </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                className="size-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+                />
+              </svg>
+              Comprar Acima
+            </button>
+          </div>
 
           <div className="flex-1">
             <button
@@ -419,15 +425,17 @@ const BuyTable = ({
       )}
       {tradeType === 2 && (
         <div className="flex gap-2 mt-6 w-full bloco-botao-comprar">
-        <div className="flex-1">
-          <button onClick={() => handleBuy("DIGITEVEN")} 
-          onMouseEnter={() => handleMouseEnter('even')}
-          onMouseLeave={handleMouseLeave}
-          className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
-            <i className="me-2">²</i>
-            Comprar Par
-          </button>
-        </div>
+          <div className="flex-1">
+            <button
+              onClick={() => handleBuy("DIGITEVEN")}
+              onMouseEnter={() => handleMouseEnter("even")}
+              onMouseLeave={handleMouseLeave}
+              className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+            >
+              <i className="me-2">²</i>
+              Comprar Par
+            </button>
+          </div>
 
           <div className="flex-1">
             <button
