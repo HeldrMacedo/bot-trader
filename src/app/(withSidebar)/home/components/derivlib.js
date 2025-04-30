@@ -57,8 +57,7 @@ const Deriv = {
         if (appId && !Number.isNaN(Number(appId.content))) {
             Deriv.appId = Number(appId.content);
         }
-        console.log(window.location.search);
-        console.log("teste");
+     
         if (window.location.search) {
             
             const tokens = Deriv.parseQueryTokens(window.location.search.substring(1));

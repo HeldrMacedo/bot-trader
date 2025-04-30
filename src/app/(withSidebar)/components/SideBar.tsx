@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/app/hooks/useAuth";
 import {
   Bars3Icon,
   XMarkIcon,
@@ -12,28 +13,38 @@ import {
   UserGroupIcon,
   UserIcon,
   ArrowLeftStartOnRectangleIcon,
-  DocumentChartBarIcon
+  DocumentChartBarIcon,
 } from "@heroicons/react/24/outline";
+import { AccountInfo, DerivService } from "@/app/services/DerivService";
+import { getUser } from "@/app/services/userService";
 
 const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
+  const [auth, setAuth] = useState(null);
+ 
+  const derivService = DerivService.getInstance();
 
-  // useEffect(() => {
-  //   const handleResize = () => {
+  useEffect(() => {
+    const fethUser = async () => {
+      const user = await getUser();
+      if (!user) return;
+      setAuth(user);
+    };
+    fethUser();
 
-  //     if (window.innerWidth <= 768) {
-  //       console.log("entrou");
-  //       setIsOpen(false);
-  //     }
-  //   };
+    const listenerId = derivService.observerInstance.on("account.update", (data: AccountInfo) => {
+      setAccountInfo(data);
+    });
+    return () => derivService.observerInstance.removeById(listenerId);
+  }, []);
 
-  //   handleResize();
-    
-  //   window.addEventListener("resize", handleResize);
-
-  //   return () => window.removeEventListener("resize", handleResize);
-  // }, []);
+  const getAcoountActive = () => {
+    return accountInfo?.tokens.find(
+      (tokens) => accountInfo.activeToken === tokens.token
+    );
+  };
 
   const navigation = [
     { name: "Dashboard", icon: HomeIcon, href: "/home" },
@@ -124,7 +135,22 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
                 className="flex items-center space-x-2 hover:bg-gray-50 p-2 rounded-lg"
               >
                 <UserCircleIcon className="w-8 h-8 text-gray-400" />
-                <span className="text-gray-700">Tom Cook</span>
+                <span className="text-gray-700 text-sm md:text-base">
+                  {auth?.name}{" "}
+                  <span className="text-[#4bb4b3]">
+                    {getAcoountActive()?.is_virtual
+                      ? "VRTC " +
+                        new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                        }).format(getAcoountActive()?.balance)
+                      : "CR " +
+                        new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                        }).format(getAcoountActive()?.balance)}
+                  </span>
+                </span>
                 <ChevronDownIcon className="w-4 h-4 text-gray-400" />
               </button>
 
@@ -157,10 +183,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
         </header>
-        <div>
-          {children}  
-        </div>
-        
+        <div className="p-2">{children}</div>
       </main>
     </div>
   );

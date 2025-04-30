@@ -360,7 +360,7 @@ export class DerivService {
   private handleMessage(event: MessageEvent) {
     try {
       const data = JSON.parse(event.data);
-
+      //console.log("Received message:", data);
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
       } else if (data.msg_type === "authorize") {
@@ -412,7 +412,9 @@ export class DerivService {
       const reqId = this.reqId++;
       payload.req_id = reqId;
       const needAuthorize = this.checkNeedAuthorize(payload);
+
       const listenerId = this.observer.on("message", (data) => {
+
         if (data.req_id === reqId) {
           this.observer.removeById(listenerId);
           data.error ? reject(data.error) : resolve(data);
@@ -454,7 +456,7 @@ export class DerivService {
   }
 
   public subscribe(payload: Record<string, any>): Promise<any> {
-    return this.send({ ...payload, subscribe: 1 }).then((response) => {
+    return this.send({ ...payload, subscribe: 1 }).then((response) => {  
       if (response.subscription?.id) {
         this.subscribes.set(response.subscription.id, payload);
       }

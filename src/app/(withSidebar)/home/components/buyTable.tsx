@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DerivService } from "@/app/services/DerivService";
 import { finished } from "stream";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
 import { saveOperation } from "@/app/services/operationService";
 
 interface BuyTableProps {
@@ -11,7 +11,7 @@ interface BuyTableProps {
   isVirtual?: boolean;
   multiplicadorProp: (data: string) => void;
   onPurchaseStatusChange: (status: string) => void;
-  onHoverTradeType?: (type: "above" | "below" | "even" | "odd" | null) => void;
+  onHoverTradeType?: (type: "above" | "below" | "even" | "odd" | "diff" | null) => void;
   onDigitHover?: (digit: number | null) => void;
 }
 
@@ -47,6 +47,11 @@ const BuyTable = ({
 
           if (status === "won" || status === "lost") {
             onPurchaseStatusChange("");
+
+            const accounts = derivService.getStorageDerivAccount();
+            const account = accounts && accounts[0];
+            if (!account) return;
+
             const finishedTradeList = {
               amount: data.proposal_open_contract.buy_price,
               barrier: handleBarrieType(data.proposal_open_contract),
@@ -59,34 +64,29 @@ const BuyTable = ({
                 data.proposal_open_contract.exit_tick_display_value.slice(-1),
               status: status,
             };
-            const accountInfo = derivService.getStorageDerivAccount()[0];
+
             const token = localStorage.getItem("access_token");
             saveOperation({
-              account: accountInfo.name,
+              account: account.name,
               operationId: finishedTradeList.id,
               deposit: finishedTradeList.amount,
               result: finishedTradeList.profit,
               token: token,
             });
 
-            const account = derivService.getStorageDerivAccount()?.[0];
-            if (account) {
-              account.finishedTradeList.push(finishedTradeList);
+            account.finishedTradeList.push(finishedTradeList);
 
-              const isWin = data.proposal_open_contract.profit > 0;
-              account.results = {
-                wins: account.results.wins + (isWin ? 1 : 0),
-                loss: account.results.loss + (isWin ? 0 : 1),
-                result:
-                  account.results.result + data.proposal_open_contract.profit,
-              };
+            const isWin = data.proposal_open_contract.profit > 0;
+            account.results.wins += isWin ? 1 : 0;
+            account.results.loss += isWin ? 0 : 1;
+            account.results.result += data.proposal_open_contract.profit;
+            account.lastTrade = finishedTradeList;
 
-              account.lastTrade = finishedTradeList;
-
-              derivService.setAccountData(account);
-              derivService.saveAccount(account);
-            }
+            derivService.setAccountData(account);
+            derivService.saveAccount(account);
+            
             setBuyResponseId(null);
+            
           }
         }
       }
@@ -123,7 +123,7 @@ const BuyTable = ({
         return;
       }
 
-      if (!accountInfo.volatility || !accountInfo.digits) {
+      if (!accountInfo.volatility || accountInfo.digits === undefined || accountInfo.digits === null) {
         throw new Error("Configuração de trade incompleta");
       }
 
@@ -143,7 +143,7 @@ const BuyTable = ({
           duration: 1,
           duration_unit: "t",
           symbol: accountInfo.volatility,
-          ...(tradeType == 1 && { barrier: accountInfo.digits }),
+          ...(tradeType !== 2 && { barrier: accountInfo.digits }),
         },
       };
 
@@ -155,7 +155,7 @@ const BuyTable = ({
       }
 
       const contractId = buyResponse.buy.contract_id;
-
+      
       setActiveContractId(contractId);
       if (buyResponse.echo_req) {
         setBuyResponseId(buyResponse.echo_req.buy);
@@ -163,10 +163,12 @@ const BuyTable = ({
 
       onPurchaseStatusChange("Comprando");
 
-      await derivService.subscribe({
+      derivService.subscribe({
         proposal_open_contract: 1,
         contract_id: contractId,
       });
+
+
     } catch (error) {
       console.log(error);
     }
@@ -209,7 +211,7 @@ const BuyTable = ({
     setTradeType(value);
   };
 
-  const handleMouseEnter = (type: "above" | "below" | "even" | "odd") => {
+  const handleMouseEnter = (type: "above" | "below" | "even" | "odd" | "diff") => {
     onHoverTradeType?.(type);
     onDigitHover?.(selected);
   };
@@ -359,6 +361,7 @@ const BuyTable = ({
               <option>Selecione um tipo</option>
               <option value={1}>Acima/Abaixo</option>
               <option value={2}>Par/Ímpar</option>
+              <option value={3}>Diferente</option>
             </select>
             <ChevronDownIcon
               aria-hidden="true"
@@ -441,6 +444,22 @@ const BuyTable = ({
             >
               <i className="me-2">³</i>
               Comprar Ímpar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tradeType === 3 && (
+        <div className="flex mt-6 w-full bloco-botao-comprar">
+          <div className="flex-1">
+            <button
+              onClick={() => handleBuy("DIGITDIFF")}
+              onMouseEnter={() => handleMouseEnter("diff")}
+              onMouseLeave={handleMouseLeave}
+              className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+            >
+              <CodeBracketIcon aria-hidden="true" className="size-5" />
+              Comprar Diferente
             </button>
           </div>
         </div>

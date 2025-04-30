@@ -38,7 +38,7 @@ export const TicksTest = () => {
   const [loading, setLoading] = useState(false);
   const [purchaseStatus, setPurchaseStatus] = useState<string>("");
   const [hoveredTradeType, setHoveredTradeType] = useState<
-    "above" | "below" | "even" | "odd" | null
+    "above" | "below" | "even" | "odd" | "diff" | null
   >(null);
   const [activeDigit, setActiveDigit] = useState<number | null>(null);
   const [subscriptionIds, setSubscriptionIds] = useState<string[]>([]);
@@ -520,7 +520,8 @@ export const TicksTest = () => {
                             (hoveredTradeType === "below" &&
                               digit < activeDigit) ||
                             (hoveredTradeType === "even" && digit % 2 === 0) ||
-                            (hoveredTradeType === "odd" && digit % 2 !== 0));
+                            (hoveredTradeType === "odd" && digit % 2 !== 0) ||
+                            (hoveredTradeType === "diff" && digit !== activeDigit));
 
                         return (
                           <div

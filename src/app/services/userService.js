@@ -42,3 +42,8 @@ export const checkToken = async () => {
     console.error("Erro ao verificar o token:", error);
   }
 };
+
+export const getUser = async () => {
+  const user = await checkToken();
+  return user;
+}
