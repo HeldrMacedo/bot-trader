@@ -42,7 +42,6 @@ const BuyTable = ({
       (data) => {
         if (data.proposal_open_contract?.contract_id === activeContractId) {
           const status = data.proposal_open_contract.status;
-
           onPurchaseStatusChange?.(status);
 
           if (status === "won" || status === "lost") {
@@ -153,21 +152,16 @@ const BuyTable = ({
         setErrorMessage(buyResponse.error.message);
         return;
       }
-
-      const contractId = buyResponse.buy.contract_id;
-      
-      setActiveContractId(contractId);
-      if (buyResponse.echo_req) {
-        setBuyResponseId(buyResponse.echo_req.buy);
-      }
-
       onPurchaseStatusChange("Comprando");
-
+      const contractId = buyResponse.buy.contract_id;
       derivService.subscribe({
         proposal_open_contract: 1,
         contract_id: contractId,
       });
-
+      setActiveContractId(contractId);
+      if (buyResponse.echo_req) {
+        setBuyResponseId(buyResponse.echo_req.buy);
+      }
 
     } catch (error) {
       console.log(error);

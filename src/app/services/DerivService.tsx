@@ -106,6 +106,7 @@ export class DerivService {
   }
 
   private initialize() {
+    if (typeof window === 'undefined') return;
     if (window.location.search) {
       const tokens = this.parseQueryTokens(window.location.search.substring(1));
       if (tokens.length > 0) {
