@@ -619,7 +619,8 @@ export class DerivService {
 
   public get currentDigits(): number {
     this.currentAccount = this.getStorageDerivAccount()?.[0];
-    return this.currentAccount?.digits || 3;
+    const digits = this.currentAccount?.digits;
+    return typeof digits === "number" ? digits : 3;
   }
 
   public updateVolatility(value: string): void {

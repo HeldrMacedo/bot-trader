@@ -12,6 +12,7 @@ import {
   TokenData,
 } from "@/app/services/DerivService";
 import { transform } from "next/dist/build/swc/generated-native";
+import { getUser } from "@/app/services/userService";
 
 interface AccountSelectorProps {
   onAccountChange: (accountInfo: any) => void;
@@ -53,6 +54,16 @@ export const TicksTest = () => {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const fethUser = async () => {
+      const user = await getUser();
+      if (!user) return;
+      setUserData(user);
+    };
+    fethUser();
+  })
+
 
   useEffect(() => {
     if (accountInfo) {
@@ -97,21 +108,13 @@ export const TicksTest = () => {
         })),
       };
 
-      // 3. Persistir e notificar
       localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
       deriv.setAccountData(updatedAccount);
-      onAccountChange(updatedAccount);
       setValorEntrada(updatedAccount.amount.toString());
     } catch (error) {
       console.error("Erro na autenticação:", error);
     }
     setLoading(false);
-  };
-
-  const onAccountChange = (newAccount: AccountInfo) => {
-    //console.log("Nova conta selecionada:", newAccount);
-    //setSelectedAccount(newAccount);
-    //setAccountInfo(newAccount);
   };
 
   const formatInputMoney = (value: string) => {
@@ -310,7 +313,7 @@ export const TicksTest = () => {
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-center w-full text-gray-800 border-b pb-4">
                 <div className="text-sm">
-                  {accountInfo.name}
+                  {userData?.name}
                   {purchaseStatus === "open" && (
                     <span className="ml-2 p-1 text-[11px] bg-indigo-500 text-white rounded-sm font-bold">
                       Operando

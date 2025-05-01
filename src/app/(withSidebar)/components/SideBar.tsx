@@ -138,12 +138,12 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
                         new Intl.NumberFormat("en-US", {
                           style: "currency",
                           currency: "USD",
-                        }).format(accountInfo?.balance)
+                        }).format(accountInfo?.balance ?? 0)
                       : "CR " +
                         new Intl.NumberFormat("en-US", {
                           style: "currency",
                           currency: "USD",
-                        }).format(accountInfo?.balance)}
+                        }).format(accountInfo?.balance ?? 0)}
                   </span>
                 </span>
                 <ChevronDownIcon className="w-4 h-4 text-gray-400" />
