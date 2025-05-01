@@ -126,7 +126,6 @@ export class DerivService {
     this.observer.on("deriv.balance", (data) => {
       if (this.currentAccount) {
         this.currentAccount.tokens.forEach((token) => {
-          // Corrigido para usar data.balance.loginid que vem da resposta da API
           if (token.acct === data.balance.loginid) {
             token.balance = data.balance.balance;
             this.observer.emit("account.update", this.currentAccount);
@@ -147,11 +146,11 @@ export class DerivService {
       if (this.currentAccount) {
         await Promise.all(
           this.currentAccount.tokens.map(async (token) => {
-            const response = await this.send({
+            this.send({
               balance: 1,
               account: token.acct,
             });
-            this.observer.emit("deriv.balance", response);
+            
           })
         );
       }
@@ -361,7 +360,7 @@ export class DerivService {
   private handleMessage(event: MessageEvent) {
     try {
       const data = JSON.parse(event.data);
-      //console.log("Received message:", data);
+
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
       } else if (data.msg_type === "authorize") {

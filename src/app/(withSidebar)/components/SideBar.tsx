@@ -15,13 +15,13 @@ import {
   ArrowLeftStartOnRectangleIcon,
   DocumentChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { AccountInfo, DerivService } from "@/app/services/DerivService";
+import { AccountInfo, DerivService, TokenData } from "@/app/services/DerivService";
 import { getUser } from "@/app/services/userService";
 
 const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
+  const [accountInfo, setAccountInfo] = useState<TokenData | null>(null);
   const [auth, setAuth] = useState(null);
  
   const derivService = DerivService.getInstance();
@@ -35,16 +35,11 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
     fethUser();
 
     const listenerId = derivService.observerInstance.on("account.update", (data: AccountInfo) => {
-      setAccountInfo(data);
+      const accountActive = data.tokens.find((tokens) => tokens.token === data?.activeToken);
+      setAccountInfo(accountActive);
     });
     return () => derivService.observerInstance.removeById(listenerId);
   }, []);
-
-  const getAcoountActive = () => {
-    return accountInfo?.tokens.find(
-      (tokens) => accountInfo.activeToken === tokens.token
-    );
-  };
 
   const navigation = [
     { name: "Dashboard", icon: HomeIcon, href: "/home" },
@@ -138,17 +133,17 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
                 <span className="text-gray-700 text-sm md:text-base">
                   {auth?.name}{" "}
                   <span className="text-[#4bb4b3]">
-                    {getAcoountActive()?.is_virtual
+                    {accountInfo?.is_virtual
                       ? "VRTC " +
                         new Intl.NumberFormat("en-US", {
                           style: "currency",
                           currency: "USD",
-                        }).format(getAcoountActive()?.balance)
+                        }).format(accountInfo?.balance)
                       : "CR " +
                         new Intl.NumberFormat("en-US", {
                           style: "currency",
                           currency: "USD",
-                        }).format(getAcoountActive()?.balance)}
+                        }).format(accountInfo?.balance)}
                   </span>
                 </span>
                 <ChevronDownIcon className="w-4 h-4 text-gray-400" />

@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DerivService } from "@/app/services/DerivService";
-import { finished } from "stream";
 import { ChevronDownIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
 import { saveOperation } from "@/app/services/operationService";
 
@@ -14,8 +13,6 @@ interface BuyTableProps {
   onHoverTradeType?: (type: "above" | "below" | "even" | "odd" | "diff" | null) => void;
   onDigitHover?: (digit: number | null) => void;
 }
-
-const APP_ID = process.env.NEXT_PUBLIC_APPID;
 
 const BuyTable = ({
   authToken,
@@ -41,10 +38,12 @@ const BuyTable = ({
       "deriv.proposal_open_contract",
       (data) => {
         if (data.proposal_open_contract?.contract_id === activeContractId) {
+          
           const status = data.proposal_open_contract.status;
           onPurchaseStatusChange?.(status);
-
-          if (status === "won" || status === "lost") {
+          
+          if (data.proposal_open_contract.is_valid_to_sell) {
+            derivService.send({ forget: data.subscription.id });
             onPurchaseStatusChange("");
 
             const accounts = derivService.getStorageDerivAccount();
@@ -93,9 +92,6 @@ const BuyTable = ({
 
     return () => {
       derivService.observerInstance.removeById(contractListener);
-      if (buyResponseId) {
-        derivService.send({ forget: buyResponseId });
-      }
     };
   }, [buyResponseId]);
 
