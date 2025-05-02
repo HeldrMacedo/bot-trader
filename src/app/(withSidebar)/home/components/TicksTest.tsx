@@ -1,7 +1,7 @@
 "use client";
 
 import DerivAPI from "@deriv/deriv-api";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
@@ -54,16 +54,33 @@ export const TicksTest = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const fethUser = async () => {
+  const fetchUserData = useCallback(async () => {
+    try {
       const user = await getUser();
-      console.log("user", user);
       if (!user) return;
       setUserData(user);
-    };
-    fethUser();
-  }, [])
+    } catch (error) {
+      console.error("Erro ao buscar dados do usuário:", error);
+    }
+  }, []);
 
+  // Efeito inicial para buscar dados do usuário
+  useEffect(() => {
+    fetchUserData();
+    
+  }, [fetchUserData]);
+  
+  // Expor a função de atualização para o objeto global (window)
+  // para que possa ser chamada de outros componentes
+  useEffect(() => {
+    // @ts-ignore
+    window.updateUserData = fetchUserData;
+    
+    return () => {
+      // @ts-ignore
+      delete window.updateUserData;
+    };
+  }, [fetchUserData]);
 
   useEffect(() => {
     if (accountInfo) {
@@ -73,6 +90,14 @@ export const TicksTest = () => {
 
 
   useEffect(() => {
+    const fethUser = async () => {
+      const user = await getUser();
+      console.log("user", user);
+      if (!user) return;
+      setUserData(user);
+    };
+    fethUser();
+
     const listener = deriv.observerInstance.on(
       "account.update",
       (newAccount: AccountInfo) => {
