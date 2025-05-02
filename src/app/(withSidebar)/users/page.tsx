@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { User } from "@prisma/client";
 import { deleteUser, getUsers, createUser, updateUser } from "./actions";
 import UserModal from "./UserModal";
+import { UserGroupIcon } from "@heroicons/react/24/outline";
 
 export default function UsersPage() {
   const [data, setData] = useState<{
@@ -51,7 +52,11 @@ export default function UsersPage() {
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md text-gray-800">
+      
       <div className="p-6 max-w-7xl mx-auto">
+      <h1 className="flex items-center gap-2 text-lg font-bold  text-gray-800 mb-4">
+        <UserGroupIcon className="w-6 h-6" /> Usuários
+      </h1>
         <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <input
             type="text"
