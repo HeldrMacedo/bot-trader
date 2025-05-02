@@ -42,9 +42,8 @@ export const TicksTest = () => {
     "above" | "below" | "even" | "odd" | "diff" | null
   >(null);
   const [activeDigit, setActiveDigit] = useState<number | null>(null);
-  const [subscriptionIds, setSubscriptionIds] = useState<string[]>([]);
 
-  // Carregar dados iniciais
+
   useEffect(() => {
     const savedAccounts = localStorage.getItem("deriv_accounts");
     if (savedAccounts) {
@@ -58,11 +57,12 @@ export const TicksTest = () => {
   useEffect(() => {
     const fethUser = async () => {
       const user = await getUser();
+      console.log("user", user);
       if (!user) return;
       setUserData(user);
     };
     fethUser();
-  })
+  }, [])
 
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export const TicksTest = () => {
     }
   }, [accountInfo?.amount]);
 
-  // Atualizar quando houver mudanças via observer
+
   useEffect(() => {
     const listener = deriv.observerInstance.on(
       "account.update",
@@ -92,10 +92,10 @@ export const TicksTest = () => {
 
     setLoading(true);
     try {
-      // 1. Atualizar autenticação
+
       const authResponse = await deriv.send({ authorize: token });
 
-      // 2. Atualizar dados locais
+
       const updatedAccount: AccountInfo = {
         ...accountInfo,
         activeToken: token,
@@ -125,10 +125,7 @@ export const TicksTest = () => {
       cleanedValue = parts[0] + "." + parts.slice(1).join("");
     }
 
-    // Atualiza apenas o estado local
     setValorEntrada(cleanedValue);
-
-    // Atualiza o accountInfo após validação
     const numericValue = parseFloat(cleanedValue);
     if (!isNaN(numericValue) && accountInfo) {
       const updatedAccount = {
@@ -140,7 +137,6 @@ export const TicksTest = () => {
       deriv.setAccountData(updatedAccount);
     }
 
-    // Atualiza valorReal
     const calculatedValue = (numericValue * multiplicador).toFixed(2);
     setValorReal(isNaN(numericValue) ? "0.00" : calculatedValue);
   };
@@ -201,8 +197,6 @@ export const TicksTest = () => {
       );
       setTicks((prev) => ({ ...prev, [symbol]: listTicks }));
       ticksStream.onUpdate((tick) => {
-        // if (symbol == "R_25" || symbol == "R_10")
-        //   console.log(symbol, tick.raw.quote);
         const lastDigit = parseInt(
           tick.raw.quote
             .toFixed(
@@ -459,7 +453,7 @@ export const TicksTest = () => {
                   </div>
                 </div>
               </div>
-              {accountInfo.lastTrade && (
+              {accountInfo.lastTrade && purchaseStatus !== "open" && (
                 <div className="flex w-full justify-between text-gray-800 bg-slate-100 p-2 text-sm">
                   <div className="font-bold">Última Operação</div>
                   <div>Digito Buscado: {accountInfo.lastTrade.barrier}</div>

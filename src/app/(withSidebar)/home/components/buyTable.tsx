@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DerivService } from "@/app/services/DerivService";
 import { ChevronDownIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
 import { saveOperation } from "@/app/services/operationService";
+import { toast } from "react-toastify";
 
 interface BuyTableProps {
   authToken?: string;
@@ -132,7 +133,7 @@ const BuyTable = ({
 
       const buyID = generateValidID();
       const payload = {
-        buy: buyID,
+        buy: 1,
         price: valorReal,
         parameters: {
           amount: valorReal,
@@ -164,7 +165,7 @@ const BuyTable = ({
         setBuyResponseId(buyResponse.echo_req.buy);
       }
     } catch (error) {
-      console.log(error);
+      toast.error(error.message);
     }
   };
 

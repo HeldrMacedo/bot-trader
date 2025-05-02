@@ -136,12 +136,9 @@ export class DerivService {
   }
 
   private setupBalanceMonitoring() {
-    // Subscribe to balance updates for all accounts
     this.subscribe({ balance: 1, account: "all" }).then((subscription) => {
       this.balanceSubscriptionId = subscription.subscription.id;
     });
-
-    // Setup periodic balance refresh (every 30 seconds)
     setInterval(async () => {
       if (this.currentAccount) {
         await Promise.all(
@@ -171,19 +168,28 @@ export class DerivService {
       return;
     }
 
-    // Criar nova conta se tokens existirem
     const tokens = this.getTokens();
-    if (!tokens || tokens.length < 2) return;
-
+    if (!tokens || tokens.length == 0) return;
+    console.log("tokens", tokens);
+    
     try {
-      const [accountVRT, accountCRT] = this.getAccountTokens(tokens);
-
-      const [userVRT, userCRT] = await Promise.all([
-        this.authenticate(accountVRT.token),
-        this.authenticate(accountCRT.token),
-      ]);
-
-      const newAccount = this.createAccountStructure(
+      let accountVRT, accountCRT, userVRT, userCRT;
+      
+      accountVRT = tokens.find(t => t.is_virtual);
+      accountCRT = tokens.find(t => !t.is_virtual);
+      
+      const authPromises = [];
+      if (accountVRT) authPromises.push(this.authenticate(accountVRT.token));
+      if (accountCRT) authPromises.push(this.authenticate(accountCRT.token));
+      
+      const authResults = await Promise.all(authPromises);
+      
+      // Atribuir resultados da autenticação
+      if (accountVRT) userVRT = authResults.shift();
+      if (accountCRT) userCRT = authResults.shift();
+      
+      // Criar estrutura de conta com os tokens disponíveis
+      const newAccount = this.createAccountStructureDynamic(
         accountVRT,
         accountCRT,
         userVRT,
@@ -232,29 +238,38 @@ export class DerivService {
     this.observer.emit("account.update", null);
   }
 
-  private createAccountStructure(
-    vrt: TokenData,
-    crt: TokenData,
-    userVRT: UserInfo,
-    userCRT: UserInfo
+  private createAccountStructureDynamic(
+    vrt?: TokenData,
+    crt?: TokenData,
+    userVRT?: UserInfo,
+    userCRT?: UserInfo
   ): AccountInfo {
-    vrt.balance = userVRT.balance;
-    crt.balance = userCRT.balance;
 
+    const activeToken = vrt?.token || crt?.token;
+
+    const userInfo = userVRT || userCRT;
+    
+    if (vrt && userVRT) vrt.balance = userVRT.balance;
+    if (crt && userCRT) crt.balance = userCRT.balance;
+    
+    const tokens = [];
+    if (vrt) tokens.push(vrt);
+    if (crt) tokens.push(crt);
+    
     return {
-      activeToken: vrt.token,
+      activeToken: activeToken,
       amount: 0.35,
       barrier: "",
       digits: 3,
       volatility: "R_100",
       finishedTradeList: [],
       lastTrade: null,
-      name: userVRT.fullname,
+      name: userInfo.fullname,
       openTradeId: null,
       results: { loss: 0, result: 0, wins: 0 },
-      selectedLoginId: vrt.acct,
-      loginId: vrt.loginid,
-      tokens: [vrt, crt],
+      selectedLoginId: (vrt?.acct || crt?.acct),
+      loginId: (vrt?.loginid || crt?.loginid),
+      tokens: tokens,
     };
   }
 
@@ -271,39 +286,6 @@ export class DerivService {
       loginid: response.authorize.loginid,
       currency: response.authorize.currency,
     };
-  }
-
-  public async authenticateSelected(token: string): Promise<any> {
-    try {
-      const response = await this.send({ authorize: token });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      // Atualiza saldo no token correspondente
-      const currentAccounts = JSON.parse(
-        localStorage.getItem("deriv_accounts") || "[]"
-      );
-      const updatedAccounts = currentAccounts.map((account: any) => ({
-        ...account,
-        tokens: account.tokens.map((t: any) =>
-          t.token === token ? { ...t, balance: response.authorize.balance } : t
-        ),
-      }));
-
-      localStorage.setItem("deriv_accounts", JSON.stringify(updatedAccounts));
-      this.observer.emit("account.update", updatedAccounts[0]);
-
-      return {
-        balance: response.authorize.balance,
-        currency: response.authorize.currency,
-        loginid: response.authorize.loginid,
-      };
-    } catch (error) {
-      this.observer.emit("auth.error", error);
-      throw error;
-    }
   }
 
   private getAccountTokens(tokens: TokenData[]) {

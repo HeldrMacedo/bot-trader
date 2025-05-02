@@ -36,17 +36,19 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
     const listenerId = derivService.observerInstance.on("account.update", (data: AccountInfo) => {
       const accountActive = data.tokens.find((tokens) => tokens.token === data?.activeToken);
-      setAccountInfo(accountActive);
+      if (accountActive) {
+        setAccountInfo({...accountActive});
+      }
     });
     return () => derivService.observerInstance.removeById(listenerId);
   }, []);
 
   const navigation = [
-    { name: "Dashboard", icon: HomeIcon, href: "/home" },
-    { name: "Minha Conta", icon: UserIcon, href: "/profile" },
-    { name: "Meu Histórico", icon: DocumentChartBarIcon, href: "/history" },
-    { name: "Usuários", icon: UserGroupIcon, href: "/users" },
-    { name: "Sair", icon: ArrowLeftStartOnRectangleIcon, href: "/login" },
+    { name: "Dashboard", icon: HomeIcon, href: "/home", role: ["admin", "user"] },
+    { name: "Minha Conta", icon: UserIcon, href: "/profile", role: ["admin", "user"] },
+    { name: "Meu Histórico", icon: DocumentChartBarIcon, href: "/history", role: ["user"] },
+    { name: "Usuários", icon: UserGroupIcon, href: "/users", role: ["admin", "user"]  },
+    { name: "Sair", icon: ArrowLeftStartOnRectangleIcon, href: "/login", role: ["admin", "user"] },
   ];
 
   return (
@@ -88,7 +90,8 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
         {/* Navigation */}
         <nav className="mt-6 px-4 space-y-1">
           {navigation.map((item) => (
-            <a
+            item?.role.includes(auth?.role) && (
+              <a
               key={item.name}
               href={item.href}
               onClick={() =>
@@ -100,6 +103,8 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
               <item.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
               <span>{item.name}</span>
             </a>
+            )
+            
           ))}
         </nav>
       </aside>
@@ -132,6 +137,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
                 <UserCircleIcon className="w-8 h-8 text-gray-400" />
                 <span className="text-gray-700 text-sm md:text-base">
                   {auth?.name}{" "}
+                  {accountInfo && (
                   <span className="text-[#4bb4b3]">
                     {accountInfo?.is_virtual
                       ? "VRTC " +
@@ -145,6 +151,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
                           currency: "USD",
                         }).format(accountInfo?.balance ?? 0)}
                   </span>
+                  )}
                 </span>
                 <ChevronDownIcon className="w-4 h-4 text-gray-400" />
               </button>
@@ -153,7 +160,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
               {isProfileOpen && (
                 <div
                   className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg
-                  border border-gray-200 py-1"
+                  border border-gray-200 py-1 z-10"
                 >
                   <a
                     href="#"

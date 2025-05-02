@@ -23,20 +23,22 @@ export default function UserModal({
     phone: "",
     password: "",
     role: "user" as "user" | "admin",
+    hiddenInfo: false,
   });
 
   useEffect(() => {
     if (initialData) {
+      console.log("initialData", initialData);
       setFormData({
         name: initialData.name,
         email: initialData.email,
         phone: initialData.phone,
         password: "",
         role: initialData.role as "user" | "admin",
+        hiddenInfo: false,
       });
     }
   }, [initialData]);
-
   const handleRoleChange = (role: "user" | "admin") => {
     setFormData((prev) => ({
       ...prev,
@@ -137,7 +139,7 @@ export default function UserModal({
                   onChange={() => handleRoleChange("admin")}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                Administrador
+                Administrador <input type="checkbox" name="info" checked={formData.hiddenInfo} onChange={(e) => setFormData({...formData, hiddenInfo: e.target.checked})}/> Ocultar informações
               </label>
             </div>
           </div>
