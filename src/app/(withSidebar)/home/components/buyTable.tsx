@@ -131,7 +131,6 @@ const BuyTable = ({
       const valorBase = accountInfo.amount;
       const valorReal = valorBase * parseInt(multiplicador);
 
-      const buyID = generateValidID();
       const payload = {
         buy: 1,
         price: valorReal,
