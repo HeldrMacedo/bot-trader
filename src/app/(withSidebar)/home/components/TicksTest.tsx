@@ -4,15 +4,15 @@ import DerivAPI from "@deriv/deriv-api";
 import { useEffect, useState, useRef, useCallback } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
-import { ChevronDownIcon } from "@heroicons/react/16/solid";
+import { ChevronDownIcon, CpuChipIcon } from "@heroicons/react/16/solid";
 import BuyTable from "./buyTable";
 import {
   DerivService,
   AccountInfo,
   TokenData,
 } from "@/app/services/DerivService";
-import { transform } from "next/dist/build/swc/generated-native";
 import { getUser } from "@/app/services/userService";
+import { BotTrade } from "./BotTrade";
 
 interface AccountSelectorProps {
   onAccountChange: (accountInfo: any) => void;
@@ -43,7 +43,6 @@ export const TicksTest = () => {
   >(null);
   const [activeDigit, setActiveDigit] = useState<number | null>(null);
 
-
   useEffect(() => {
     const savedAccounts = localStorage.getItem("deriv_accounts");
     if (savedAccounts) {
@@ -64,18 +63,14 @@ export const TicksTest = () => {
     }
   }, []);
 
-  // Efeito inicial para buscar dados do usuário
   useEffect(() => {
     fetchUserData();
-    
   }, [fetchUserData]);
-  
-  // Expor a função de atualização para o objeto global (window)
-  // para que possa ser chamada de outros componentes
+
   useEffect(() => {
     // @ts-ignore
     window.updateUserData = fetchUserData;
-    
+
     return () => {
       // @ts-ignore
       delete window.updateUserData;
@@ -87,7 +82,6 @@ export const TicksTest = () => {
       setValorEntrada(accountInfo.amount.toString());
     }
   }, [accountInfo?.amount]);
-
 
   useEffect(() => {
     const fethUser = async () => {
@@ -117,9 +111,7 @@ export const TicksTest = () => {
 
     setLoading(true);
     try {
-
       const authResponse = await deriv.send({ authorize: token });
-
 
       const updatedAccount: AccountInfo = {
         ...accountInfo,
@@ -509,6 +501,8 @@ export const TicksTest = () => {
               )}
             </div>
           )}
+
+          <BotTrade/>
         </div>
 
         <div className="w-full md:w-1/3 space-y-4 md:pl-1 md:pr-2 md:mt-0 mt-2">
@@ -543,7 +537,8 @@ export const TicksTest = () => {
                               digit < activeDigit) ||
                             (hoveredTradeType === "even" && digit % 2 === 0) ||
                             (hoveredTradeType === "odd" && digit % 2 !== 0) ||
-                            (hoveredTradeType === "diff" && digit !== activeDigit));
+                            (hoveredTradeType === "diff" &&
+                              digit !== activeDigit));
 
                         return (
                           <div

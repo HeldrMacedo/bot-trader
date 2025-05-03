@@ -51,8 +51,7 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md text-gray-800">
-      
+    <div className="p-6 bg-white rounded-lg shadow-md text-gray-800">      
       <div className="p-6 max-w-7xl mx-auto">
       <h1 className="flex items-center gap-2 text-lg font-bold  text-gray-800 mb-4">
         <UserGroupIcon className="w-6 h-6" /> Usuários
