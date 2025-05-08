@@ -41,10 +41,9 @@ const BuyTable = ({
       "deriv.proposal_open_contract",
       (data) => {
         if (data.proposal_open_contract?.contract_id === activeContractId) {
-          
           const status = data.proposal_open_contract.status;
           onPurchaseStatusChange?.(status);
-          
+
           if (data.proposal_open_contract.is_valid_to_sell) {
             derivService.send({ forget: data.subscription.id });
             onPurchaseStatusChange("");
@@ -73,6 +72,7 @@ const BuyTable = ({
               deposit: finishedTradeList.amount,
               result: finishedTradeList.profit,
               token: token,
+              selectedLoginId: account.selectedLoginId,
             });
 
             account.finishedTradeList.push(finishedTradeList);

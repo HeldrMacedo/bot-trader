@@ -1,12 +1,25 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Sidebar from "./components/SideBar";
+import { getUser } from "@/app/services/userService";
 
 export default function HomeLayout({ children }) {
+  const [auth, setAuth] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = await getUser();
+      if (user) setAuth(user);
+    };
+    fetchUser();
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar>
-       {children}
+      <Sidebar auth={auth} setAuth={setAuth}>
+        {children}
       </Sidebar>
-      {/* <div className="flex-1 p-2 bg-gray-100">{children}</div> */}
     </div>
   );
 }

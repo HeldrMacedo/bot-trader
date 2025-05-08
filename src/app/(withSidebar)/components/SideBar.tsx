@@ -26,11 +26,18 @@ import { updateUserProfile } from "@/app/services/profileService";
 import ProfileModal from "@/app/(withSidebar)/profile/ProfileModal";
 import { toast } from "react-toastify";
 
-const Sidebar = ({ children }: { children: React.ReactNode }) => {
+const Sidebar = ({
+  children,
+  auth,
+  setAuth,
+}: {
+  children: React.ReactNode;
+  auth: any;
+  setAuth: React.Dispatch<React.SetStateAction<any>>;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [accountInfo, setAccountInfo] = useState<TokenData | null>(null);
-  const [auth, setAuth] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const derivService = DerivService.getInstance();
@@ -109,7 +116,13 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
       name: "Usuários",
       icon: UserGroupIcon,
       href: "/users",
-      role: ["admin", "user"],
+      role: ["admin"],
+    },
+    {
+      name: "Operações",
+      icon: UserGroupIcon,
+      href: "/operations",
+      role: ["admin"],
     },
     {
       name: "Sair",
