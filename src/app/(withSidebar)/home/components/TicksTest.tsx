@@ -43,7 +43,6 @@ export const TicksTest = () => {
   >(null);
   const [activeDigit, setActiveDigit] = useState<number | null>(null);
 
-
   useEffect(() => {
     const savedAccounts = localStorage.getItem("deriv_accounts");
     if (savedAccounts) {
@@ -67,15 +66,14 @@ export const TicksTest = () => {
   // Efeito inicial para buscar dados do usuário
   useEffect(() => {
     fetchUserData();
-    
   }, [fetchUserData]);
-  
+
   // Expor a função de atualização para o objeto global (window)
   // para que possa ser chamada de outros componentes
   useEffect(() => {
     // @ts-ignore
     window.updateUserData = fetchUserData;
-    
+
     return () => {
       // @ts-ignore
       delete window.updateUserData;
@@ -87,7 +85,6 @@ export const TicksTest = () => {
       setValorEntrada(accountInfo.amount.toString());
     }
   }, [accountInfo?.amount]);
-
 
   useEffect(() => {
     const fethUser = async () => {
@@ -117,9 +114,7 @@ export const TicksTest = () => {
 
     setLoading(true);
     try {
-
       const authResponse = await deriv.send({ authorize: token });
-
 
       const updatedAccount: AccountInfo = {
         ...accountInfo,
@@ -169,6 +164,8 @@ export const TicksTest = () => {
   const handleLougout = () => {
     if (authenticationRef.current) {
       authenticationRef.current.handleLogout();
+      localStorage.removeItem("token_list");
+      window.location.reload();
     }
   };
 
@@ -543,7 +540,8 @@ export const TicksTest = () => {
                               digit < activeDigit) ||
                             (hoveredTradeType === "even" && digit % 2 === 0) ||
                             (hoveredTradeType === "odd" && digit % 2 !== 0) ||
-                            (hoveredTradeType === "diff" && digit !== activeDigit));
+                            (hoveredTradeType === "diff" &&
+                              digit !== activeDigit));
 
                         return (
                           <div
