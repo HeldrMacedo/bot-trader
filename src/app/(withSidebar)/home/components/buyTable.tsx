@@ -72,7 +72,7 @@ const BuyTable = ({
               deposit: finishedTradeList.amount,
               result: finishedTradeList.profit,
               token: token,
-              selectedLoginId: account.selectedLoginId,
+              isVirtual: isVirtual,
             });
 
             account.finishedTradeList.push(finishedTradeList);

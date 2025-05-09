@@ -42,6 +42,7 @@ export const TicksTest = () => {
     "above" | "below" | "even" | "odd" | "diff" | null
   >(null);
   const [activeDigit, setActiveDigit] = useState<number | null>(null);
+  const [isVirtual, setIsVirtual] = useState(true);
 
   useEffect(() => {
     const savedAccounts = localStorage.getItem("deriv_accounts");
@@ -134,6 +135,7 @@ export const TicksTest = () => {
     } catch (error) {
       console.error("Erro na autenticação:", error);
     }
+    setIsVirtual(accountInfo.tokens.find((t) => t.token === token)?.is_virtual);
     setLoading(false);
   };
 
@@ -566,7 +568,7 @@ export const TicksTest = () => {
           <BuyTable
             authToken={selectedAccount?.token}
             currency={selectedAccount?.currency}
-            isVirtual={selectedAccount?.is_virtual}
+            isVirtual={isVirtual}
             multiplicadorProp={handleMultiplicador}
             onPurchaseStatusChange={setPurchaseStatus}
             onHoverTradeType={setHoveredTradeType}
