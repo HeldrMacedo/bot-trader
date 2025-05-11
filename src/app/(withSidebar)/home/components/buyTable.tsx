@@ -41,7 +41,7 @@ const BuyTable = ({
       "deriv.proposal_open_contract",
       (data) => {
         if (data.proposal_open_contract?.contract_id === activeContractId) {
-          
+          console.log("Contrato aberto:", data.proposal_open_contract);
           const status = data.proposal_open_contract.status;
           onPurchaseStatusChange?.(status);
           

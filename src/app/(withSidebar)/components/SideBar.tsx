@@ -7,6 +7,7 @@ import {
   XMarkIcon,
   UserCircleIcon,
   ChevronDownIcon,
+  CpuChipIcon,
 } from "@heroicons/react/24/outline";
 import {
   HomeIcon,
@@ -82,7 +83,9 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
     { name: "Minha Conta", icon: UserIcon, href: "/profile", role: ["admin", "user"] },
     { name: "Meu Histórico", icon: DocumentChartBarIcon, href: "/history", role: ["user"] },
     { name: "Usuários", icon: UserGroupIcon, href: "/users", role: ["admin", "user"]  },
+    { name: "BotTrader", icon: CpuChipIcon, href: "/bottrader", role: ["user"] },
     { name: "Sair", icon: ArrowLeftStartOnRectangleIcon, href: "/login", role: ["admin", "user"] },
+    
   ];
 
   return (

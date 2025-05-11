@@ -12,7 +12,6 @@ import {
   TokenData,
 } from "@/app/services/DerivService";
 import { getUser } from "@/app/services/userService";
-import { BotTrade } from "./BotTrade";
 
 interface AccountSelectorProps {
   onAccountChange: (accountInfo: any) => void;
@@ -501,8 +500,6 @@ export const TicksTest = () => {
               )}
             </div>
           )}
-
-          <BotTrade/>
         </div>
 
         <div className="w-full md:w-1/3 space-y-4 md:pl-1 md:pr-2 md:mt-0 mt-2">
