@@ -116,7 +116,7 @@ const Sidebar = ({
       name: "Usuários",
       icon: UserGroupIcon,
       href: "/users",
-      role: ["admin", "user"],
+      role: ["admin"],
     },
     {
       name: "Operações",
