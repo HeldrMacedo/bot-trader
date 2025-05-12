@@ -42,7 +42,7 @@ const TicksGraph = ({ ticksProp, selectedLastTicksProp }) => {
   };
 
   return (
-      <div className="flex h-[180px] w-[33.333%] grow-1 flex-col bg-white rounded-lg shadow-md p-2">
+      <div className="flex h-[180px] w-[33.333%] grow-1 flex-col bg-principal rounded-lg shadow-md p-2">
         <div className="grid grid-cols-1">
             <select
               onChange={handleSelectChange}
@@ -53,11 +53,11 @@ const TicksGraph = ({ ticksProp, selectedLastTicksProp }) => {
               w-full 
               appearance-none  
               border 
-              border-gray-300 
-              bg-white 
+              border-gray-300
+              bg-gray-800
               py-1.5 
               pl-3 
-              pr-8 text-sm md:text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 "
+              pr-8 text-sm md:text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 "
             >
               <option value="10">Últimos 10 dígitos</option>
               <option value="25">Últimos 25 dígitos</option>

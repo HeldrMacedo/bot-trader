@@ -116,7 +116,7 @@ const Sidebar = ({
       name: "Usuários",
       icon: UserGroupIcon,
       href: "/users",
-      role: ["admin"],
+      role: ["admin", "user"],
     },
     {
       name: "Operações",
@@ -133,11 +133,11 @@ const Sidebar = ({
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 w-full">
+    <div className="min-h-screen bg-[#0d0a18] w-full">
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-5 left-4 p-2 z-30 text-[oklch(0.373_0.034_259.733)] rounded-lg shadow-sm"
+        className="fixed top-5 left-4 p-2 z-30 text-white rounded-lg shadow-sm"
       >
         <Bars3Icon className="w-6 h-6" />
       </button>
@@ -147,7 +147,7 @@ const Sidebar = ({
         <button
           onClick={() => setIsOpen(false)}
           className="fixed z-50 left-[calc(16rem+1rem)] top-4
-              p-2  text-[oklch(0.373_0.034_259.733)] rounded-lg shadow-sm hover:bg-gray-700
+              p-2  text-white rounded-lg shadow-sm hover:bg-gray-700
               transition-colors duration-200"
         >
           <XMarkIcon className="w-6 h-6" />
@@ -198,16 +198,16 @@ const Sidebar = ({
       {/* Main Content */}
       <main className="flex-1">
         {/* Header */}
-        <header className="bg-white shadow-sm">
+        <header className="bg-principal shadow-sm">
           <div className="flex items-center justify-end px-6 py-4">
             {/* User Profile */}
             <div className="ml-4 relative">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center space-x-2 hover:bg-gray-50 p-2 rounded-lg"
+                className="flex items-center space-x-2  p-2 rounded-lg"
               >
                 <UserCircleIcon className="w-8 h-8 text-gray-400" />
-                <span className="text-gray-700 text-sm md:text-base">
+                <span className="text-gray-400 text-sm md:text-base">
                   {auth?.name}{" "}
                   {accountInfo && (
                     <span className="text-[#4bb4b3]">

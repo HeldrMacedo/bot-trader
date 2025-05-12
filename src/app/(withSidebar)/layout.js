@@ -16,7 +16,7 @@ export default function HomeLayout({ children }) {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-[#0d0a18]">
       <Sidebar auth={auth} setAuth={setAuth}>
         {children}
       </Sidebar>

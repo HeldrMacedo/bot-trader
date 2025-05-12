@@ -25,6 +25,13 @@ export const TicksTest = () => {
     R_50: [],
     R_25: [],
     R_10: [],
+    RDBEAR: [],
+    RDBULL: [],
+    JD10: [],
+    JD25: [],
+    JD50: [],
+    JD75: [],
+    JD100: [],
   });
   const [volatility, setVolatility] = useState("R_100");
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -213,6 +220,10 @@ export const TicksTest = () => {
                 ? 2
                 : symbol == "R_25" || symbol == "R_10"
                 ? 3
+                : symbol == "RDBEAR" || symbol == "RDBULL"
+                ? 2
+                : symbol.startsWith("JD")
+                ? 2
                 : 4
             )
             .toString()
@@ -228,6 +239,10 @@ export const TicksTest = () => {
                 ? 2
                 : symbol == "R_25" || symbol == "R_10"
                 ? 3
+                : symbol == "RDBEAR" || symbol == "RDBULL"
+                ? 2
+                : symbol.startsWith("JD")
+                ? 2
                 : 4
             )
             .toString()
@@ -246,6 +261,14 @@ export const TicksTest = () => {
     fetchTicks("R_25");
     fetchTicks("R_10");
 
+    fetchTicks("RDBEAR");
+    fetchTicks("RDBULL");
+    fetchTicks("JD10");
+    fetchTicks("JD25");
+    fetchTicks("JD50");
+    fetchTicks("JD75");
+    fetchTicks("JD100");
+
     return () => {
       connection.close();
     };
@@ -253,7 +276,7 @@ export const TicksTest = () => {
 
   return (
     <div className="w-full mx-auto py-4 max-w-[1500px]">
-      <span className="flex justify-between gap-2 text-lg font-bold  text-gray-800 mb-4 mt-4 pr-2 pl-2">
+      <span className="flex justify-between gap-2 text-lg font-bold  text-gray-400 mb-4 mt-1 pr-2 pl-2">
         <div className="flex items-center gap-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -286,7 +309,20 @@ export const TicksTest = () => {
               d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
             />
           </svg>
-          Índ. Volatilidade {volatility.split("_")[1]}
+          Índ. Volatilidade: {
+          volatility === "R_100" ? "100" : 
+          volatility === "R_75" ? "75" : 
+          volatility === "R_50" ? "50" : 
+          volatility === "R_25" ? "25" : 
+          volatility === "R_10" ? "10" : 
+          volatility === "RDBEAR" ? "Bear" : 
+          volatility === "RDBULL" ? "Bull" : 
+          volatility === "JD10" ? "Jump 10" : 
+          volatility === "JD25" ? "Jump 25" :
+          volatility === "JD50" ? "Jump 50" : 
+          volatility === "JD75" ? "Jump 75" : 
+          volatility === "JD100" ? "Jump 100" : ""
+          }
         </div>
       </span>
       <div className="flex w-full flex-col md:flex-row">
@@ -306,7 +342,7 @@ export const TicksTest = () => {
             />
           </div>
           <div className="flex justify-between w-full">
-            <div className="flex items-center gap-2 text-lg font-bold  text-gray-800">
+            <div className="flex items-center gap-2 text-lg font-bold  text-gray-400">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -328,8 +364,8 @@ export const TicksTest = () => {
             </div>
           </div>
           {accountInfo && (
-            <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-              <div className="flex justify-between items-center w-full text-gray-800 border-b pb-4">
+            <div className="bg-principal rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+              <div className="flex justify-between items-center w-full text-gray-400 border-b pb-4">
                 <div className="text-sm">
                   {userData?.name}
                   {purchaseStatus === "open" && (
@@ -400,7 +436,7 @@ export const TicksTest = () => {
               </div>
               <div className="flex w-full gap-4 text-sm">
                 <div className="mt-2 w-full">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-[13px] lg:text-sm font-medium text-gray-400">
                     Conta:
                   </label>
                   <div className="grid grid-cols-1">
@@ -409,7 +445,7 @@ export const TicksTest = () => {
                       onChange={(e) => handleAccountChange(e.target.value)}
                       disabled={loading}
                       defaultValue={accountInfo.activeToken}
-                      className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+                      className=" col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-gray-800 py-1.5 pl-3 pr-8 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
                     >
                       {accountInfo.tokens.map((token) => (
                         <option key={token.token} value={token.token}>
@@ -430,18 +466,18 @@ export const TicksTest = () => {
                 <div className="mt-2 w-full">
                   <label
                     htmlFor="entrada-inicial"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-[13px] lg:text-sm font-medium text-gray-400"
                   >
                     Entrada inicial:
                   </label>
                   <div className="relative mb-6">
-                    <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
-                      <span className="text-gray-500">$</span>
+                    <div className="absolute inset-y-0 text-gray-400 start-0 flex items-center ps-3.5 pointer-events-none">
+                      <span className="text-gray-400">$</span>
                     </div>
                     <input
                       type="text"
                       id="entrada-inicial"
-                      className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+                      className="w-full appearance-none rounded-md border border-gray-300 bg-gray-800 py-1.5 pl-8 pr-3 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
                       placeholder="0.00"
                       value={valorEntrada}
                       disabled={loading}
@@ -452,7 +488,7 @@ export const TicksTest = () => {
                 <div className="mt-2 w-full">
                   <label
                     htmlFor="entrada-real"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-[13px] lg:text-sm font-medium text-gray-400"
                   >
                     <span>
                       Entrada Real
@@ -463,7 +499,7 @@ export const TicksTest = () => {
                     </span>
                   </label>
                   <div className="relative mb-6">
-                    <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
+                    <div className="absolute inset-y-0 text-gray-400 start-0 flex items-center ps-3.5 pointer-events-none">
                       <span className="text-gray-500">$</span>
                     </div>
                     <input
@@ -471,15 +507,15 @@ export const TicksTest = () => {
                       id="entrada-real"
                       readOnly
                       value={`${valorReal}`}
-                      className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
+                      className="w-full appearance-none rounded-md border border-gray-300 bg-gray-800  py-1.5 pl-8 pr-3 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
                       placeholder="0.00"
                     />
                   </div>
                 </div>
               </div>
               {accountInfo.lastTrade && purchaseStatus !== "open" && (
-                <div className="flex w-full justify-between text-gray-800 bg-slate-100 p-2 text-sm">
-                  <div className="font-bold">Última Operação</div>
+                <div className="flex w-full justify-between text-gray-400 bg-gray-800 p-2 text-[13px] lg:text-sm">
+                  <div className="hidden md:block font-bold">Última Operação</div>
                   <div>Digito Buscado: {accountInfo.lastTrade.barrier}</div>
                   <div>
                     Digito Encontrado: {accountInfo.lastTrade.resultBarrier}
@@ -508,23 +544,64 @@ export const TicksTest = () => {
               )}
             </div>
           )}
+
+<BuyTable
+            authToken={selectedAccount?.token}
+            currency={selectedAccount?.currency}
+            isVirtual={isVirtual}
+            multiplicadorProp={handleMultiplicador}
+            onPurchaseStatusChange={setPurchaseStatus}
+            onHoverTradeType={setHoveredTradeType}
+            onDigitHover={setActiveDigit}
+          />
         </div>
 
         <div className="w-full md:w-1/3 space-y-4 md:pl-1 md:pr-2 md:mt-0 mt-2">
-          <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            {["R_100", "R_75", "R_50", "R_25", "R_10"].map((symbol) => (
+          <div className="bg-[#454a58] rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            {[
+              "R_100",
+              "R_75",
+              "R_50",
+              "R_25",
+              "R_10",
+              "RDBEAR",
+              "RDBULL",
+              "JD10",
+              "JD25",
+              "JD50",
+              "JD75",
+              "JD100",
+            ].map((symbol) => (
               <div
                 key={symbol}
                 onClick={() => setVolatility(symbol)}
-                className="relative flex flex-col min-w-0 wrap-break-word mb-1 p-2 text-gray-800 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
+                className=" relative flex flex-col min-w-0 wrap-break-word mb-1 p-2 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
                 style={{
                   cursor: "pointer",
                   border: volatility === symbol ? "1px solid #111827" : "",
+                  borderColor: volatility === symbol ? "#d1d5db" : "",
+                color: volatility === symbol ? "#FFF" : "oklch(92.9% 0.013 255.508)"
                 }}
               >
-                <div className="flex-auto flex-col py-1 px-3">
-                  <div className="flex mb-1 items-center justify-start text-base">
-                    <span>Índice de volatilidade {symbol.split("_")[1]}</span>
+                <div className="flex-auto flex-col px-3">
+                  <div className="flex mb-1 items-center justify-start text-sm">
+                    <span>
+                      {symbol === "RDBEAR"
+                        ? "Bear Market Index"
+                        : symbol === "RDBULL"
+                        ? "Bull Market Index"
+                        : symbol === "JD10"
+                        ? "Jump 10 Index"
+                        : symbol === "JD25"
+                        ? "Jump 25 Index"
+                        : symbol === "JD50"
+                        ? "Jump 50 Index"
+                        : symbol === "JD75"
+                        ? "Jump 75 Index"
+                        : symbol === "JD100"
+                        ? "Jump 100 Index"
+                        : `Índice de volatilidade ${symbol.split("_")[1]}`}
+                    </span>
                   </div>
                   <div className="mx-auto overflow-hidden w-full">
                     <div
@@ -550,9 +627,12 @@ export const TicksTest = () => {
                             key={index}
                             className={`px-1 py-mx-[1px] text-[12px] border ${
                               shouldHighlight
-                                ? "bg-slate-400 text-white border-slate-500"
-                                : "bg-white border-gray-200"
+                                ? "bg-slate-500 text-gray-800 border-slate-500"
+                                : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)]  border-gray-500"
                             }`}
+                            style={{
+                              color: volatility === symbol ? "#FFF" : "oklch(92.9% 0.013 255.508)"
+                            }}
                           >
                             {digit}
                           </div>
@@ -564,16 +644,6 @@ export const TicksTest = () => {
               </div>
             ))}
           </div>
-
-          <BuyTable
-            authToken={selectedAccount?.token}
-            currency={selectedAccount?.currency}
-            isVirtual={isVirtual}
-            multiplicadorProp={handleMultiplicador}
-            onPurchaseStatusChange={setPurchaseStatus}
-            onHoverTradeType={setHoveredTradeType}
-            onDigitHover={setActiveDigit}
-          />
         </div>
       </div>
       {purchaseStatus === "open" && (
