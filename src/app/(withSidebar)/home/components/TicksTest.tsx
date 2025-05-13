@@ -71,7 +71,7 @@ export const TicksTest = () => {
     }
   }, []);
 
-  // Efeito inicial para buscar dados do usuário
+  // Efeito inicial para buscar dados do usuário/
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
@@ -309,20 +309,32 @@ export const TicksTest = () => {
               d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
             />
           </svg>
-          Índ. Volatilidade: {
-          volatility === "R_100" ? "100" : 
-          volatility === "R_75" ? "75" : 
-          volatility === "R_50" ? "50" : 
-          volatility === "R_25" ? "25" : 
-          volatility === "R_10" ? "10" : 
-          volatility === "RDBEAR" ? "Bear" : 
-          volatility === "RDBULL" ? "Bull" : 
-          volatility === "JD10" ? "Jump 10" : 
-          volatility === "JD25" ? "Jump 25" :
-          volatility === "JD50" ? "Jump 50" : 
-          volatility === "JD75" ? "Jump 75" : 
-          volatility === "JD100" ? "Jump 100" : ""
-          }
+          Índ. Volatilidade:{" "}
+          {volatility === "R_100"
+            ? "100"
+            : volatility === "R_75"
+            ? "75"
+            : volatility === "R_50"
+            ? "50"
+            : volatility === "R_25"
+            ? "25"
+            : volatility === "R_10"
+            ? "10"
+            : volatility === "RDBEAR"
+            ? "Bear"
+            : volatility === "RDBULL"
+            ? "Bull"
+            : volatility === "JD10"
+            ? "Jump 10"
+            : volatility === "JD25"
+            ? "Jump 25"
+            : volatility === "JD50"
+            ? "Jump 50"
+            : volatility === "JD75"
+            ? "Jump 75"
+            : volatility === "JD100"
+            ? "Jump 100"
+            : ""}
         </div>
       </span>
       <div className="flex w-full flex-col md:flex-row">
@@ -515,7 +527,9 @@ export const TicksTest = () => {
               </div>
               {accountInfo.lastTrade && purchaseStatus !== "open" && (
                 <div className="flex w-full justify-between text-gray-400 bg-gray-800 p-2 text-[13px] lg:text-sm">
-                  <div className="hidden md:block font-bold">Última Operação</div>
+                  <div className="hidden md:block font-bold">
+                    Última Operação
+                  </div>
                   <div>Digito Buscado: {accountInfo.lastTrade.barrier}</div>
                   <div>
                     Digito Encontrado: {accountInfo.lastTrade.resultBarrier}
@@ -545,7 +559,7 @@ export const TicksTest = () => {
             </div>
           )}
 
-<BuyTable
+          <BuyTable
             authToken={selectedAccount?.token}
             currency={selectedAccount?.currency}
             isVirtual={isVirtual}
@@ -580,7 +594,10 @@ export const TicksTest = () => {
                   cursor: "pointer",
                   border: volatility === symbol ? "1px solid #111827" : "",
                   borderColor: volatility === symbol ? "#d1d5db" : "",
-                color: volatility === symbol ? "#FFF" : "oklch(92.9% 0.013 255.508)"
+                  color:
+                    volatility === symbol
+                      ? "#FFF"
+                      : "oklch(92.9% 0.013 255.508)",
                 }}
               >
                 <div className="flex-auto flex-col px-3">
@@ -631,7 +648,10 @@ export const TicksTest = () => {
                                 : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)]  border-gray-500"
                             }`}
                             style={{
-                              color: volatility === symbol ? "#FFF" : "oklch(92.9% 0.013 255.508)"
+                              color:
+                                volatility === symbol
+                                  ? "#FFF"
+                                  : "oklch(92.9% 0.013 255.508)",
                             }}
                           >
                             {digit}
