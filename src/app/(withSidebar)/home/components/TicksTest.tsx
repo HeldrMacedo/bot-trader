@@ -221,7 +221,7 @@ export const TicksTest = () => {
                 : symbol == "R_25" || symbol == "R_10"
                 ? 3
                 : symbol == "RDBEAR" || symbol == "RDBULL"
-                ? 2
+                ? 4
                 : symbol.startsWith("JD")
                 ? 2
                 : 4
@@ -240,7 +240,7 @@ export const TicksTest = () => {
                 : symbol == "R_25" || symbol == "R_10"
                 ? 3
                 : symbol == "RDBEAR" || symbol == "RDBULL"
-                ? 2
+                ? 4
                 : symbol.startsWith("JD")
                 ? 2
                 : 4
