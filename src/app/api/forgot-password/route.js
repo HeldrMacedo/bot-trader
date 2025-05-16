@@ -34,11 +34,28 @@ export async function POST(request) {
     );
   }
 
+  const COOLDOWN_MINUTES = 60 * 24; // 24 horas
+  if (user.tokenSentAt) {
+    const now = new Date();
+    const sentAt = new Date(user.tokenSentAt);
+    const diffInMinutes = (now.getTime() - sentAt.getTime()) / 1000 / 60;
+
+    if (diffInMinutes < COOLDOWN_MINUTES) {
+      const remaining = Math.ceil(COOLDOWN_MINUTES - diffInMinutes);
+      return NextResponse.json(
+        {
+          message: `Você já solicitou uma redefinição de senha. Por favor, aguarde ${remaining / 60} horas para tentar novamente.`,
+        },
+        { status: 429 }
+      );
+    }
+  }
+
   const token = generateSecureToken();
 
   await prisma.user.update({
     where: { email },
-    data: { passwordToken: token },
+    data: { passwordToken: token, tokenSentAt: new Date() },
   });
 
   const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
