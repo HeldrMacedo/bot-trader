@@ -4,6 +4,7 @@ import { User } from "@prisma/client";
 import { deleteUser, getUsers, createUser, updateUser } from "./actions";
 import UserModal from "./UserModal";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { redirect } from "next/navigation";
 
 export default function UsersPage() {
   const [data, setData] = useState<{
@@ -22,7 +23,11 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const loadUsers = async () => {
-    const result = await getUsers(search, currentPage, itemsPerPage);
+    const token = localStorage.getItem("access_token") || "";
+    const result = await getUsers(search, currentPage, itemsPerPage, token);
+    if (result?.error == true) {
+      redirect("/home");
+    }
     setData(result);
   };
 
@@ -32,7 +37,11 @@ export default function UsersPage() {
 
   const handleDelete = async (id: string) => {
     if (confirm("Tem certeza que deseja excluir este usuário?")) {
-      await deleteUser(+id);
+      const token = localStorage.getItem("access_token") || "";
+      const result = await deleteUser(+id, token);
+      if (result?.error == true) {
+        redirect("/home");
+      }
       loadUsers();
     }
   };
@@ -41,9 +50,20 @@ export default function UsersPage() {
     userData: Omit<User, "id" | "createdAt" | "updatedAt">
   ) => {
     if (editingUser) {
-      await updateUser({ ...userData, id: editingUser.id });
+      const token = localStorage.getItem("access_token") || "";
+      const result = await updateUser(
+        { ...userData, id: editingUser.id },
+        token
+      );
+      if (result?.error == true) {
+        redirect("/home");
+      }
     } else {
-      await createUser(userData);
+      const token = localStorage.getItem("access_token") || "";
+      const response = await createUser(userData, token);
+      if (response.error == true) {
+        redirect("/home");
+      }
     }
     setIsModalOpen(false);
     setEditingUser(null);
@@ -52,11 +72,10 @@ export default function UsersPage() {
 
   return (
     <div className="p-6 bg-principal  mx-auto max-w-[1500px] rounded-lg shadow-md text-gray-400">
-      
       <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="flex items-center gap-2 text-lg font-bold  mb-4">
-        <UserGroupIcon className="w-6 h-6" /> Usuários
-      </h1>
+        <h1 className="flex items-center gap-2 text-lg font-bold  mb-4">
+          <UserGroupIcon className="w-6 h-6" /> Usuários
+        </h1>
         <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <input
             type="text"
@@ -121,7 +140,7 @@ export default function UsersPage() {
                   <td className="px-6 py-4 whitespace-nowrap capitalize">
                     {user.role === "admin" ? "Administrador" : "Usuário"}
                   </td>
-                 
+
                   <td className="px-6 py-4 whitespace-nowrap space-x-2">
                     <button
                       onClick={() => {

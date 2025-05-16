@@ -2,14 +2,8 @@
 import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
-export async function getOperations(
-  search: string,
-  skip: number,
-  take: number,
-  token: string
-) {
+export async function verifyAdminToken(token: string) {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
   const user = await prisma.user.findUnique({
     where: { id: decoded.userId },
     select: {
@@ -20,7 +14,18 @@ export async function getOperations(
       role: true,
     },
   });
-  if (user.role !== "admin") return { operations: [], total: 0, error: true };
+  if (user.role !== "admin") return false;
+  return true;
+}
+
+export async function getOperations(
+  search: string,
+  skip: number,
+  take: number,
+  token: string
+) {
+  const isAdmin = await verifyAdminToken(token);
+  if (!isAdmin) return { operations: [], total: 0, error: true };
   const filter = {
     OR: [
       {
