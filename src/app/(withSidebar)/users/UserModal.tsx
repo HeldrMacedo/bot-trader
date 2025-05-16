@@ -25,6 +25,7 @@ export default function UserModal({
     role: "user" as "user" | "admin",
     hiddenInfo: false,
     passwordToken: "",
+    tokenSentAt: null,
   });
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function UserModal({
         role: initialData.role as "user" | "admin",
         hiddenInfo: false,
         passwordToken: "",
+        tokenSentAt: null,
       });
     }
   }, [initialData]);
