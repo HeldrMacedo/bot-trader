@@ -24,6 +24,7 @@ export default function UserModal({
     password: "",
     role: "user" as "user" | "admin",
     hiddenInfo: false,
+    passwordToken: "",
   });
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function UserModal({
         password: "",
         role: initialData.role as "user" | "admin",
         hiddenInfo: false,
+        passwordToken: "",
       });
     }
   }, [initialData]);
@@ -138,7 +140,7 @@ export default function UserModal({
                 </div>
                 <span className="text-gray-300">Usuário</span>
               </label>
-              
+
               <label className="flex items-center gap-2 cursor-pointer">
                 <div className="relative flex items-center">
                   <input
@@ -156,14 +158,18 @@ export default function UserModal({
                 </div>
                 <span className="text-gray-300">Administrador</span>
                 <div className="flex items-center ml-2">
-                  <input 
-                    type="checkbox" 
-                    name="info" 
-                    checked={formData.hiddenInfo} 
-                    onChange={(e) => setFormData({...formData, hiddenInfo: e.target.checked})}
+                  <input
+                    type="checkbox"
+                    name="info"
+                    checked={formData.hiddenInfo}
+                    onChange={(e) =>
+                      setFormData({ ...formData, hiddenInfo: e.target.checked })
+                    }
                     className="w-4 h-4 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="ml-2 text-gray-300 text-sm">Ocultar informações</span>
+                  <span className="ml-2 text-gray-300 text-sm">
+                    Ocultar informações
+                  </span>
                 </div>
               </label>
             </div>
