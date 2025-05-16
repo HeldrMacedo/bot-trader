@@ -99,12 +99,14 @@ export default function HistoryPage() {
 
   if (error) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md text-gray-800">
-        <h1 className="text-2xl font-bold mb-4">Histórico</h1>
+      <div className="bg-principal mx-auto max-w-[1500px] shadow-md text-gray-400">
+         <h1 className="flex items-center gap-2 text-lg font-bold  text-gray-400 mb-4">
+        <DocumentChartBarIcon className="w-6 h-6" /> Histórico de Operações
+      </h1>
         <div className="text-red-500 mb-4">{error}</div>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="login-button flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
         >
           Tentar novamente
         </button>
@@ -113,8 +115,8 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md text-gray-800">
-      <h1 className="flex items-center gap-2 text-lg font-bold  text-gray-800 mb-4">
+    <div className="bg-principal mx-auto max-w-[1500px] p-6 rounded-lg shadow-md text-gray-400">
+      <h1 className="flex items-center gap-2 text-lg font-bold  text-gray-400 mb-4">
         <DocumentChartBarIcon className="w-6 h-6" /> Histórico de Operações
       </h1>
 
@@ -122,27 +124,27 @@ export default function HistoryPage() {
         <p>Nenhuma negociação encontrada</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-500">
+            <thead className="bg-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
                   ID da Transação
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
                   Conta
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
                   Dt. Operação
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
                   Entrada
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
                   Resultado
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-gray-800 divide-y divide-slate-500">
               {trades.map((trade) => (
                 <tr key={trade.transaction_id}>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -203,7 +205,7 @@ export default function HistoryPage() {
               setIsLoading(false);
             }, 1500);
           }}
-          className={`px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors`}
+          className={`login-button flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600`}
         >
           + Carregar Mais
         </button>

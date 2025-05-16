@@ -51,31 +51,31 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md text-gray-800">
+    <div className="p-6 bg-principal  mx-auto max-w-[1500px] rounded-lg shadow-md text-gray-400">
       
       <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="flex items-center gap-2 text-lg font-bold  text-gray-800 mb-4">
+      <h1 className="flex items-center gap-2 text-lg font-bold  mb-4">
         <UserGroupIcon className="w-6 h-6" /> Usuários
       </h1>
         <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <input
             type="text"
             placeholder="Buscar por nome..."
-            className="p-2 border rounded-md w-full sm:max-w-xs"
+            className="w-full sm:max-w-xs p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
           />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 ">
             <select
               value={itemsPerPage}
               onChange={(e) => {
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="p-2 border rounded-md"
+              className="p-2 rounded-md ounded-md border border-gray-300 bg-gray-800 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
             >
               <option value={5}>5 itens</option>
               <option value={10}>10 itens</option>
@@ -92,27 +92,27 @@ export default function UsersPage() {
         </div>
 
         <div className="overflow-x-auto rounded-lg border">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-500">
+            <thead className="bg-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                   Nome
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                   Telefone
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                   Tipo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-gray-800 divide-y divide-slate-500">
               {data.users.map((user) => (
                 <tr key={user.id}>
                   <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
@@ -121,13 +121,14 @@ export default function UsersPage() {
                   <td className="px-6 py-4 whitespace-nowrap capitalize">
                     {user.role === "admin" ? "Administrador" : "Usuário"}
                   </td>
+                 
                   <td className="px-6 py-4 whitespace-nowrap space-x-2">
                     <button
                       onClick={() => {
                         setEditingUser(user);
                         setIsModalOpen(true);
                       }}
-                      className="text-indigo-600 hover:text-indigo-900"
+                      className="text-blue-600 hover:text-blue-700"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -174,7 +175,7 @@ export default function UsersPage() {
           <button
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-3 py-1 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1 border rounded-md hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Anterior
           </button>
@@ -186,8 +187,8 @@ export default function UsersPage() {
                 onClick={() => setCurrentPage(page)}
                 className={`px-3 py-1 border rounded-md ${
                   page === currentPage
-                    ? "bg-blue-600 text-white"
-                    : "hover:bg-gray-100"
+                    ? "bg-indigo-600 text-white"
+                    : "hover:bg-gray-800"
                 }`}
               >
                 {page}
@@ -198,7 +199,7 @@ export default function UsersPage() {
           <button
             onClick={() => setCurrentPage(currentPage + 1)}
             disabled={currentPage === data.totalPages}
-            className="px-3 py-1 border rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1 border rounded-md hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Próximo
           </button>

@@ -42,8 +42,8 @@ export default function OperationsPage() {
   }, [search, itemsPerPage]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md text-gray-800">
-      <h1 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-4">
+    <div className="bg-principal  mx-auto max-w-[1500px] p-6 rounded-lg shadow-md text-gray-400">
+      <h1 className="flex items-center gap-2 text-lg font-bold text-gray-400 mb-4">
         <DocumentTextIcon className="w-6 h-6" /> Operações
       </h1>
 
@@ -51,7 +51,7 @@ export default function OperationsPage() {
         <input
           type="text"
           placeholder="Buscar por conta ou ID da operação..."
-          className="p-2 border rounded-md w-full sm:max-w-xs"
+          className="w-full sm:max-w-xs p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -60,7 +60,7 @@ export default function OperationsPage() {
           onChange={(e) => {
             setItemsPerPage(Number(e.target.value));
           }}
-          className="p-2 border rounded-md"
+          className="p-2 rounded-md ounded-md border border-gray-300 bg-gray-800 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
         >
           <option value={5}>5 itens</option>
           <option value={10}>10 itens</option>
@@ -70,30 +70,30 @@ export default function OperationsPage() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-slate-500">
+          <thead className="bg-gray-800">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                 ID da Operação
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                 Conta
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                 Data
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                 Depósito
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                 Resultado
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                 Usuário
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-gray-800 divide-y divide-slate-500">
             {operations.map((op) => (
               <tr key={op.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -144,7 +144,7 @@ export default function OperationsPage() {
           <button
             onClick={() => loadOperations()}
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 disabled:opacity-50"
+            className="login-button flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
             {loading ? "Carregando..." : "Mostrar mais"}
           </button>

@@ -55,7 +55,7 @@ export default function UserModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
         <h2 className="text-xl font-bold mb-4">
           {initialData ? "Editar Usuário" : "Novo Usuário"}
         </h2>
@@ -66,7 +66,7 @@ export default function UserModal({
             <input
               type="text"
               required
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -79,7 +79,7 @@ export default function UserModal({
             <input
               type="email"
               required
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
@@ -92,7 +92,7 @@ export default function UserModal({
             <input
               type="tel"
               required
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
               value={formData.phone}
               onChange={(e) =>
                 setFormData({ ...formData, phone: e.target.value })
@@ -107,7 +107,7 @@ export default function UserModal({
             <input
               type="password"
               required={!initialData}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
               value={formData.password}
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })
@@ -121,25 +121,50 @@ export default function UserModal({
               Tipo de usuário
             </span>
             <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="role"
-                  checked={formData.role === "user"}
-                  onChange={() => handleRoleChange("user")}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                Usuário
+              <label className="flex items-center gap-2 cursor-pointer">
+                <div className="relative flex items-center">
+                  <input
+                    type="radio"
+                    name="role"
+                    checked={formData.role === "user"}
+                    onChange={() => handleRoleChange("user")}
+                    className="sr-only" // Esconde o radio button original
+                  />
+                  <div className="w-5 h-5 border-2 border-gray-400 rounded-full flex items-center justify-center">
+                    {formData.role === "user" && (
+                      <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-gray-300">Usuário</span>
               </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="role"
-                  checked={formData.role === "admin"}
-                  onChange={() => handleRoleChange("admin")}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                Administrador <input type="checkbox" name="info" checked={formData.hiddenInfo} onChange={(e) => setFormData({...formData, hiddenInfo: e.target.checked})}/> Ocultar informações
+              
+              <label className="flex items-center gap-2 cursor-pointer">
+                <div className="relative flex items-center">
+                  <input
+                    type="radio"
+                    name="role"
+                    checked={formData.role === "admin"}
+                    onChange={() => handleRoleChange("admin")}
+                    className="sr-only" // Esconde o radio button original
+                  />
+                  <div className="w-5 h-5 border-2 border-gray-400 rounded-full flex items-center justify-center">
+                    {formData.role === "admin" && (
+                      <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-gray-300">Administrador</span>
+                <div className="flex items-center ml-2">
+                  <input 
+                    type="checkbox" 
+                    name="info" 
+                    checked={formData.hiddenInfo} 
+                    onChange={(e) => setFormData({...formData, hiddenInfo: e.target.checked})}
+                    className="w-4 h-4 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-gray-300 text-sm">Ocultar informações</span>
+                </div>
               </label>
             </div>
           </div>
@@ -148,13 +173,13 @@ export default function UserModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 border rounded-md hover:bg-gray-50"
+              className="flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="login-button flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
               {initialData ? "Salvar Alterações" : "Cadastrar"}
             </button>

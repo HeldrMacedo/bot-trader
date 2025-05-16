@@ -110,7 +110,7 @@ const Sidebar = ({
       name: "Meu Histórico",
       icon: DocumentChartBarIcon,
       href: "/history",
-      role: ["user"],
+      role: ["user", "admin"],
     },
     {
       name: "Usuários",
