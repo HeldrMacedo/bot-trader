@@ -5,6 +5,7 @@ import { redirect, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { checkToken, registerUser, userLogin } from "../services/userService";
 import Image from "next/image";
+import ForgotPasswordModal from "./components/ForgotPasswordModal";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -268,6 +270,10 @@ export default function LoginPage() {
                     <div className="text-sm">
                       <a
                         href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setShowForgotPassword(true);
+                        }}
                         className="font-semibold text-indigo-600 hover:text-indigo-500"
                       >
                         Esqueceu a senha?
@@ -327,6 +333,10 @@ export default function LoginPage() {
           objectFit="cover"
         />
       </div>
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 }

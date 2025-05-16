@@ -22,6 +22,7 @@ model User {
   phone     String
   role      String   @default("user")
   operations  Operation[]
+  passwordToken String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
