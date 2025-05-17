@@ -19,14 +19,14 @@ export default function MarkupStatisticsPage() {
     );
 
   // Verificar se o usuário tem permissão para acessar esta página
-  if (auth.role !== "admin") {
-    return (
-      <div className="bg-principal p-6 rounded-lg shadow-md text-gray-400">
-        <h1 className="text-xl font-bold mb-6">Acesso Negado</h1>
-        <p>Você não tem permissão para acessar esta página.</p>
-      </div>
-    );
-  }
+//   if (auth.role !== "admin") {
+//     return (
+//       <div className="bg-principal p-6 rounded-lg shadow-md text-gray-400">
+//         <h1 className="text-xl font-bold mb-6">Acesso Negado</h1>
+//         <p>Você não tem permissão para acessar esta página.</p>
+//       </div>
+//     );
+//   }
 
   return (
     <div className="mx-auto max-w-[1500px]">
