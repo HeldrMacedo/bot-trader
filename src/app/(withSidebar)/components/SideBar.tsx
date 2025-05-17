@@ -104,7 +104,13 @@ const Sidebar = ({
       name: "Minha Conta",
       icon: UserIcon,
       href: "/profile",
-      role: ["admin", "user"],
+      role: ["user"],
+    },
+    {
+      name: "Usuários",
+      icon: UserGroupIcon,
+      href: "/users",
+      role: ["admin"],
     },
     {
       name: "Meu Histórico",
@@ -113,9 +119,15 @@ const Sidebar = ({
       role: ["user", "admin"],
     },
     {
-      name: "Usuários",
+      name: "Markup Detalhes",
       icon: UserGroupIcon,
-      href: "/users",
+      href: "/reports/markup-details",
+      role: ["admin"],
+    },
+    {
+      name: "Markup Estatísticas",
+      icon: UserGroupIcon,
+      href: "/reports/markup-statistics",
       role: ["admin"],
     },
     {

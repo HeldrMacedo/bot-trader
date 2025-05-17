@@ -344,7 +344,7 @@ export class DerivService {
   private handleMessage(event: MessageEvent) {
     try {
       const data = JSON.parse(event.data);
-
+      console.log("Received message:", data);
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
       } else if (data.msg_type === "authorize") {
