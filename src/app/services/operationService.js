@@ -4,7 +4,9 @@ export const saveOperation = async ({
   deposit,
   result,
   token,
+  isVirtual,
 }) => {
+  if (isVirtual) return false;
   const response = await fetch("/api/operation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

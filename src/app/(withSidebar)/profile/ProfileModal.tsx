@@ -54,8 +54,8 @@ export default function ProfileModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black text-gray-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+    <div className="fixed inset-0 bg-black text-gray-400 bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-principal rounded-lg p-6 w-full max-w-md">
         <h2 className="text-xl font-bold mb-4">Atualizar Perfil</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -64,7 +64,7 @@ export default function ProfileModal({
             <input
               type="text"
               required
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -77,10 +77,10 @@ export default function ProfileModal({
             <input
               type="email"
               disabled
-              className="w-full p-2 border rounded-md bg-gray-100"
+              className="w-full p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
               value={formData.email}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-red-600 mt-1">
               O email não pode ser alterado
             </p>
           </div>
@@ -89,7 +89,7 @@ export default function ProfileModal({
             <label className="block text-sm font-medium mb-1">Senha Atual</label>
             <input
               type="password"
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
               value={formData.currentPassword}
               onChange={(e) =>
                 setFormData({ ...formData, currentPassword: e.target.value })
@@ -101,14 +101,14 @@ export default function ProfileModal({
             <label className="block text-sm font-medium mb-1">Nova Senha</label>
             <input
               type="password"
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md bg-gray-800 border-gray-300 text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
               value={formData.newPassword}
               onChange={(e) =>
                 setFormData({ ...formData, newPassword: e.target.value })
               }
               minLength={6}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-red-600 mt-1">
               Deixe em branco para manter a senha atual
             </p>
           </div>
@@ -117,13 +117,13 @@ export default function ProfileModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 border rounded-md hover:bg-gray-50"
+              className="flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="login-button flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
               Salvar Alterações
             </button>

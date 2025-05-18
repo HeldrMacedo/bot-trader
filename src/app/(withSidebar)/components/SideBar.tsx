@@ -16,20 +16,31 @@ import {
   ArrowLeftStartOnRectangleIcon,
   DocumentChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { AccountInfo, DerivService, TokenData } from "@/app/services/DerivService";
+import {
+  AccountInfo,
+  DerivService,
+  TokenData,
+} from "@/app/services/DerivService";
 import { getUser } from "@/app/services/userService";
 import { updateUserProfile } from "@/app/services/profileService";
 
 import ProfileModal from "@/app/(withSidebar)/profile/ProfileModal";
 import { toast } from "react-toastify";
 
-const Sidebar = ({ children }: { children: React.ReactNode }) => {
+const Sidebar = ({
+  children,
+  auth,
+  setAuth,
+}: {
+  children: React.ReactNode;
+  auth: any;
+  setAuth: React.Dispatch<React.SetStateAction<any>>;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [accountInfo, setAccountInfo] = useState<TokenData | null>(null);
-  const [auth, setAuth] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
- 
+
   const derivService = DerivService.getInstance();
 
   useEffect(() => {
@@ -40,12 +51,17 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
     };
     fethUser();
 
-    const listenerId = derivService.observerInstance.on("account.update", (data: AccountInfo) => {
-      const accountActive = data.tokens.find((tokens) => tokens.token === data?.activeToken);
-      if (accountActive) {
-        setAccountInfo({...accountActive});
+    const listenerId = derivService.observerInstance.on(
+      "account.update",
+      (data: AccountInfo) => {
+        const accountActive = data.tokens.find(
+          (tokens) => tokens.token === data?.activeToken
+        );
+        if (accountActive) {
+          setAccountInfo({ ...accountActive });
+        }
       }
-    });
+    );
     return () => derivService.observerInstance.removeById(listenerId);
   }, []);
 
@@ -56,7 +72,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
         data.currentPassword,
         data.newPassword
       );
-      
+
       if (response.ok) {
         toast.success("Perfil atualizado com sucesso!");
         const updatedUser = await getUser();
@@ -65,7 +81,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
           // @ts-ignore
           window.updateUserData();
         }
-        
+
         setAuth(updatedUser);
         setIsProfileModalOpen(false);
       } else {
@@ -79,21 +95,64 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
   };
 
   const navigation = [
-    { name: "Dashboard", icon: HomeIcon, href: "/home", role: ["admin", "user"] },
-    { name: "Minha Conta", icon: UserIcon, href: "/profile", role: ["admin", "user"] },
-    { name: "Meu Histórico", icon: DocumentChartBarIcon, href: "/history", role: ["user"] },
-    { name: "Usuários", icon: UserGroupIcon, href: "/users", role: ["admin", "user"]  },
+    {
+      name: "Dashboard",
+      icon: HomeIcon,
+      href: "/home",
+      role: ["admin", "user"],
+    },
+    {
+      name: "Minha Conta",
+      icon: UserIcon,
+      href: "/profile",
+      role: ["user"],
+    },
+    {
+      name: "Usuários",
+      icon: UserGroupIcon,
+      href: "/users",
+      role: ["admin"],
+    },
+    {
+      name: "Meu Histórico",
+      icon: DocumentChartBarIcon,
+      href: "/history",
+      role: ["user", "admin"],
+    },
+    {
+      name: "Markup Detalhes",
+      icon: UserGroupIcon,
+      href: "/reports/markup-details",
+      role: ["admin"],
+    },
+    {
+      name: "Markup Estatísticas",
+      icon: UserGroupIcon,
+      href: "/reports/markup-statistics",
+      role: ["admin"],
+    },
+    {
+      name: "Operações",
+      icon: UserGroupIcon,
+      href: "/operations",
+      role: ["admin"],
+    },
     { name: "BotTrader", icon: CpuChipIcon, href: "/bottrader", role: ["user"] },
-    { name: "Sair", icon: ArrowLeftStartOnRectangleIcon, href: "/login", role: ["admin", "user"] },
+    {
+      name: "Sair",
+      icon: ArrowLeftStartOnRectangleIcon,
+      href: "/login",
+      role: ["admin", "user"],
+    },
     
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 w-full">
-      {/* Mobile Menu Button */}
+    <div className="min-h-screen bg-[#0d0a18] w-full">
+      {/* Mobile Menu Button  */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-5 left-4 p-2 z-30 text-[oklch(0.373_0.034_259.733)] rounded-lg shadow-sm"
+        className="fixed top-5 left-4 p-2 z-30 text-white rounded-lg shadow-sm"
       >
         <Bars3Icon className="w-6 h-6" />
       </button>
@@ -103,7 +162,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
         <button
           onClick={() => setIsOpen(false)}
           className="fixed z-50 left-[calc(16rem+1rem)] top-4
-              p-2  text-[oklch(0.373_0.034_259.733)] rounded-lg shadow-sm hover:bg-gray-700
+              p-2  text-white rounded-lg shadow-sm hover:bg-gray-700
               transition-colors duration-200"
         >
           <XMarkIcon className="w-6 h-6" />
@@ -126,60 +185,59 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
         {/* Navigation */}
         <nav className="mt-6 px-4 space-y-1">
-          {navigation.map((item) => (
-            item?.role.includes(auth?.role) && (
-              <a
-              key={item.name}
-              href={item.href}
-              onClick={(e) => {
-                if (item.name === "Minha Conta"){
-                    e.preventDefault()
-                    setIsProfileModalOpen(true)
-                    setIsProfileOpen(false)
-                }else if (item.name === "Sair"){
-                  localStorage.removeItem("access_token")
-                }
-                
-              }}
-              className="flex items-center space-x-3 px-3 py-2 rounded-md
+          {navigation.map(
+            (item) =>
+              item?.role.includes(auth?.role) && (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  onClick={(e) => {
+                    if (item.name === "Minha Conta") {
+                      e.preventDefault();
+                      setIsProfileModalOpen(true);
+                      setIsProfileOpen(false);
+                    } else if (item.name === "Sair") {
+                      localStorage.removeItem("access_token");
+                    }
+                  }}
+                  className="flex items-center space-x-3 px-3 py-2 rounded-md
                 hover:bg-gray-800 hover:text-white group transition-colors"
-            >
-              <item.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
-              <span>{item.name}</span>
-            </a>
-            )
-            
-          ))}
+                >
+                  <item.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                  <span>{item.name}</span>
+                </a>
+              )
+          )}
         </nav>
       </aside>
       {/* Main Content */}
       <main className="flex-1">
         {/* Header */}
-        <header className="bg-white shadow-sm">
+        <header className="bg-principal shadow-sm">
           <div className="flex items-center justify-end px-6 py-4">
             {/* User Profile */}
             <div className="ml-4 relative">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center space-x-2 hover:bg-gray-50 p-2 rounded-lg"
+                className="flex items-center space-x-2  p-2 rounded-lg"
               >
                 <UserCircleIcon className="w-8 h-8 text-gray-400" />
-                <span className="text-gray-700 text-sm md:text-base">
+                <span className="text-gray-400 text-sm md:text-base">
                   {auth?.name}{" "}
                   {accountInfo && (
-                  <span className="text-[#4bb4b3]">
-                    {accountInfo?.is_virtual
-                      ? "VRTC " +
-                        new Intl.NumberFormat("en-US", {
-                          style: "currency",
-                          currency: "USD",
-                        }).format(accountInfo?.balance ?? 0)
-                      : "CR " +
-                        new Intl.NumberFormat("en-US", {
-                          style: "currency",
-                          currency: "USD",
-                        }).format(accountInfo?.balance ?? 0)}
-                  </span>
+                    <span className="text-[#4bb4b3]">
+                      {accountInfo?.is_virtual
+                        ? "VRTC " +
+                          new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: "USD",
+                          }).format(accountInfo?.balance ?? 0)
+                        : "CR " +
+                          new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: "USD",
+                          }).format(accountInfo?.balance ?? 0)}
+                    </span>
                   )}
                 </span>
                 <ChevronDownIcon className="w-4 h-4 text-gray-400" />
@@ -202,7 +260,6 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
                   >
                     Minha Conta
                   </a>
-
                 </div>
               )}
             </div>

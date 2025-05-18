@@ -38,7 +38,21 @@ body {
   padding-inline-start: 0.7rem;
 }
 
-@media  screen and (min-width: 768px) and (max-width: 1024px) {
+.bg-principal {
+  background-color: #1C2233;
+}
+
+.bg-secundario {
+  background-color: #121218;
+}
+
+.bg.body {
+  background-color: #0d0a18;
+}
+
+
+/* Estilo para atender telas de tabletes */
+@media  screen and (max-width: 1024px) {
   .bloco-botao-comprar{
     display: flex;
     flex-direction: column;

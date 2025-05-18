@@ -34,17 +34,16 @@ const BuyTable = ({
   const derivService = DerivService.getInstance();
   const [activeContractId, setActiveContractId] = useState<string | null>(null);
   const [buyResponseId, setBuyResponseId] = useState<string | null>(null);
-  const [tradeType, setTradeType] = useState<Number>(null);
+  const [tradeType, setTradeType] = useState<Number>(1);
 
   useEffect(() => {
     const contractListener = derivService.observerInstance.on(
       "deriv.proposal_open_contract",
       (data) => {
         if (data.proposal_open_contract?.contract_id === activeContractId) {
-          console.log("Contrato aberto:", data.proposal_open_contract);
           const status = data.proposal_open_contract.status;
           onPurchaseStatusChange?.(status);
-          
+
           if (data.proposal_open_contract.is_valid_to_sell) {
             derivService.send({ forget: data.subscription.id });
             onPurchaseStatusChange("");
@@ -73,6 +72,7 @@ const BuyTable = ({
               deposit: finishedTradeList.amount,
               result: finishedTradeList.profit,
               token: token,
+              isVirtual: isVirtual,
             });
 
             account.finishedTradeList.push(finishedTradeList);
@@ -218,8 +218,8 @@ const BuyTable = ({
   };
 
   return (
-    <div>
-      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow space-y-4 text-gray-800">
+    <div className="flex gap-2">
+      <div className="bg-principal w-3/5 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow space-y-4 text-gray-400">
         <div className="flex items-center gap-2 text-sm">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -238,7 +238,7 @@ const BuyTable = ({
 
           <span>Dígitos</span>
         </div>
-        <div className="flex flex-wrap justify-between items-center bloco-digits-sm-lg">
+        <div className="flex flex-wrap justify-between items-center bloco-digits-sm-lg ">
           {Array.from({ length: 10 }, (_, i) => i).map((number) => (
             <button
               key={number}
@@ -254,7 +254,7 @@ const BuyTable = ({
             ${
               selected === number
                 ? "bg-slate-400 text-white border-slate-500"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
             }
           `}
               aria-pressed={selected === number}
@@ -264,7 +264,7 @@ const BuyTable = ({
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap  items-center bloco-digits-md hidden">
+        <div className="flex flex-wrap  items-center bloco-digits-md lg:hidden">
           {Array.from({ length: 5 }, (_, i) => i).map((number) => (
             <button
               key={number}
@@ -280,7 +280,7 @@ const BuyTable = ({
             ${
               selected === number
                 ? "bg-slate-400 text-white border-slate-500"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
             }
           `}
               aria-pressed={selected === number}
@@ -290,7 +290,7 @@ const BuyTable = ({
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap  items-center bloco-digits-md hidden">
+        <div className="flex flex-wrap  items-center bloco-digits-md lg:hidden">
           {Array.from({ length: 5 }, (_, i) => i + 5).map((number) => (
             <button
               key={number}
@@ -305,8 +305,8 @@ const BuyTable = ({
             nowrap
             ${
               selected === number
-                ? "bg-slate-400 text-white border-slate-500"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                 ? "bg-slate-400 text-white border-slate-500"
+                : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
             }
           `}
               aria-pressed={selected === number}
@@ -317,151 +317,162 @@ const BuyTable = ({
           ))}
         </div>
         <hr />
-        <div className="flex items-center gap-2 text-sm">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-            className="size-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18 18 6M6 6l12 12"
-            />
-          </svg>
+        <div className="lg:flex gap-2">
+          <div className="lg:w-1/2">
+            <div className="flex items-center gap-2 text-sm">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                className="size-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18 18 6M6 6l12 12"
+                />
+              </svg>
 
-          <span>Multiplicador Gale</span>
-        </div>
-        <div className="relative">
-          <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
-            <span className="text-gray-500">X</span>
+              <span>Multiplicador Gale</span>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 text-gray-400 start-0 flex items-center ps-3.5 pointer-events-none">
+                <span className="text-gray-500">X</span>
+              </div>
+              <input
+                type="number"
+                id="entrada-inicial"
+                className="w-full appearance-none rounded-md border border-gray-300 bg-gray-800 py-1.5 pl-8 pr-3 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
+                value={multiplicador}
+                onChange={(e) => handleMultiplicadorChange(e.target.value)}
+              />
+            </div>
           </div>
-          <input
-            type="number"
-            id="entrada-inicial"
-            className="w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
-            value={multiplicador}
-            onChange={(e) => handleMultiplicadorChange(e.target.value)}
-          />
-        </div>
-        <div>
-          <span className="text-sm">Tipo de Trade</span>
-          <div className="grid grid-cols-1">
-            <select
-              onChange={(e) => onChangeTradeType(Number(e.target.value))}
-              className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
-            >
-              <option>Selecione um tipo</option>
-              <option value={1}>Acima/Abaixo</option>
-              <option value={2}>Par/Ímpar</option>
-              <option value={3}>Diferente</option>
-            </select>
-            <ChevronDownIcon
-              aria-hidden="true"
-              className="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-gray-400"
-            />{" "}
+          <div className="lg:w-1/2">
+            <div>
+              <span className="text-sm">Tipo de Trade</span>
+              <div className="grid grid-cols-1">
+                <select
+                value={String(tradeType)}
+                  onChange={(e) => onChangeTradeType(Number(e.target.value))}
+                  className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-gray-800 py-1.5 pl-3 pr-8 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
+                
+                >
+                  <option>Selecione um tipo</option>
+                  <option value={1}>Acima/Abaixo</option>
+                  <option value={2}>Par/Ímpar</option>
+                  <option value={3}>Diferente</option>
+                </select>
+                <ChevronDownIcon
+                  aria-hidden="true"
+                  className="pointer-events-none col-start-1 row-start-1 mr-3 size-5 self-center justify-self-end text-gray-400"
+                />{" "}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      {tradeType === 1 && (
-        <div className="flex gap-2 mt-6 w-full bloco-botao-comprar">
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITOVER")}
-              onMouseEnter={() => handleMouseEnter("above")}
-              onMouseLeave={handleMouseLeave}
-              className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="size-6"
+
+      <div className="w-2/5 flex items-center">
+        {tradeType === 1 && (
+          <div className="flex flex-col gap-5  w-full bloco-botao-comprar">
+            <div className="flex-1">
+              <button
+                onClick={() => handleBuy("DIGITOVER")}
+                onMouseEnter={() => handleMouseEnter("above")}
+                onMouseLeave={handleMouseLeave}
+                className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
-                />
-              </svg>
-              Comprar Acima
-            </button>
-          </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+                  />
+                </svg>
+                Comprar Acima
+              </button>
+            </div>
 
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITUNDER")}
-              onMouseEnter={() => handleMouseEnter("below")}
-              onMouseLeave={handleMouseLeave}
-              className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="size-6"
+            <div className="flex-1">
+              <button
+                onClick={() => handleBuy("DIGITUNDER")}
+                onMouseEnter={() => handleMouseEnter("below")}
+                onMouseLeave={handleMouseLeave}
+                className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181"
-                />
-              </svg>
-              Comprar Abaixo
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181"
+                  />
+                </svg>
+                Comprar Abaixo
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-      {tradeType === 2 && (
-        <div className="flex gap-2 mt-6 w-full bloco-botao-comprar">
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITEVEN")}
-              onMouseEnter={() => handleMouseEnter("even")}
-              onMouseLeave={handleMouseLeave}
-              className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-            >
-              <i className="me-2">²</i>
-              Comprar Par
-            </button>
-          </div>
+        )}
+        {tradeType === 2 && (
+          <div className="flex flex-col gap-5  w-full bloco-botao-comprar">
+            <div className="flex-1">
+              <button
+                onClick={() => handleBuy("DIGITEVEN")}
+                onMouseEnter={() => handleMouseEnter("even")}
+                onMouseLeave={handleMouseLeave}
+                className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+              >
+                <i className="me-2">²</i>
+                Comprar Par
+              </button>
+            </div>
 
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITODD")}
-              onMouseEnter={() => handleMouseEnter("odd")}
-              onMouseLeave={handleMouseLeave}
-              className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-            >
-              <i className="me-2">³</i>
-              Comprar Ímpar
-            </button>
+            <div className="flex-1">
+              <button
+                onClick={() => handleBuy("DIGITODD")}
+                onMouseEnter={() => handleMouseEnter("odd")}
+                onMouseLeave={handleMouseLeave}
+                className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+              >
+                <i className="me-2">³</i>
+                Comprar Ímpar
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {tradeType === 3 && (
-        <div className="flex mt-6 w-full bloco-botao-comprar">
-          <div className="flex-1">
-            <button
-              onClick={() => handleBuy("DIGITDIFF")}
-              onMouseEnter={() => handleMouseEnter("diff")}
-              onMouseLeave={handleMouseLeave}
-              className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-            >
-              <CodeBracketIcon aria-hidden="true" className="size-5" />
-              Comprar Diferente
-            </button>
+        {tradeType === 3 && (
+          <div className="flex flex-col gap-5  w-full bloco-botao-comprar">
+            <div className="flex-1">
+              <button
+                onClick={() => handleBuy("DIGITDIFF")}
+                onMouseEnter={() => handleMouseEnter("diff")}
+                onMouseLeave={handleMouseLeave}
+                className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+              >
+                <CodeBracketIcon aria-hidden="true" className="size-5" />
+                Comprar Diferente
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

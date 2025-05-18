@@ -179,14 +179,16 @@ export class DerivService {
       accountCRT = tokens.find(t => !t.is_virtual);
       
       const authPromises = [];
-      if (accountVRT) authPromises.push(this.authenticate(accountVRT.token));
       if (accountCRT) authPromises.push(this.authenticate(accountCRT.token));
+      if (accountVRT) authPromises.push(this.authenticate(accountVRT.token));
+      
       
       const authResults = await Promise.all(authPromises);
       
       // Atribuir resultados da autenticação
-      if (accountVRT) userVRT = authResults.shift();
       if (accountCRT) userCRT = authResults.shift();
+      if (accountVRT) userVRT = authResults.shift();
+      
       
       // Criar estrutura de conta com os tokens disponíveis
       const newAccount = this.createAccountStructureDynamic(
@@ -342,10 +344,6 @@ export class DerivService {
   private handleMessage(event: MessageEvent) {
     try {
       const data = JSON.parse(event.data);
-
-      if (data.msg_type === "transaction" || data.msg_type === "proposal_open_contract") {
-        console.log("Received messa:", data);
-      }
       console.log("Received message:", data);
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
