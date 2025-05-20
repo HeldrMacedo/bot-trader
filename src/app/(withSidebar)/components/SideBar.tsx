@@ -137,7 +137,7 @@ const Sidebar = ({
       href: "/operations",
       role: ["admin"],
     },
-    { name: "BotTrader", icon: CpuChipIcon, href: "/bottrader", role: ["user"] },
+    { name: "BotTrader", icon: CpuChipIcon, href: "/bottrader", role: ["admin","user"] },
     {
       name: "Sair",
       icon: ArrowLeftStartOnRectangleIcon,

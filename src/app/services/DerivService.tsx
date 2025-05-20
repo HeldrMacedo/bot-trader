@@ -170,7 +170,6 @@ export class DerivService {
 
     const tokens = this.getTokens();
     if (!tokens || tokens.length == 0) return;
-    console.log("tokens", tokens);
     
     try {
       let accountVRT, accountCRT, userVRT, userCRT;
@@ -344,7 +343,10 @@ export class DerivService {
   private handleMessage(event: MessageEvent) {
     try {
       const data = JSON.parse(event.data);
-      console.log("Received message:", data);
+      if (data.msg_type === "transaction" || data.msg_type === "proposal_open_contract") {
+        console.log("Received message:", data);
+      }
+      
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
       } else if (data.msg_type === "authorize") {

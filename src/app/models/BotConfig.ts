@@ -9,7 +9,7 @@ export class BotConfig {
   
   // Valores
   initialValue: number = 0;
-  stakeMultiple: number = 0;
+  stakeMultiple: number = 1;
   pauseTime: number = 0;
   
   // Estatísticas
@@ -25,6 +25,10 @@ export class BotConfig {
   currentStake: number = 0;
   totalProfit: number = 0;
   isRealAccount: boolean = false;
+
+
+  totalLoss: number = 0;
+  totalWin: number = 0;
   
   constructor(config?: Partial<BotConfig>) {
     if (config) {
@@ -35,15 +39,22 @@ export class BotConfig {
   
   // Método chamado quando ocorre uma vitória
   handleWin(profit: number): void {
+
     if (this.isRealAccount) {
+      console.log("Vitoria");
       this.winReal++;
       this.tradeReal++;
-      this.totalProfit += profit;
+      this.totalWin += profit;
       
       // Verificar se atingiu o Stop Win
-      if (this.stopWin > 0 && this.totalProfit >= this.stopWin) {
+      if (this.stopWin > 0 && this.totalWin >= this.stopWin) {
         throw new Error("Stop Win atingido!");
       }
+
+      if (!this.pauseOnWin) {
+        this.isRealAccount = false;
+      }
+      
     }
     
     // Resetar contador de perdas consecutivas
@@ -58,32 +69,43 @@ export class BotConfig {
     if (this.isRealAccount) {
       this.lossReal++;
       this.tradeReal++;
-      this.totalProfit -= loss;
+      this.totalLoss += loss;
       
       // Verificar se atingiu o Stop Loss
-      if (this.stopLoss > 0 && Math.abs(this.totalProfit) >= this.stopLoss) {
+      if (this.stopLoss > 0 && Math.abs(this.totalLoss) >= this.stopLoss) {
         throw new Error("Stop Loss atingido!");
       }
+
+      if (!this.pauseOnLoss) {
+        this.isRealAccount = false;
+
+      } 
+      
+      this.currentStake = this.currentStake * this.stakeMultiple;
     } else {
       // Incrementar contador de perdas consecutivas
       this.consecutiveLoss++;
-      
-      // Verificar se deve mudar para conta real
+
       if (this.consecutiveLoss >= this.quantityLoss) {
         this.isRealAccount = true;
       }
+      
     }
     
-    // Aplicar martingale (multiplicador de aposta)
-    this.currentStake = this.currentStake * this.stakeMultiple;
+    
   }
   
   // Verificar se deve pausar após uma operação
   shouldPause(isWin: boolean): boolean {
+  
     if (this.pauseTime <= 0) return false;
     
-    if (isWin && this.pauseOnWin) return true;
-    if (!isWin && this.pauseOnLoss) return true;
+    if (isWin && this.pauseOnWin) {
+      return true;
+    }
+    if (!isWin && this.pauseOnLoss) {
+      return true;
+    }
     
     return false;
   }
