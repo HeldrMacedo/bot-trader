@@ -137,19 +137,23 @@ const Sidebar = ({
       href: "/operations",
       role: ["admin"],
     },
-    { name: "BotTrader", icon: CpuChipIcon, href: "/bottrader", role: ["admin","user"] },
+    {
+      name: "BotTrader",
+      icon: CpuChipIcon,
+      href: "/bottrader",
+      role: ["admin", "user"],
+    },
     {
       name: "Sair",
       icon: ArrowLeftStartOnRectangleIcon,
       href: "/login",
       role: ["admin", "user"],
     },
-    
   ];
 
   return (
     <div className="min-h-screen bg-[#0d0a18] w-full">
-      {/* Mobile Menu Button  */}
+      {/* Mobile Menu Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed top-5 left-4 p-2 z-30 text-white rounded-lg shadow-sm"
