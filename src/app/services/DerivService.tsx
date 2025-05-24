@@ -342,8 +342,10 @@ export class DerivService {
   
   private handleMessage(event: MessageEvent) {
     try {
+
       const data = JSON.parse(event.data);
-      if (data.msg_type === "transaction" || data.msg_type === "proposal_open_contract") {
+      console.log("Received message:", data);
+      if (data.msg_type === "transaction" || data.msg_type === "proposal_open_contract" || data.msg_type === "copy_start" || data.msg_type === "buy") {
         console.log("Received message:", data);
       }
       

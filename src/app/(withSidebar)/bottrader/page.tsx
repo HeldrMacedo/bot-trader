@@ -84,7 +84,7 @@ export default function BotTrade() {
 
         if (botConfig.isRealAccount) {
           setListTradeReal((prev) => [newTrade, ...prev]);
-        }
+        }        
 
         // Atualizar estatísticas gerais
         //setQuantityTrade(prev => prev + 1);
@@ -121,12 +121,6 @@ export default function BotTrade() {
           });
         }
 
-        console.log(
-          "Pause para bot ",
-          botConfig.shouldPause(isWin) && botConfig.isRealAccount
-        );
-        console.log("sould pause ", botConfig.shouldPause(isWin));
-        console.log("isRealAccount ", botConfig.isRealAccount);
 
         if (botConfig.shouldPause(isWin) && botConfig.isRealAccount) {
           setIsPaused(true);
@@ -166,6 +160,14 @@ export default function BotTrade() {
           setPauseTimer(timer);
         }
 
+        if (botConfig.shouldPause(isWin) && botConfig.quantityLoss <= 0) {
+          setBotConfig(prev => {
+            const newConfig = new BotConfig(prev);
+            newConfig.isRealAccount = true;
+            return newConfig;
+          });
+        }
+
         if (botConfig.isRealAccount) {
           console.log("Real Account");
         }
@@ -180,15 +182,17 @@ export default function BotTrade() {
   }, [botConfig, isPaused]);
 
   const handleStartBot = () => {
+
+    if (!derivService.hasAuthorized) {
+      toast.error("Por favor, autorize o aplicativo na Deriv antes de iniciar o bot.");
+      return;
+    }
+
     if (inputInitialValue === "" || Number(inputInitialValue) < 0.35) {
       toast.error("Preencha um valor válido para a entrada inicial.");
       return;
     }
-
-    if (inputQuantityLoss === "" || Number(inputQuantityLoss) < 1) {
-      toast.error("Preencha um valor válido para a quantidade de perda.");
-      return;
-    }
+    
     handleStopBot();
     setIsStart(true);
     setIsPaused(false);
@@ -493,10 +497,9 @@ export default function BotTrade() {
                     value={inputStakeMultiple}
                     onChange={(e) => {
                       const rawValue = e.target.value;
-                      const cleanedValueString = formateInputMoney(rawValue);
-                      const numericValue = parseFloat(cleanedValueString) || 0;
-                      setInputStakeMultiple(cleanedValueString);
-                      handleConfigChange("stakeMultiple", numericValue);
+                      const cleanValue = rawValue.replace(/[^0-9.]/g, "");
+                      setInputStakeMultiple(cleanValue);
+                      handleConfigChange("stakeMultiple", cleanValue);
                     }}
                     className="w-[7rem] appearance-none rounded-md border border-gray-300 bg-white  pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                     placeholder="0.00"

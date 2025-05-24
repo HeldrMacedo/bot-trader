@@ -41,12 +41,10 @@ export class BotConfig {
   handleWin(profit: number): void {
 
     if (this.isRealAccount) {
-      console.log("Vitoria");
       this.winReal++;
       this.tradeReal++;
       this.totalWin += profit;
       
-      // Verificar se atingiu o Stop Win
       if (this.stopWin > 0 && this.totalWin >= this.stopWin) {
         throw new Error("Stop Win atingido!");
       }
@@ -56,7 +54,7 @@ export class BotConfig {
       }
       
     }
-    
+
     // Resetar contador de perdas consecutivas
     this.consecutiveLoss = 0;
     
