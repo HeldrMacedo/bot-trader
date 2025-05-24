@@ -489,7 +489,7 @@ export default function BotTrade() {
               <div className="w-3/5 flex">
                 <div className="relative">
                   <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
-                    <span className="text-gray-500">$</span>
+                    <span className="text-gray-500">X</span>
                   </div>
                   <input
                     type="text"
@@ -502,7 +502,7 @@ export default function BotTrade() {
                       handleConfigChange("stakeMultiple", cleanValue);
                     }}
                     className="w-[7rem] appearance-none rounded-md border border-gray-300 bg-white  pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
-                    placeholder="0.00"
+                    placeholder="0"
                   />
                 </div>
               </div>
@@ -586,7 +586,7 @@ export default function BotTrade() {
                       }
                     >
                       $ {item.typeAccount}{" "}
-                      {item.profit > 0 ? " WIN " : " LOSS "} {"RESULTADO - "} { item.contador} -{" "}
+                      {item.profit > 0 ? " WIN " : " LOSS "} {"RESULTADO - "} ${ item.profit} -{" "}
                     </span>
                   </div> // Adicionado key para melhor performance
                 ))
