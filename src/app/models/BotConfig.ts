@@ -29,6 +29,8 @@ export class BotConfig {
 
   totalLoss: number = 0;
   totalWin: number = 0;
+
+  pauseTimeActiveAndQuantityLossZero: boolean = false;
   
   constructor(config?: Partial<BotConfig>) {
     if (config) {
@@ -49,7 +51,8 @@ export class BotConfig {
         throw new Error("Stop Win atingido!");
       }
 
-      if (!this.pauseOnWin) {
+      if (!this.pauseOnWin && !this.deveEntrarNaContaReal()) {
+        console.log("ENTROU");
         this.isRealAccount = false;
       }
       
@@ -74,7 +77,7 @@ export class BotConfig {
         throw new Error("Stop Loss atingido!");
       }
 
-      if (!this.pauseOnLoss) {
+      if (!this.pauseOnLoss && !this.deveEntrarNaContaReal()) {
         this.isRealAccount = false;
 
       } 
@@ -84,7 +87,7 @@ export class BotConfig {
       // Incrementar contador de perdas consecutivas
       this.consecutiveLoss++;
 
-      if (this.consecutiveLoss >= this.quantityLoss) {
+      if (this.consecutiveLoss >= this.quantityLoss && this.quantityLoss > 0) {
         this.isRealAccount = true;
       }
       
@@ -107,12 +110,17 @@ export class BotConfig {
     
     return false;
   }
-  
+
+  //Quando o pauseTime não está vazio e o quanityLoss é igual a zero,
+  deveEntrarNaContaReal(): boolean {
+    return this.pauseTime > 0 && this.quantityLoss === 0 && (this.pauseOnWin || this.pauseOnLoss);
+  }
+
   // Resetar configurações
   reset(): void {
     this.consecutiveLoss = 0;
     this.currentStake = this.initialValue;
     this.totalProfit = 0;
-    this.isRealAccount = false;
+    //this.isRealAccount = false;
   }
 }

@@ -344,10 +344,7 @@ export class DerivService {
     try {
 
       const data = JSON.parse(event.data);
-      console.log("Received message:", data);
-      if (data.msg_type === "transaction" || data.msg_type === "proposal_open_contract" || data.msg_type === "copy_start" || data.msg_type === "buy") {
-        console.log("Received message:", data);
-      }
+    
       
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
