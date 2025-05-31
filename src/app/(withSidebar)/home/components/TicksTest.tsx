@@ -78,7 +78,6 @@ export const TicksTest = () => {
     // @ts-ignore
     window.updateUserData = fetchUserData;
 
-
     return () => {
       // @ts-ignore
       delete window.updateUserData;
@@ -192,83 +191,84 @@ export const TicksTest = () => {
     }
   };
 
+  const fetchTicks = async (symbol, api) => {
+    const ticksStream = await api.ticks(symbol);
+    const listTicksReturn = await ticksStream.history({
+      count: 500,
+      end: new Date(),
+    });
+    const listTicks = listTicksReturn.map((tick) =>
+      parseInt(
+        tick.raw.quote
+          .toFixed(
+            symbol == "R_100"
+              ? 2
+              : symbol == "R_25" || symbol == "R_10"
+                ? 3
+                : symbol == "RDBEAR" || symbol == "RDBULL"
+                  ? 4
+                  : symbol.startsWith("JD")
+                    ? 2
+                    : 4
+          )
+          .toString()
+          .slice(-1)
+      )
+    );
+    setTicks((prev) => ({ ...prev, [symbol]: listTicks }));
+    ticksStream.onUpdate((tick) => {
+      const lastDigit = parseInt(
+        tick.raw.quote
+          .toFixed(
+            symbol == "R_100"
+              ? 2
+              : symbol == "R_25" || symbol == "R_10"
+                ? 3
+                : symbol == "RDBEAR" || symbol == "RDBULL"
+                  ? 4
+                  : symbol.startsWith("JD")
+                    ? 2
+                    : 4
+          )
+          .toString()
+          .slice(-1)
+      );
+      setTicks((prev) => ({
+        ...prev,
+        [symbol]: [...prev[symbol], lastDigit].slice(-500),
+      }));
+    });
+  };
+
   useEffect(() => {
     formatInputMoney(valorEntrada);
   }, [multiplicador, valorEntrada]);
 
   useEffect(() => {
     const connection = new WebSocket(
-      "wss://ws.derivws.com/websockets/v3?app_id=" +
-        process.env.NEXT_PUBLIC_APPID
+      `wss://ws.derivws.com/websockets/v3?app_id=${process.env.NEXT_PUBLIC_APPID}`
     );
     const api = new DerivAPI({ connection });
 
-    const fetchTicks = async (symbol) => {
-      const ticksStream = await api.ticks(symbol);
-      const listTicksReturn = await ticksStream.history({
-        count: 500,
-        end: new Date(),
-      });
-      const listTicks = listTicksReturn.map((tick) =>
-        parseInt(
-          tick.raw.quote
-            .toFixed(
-              symbol == "R_100"
-                ? 2
-                : symbol == "R_25" || symbol == "R_10"
-                ? 3
-                : symbol == "RDBEAR" || symbol == "RDBULL"
-                ? 4
-                : symbol.startsWith("JD")
-                ? 2
-                : 4
-            )
-            .toString()
-            .slice(-1)
-        )
-      );
-      setTicks((prev) => ({ ...prev, [symbol]: listTicks }));
-      ticksStream.onUpdate((tick) => {
-        const lastDigit = parseInt(
-          tick.raw.quote
-            .toFixed(
-              symbol == "R_100"
-                ? 2
-                : symbol == "R_25" || symbol == "R_10"
-                ? 3
-                : symbol == "RDBEAR" || symbol == "RDBULL"
-                ? 4
-                : symbol.startsWith("JD")
-                ? 2
-                : 4
-            )
-            .toString()
-            .slice(-1)
-        );
-        setTicks((prev) => ({
-          ...prev,
-          [symbol]: [...prev[symbol], lastDigit].slice(-500),
-        }));
-      });
-    };
+    const symbols = [
+      "R_100",
+      "R_75",
+      "R_50",
+      "R_25",
+      "R_10",
+      "RDBEAR",
+      "RDBULL",
+      "JD10",
+      "JD25",
+      "JD50",
+      "JD75",
+      "JD100",
+    ];
 
-    fetchTicks("R_100");
-    fetchTicks("R_75");
-    fetchTicks("R_50");
-    fetchTicks("R_25");
-    fetchTicks("R_10");
-
-    fetchTicks("RDBEAR");
-    fetchTicks("RDBULL");
-    fetchTicks("JD10");
-    fetchTicks("JD25");
-    fetchTicks("JD50");
-    fetchTicks("JD75");
-    fetchTicks("JD100");
-
-    return () => {
-      connection.close();
-    };
+    symbols.forEach((symbol) => {
+      fetchTicks(symbol, api);
+    });
+    return () => connection.close();
   }, []);
 
   return (
@@ -310,28 +310,28 @@ export const TicksTest = () => {
           {volatility === "R_100"
             ? "100"
             : volatility === "R_75"
-            ? "75"
-            : volatility === "R_50"
-            ? "50"
-            : volatility === "R_25"
-            ? "25"
-            : volatility === "R_10"
-            ? "10"
-            : volatility === "RDBEAR"
-            ? "Bear"
-            : volatility === "RDBULL"
-            ? "Bull"
-            : volatility === "JD10"
-            ? "Jump 10"
-            : volatility === "JD25"
-            ? "Jump 25"
-            : volatility === "JD50"
-            ? "Jump 50"
-            : volatility === "JD75"
-            ? "Jump 75"
-            : volatility === "JD100"
-            ? "Jump 100"
-            : ""}
+              ? "75"
+              : volatility === "R_50"
+                ? "50"
+                : volatility === "R_25"
+                  ? "25"
+                  : volatility === "R_10"
+                    ? "10"
+                    : volatility === "RDBEAR"
+                      ? "Bear"
+                      : volatility === "RDBULL"
+                        ? "Bull"
+                        : volatility === "JD10"
+                          ? "Jump 10"
+                          : volatility === "JD25"
+                            ? "Jump 25"
+                            : volatility === "JD50"
+                              ? "Jump 50"
+                              : volatility === "JD75"
+                                ? "Jump 75"
+                                : volatility === "JD100"
+                                  ? "Jump 100"
+                                  : ""}
         </div>
       </span>
       <div className="flex w-full flex-col md:flex-row">
@@ -603,18 +603,18 @@ export const TicksTest = () => {
                       {symbol === "RDBEAR"
                         ? "Bear Market Index"
                         : symbol === "RDBULL"
-                        ? "Bull Market Index"
-                        : symbol === "JD10"
-                        ? "Jump 10 Index"
-                        : symbol === "JD25"
-                        ? "Jump 25 Index"
-                        : symbol === "JD50"
-                        ? "Jump 50 Index"
-                        : symbol === "JD75"
-                        ? "Jump 75 Index"
-                        : symbol === "JD100"
-                        ? "Jump 100 Index"
-                        : `Índice de volatilidade ${symbol.split("_")[1]}`}
+                          ? "Bull Market Index"
+                          : symbol === "JD10"
+                            ? "Jump 10 Index"
+                            : symbol === "JD25"
+                              ? "Jump 25 Index"
+                              : symbol === "JD50"
+                                ? "Jump 50 Index"
+                                : symbol === "JD75"
+                                  ? "Jump 75 Index"
+                                  : symbol === "JD100"
+                                    ? "Jump 100 Index"
+                                    : `Índice de volatilidade ${symbol.split("_")[1]}`}
                     </span>
                   </div>
                   <div className="mx-auto overflow-hidden w-full">
@@ -634,7 +634,6 @@ export const TicksTest = () => {
                             (hoveredTradeType === "even" && digit % 2 === 0) ||
                             (hoveredTradeType === "odd" && digit % 2 !== 0) ||
                             (hoveredTradeType === "diff" &&
-                             
                               digit !== activeDigit));
 
                         return (
