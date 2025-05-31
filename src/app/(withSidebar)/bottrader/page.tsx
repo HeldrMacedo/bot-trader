@@ -10,14 +10,10 @@ import {
 } from "@heroicons/react/24/outline";
 import { BotConfig } from "@/app/models/BotConfig";
 import { toast } from "react-toastify";
-import { accessSync } from "fs";
 
 export default function BotTrade() {
   const [isStart, setIsStart] = useState(false);
-  const [forgetId, setForgetId] = useState<string | null>(null);
-  const [quantityTrade, setQuantityTrade] = useState<number>(0);
-  const [quantityWin, setQuantityWin] = useState<number>(0);
-  const [quantityLoss, setQuantityLoss] = useState<number>(0);
+
   const [listTrade, setListTrade] = useState<any[]>([]);
   const [listTradeReal, setListTradeReal] = useState<any[]>([]);
 
@@ -28,34 +24,58 @@ export default function BotTrade() {
   const [inputStakeMultiple, setInputStakeMultiple] = useState("1");
   const [inputPauseTime, setInputPauseTime] = useState("");
 
-  const [botConfig, setBotConfig] = useState<BotConfig>(new BotConfig());
-  const [isPaused, setIsPaused] = useState<boolean>(false);
-  const [pauseTimer, setPauseTimer] = useState<NodeJS.Timeout | null>(null);
-  const [remainingTime, setRemainingTime] = useState<number>(0);
-  const [countdownInterval, setCountdownInterval] =
-    useState<NodeJS.Timeout | null>(null);
 
-  const [contatador, setContatador] = useState<number>(1);
+  const botConfigRef = useRef<BotConfig>(new BotConfig());
+  const [forceUpdate, setForceUpdate] = useState(0); 
+  
+  const [remainingTime, setRemainingTime] = useState<number>(0);
+  
+  const pauseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pauseEndTimeRef = useRef<number>(0);
+
+
   const derivService = DerivService.getInstance();
 
-  const [payloadEntry, setPayloadEntry] = useState<any>(null);
+  const contractTypeIdRealRef = useRef<string[]>([]);
+  const isPausedRef = useRef(false);
 
-  const subscribeIdProposal = useRef(null);
-  const contractTypeIdRealRef = useRef([]);
-  const isPausedRef = useRef(isPaused);
 
-  const payloadPauseTime = useRef(null);
+  const forgetIdRef = useRef<string | null>(null);
+  const copyTraderRef = useRef(null);
+
+  const updateBotConfig = useCallback((updates: Partial<BotConfig>) => {
+    Object.assign(botConfigRef.current, updates);
+    setForceUpdate(prev => prev + 1); 
+  }, []);
+
+  const handleWinResult = useCallback((profit: number) => {
+    try {
+      botConfigRef.current.handleWin(profit);
+      setForceUpdate(prev => prev + 1);
+    } catch (error: any) {
+      handleStopBot();
+      toast.error(error.message);
+    }
+  }, []);
+  
+  const handleLossResult = useCallback((stake: number) => {
+    try {
+      botConfigRef.current.handleLoss(stake);
+      setForceUpdate(prev => prev + 1); 
+    } catch (error: any) {
+      handleStopBot();
+      toast.error(error.message);
+    }
+  }, []);
 
   const verificaMensagem = useCallback(
-    (message) => {
+    (message: any) => {
       if (
         message.msg_type === "transaction" &&
         message.transaction.action === "buy"
       ) {
-        if (!forgetId) {
-          setForgetId(message.subscription.id);
-        }
-
+        
         const contractId = message.transaction.contract_id;
         derivService.subscribe({
           proposal_open_contract: 1,
@@ -64,52 +84,50 @@ export default function BotTrade() {
         return;
       }
     },
-    [forgetId]
+    []
   );
 
   const verificaFluxo = useCallback(
-    (message) => {
-      if (botConfig.deveEntrarNaContaReal()) {
-        return true;
-      }
-      return false;
+    (message: any) => {
+      return botConfigRef.current.deveEntrarNaContaReal();
     },
-    [botConfig]
+    [] 
   );
 
-  const handleBuy = async () => {
-    payloadPauseTime.current = {
-      ...payloadPauseTime.current,
-      price: botConfig.currentStake,
+  const handleBuy = useCallback(async () => {
+    copyTraderRef.current = {
+      ...copyTraderRef.current,
+      price: botConfigRef.current.currentStake,
       parameters: {
-        ...payloadPauseTime.current?.parameters,
-        amount: botConfig.currentStake,
+        ...copyTraderRef.current?.parameters,
+        amount: botConfigRef.current.currentStake,
       }
+    };
+    
+    console.log("botConfig.currentStake", botConfigRef.current.currentStake);
+    const response = await derivService.send(copyTraderRef.current);
+    
+    if (response.error) {
+      toast.error(response.error.message);
+      return;
     }
-    console.log("payloadPauseTime.current", payloadPauseTime.current);
-    const response = await derivService.send(payloadPauseTime.current);
-        if (response.error) {
-          toast.error(response.error.message);
-          return;
-        }
 
-        const contractId = response.buy.contract_id;
-        contractTypeIdRealRef.current.push(contractId);
-  };
+    const contractId = response.buy.contract_id;
+    contractTypeIdRealRef.current.push(contractId);
+  }, []);
 
   const flowWithWithoutQuantityLoss = useCallback(
-    async (message) => {
+    async (message: any) => {
       if (
-        !botConfig.pauseTimeActiveAndQuantityLossZero &&
+        !botConfigRef.current.pauseTimeActiveAndQuantityLossZero &&
         message.msg_type === "proposal_open_contract" &&
         message.proposal_open_contract.status === "open"
       ) {
-        payloadPauseTime.current = {
+        copyTraderRef.current = {
           buy: 1,
-          price: botConfig.currentStake,
+          price: botConfigRef.current.currentStake,
           parameters: {
-            amount: botConfig.currentStake,
-            //app_markup_percentage: "3",
+            amount: botConfigRef.current.currentStake,
             basis: "stake",
             contract_type: message.proposal_open_contract.contract_type,
             currency: "USD",
@@ -122,108 +140,81 @@ export default function BotTrade() {
           },
         };
 
-        setBotConfig((prev) => {
-          const newConfig = new BotConfig(prev);
-          newConfig.isRealAccount = true;
-          newConfig.pauseTimeActiveAndQuantityLossZero = true;
-          return newConfig;
+        updateBotConfig({
+          isRealAccount: true,
+          pauseTimeActiveAndQuantityLossZero: true
         });
+        
         await handleBuy();
-
       }
-
     },
-    [botConfig]
+    [updateBotConfig, handleBuy]
   );
 
-  const flowNormal = useCallback(() => {}, []);
+  const handlePauseLogic = useCallback((isWin: boolean) => {
+    console.log(!botConfigRef.current.shouldPause(isWin));
+    console.log(!botConfigRef.current.isRealAccount);
 
-  const handleWinResult = useCallback((profit) => {
-    setBotConfig((prev) => {
-      const newConfig = new BotConfig(prev);
-      try {
-        newConfig.handleWin(profit);
-        return newConfig;
-      } catch (error) {
-        handleStopBot();
-        toast.error(error.message);
-        return prev;
-      }
-    });
+    if (!botConfigRef.current.shouldPause(isWin) && !botConfigRef.current.isRealAccount) {
+      return false;
+    }
+
+    if (!botConfigRef.current.isRealAccount) {
+      return false;
+    }
+    
+    if ((!botConfigRef.current.pauseOnWin && isWin) || (!botConfigRef.current.pauseOnLoss && !isWin)) {
+      return false;
+
+    }
+
+    handlePauseBot();
+    startPauseCountdown();
+    return true;
   }, []);
 
-  const handleLossResult = useCallback((stake) => {
-    setBotConfig((prev) => {
-      const newConfig = new BotConfig(prev);
-      try {
-        newConfig.handleLoss(stake);
-        return newConfig;
-      } catch (error) {
-        handleStopBot();
-        toast.error(error.message);
-        return prev;
-      }
-    });
-  }, []);
-
-  const handlePauseLogic = useCallback(
-    (isWin) => {
-      if (!botConfig.shouldPause(isWin) || !botConfig.isRealAccount){
-        return false;
-      }
-
-      handleStopBot();
-      startPauseCountdown();
-      return true;
-    },
-    [botConfig]
-  );
 
   const startPauseCountdown = useCallback(() => {
-    const endTime = Date.now() + botConfig.pauseTime * 1000;
+
+    const pauseTimeSeconds = botConfigRef.current.pauseTime;
+    pauseEndTimeRef.current = Date.now() + pauseTimeSeconds * 1000;
 
     const interval = setInterval(() => {
       const now = Date.now();
-      const remaining = Math.max(0, endTime - now);
+      const remaining = Math.max(0, pauseEndTimeRef.current - now);
       setRemainingTime(Math.ceil(remaining / 1000));
+      
       console.log("Tempo restante: " + remaining / 1000 + " segundos");
+      
       if (remaining <= 0) {
         console.log("Pausa concluída!");
         clearInterval(interval);
-        setIsPaused(false);
         isPausedRef.current = false;
+        countdownIntervalRef.current = null;
       }
     }, 1000);
 
-    setCountdownInterval(interval);
+    countdownIntervalRef.current = interval;
 
-    const timer = setTimeout(() => {
-      handleStartBot();
+    const timer = setTimeout(async() => {
+      
       console.log("Tempo de pausa expirado!");
-      setIsPaused(false);
       isPausedRef.current = false;
       setRemainingTime(0);
-      clearInterval(interval);
-      handleBuy();
-    }, botConfig.pauseTime * 1000);
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      if (botConfigRef.current.isRealAccount && botConfigRef.current.deveEntrarNaContaReal()) {
+        await handleBuy();
+      }
+    }, pauseTimeSeconds * 1000);
 
-    setPauseTimer(timer);
-  }, [botConfig.pauseTime]);
-
-  const handleRealAccountPurchase = useCallback(async () => {
-    if (!botConfig.isRealAccount) return;
-
-    const response = await derivService.send(payloadEntry);
-    if (response.error) {
-      toast.error(response.error.message);
-      return;
-    }
-
-    contractTypeIdRealRef.current = response.buy.contract_id;
-  }, [botConfig.isRealAccount, payloadEntry]);
+    pauseTimerRef.current = timer;
+  }, []); 
 
   const createTradeRecord = useCallback(
-    (data, profit, stake) => {
+    (data: any, profit: number, stake: number) => {
       return {
         date: new Date().toLocaleString(),
         ref: data.proposal_open_contract.contract_id,
@@ -234,14 +225,14 @@ export default function BotTrade() {
         payout: data.proposal_open_contract.payout,
         profit: profit,
         strategy: data.proposal_open_contract.underlying,
-        typeAccount: botConfig.isRealAccount ? "REAL" : "VIRTUAL",
+        typeAccount: botConfigRef.current.isRealAccount ? "REAL" : "VIRTUAL",
       };
     },
-    [botConfig.isRealAccount]
+    [] 
   );
 
   const handleContractResult = useCallback(
-    async (message) => {
+    async (message: any) => {
       if (
         message.msg_type !== "proposal_open_contract" ||
         (message.proposal_open_contract.status !== "won" &&
@@ -251,8 +242,8 @@ export default function BotTrade() {
       }
 
       if (
-        botConfig.isRealAccount && !contractTypeIdRealRef.current.includes(message.proposal_open_contract.contract_id)
-          
+        botConfigRef.current.isRealAccount && 
+        !contractTypeIdRealRef.current.includes(message.proposal_open_contract.contract_id)
       ) {
         return;
       }
@@ -264,82 +255,87 @@ export default function BotTrade() {
 
       const newTrade = createTradeRecord(message, profit, stake);
       setListTrade((prev) => [newTrade, ...prev]);
-      if (botConfig.isRealAccount) {
+      
+      if (botConfigRef.current.isRealAccount) {
         setListTradeReal((prev) => [newTrade, ...prev]);
-      }
-
-      if (botConfig.isRealAccount) {
         contractTypeIdRealRef.current = contractTypeIdRealRef.current.filter(
           id => id !== contractId
         );
-        console.log('Contrato removido. Contratos restantes:', contractTypeIdRealRef.current);
       }
 
-      // Processar resultado
+      copyTraderRef.current = {
+        buy: 1,
+        price: botConfigRef.current.currentStake,
+        parameters: {
+          amount: botConfigRef.current.currentStake,
+          basis: "stake",
+          contract_type: message.proposal_open_contract.contract_type,
+          currency: "USD",
+          duration: 1,
+          duration_unit: "t",
+          symbol: message.proposal_open_contract.underlying,
+          ...(message.proposal_open_contract.barrier && {
+            barrier: message.proposal_open_contract.barrier,
+          })
+        }
+      };
+      
+      const shouldPause = handlePauseLogic(isWin);
+
       if (isWin) {
         handleWinResult(profit);
       } else {
         handleLossResult(stake);
-      }
-
-      const shouldPause = handlePauseLogic(isWin);
+      }     
 
       if (shouldPause) {
         return true;
       }
-
-      if (botConfig.isRealAccount) {
+      
+   
+      
+      if (botConfigRef.current.isRealAccount) {
         await handleBuy();
       }
-
     },
-    [
-      botConfig,
-      createTradeRecord,
-      handleWinResult,
-      handleLossResult,
-      handlePauseLogic,
-      handleRealAccountPurchase
-    ]
+    [createTradeRecord, handleWinResult, handleLossResult, handlePauseLogic, handleBuy]
   );
 
   useEffect(() => {
     const listenerId = derivService.observerInstance.on(
       "message",
-      async (message) => {
-
+      async (message: any) => {
         if (message.msg_type !== "transaction" &&
           message.msg_type !== "proposal_open_contract" &&
           message.msg_type !== "buy") {
             console.log("message.msg_type", message.msg_type);
             return;
         }
+        
+       
+        if (isPausedRef.current) return;
         console.log("Received message:", message);
-        if (isPaused) return;
-
-
         verificaMensagem(message);
 
         const isFlowWithWithoutQuantityLoss = verificaFluxo(message);
        
         if (isFlowWithWithoutQuantityLoss) {
-
           await flowWithWithoutQuantityLoss(message);
-          
           await handleContractResult(message);
-          
         } else {
+          await handleContractResult(message);
         }
       }
     );
+    
     return () => {
       derivService.observerInstance.removeById(listenerId);
-      if (pauseTimer) clearTimeout(pauseTimer);
-      if (countdownInterval) clearInterval(countdownInterval);
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
-  }, [botConfig, isPaused, handleContractResult, flowWithWithoutQuantityLoss]);
+  }, [handleContractResult, flowWithWithoutQuantityLoss, verificaMensagem, verificaFluxo]);
 
-  const handleStartBot = () => {
+  const handleStartBot = async () => {
     if (!derivService.hasAuthorized) {
       toast.error(
         "Por favor, autorize o aplicativo na Deriv antes de iniciar o bot."
@@ -347,64 +343,69 @@ export default function BotTrade() {
       return;
     }
 
-    if (inputInitialValue === "" || Number(inputInitialValue) < 0.35) {
+    if (botConfigRef.current.initialValue < 0.35) {
       toast.error("Preencha um valor válido para a entrada inicial.");
       return;
     }
-
-    handleStopBot();
+  
+    console.log("START FORGET ID", forgetIdRef.current);
+    if (forgetIdRef.current) {
+      await derivService.send({ forget: forgetIdRef.current });
+      forgetIdRef.current = null;
+    }
+  
     setIsStart(true);
-    setIsPaused(false);
     isPausedRef.current = false;
+  
 
-    // Resetar configurações do bot
-    setBotConfig((prev) => {
-      const newConfig = new BotConfig(prev);
-      newConfig.reset();
-      return newConfig;
-    });
+    botConfigRef.current.reset();
+    setForceUpdate(prev => prev + 1);
+    
 
-    derivService.subscribe({
+    const transactionId = await derivService.subscribe({
       transaction: 1,
     });
+  
+    forgetIdRef.current = transactionId.transaction.id;
   };
 
   const handleStopBot = () => {
     setIsStart(false);
-    setIsPaused(false);
     isPausedRef.current = false;
-    //if (pauseTimer) clearTimeout(pauseTimer);
-    if (forgetId) {
-      //derivService.send({ forget_all: ["proposal_open_contract", "buy", "transaction"] });
-      derivService.send({ forget: forgetId });
-      setForgetId(null);
+   
+    if (forgetIdRef.current) {
+      derivService.send({ forget: forgetIdRef.current });
+      forgetIdRef.current = null;
     }
 
+    botConfigRef.current.reset();
     derivService.observerInstance.clear();
   };
 
+  const handlePauseBot = () => {
+    isPausedRef.current = true;
+  };
+
   const handleConfigChange = (field: keyof BotConfig, value: any) => {
-    setBotConfig((prev) => {
-      const newConfig = new BotConfig(prev);
-      if (field === "quantityLoss") {
-        newConfig["pauseTimeActiveAndQuantityLossZero"] = false;
-      }
-      //@ts-ignore
-      newConfig[field] = value;
-      return newConfig;
-    });
+    if (field === "quantityLoss") {
+      botConfigRef.current.pauseTimeActiveAndQuantityLossZero = false;
+    }
+    
+    // @ts-ignore
+    botConfigRef.current[field] = value;
+    setForceUpdate(prev => prev + 1); 
   };
 
   const formateInputMoney = (value: string) => {
     let cleanedValue = value.replace(/[^0-9.]/g, "");
     const parts = cleanedValue.split(".");
-
     if (parts.length > 2) {
       cleanedValue = parts[0] + "." + parts.slice(1).join("");
     }
-
     return cleanedValue;
   };
+
+  const botConfig = botConfigRef.current;
 
   return (
     <div className="w-full mx-auto py-4 max-w-[1500px]">
@@ -448,14 +449,14 @@ export default function BotTrade() {
               <button
                 onClick={handleStopBot}
                 className={`flex items-center gap-3 rounded-md pr-4 pl-4 ${
-                  isPaused ? "bg-yellow-600" : "bg-red-600"
+                  isPausedRef.current ? "bg-yellow-600" : "bg-red-600"
                 } px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-${
-                  isPaused ? "yellow-500" : "red-500"
+                  isPausedRef.current ? "yellow-500" : "red-500"
                 } focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-${
-                  isPaused ? "yellow-600" : "red-600"
+                  isPausedRef.current ? "yellow-600" : "red-600"
                 }`}
               >
-                {isPaused ? (
+                {isPausedRef.current ? (
                   <>
                     <ClockIcon className="w-5 h-5" />
                     Pausado
@@ -750,8 +751,8 @@ export default function BotTrade() {
                       }
                     >
                       $ {item.typeAccount}{" "}
-                      {item.profit > 0 ? " WIN " : " LOSS "} {"RESULTADO - "} $
-                      {item.profit} -{" "}
+                      {item.profit > 0 ? " WIN " : " LOSS "} {"ENTRADA $"}{item.stake} {" RESULTADO - "} $
+                      {item.profit} 
                     </span>
                   </div> // Adicionado key para melhor performance
                 ))
