@@ -393,7 +393,7 @@ export class DerivService {
   }
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
-    console.log("send", payload);
+    console.log("SEND", payload);
     return new Promise((resolve, reject) => {
       const reqId = this.reqId++;
       payload.req_id = reqId;

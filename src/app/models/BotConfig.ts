@@ -30,7 +30,7 @@ export class BotConfig {
   totalLoss: number = 0;
   totalWin: number = 0;
 
-  pauseTimeActiveAndQuantityLossZero: boolean = false;
+  isCopyTrader: boolean = false;
   
   constructor(config?: Partial<BotConfig>) {
     if (config) {
@@ -40,44 +40,40 @@ export class BotConfig {
   }
   
   handleWin(profit: number): void {
-
+    console.log('handleWin', this.isRealAccount);
     if (this.isRealAccount) {
       this.winReal++;
       this.tradeReal++;
       this.totalWin += profit;
-      
+      console.log('QUANTITY WIN', this.winReal);
       if (this.stopWin > 0 && this.totalWin >= this.stopWin) {
         throw new Error("Stop Win atingido!");
       }
 
-      if (!this.deveEntrarNaContaReal()) {
-        this.isRealAccount = false;
-      }
-      
+
+      this.isRealAccount = false;
+      this.currentStake = this.initialValue;
     }
 
     this.consecutiveLoss = 0;
     
-    this.currentStake = this.initialValue;
   }
   
   handleLoss(loss: number): void {
+    console.log('handleLoss', this.isRealAccount);
     if (this.isRealAccount) {
       this.lossReal++;
       this.tradeReal++;
       this.totalLoss += loss;
-      
+      console.log('QUANTITY LOSS', this.lossReal);
       if (this.stopLoss > 0 && Math.abs(this.totalLoss) >= this.stopLoss) {
         throw new Error("Stop Loss atingido!");
       }
 
       this.currentStake = this.currentStake * this.stakeMultiple;
 
-      if (!this.deveEntrarNaContaReal()) {
-        this.isRealAccount = false;
-
-      } 
-  
+      this.isRealAccount = false;
+      
     } else {
       this.consecutiveLoss++;
 
@@ -107,7 +103,7 @@ export class BotConfig {
   }
 
 
-  deveEntrarNaContaReal(): boolean {
+  fluxoSomenteComPauseTime(): boolean {
     return this.pauseTime > 0 && this.quantityLoss === 0 && (this.pauseOnWin || this.pauseOnLoss);
   }
 
@@ -116,7 +112,7 @@ export class BotConfig {
     this.consecutiveLoss = 0;
     this.currentStake = this.initialValue;
     this.totalProfit = 0;
-    this.isRealAccount = false; 
-    this.pauseTimeActiveAndQuantityLossZero = false;
+    this.isRealAccount = false;
+    
   }
 }
