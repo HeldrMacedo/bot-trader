@@ -23,6 +23,7 @@ export default function BotTrade() {
   const [inputInitialValue, setInputInitialValue] = useState("");
   const [inputStakeMultiple, setInputStakeMultiple] = useState("1");
   const [inputPauseTime, setInputPauseTime] = useState("");
+  const [inputDuration, setInputDuration] = useState("");
 
 
   const botConfigRef = useRef<BotConfig>(new BotConfig());
@@ -44,9 +45,21 @@ export default function BotTrade() {
   const forgetIdRef = useRef<string | null>(null);
   const copyTraderRef = useRef(null);
 
+  const testeRef = useRef(false);
+  const contadorRef = useRef(0);
+  const isBuyRef = useRef(false);
+
+
+  const verificaMensagemBuyRef = useRef(true);
+  const copyRef = useRef(false);
+  const copiarDadosRef = useRef(false);
+  const isTransactionRef = useRef(true);
+  const [isWaitingForOperations, setIsWaitingForOperations] = useState(false);
+
+
   const updateBotConfig = useCallback((updates: Partial<BotConfig>) => {
     Object.assign(botConfigRef.current, updates);
-    setForceUpdate(prev => prev + 1); 
+    setForceUpdate(prev => prev + 1);
   }, []);
 
   const handleWinResult = useCallback((profit: number) => {
@@ -69,42 +82,30 @@ export default function BotTrade() {
     }
   }, []);
 
-  const verificaMensagem = useCallback(
-    async (message: any) => { 
-      if (
-        message.msg_type === "transaction" &&
-        message.transaction.action === "buy"
-      ) {
-        
-        const contractId = message.transaction.contract_id;
-        
-        await derivService.subscribe({ 
-          proposal_open_contract: 1,
-          contract_id: contractId,
-        });
-        return true; 
-      }
-      return false; 
-    },
-    []
-  );
+  
 
-  const handleBuy = useCallback(async () => {
-    if (!copyTraderRef.current || !copyTraderRef.current.parameters) {
-      toast.error("Tentativa de compra sem dados de contrato válidos.");
-      return;
-    }
-    const payload = {
-      ...copyTraderRef.current,
-      price: botConfigRef.current.currentStake, 
-      parameters: {
-        ...copyTraderRef.current.parameters,
-        amount: botConfigRef.current.currentStake, 
-      }
-    };
+  const handleBuy = useCallback(async (message: any) => {
+
+    // const payload = {
+    //   buy: 1,
+    //   price: botConfigRef.current.currentStake,
+    //   parameters: {
+    //     amount: botConfigRef.current.currentStake,
+    //     //app_markup_percentage: "3",
+    //     basis: "stake",
+    //     contract_type: message.proposal_open_contract.contract_type,
+    //     currency: "USD",
+    //     duration: message.proposal_open_contract.tick_count,
+    //     duration_unit: "t",
+    //     symbol: message.proposal_open_contract.underlying,
+    //     barrier: 1
+    //   },
+    //   "passthrough": {"type": "REAL"},
+    // };
+
     
 
-    const response = await derivService.send(payload);
+    const response = await derivService.send(copyTraderRef.current);
     
     if (response.error) {
       toast.error(response.error.message);
@@ -114,8 +115,20 @@ export default function BotTrade() {
 
     const contractId = response.buy.contract_id;
 
+    await sendProposal(contractId);
+
     contractTypeIdRealRef.current.push(contractId);
+    isBuyRef.current = true;
+    
+    return contractId;
   }, []);
+
+  const sendProposal = useCallback(async (contractId: any) => {
+    await derivService.subscribe({
+      proposal_open_contract: 1,
+      contract_id: contractId,
+    });
+  },[]);
 
   const handlePauseLogic = useCallback((isWin: boolean) => {
 
@@ -181,119 +194,229 @@ export default function BotTrade() {
     [] 
   );
 
-  const handleContractResult = useCallback(
-    async (message: any) => {
-      if (
-        message.msg_type !== "proposal_open_contract" ||
-        (message.proposal_open_contract.status !== "won" &&
-          message.proposal_open_contract.status !== "lost")
-      ) {
+  const tradeConsole = useCallback((type: string, isWin: boolean ,contador: number) => {
+    return {
+      type: type,
+      isWin: isWin,
+      contador: contador,
+    }
+  },[]);
 
+  const verificaFluxo = useCallback(() => {
+    return botConfigRef.current.fluxoSomenteComPauseTime();
+  },[])
+
+  // Fluxo SEM quantity loss - já começa na conta real
+  const handleFluxoWithoutQuantityLoss = useCallback(
+    async (message: any) => {
+      if (message.msg_type === "transaction" && message.transaction.action === "buy" && isTransactionRef.current) {
+        isTransactionRef.current = false;
+        await handleBuy(message);
         return;
       }
+      
+      // Resultado do contrato real
+      if (message.msg_type === "proposal_open_contract" && 
+          (message.proposal_open_contract.status === "won" || message.proposal_open_contract.status === "lost")) {
+        await handleRealContractResult(message);
+        return;
+      }
+    }, []
+  );
 
-    
+  // Fluxo COM quantity loss - começa virtual até atingir sequência de loss
+  const handleFluxoWithQuantityLoss = useCallback(
+    async (message: any) => {
+      if (!botConfigRef.current.isRealAccount) {
+        setIsWaitingForOperations(false);
+        if (message.msg_type === "transaction" && message.transaction.action === "buy") {
+          sendProposal(message.transaction.contract_id);
+          return;
+        }
+
+        if (message.msg_type === "proposal_open_contract" && message.proposal_open_contract.status === "open") {
+          adicionarDados(message);
+           await derivService.send({forget: message.subscription.id});
+          return;
+          
+        }
+        // Modo virtual - processa transações até atingir quantity loss
+        await handleVirtualTransactions(message);
+      } else {
+
+        if (message.msg_type === "transaction" && message.transaction.action === "buy" && isTransactionRef.current) {
+          isTransactionRef.current = false;
+          await handleBuy(message);
+          return;
+        }
+
+        // // Proposal open - copia as informações e faz a compra real
+        // if (message.msg_type === "proposal_open_contract" && 
+        //     message.proposal_open_contract?.status === "open" && 
+        //     copyRef.current) {
+        //   copyRef.current = false;
+        //   await derivService.send({forget: message.subscription.id});
+        //   await handleBuy(message);
+        //   return;
+        // }
+        
+        // Resultado do contrato real
+        if (message.msg_type === "proposal_open_contract" && 
+            message.proposal_open_contract?.status && 
+            (message.proposal_open_contract.status === "won" || message.proposal_open_contract.status === "lost")) {
+          await handleRealContractResult(message);
+          return;
+        }
+      }
+    }, []
+  );
+
+  // Processa transações virtuais até atingir quantity loss
+  const handleVirtualTransactions = useCallback(
+    async (message: any) => {
+      if (message.msg_type === "transaction" && message.transaction.action === "sell") {
+        contadorRef.current = contadorRef.current + 1;
+        const isWin = message.transaction.amount > 0;
+        
+        const newTrade = tradeConsole('VIRTUAL', isWin, contadorRef.current);
+        setListTrade((prev) => [newTrade, ...prev]);
+        
+        const shouldPause = handlePauseLogic(isWin);
+        
+        if (isWin) {
+          handleWinResult(0);
+        } else {
+          handleLossResult(0);
+        }
+        
+        if (shouldPause) {
+          return;
+        }
+      }
+    }, []
+  );
+
+  // Processa resultado de contratos reais
+  const handleRealContractResult = useCallback(
+    async (message: any) => {
+      if (!contractTypeIdRealRef.current.includes(message.proposal_open_contract.contract_id)) {
+        return;
+      }
+      isTransactionRef.current = true;
       const poc = message.proposal_open_contract;
       const contractId = poc.contract_id;
       const isWin = poc.profit > 0;
       const profit = poc.profit;
       const stake = poc.buy_price;
-
-
-      copyTraderRef.current = {
-        buy: 1,
-
-        parameters: {
-          amount: botConfigRef.current.initialValue,
-          basis: "stake",
-          contract_type: poc.contract_type,
-          currency: "USD",
-          duration: 1, 
-          duration_unit: "t",
-          symbol: poc.underlying,
-          ...(poc.barrier && { barrier: poc.barrier }),
-        },
-      };
-
-
-      if (botConfigRef.current.isRealAccount) {
-        if (!contractTypeIdRealRef.current.includes(contractId)) {          
-
-          return; 
-        }
-
-        contractTypeIdRealRef.current = contractTypeIdRealRef.current.filter(id => id !== contractId);
-        
-      }
-
-      let typeMessage = '';
-      if (!botConfigRef.current.isRealAccount && botConfigRef.current.fluxoSomenteComPauseTime()) {
-        botConfigRef.current.isCopyTrader = true;
-        setForceUpdate(prev => prev + 1); 
-        typeMessage = 'COPY';
-      } else {
-        typeMessage = botConfigRef.current.isRealAccount ? 'REAL' : 'VIRTUAL';
-      }
-
-      const newTrade = createTradeRecord(message, profit, stake, typeMessage);
-      setListTrade((prev) => [newTrade, ...prev]);
-
-
-
-      if (botConfigRef.current.isRealAccount) {
-        setListTradeReal((prev) => [newTrade, ...prev]);
-      }
-
+      
+      contadorRef.current = contadorRef.current + 1;
+      
+      // Remove o contract ID da lista
+      contractTypeIdRealRef.current = contractTypeIdRealRef.current.filter(id => id !== contractId);
+      
+      // Adiciona ao console de trades
+      const trade = tradeConsole('REAL', isWin, contadorRef.current);
+      setListTrade((prev) => [trade, ...prev]);
+      
+      // Adiciona ao histórico de trades reais
+      const newTrade = createTradeRecord(message, profit, stake, 'REAL');
+      setListTradeReal((prev) => [newTrade, ...prev]);
+      
+      // Reset flags
+      isBuyRef.current = false;
+      
       const shouldPause = handlePauseLogic(isWin);
-
+      
       if (isWin) {
         handleWinResult(profit);
       } else {
         handleLossResult(stake);
       }
-   
+      
       if (shouldPause) {
         return;
       }
       
-      if (botConfigRef.current.isRealAccount) {
-
-        await handleBuy();
-      } else {
-        if (botConfigRef.current.fluxoSomenteComPauseTime() && botConfigRef.current.isCopyTrader) {
-          botConfigRef.current.isCopyTrader = false;
-          botConfigRef.current.isRealAccount = true;
-          await handleBuy();
-        }
+      // Reinicia o ciclo para próxima transação
+      if (verificaFluxo()) {
+        verificaMensagemBuyRef.current = true;
       }
-    },
-    [createTradeRecord, handleWinResult, handleLossResult, handlePauseLogic, handleBuy, updateBotConfig]
+    }, []
   );
+
+  const adicionarDados = useCallback((message) => {
+    copyTraderRef.current = {
+      buy: 1,
+      price: botConfigRef.current.currentStake,
+      parameters: {
+        amount: botConfigRef.current.currentStake,
+        //app_markup_percentage: "3",
+        basis: "stake",
+        contract_type: message.proposal_open_contract.contract_type,
+        currency: "USD",
+        duration: message.proposal_open_contract.tick_count,
+        duration_unit: "t",
+        symbol: message.proposal_open_contract.underlying,
+        barrier: 1
+      },
+      "passthrough": {"type": "REAL"},
+    };
+  }, []);
+
+  const copiarDados = useCallback((message) =>  {
+    if (message.msg_type === "transaction" && message.transaction.action === "buy") {
+      const contractId = message.transaction.contract_id;
+      if (contractId) {
+        derivService.subscribe({
+          proposal_open_contract: 1,
+          contract_id: contractId,
+        });
+      }
+      return;
+    }
+
+    if (message.msg_type === "proposal_open_contract" &&
+        message.proposal_open_contract.status === "open") {
+          adicionarDados(message);
+
+          derivService.send({forget: message.subscription.id});
+          copiarDadosRef.current = false;
+          setIsWaitingForOperations(false);
+          return;
+        }
+  }, []);
 
   useEffect(() => {
     const listenerId = derivService.observerInstance.on(
       "message",
       async (message: any) => {
+        // Filtra apenas mensagens relevantes
         if (message.msg_type !== "transaction" &&
           message.msg_type !== "proposal_open_contract" &&
           message.msg_type !== "buy") {
             return;
         }
-
-        if (isPausedRef.current) return;
-        console.log('message', message);
-        if (message.msg_type === "transaction" && message.transaction.action === "buy") {
-          await verificaMensagem(message); 
-          return; 
-        }
         
-        if (message.msg_type === "proposal_open_contract") {
-          if (message.proposal_open_contract.status === "won" || message.proposal_open_contract.status === "lost"){
-            await handleContractResult(message);
-          }
+        //console.log("MESSAGE ", message);
+        
+        if (isPausedRef.current) return;
+
+        if (copiarDadosRef.current) {
+          copiarDados(message);
           return;
         }
 
+        // Determina qual fluxo usar baseado na configuração
+        const isFlowWithoutQuantityLoss = verificaFluxo();
+
+        if (isFlowWithoutQuantityLoss) {
+          console.log("ENTROU NO FLOW SEM QUANTITY LOSS");
+          // Fluxo SEM quantity loss - já começa na conta real
+          await handleFluxoWithoutQuantityLoss(message);
+        } else {
+          // Fluxo COM quantity loss - começa virtual até atingir sequência de loss
+          await handleFluxoWithQuantityLoss(message);
+        }
       }
     );
     
@@ -302,9 +425,10 @@ export default function BotTrade() {
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
-  }, [handleContractResult, verificaMensagem]); 
+  }, [handleFluxoWithoutQuantityLoss, handleFluxoWithQuantityLoss, verificaFluxo]); 
 
   const handleStartBot = async () => {
+
     if (!derivService.hasAuthorized) {
       toast.error(
         "Por favor, autorize o aplicativo na Deriv antes de iniciar o bot."
@@ -320,7 +444,6 @@ export default function BotTrade() {
     if (botConfigRef.current.pauseTime > 0 && !botConfigRef.current.pauseOnWin && !botConfigRef.current.pauseOnLoss) {
       toast.error("Selecione pelo menos um tipo de pausa.");
       return;
-
     }
 
     if (forgetIdRef.current) {
@@ -333,25 +456,43 @@ export default function BotTrade() {
     setRemainingTime(0); 
     contractTypeIdRealRef.current = []; 
 
+    // Reset do bot config
     botConfigRef.current.reset();
+    
+    // Determina o fluxo e configura estados iniciais
+    const isFlowWithoutQuantityLoss = verificaFluxo();
+    setIsWaitingForOperations(true);
+    if (isFlowWithoutQuantityLoss) {
+      // Fluxo sem quantity loss - já começa na conta real
+      botConfigRef.current.isRealAccount = true;
+      verificaMensagemBuyRef.current = true;
+      copyRef.current = true;
+      copiarDadosRef.current = true;
+
+    } else {
+      // Fluxo com quantity loss - começa virtual
+      botConfigRef.current.isRealAccount = false;
+      verificaMensagemBuyRef.current = false;
+      copyRef.current = false;
+    }
+    
+    // Reset outros estados
+    isBuyRef.current = false;
+    contadorRef.current = 0;
 
     setForceUpdate(prev => prev + 1);
     
-
     copyTraderRef.current = {}; 
 
+    // Inicia o stream de transações
     const transactionId = await derivService.subscribe({
       transaction: 1, 
-      
     });
 
-
     if (transactionId && transactionId.transaction && transactionId.transaction.id) {
-      console.log("ENTROU NO IF DO TRANSACTION ID", transactionId.transaction.id);
+      console.log("Stream de transações iniciado:", transactionId.transaction.id);
       forgetIdRef.current = transactionId.transaction.id;
-
     } else {
-
       toast.error("Falha ao iniciar o stream de transações.");
       setIsStart(false);
     }
@@ -734,21 +875,33 @@ export default function BotTrade() {
                     </span>
                     <span
                       className={
-                        item.profit > 0 ? "text-green-600" : "text-red-600"
+                        item.isWin ? "text-green-600" : "text-red-600"
                       }
                     >
-                      $ {item.typeAccount}{" "}
-                      {item.profit > 0 ? " WIN " : " LOSS "} {"ENTRADA $"}{item.stake} {" RESULTADO - "} $
-                      {item.profit} 
+                      {item.contador} - {item.type}{" "}
+                      {item.isWin  ? " WIN " : " LOSS "}
                     </span>
                   </div> // Adicionado key para melhor performance
                 ))
               ) : (
-                // Adicionado o caso else para quando listTrade está vazio
+                // Loading ou mensagem vazia
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">
-                    Nenhuma negociação realizada ainda.
-                  </p>
+                  {isStart && isWaitingForOperations ? (
+                    <div className="flex flex-col items-center space-y-3">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      </div>
+                      <p className="text-blue-500 text-sm font-medium">
+                        Aguardando operações...
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">
+                      Nenhuma negociação realizada ainda.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

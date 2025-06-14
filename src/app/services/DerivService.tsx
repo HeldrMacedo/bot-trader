@@ -1,3 +1,4 @@
+import { toast } from "react-toastify";
 import { Observer } from "./simpleObserver";
 
 type DerivEventMap = {
@@ -344,8 +345,8 @@ export class DerivService {
     try {
 
       const data = JSON.parse(event.data);
-    
       
+
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
       } else if (data.msg_type === "authorize") {
@@ -393,7 +394,7 @@ export class DerivService {
   }
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
-    console.log("SEND", payload);
+    console.log("Sending payload:", payload);
     return new Promise((resolve, reject) => {
       const reqId = this.reqId++;
       payload.req_id = reqId;
@@ -423,7 +424,8 @@ export class DerivService {
     reject: (reason?: any) => void
   ) {
     const timeToCancel = setTimeout(() => {
-      reject({ code: "Timeout", message: "Request timed out" });
+      reject({ code: "Timeout", message: "Limite de tempo expirado, sem resposta da corretora" });
+      toast.error("Limite de tempo expirado, sem resposta da corretora");
     }, 20000);
 
     const pendingRequest: PendingRequest = {

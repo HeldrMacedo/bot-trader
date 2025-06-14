@@ -39,19 +39,22 @@ export class BotConfig {
     this.currentStake = this.initialValue;
   }
   
-  handleWin(profit: number): void {
-    console.log('handleWin', this.isRealAccount);
+  handleWin(profit?: number): void {
+    console.log('handleWin isRealAccount', this.isRealAccount);
     if (this.isRealAccount) {
+      console.log();
       this.winReal++;
       this.tradeReal++;
       this.totalWin += profit;
-      console.log('QUANTITY WIN', this.winReal);
+      
       if (this.stopWin > 0 && this.totalWin >= this.stopWin) {
         throw new Error("Stop Win atingido!");
       }
 
-
-      this.isRealAccount = false;
+      if (!this.fluxoSomenteComPauseTime()) {
+        this.isRealAccount = false;
+      }
+      
       this.currentStake = this.initialValue;
     }
 
@@ -59,20 +62,22 @@ export class BotConfig {
     
   }
   
-  handleLoss(loss: number): void {
-    console.log('handleLoss', this.isRealAccount);
+  handleLoss(loss?: number): void {
+    console.log('handleLoss isRealAccount', this.isRealAccount);
     if (this.isRealAccount) {
       this.lossReal++;
       this.tradeReal++;
       this.totalLoss += loss;
-      console.log('QUANTITY LOSS', this.lossReal);
+
       if (this.stopLoss > 0 && Math.abs(this.totalLoss) >= this.stopLoss) {
         throw new Error("Stop Loss atingido!");
       }
 
       this.currentStake = this.currentStake * this.stakeMultiple;
-
-      this.isRealAccount = false;
+      if (!this.fluxoSomenteComPauseTime()) {
+        this.isRealAccount = false;
+      }
+      
       
     } else {
       this.consecutiveLoss++;
