@@ -76,6 +76,8 @@ export default function BotTrade() {
     try {
       botConfigRef.current.handleLoss(stake);
       setForceUpdate(prev => prev + 1); 
+      // Força uma nova atualização para garantir que o novo currentStake seja usado
+      setTimeout(() => setForceUpdate(prev => prev + 1), 0);
     } catch (error: any) {
       handleStopBot();
       toast.error(error.message);
@@ -103,7 +105,8 @@ export default function BotTrade() {
     //   "passthrough": {"type": "REAL"},
     // };
 
-    
+    copyTraderRef.current.price = botConfigRef.current.currentStake;
+    copyTraderRef.current.parameters.amount = botConfigRef.current.currentStake;
 
     const response = await derivService.send(copyTraderRef.current);
     
@@ -165,7 +168,7 @@ export default function BotTrade() {
     const timer = setTimeout(async() => {
 
       isPausedRef.current = false;
-      botConfigRef.current.isRealAccount = false;
+      //botConfigRef.current.isRealAccount = false;
       setRemainingTime(0);
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
@@ -287,6 +290,8 @@ export default function BotTrade() {
           handleWinResult(0);
         } else {
           handleLossResult(0);
+          // Força atualização após loss para garantir que o novo stake seja usado
+          setForceUpdate(prev => prev + 1);
         }
         
         if (shouldPause) {
@@ -331,6 +336,8 @@ export default function BotTrade() {
         handleWinResult(profit);
       } else {
         handleLossResult(stake);
+        // Força atualização após loss
+        setForceUpdate(prev => prev + 1);
       }
       
       if (shouldPause) {
@@ -345,12 +352,14 @@ export default function BotTrade() {
   );
 
   const adicionarDados = useCallback((message) => {
+    // Força atualização do forceUpdate para garantir que temos o valor mais atual
+    setForceUpdate(prev => prev + 1);
+    
     copyTraderRef.current = {
       buy: 1,
       price: botConfigRef.current.currentStake,
       parameters: {
         amount: botConfigRef.current.currentStake,
-        //app_markup_percentage: "3",
         basis: "stake",
         contract_type: message.proposal_open_contract.contract_type,
         currency: "USD",
@@ -410,7 +419,6 @@ export default function BotTrade() {
         const isFlowWithoutQuantityLoss = verificaFluxo();
 
         if (isFlowWithoutQuantityLoss) {
-          console.log("ENTROU NO FLOW SEM QUANTITY LOSS");
           // Fluxo SEM quantity loss - já começa na conta real
           await handleFluxoWithoutQuantityLoss(message);
         } else {
