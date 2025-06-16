@@ -657,7 +657,7 @@ export default function BotTrade() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex">
+            <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5">
                 <span className="text-nowrap">Consecutive loss</span>
               </div>
@@ -673,7 +673,7 @@ export default function BotTrade() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex">
+            <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5">
                 <span className="text-nowrap">Quantity loss</span>
               </div>
@@ -701,7 +701,7 @@ export default function BotTrade() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex">
+            <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5">
                 <span className="text-nowrap">Stop Loss</span>
               </div>
@@ -728,7 +728,7 @@ export default function BotTrade() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex">
+            <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5">
                 <span className="text-nowrap">Stop Win</span>
               </div>
@@ -755,7 +755,7 @@ export default function BotTrade() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex">
+            <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5">
                 <span className="text-nowrap">Initial Value</span>
               </div>
@@ -782,7 +782,7 @@ export default function BotTrade() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex">
+            <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5">
                 <span className="text-nowrap">Stake Multiple</span>
               </div>
@@ -808,7 +808,7 @@ export default function BotTrade() {
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex">
+            <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5 flex items-center gap-1">
                 <span className="text-nowrap">Pause Time </span>
                 <div className="bg-indigo-600 rounded-full w-4 h-4 text-center flex justify-center items-center group relative">
