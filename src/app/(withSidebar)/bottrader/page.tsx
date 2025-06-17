@@ -50,7 +50,7 @@ export default function BotTrade() {
   const isBuyRef = useRef(false);
 
 
-  const verificaMensagemBuyRef = useRef(true);
+  //const verificaMensagemBuyRef = useRef(true);
   const copyRef = useRef(false);
   const copiarDadosRef = useRef(false);
   const isTransactionRef = useRef(true);
@@ -346,7 +346,7 @@ export default function BotTrade() {
       
       // Reinicia o ciclo para próxima transação
       if (verificaFluxo()) {
-        verificaMensagemBuyRef.current = true;
+        //verificaMensagemBuyRef.current = true;
       }
     }, []
   );
@@ -456,6 +456,11 @@ export default function BotTrade() {
       return;
     }
 
+    if (botConfigRef.current.pauseTime <= 0 &&  botConfigRef.current.quantityLoss <= 0 ) {
+      toast.error("Preencha o Pause Time ou Quantity Loss.");
+      return;
+    }
+
     if (forgetIdRef.current) {
       await derivService.send({ forget: forgetIdRef.current });
       forgetIdRef.current = null;
@@ -475,14 +480,14 @@ export default function BotTrade() {
     if (isFlowWithoutQuantityLoss) {
       // Fluxo sem quantity loss - já começa na conta real
       botConfigRef.current.isRealAccount = true;
-      verificaMensagemBuyRef.current = true;
+      //verificaMensagemBuyRef.current = true;
       copyRef.current = true;
       copiarDadosRef.current = true;
 
     } else {
       // Fluxo com quantity loss - começa virtual
       botConfigRef.current.isRealAccount = false;
-      verificaMensagemBuyRef.current = false;
+      //verificaMensagemBuyRef.current = false;
       copyRef.current = false;
     }
     
@@ -511,13 +516,15 @@ export default function BotTrade() {
   const handleStopBot = () => {
     setIsStart(false);
     isPausedRef.current = false;
-    console.log("ANTES DO IF DO FORGET ID", forgetIdRef.current);
+    
     if (forgetIdRef.current) {
-      console.log("IF DO FORGET ID", forgetIdRef.current);
+      
       derivService.send({ forget: forgetIdRef.current });
       forgetIdRef.current = null;
     }
 
+    botConfigRef.current.isRealAccount = false;
+    copiarDadosRef.current = false;
     botConfigRef.current.isCopyTrader = false;
     botConfigRef.current.reset();
     setForceUpdate(prev => prev + 1);
