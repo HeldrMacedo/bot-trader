@@ -366,7 +366,9 @@ export default function BotTrade() {
         duration: message.proposal_open_contract.tick_count,
         duration_unit: "t",
         symbol: message.proposal_open_contract.underlying,
-        barrier: 1
+        ...(message.proposal_open_contract.barrier && {
+          barrier: message.proposal_open_contract.barrier,
+        }),
       },
       "passthrough": {"type": "REAL"},
     };
