@@ -5,16 +5,9 @@ import { DerivService } from '@/app/services/DerivService';
 import { format } from 'date-fns';
 
 interface MarkupStatistics {
-  total_markup: number;
-  total_payout: number;
-  total_count: number;
-  transactions_per_day: {
-    [date: string]: {
-      count: number;
-      markup: number;
-      payout: number;
-    }
-  };
+  total_app_markup_usd: number;
+  total_transactions_count: number;
+  breakdown: []
 }
 
 interface MarkupStatisticsResponse {
@@ -27,8 +20,8 @@ export default function MarkupStatisticsReport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
-    date_from: format(new Date(new Date().setDate(new Date().getDate() - 30)), 'yyyy-MM-dd HH:mm:ss'),
-    date_to: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+    date_from: format(new Date(new Date().setDate(new Date().getDate() - 30)), 'yyyy-MM-dd'),
+    date_to: format(new Date(), 'yyyy-MM-dd'),
   });
 
   const fetchMarkupStatistics = async () => {
@@ -48,8 +41,8 @@ export default function MarkupStatisticsReport() {
       // Construir o objeto de requisição
       const requestObj = {
         app_markup_statistics: 1,
-        date_from: filters.date_from,
-        date_to: filters.date_to,
+        date_from: filters.date_from + ' 00:00:00',
+        date_to: filters.date_to + ' 23:59:59',
         passthrough: {},
       };
       
@@ -93,17 +86,6 @@ export default function MarkupStatisticsReport() {
     }).format(value);
   };
 
-  // Função para extrair dados para o gráfico
-  const getChartData = () => {
-    if (!reportData || !reportData.transactions_per_day) return [];
-    
-    return Object.entries(reportData.transactions_per_day).map(([date, data]) => ({
-      date,
-      count: data.count,
-      markup: data.markup,
-      payout: data.payout
-    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  };
 
   return (
     <div className="bg-principal p-6 rounded-lg shadow-md text-gray-400">
@@ -114,7 +96,7 @@ export default function MarkupStatisticsReport() {
           <div>
             <label className="block text-sm font-medium mb-1">Data Inicial</label>
             <input
-              type="datetime-local"
+              type="date"
               name="date_from"
               value={filters.date_from.replace(' ', 'T')}
               onChange={(e) => handleFilterChange({
@@ -130,7 +112,7 @@ export default function MarkupStatisticsReport() {
           <div>
             <label className="block text-sm font-medium mb-1">Data Final</label>
             <input
-              type="datetime-local"
+              type="date"
               name="date_to"
               value={filters.date_to.replace(' ', 'T')}
               onChange={(e) => handleFilterChange({
@@ -166,95 +148,53 @@ export default function MarkupStatisticsReport() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gray-800 p-4 rounded-lg">
               <h3 className="text-lg font-medium mb-2">Total de Transações</h3>
-              <p className="text-2xl font-bold">{reportData.total_count}</p>
+              <p className="text-2xl font-bold">{reportData.total_transactions_count}</p>
             </div>
             
             <div className="bg-gray-800 p-4 rounded-lg">
               <h3 className="text-lg font-medium mb-2">Total de Markup</h3>
-              <p className="text-2xl font-bold text-green-500">{formatCurrency(reportData.total_markup)}</p>
+              <p className="text-2xl font-bold text-green-500">{formatCurrency(reportData.total_app_markup_usd)}</p>
             </div>
             
             <div className="bg-gray-800 p-4 rounded-lg">
               <h3 className="text-lg font-medium mb-2">Total de Pagamentos</h3>
-              <p className="text-2xl font-bold text-blue-500">{formatCurrency(reportData.total_payout)}</p>
+              <p className="text-2xl font-bold text-blue-500">{formatCurrency(reportData.total_app_markup_usd)}</p>
             </div>
           </div>
           
           <div className="bg-gray-800 p-4 rounded-lg">
-            <h3 className="text-lg font-medium mb-4">Transações por Dia</h3>
+            <h3 className="text-lg font-medium mb-4">Transações por App</h3>
             
             <div className="overflow-x-auto">
               <table className="min-w-full bg-gray-800 border border-gray-700 rounded-lg">
                 <thead>
                   <tr className="bg-gray-700">
-                    <th className="px-4 py-2 text-left">Data</th>
-                    <th className="px-4 py-2 text-right">Quantidade</th>
-                    <th className="px-4 py-2 text-right">Markup</th>
-                    <th className="px-4 py-2 text-right">Pagamento</th>
+                    <th className="px-4 py-2 text-left">App ID</th>
+                    <th className="px-4 py-2 text-right">Quantidade de Transações</th>
+                    <th className="px-4 py-2 text-right">Markup USD</th>
+                    <th className="px-4 py-2 text-right">Valor do Markup</th>
+                    <th className="px-4 py-2 text-left">Moeda</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {getChartData().map((dayData, index) => (
+                  {reportData.breakdown.map((data, index) => (
                     <tr key={index} className={index % 2 === 0 ? "bg-gray-800" : "bg-gray-750"}>
-                      <td className="px-4 py-2">{new Date(dayData.date).toLocaleDateString()}</td>
-                      <td className="px-4 py-2 text-right">{dayData.count}</td>
-                      <td className="px-4 py-2 text-right text-green-500">{formatCurrency(dayData.markup)}</td>
-                      <td className="px-4 py-2 text-right text-blue-500">{formatCurrency(dayData.payout)}</td>
+                      <td className="px-4 py-2">{data['app_id']}</td>
+                      <td className="px-4 py-2 text-right">{data['transactions_count']}</td>
+                      <td className="px-4 py-2 text-right text-green-500">{formatCurrency(data['app_markup_usd'])}</td>
+                      <td className="px-4 py-2 text-right text-blue-500">{formatCurrency(data['app_markup_value'])}</td>
+                      <td className="px-4 py-2">{data['dev_currcode']}</td>
                     </tr>
                   ))}
                   
-                  {getChartData().length === 0 && (
+                  {reportData.breakdown.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-2 text-center">Nenhum registro encontrado</td>
+                      <td colSpan={5} className="px-4 py-2 text-center">Nenhum registro encontrado</td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
-          </div>
-          
-          <div className="mt-6">
-            <button
-              onClick={() => {
-                // Exportar para CSV
-                const chartData = getChartData();
-                if (chartData.length === 0) return;
-                
-                const headers = ["Data", "Quantidade", "Markup", "Pagamento"];
-                const csvData = chartData.map(day => [
-                  new Date(day.date).toLocaleDateString(),
-                  day.count,
-                  day.markup,
-                  day.payout
-                ]);
-                
-                // Adicionar linha de totais
-                csvData.push([
-                  "TOTAL",
-                  reportData.total_count,
-                  reportData.total_markup,
-                  reportData.total_payout
-                ]);
-                
-                const csvContent = [
-                  headers.join(","),
-                  ...csvData.map(row => row.join(","))
-                ].join("\n");
-                
-                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.setAttribute("href", url);
-                link.setAttribute("download", `markup-statistics-${new Date().toISOString().slice(0, 10)}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }}
-              disabled={!reportData.transactions_per_day || Object.keys(reportData.transactions_per_day).length === 0}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-            >
-              Exportar para CSV
-            </button>
           </div>
         </div>
       )}

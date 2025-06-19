@@ -124,16 +124,16 @@ export class DerivService {
       this.setupBalanceMonitoring();
     });
 
-    this.observer.on("deriv.balance", (data) => {
-      if (this.currentAccount) {
-        this.currentAccount.tokens.forEach((token) => {
-          if (token.acct === data.balance.loginid) {
-            token.balance = data.balance.balance;
-            this.observer.emit("account.update", this.currentAccount);
-          }
-        });
-      }
-    });
+    // this.observer.on("deriv.balance", (data) => {
+    //   if (this.currentAccount) {
+    //     this.currentAccount.tokens.forEach((token) => {
+    //       if (token.acct === data.balance.loginid) {
+    //         token.balance = data.balance.balance;
+    //         this.observer.emit("account.update", this.currentAccount);
+    //       }
+    //     });
+    //   }
+    // });
   }
 
   private setupBalanceMonitoring() {
