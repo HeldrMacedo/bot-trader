@@ -56,6 +56,7 @@ export default function BotTrade() {
   const isTransactionRef = useRef(true);
   const [isWaitingForOperations, setIsWaitingForOperations] = useState(false);
 
+  const testeCopiaRef = useRef(true);
 
   const updateBotConfig = useCallback((updates: Partial<BotConfig>) => {
     Object.assign(botConfigRef.current, updates);
@@ -397,6 +398,31 @@ export default function BotTrade() {
         }
   }, []);
 
+  const copiarEComprar = useCallback(async (message) => {
+    if (message.msg_type === "transaction" && message.transaction.action === "buy" ) {
+            const contractId = message.transaction.contract_id;
+            if (contractId) {
+              derivService.subscribe({
+                proposal_open_contract: 1,
+                contract_id: contractId,
+              });
+            }
+            return;
+          }
+
+          if (message.msg_type === "proposal_open_contract" && message.proposal_open_contract.status === "open") {
+            testeCopiaRef.current = false;
+            derivService.send({forget: message.subscription.id});
+            adicionarDados(message);
+            await handleBuy(message);
+
+          }
+  }, []);
+
+  const handleContractResult  = useCallback(async (message) => {
+    
+  }, []);
+
   useEffect(() => {
     const listenerId = derivService.observerInstance.on(
       "message",
@@ -408,25 +434,32 @@ export default function BotTrade() {
             return;
         }
         
-        //console.log("MESSAGE ", message);
+        console.log("MESSAGE ", message);
         
         if (isPausedRef.current) return;
 
-        if (copiarDadosRef.current) {
-          copiarDados(message);
+        if (testeCopiaRef.current) {
+          await copiarEComprar(message);
           return;
+        }else {
+          await handleContractResult(message);
         }
+        
 
-        // Determina qual fluxo usar baseado na configuração
-        const isFlowWithoutQuantityLoss = verificaFluxo();
+        // if (copiarDadosRef.current) {
+        //   copiarDados(message);
+        //   return;
+        // }
 
-        if (isFlowWithoutQuantityLoss) {
-          // Fluxo SEM quantity loss - já começa na conta real
-          await handleFluxoWithoutQuantityLoss(message);
-        } else {
-          // Fluxo COM quantity loss - começa virtual até atingir sequência de loss
-          await handleFluxoWithQuantityLoss(message);
-        }
+        // const isFlowWithoutQuantityLoss = verificaFluxo();
+
+        // if (isFlowWithoutQuantityLoss) {
+          
+        //   await handleFluxoWithoutQuantityLoss(message);
+        // } else {
+
+        //   await handleFluxoWithQuantityLoss(message);
+        // }
       }
     );
     
