@@ -40,9 +40,7 @@ export class BotConfig {
   }
   
   handleWin(profit?: number): void {
-    console.log('handleWin isRealAccount', this.isRealAccount);
     if (this.isRealAccount) {
-      console.log();
       this.winReal++;
       this.tradeReal++;
       this.totalWin += profit;
@@ -63,7 +61,6 @@ export class BotConfig {
   }
   
   handleLoss(loss?: number): void {
-    console.log('handleLoss isRealAccount', this.isRealAccount);
     if (this.isRealAccount) {
       this.lossReal++;
       this.tradeReal++;
