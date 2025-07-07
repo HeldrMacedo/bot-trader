@@ -140,19 +140,19 @@ export class DerivService {
     this.subscribe({ balance: 1, account: "all" }).then((subscription) => {
       this.balanceSubscriptionId = subscription.subscription.id;
     });
-    setInterval(async () => {
-      if (this.currentAccount) {
-        await Promise.all(
-          this.currentAccount.tokens.map(async (token) => {
-            this.send({
-              balance: 1,
-              account: token.acct,
-            });
+    // setInterval(async () => {
+    //   if (this.currentAccount) {
+    //     await Promise.all(
+    //       this.currentAccount.tokens.map(async (token) => {
+    //         this.send({
+    //           balance: 1,
+    //           account: token.acct,
+    //         });
             
-          })
-        );
-      }
-    }, 30000);
+    //       })
+    //     );
+    //   }
+    // }, 30000);
   }
 
   public async processAuthenticatedUserData() {
@@ -341,10 +341,11 @@ export class DerivService {
     }, 25000);
   }
   
-  private handleMessage(event: MessageEvent) {
+  public handleMessage(event: MessageEvent) {
     try {
 
       const data = JSON.parse(event.data);
+      this.observer.emit("message", data);
       
 
       if (data.msg_type === "forget") {
@@ -356,8 +357,6 @@ export class DerivService {
           this.dispatchPendingRequests();
         }
       }
-
-      this.observer.emit("message", data);
 
       if (data.msg_type) {
         this.observer.emit(
