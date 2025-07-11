@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { DerivService } from "@/app/services/DerivService";
+import { AccountInfo, DerivService, TokenData } from "@/app/services/DerivService";
 import {
   ExclamationTriangleIcon,
   ClockIcon,
@@ -43,262 +43,100 @@ export default function BotTrade() {
   const copyTraderRef = useRef(null);
 
   const contadorRef = useRef(0);
-  const isCopyRef = useRef(false);
   const isProporsalCopyRef = useRef(false);
   const copiarDadosRef = useRef(false);
   const [isWaitingForOperations, setIsWaitingForOperations] = useState(false);
-  const contractIdRealRef = useRef(null);
   const contractIdVirtualRef = useRef(null);
-
+  const [accountReal, setAccountReal] = useState<TokenData>();
+  const [isTest, setIsTest] = useState(false);
+  const tokensRef = useRef({
+    contaReal: null,
+    contaVirtual: null,
+  })
   const firstOperationRef = useRef(false);
+  const demoConnectionRef = useRef(null);
+  const realConnectionRef = useRef(null);
+  const reqIdRef = useRef(1);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateBotConfig = useCallback((updates: Partial<BotConfig>) => {
     Object.assign(botConfigRef.current, updates);
     setForceUpdate((prev) => prev + 1);
   }, []);
 
-  const copiarDados = useCallback(async (message) => {
-    setForceUpdate((prev) => prev + 1);
-    copyTraderRef.current = {
-      buy: 1,
-      price: botConfigRef.current.currentStake,
-      parameters: {
-        amount: botConfigRef.current.currentStake,
-        basis: "stake",
-        contract_type: message.proposal_open_contract.contract_type,
-        currency: "USD",
-        duration: message.proposal_open_contract.tick_count,
-        duration_unit: "t",
-        symbol: message.proposal_open_contract.underlying,
-        ...(message.proposal_open_contract.barrier && {
-          barrier: message.proposal_open_contract.barrier,
-        }),
-      },
-      passthrough: { type: "REAL" },
-    };
-  }, []);
 
-  const tradeConsole = useCallback(
-    (type: string, isWin: boolean, contador: number) => {
-      return {
-        type: type,
-        isWin: isWin,
-        contador: contador,
-      };
-    },
-    []
-  );
-
-  const createTradeRecord = useCallback(
-    (data: any, profit: number, stake: number, typeAccount: string) => {
-      return {
-        date: new Date().toLocaleString(),
-        ref: data.proposal_open_contract.contract_id,
-        code: data.proposal_open_contract.shortcode,
-        start: data.proposal_open_contract.entry_tick_display_value,
-        exit: data.proposal_open_contract.exit_tick_display_value,
-        stake: stake,
-        payout: data.proposal_open_contract.payout,
-        profit: profit,
-        strategy: data.proposal_open_contract.underlying,
-        typeAccount: typeAccount,
-      };
-    },
-    []
-  );
-
-  const startPauseCountdown = useCallback(() => {
-    const pauseTimeSeconds = botConfigRef.current.pauseTime;
-    pauseEndTimeRef.current = Date.now() + pauseTimeSeconds * 1000;
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const remaining = Math.max(0, pauseEndTimeRef.current - now);
-      setRemainingTime(Math.ceil(remaining / 1000));
-
-      if (remaining <= 0) {
-        clearInterval(interval);
-
-        countdownIntervalRef.current = null;
-      }
-    }, 1000);
-    countdownIntervalRef.current = interval;
-
-    const timer = setTimeout(async () => {
-      isPausedRef.current = false;
-      setRemainingTime(0);
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
-      }
-    }, pauseTimeSeconds * 1000);
-    pauseTimerRef.current = timer;
-  }, []);
-
-  const handleVirtualTransactions = useCallback(async (message: any) => {
-    if (
-      message.msg_type === "transaction" &&
-      message.transaction.action === "sell" &&
-      message.transaction.contract_id == contractIdVirtualRef.current
-    ) {
-      contadorRef.current = contadorRef.current + 1;
-      const isWin = message.transaction.amount > 0;
-
-      const newTrade = tradeConsole("VIRTUAL", isWin, contadorRef.current);
-      setListTrade((prev) => [newTrade, ...prev]);
-
-      if (isWin) {
-        handleWinResult(0);
-      } else {
-        handleLossResult(0);
-        setForceUpdate((prev) => prev + 1);
-      }
-
-      if (!botConfigRef.current.isRealAccount) {
-        firstOperationRef.current = true;
-      }
-    }
-  }, []);
-
-  const sendProposal = useCallback((contractId) => {
-    derivService.subscribe({
-      proposal_open_contract: 1,
-      contract_id: contractId,
-    });
-    return;
-  }, []);
-
-  const handleFirstOperation = useCallback(
-    (message) => {
-      if (
-        message.msg_type === "transaction" &&
-        message.transaction.action === "buy"
-      ) {
-        contractIdVirtualRef.current = message.transaction.contract_id;
-        isProporsalCopyRef.current = true;
-        sendProposal(message.transaction.contract_id);
-      }
-
-      if (
-        message.msg_type === "proposal_open_contract" &&
-        message.proposal_open_contract.status === "open" &&
-        isProporsalCopyRef.current
-      ) {
-        isProporsalCopyRef.current = false;
-        firstOperationRef.current = false;
-        derivService.send({ forget: message.subscription.id });
-        copiarDados(message);
-        setIsWaitingForOperations(false);
-      }
-    },
-    [sendProposal, copiarDados]
-  );
 
   const verificaFluxo = useCallback(() => {
     return botConfigRef.current.fluxoSomenteComPauseTime();
   }, []);
 
-  const handleStartBot = async () => {
-    if (botConfigRef.current.initialValue < 0.35) {
-      toast.error("Preencha um valor válido para a entrada inicial.");
-      return;
-    }
 
-    if (
-      botConfigRef.current.pauseTime > 0 &&
-      !botConfigRef.current.pauseOnWin &&
-      !botConfigRef.current.pauseOnLoss
-    ) {
-      toast.error("Selecione pelo menos um tipo de pausa.");
-      return;
-    }
+  const handleDemoConnect = useCallback(async () => {
+     demoConnectionRef.current = new WebSocket(
+      `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`
+    );
+    demoConnectionRef.current.addEventListener("open", handleDemoOpen);
+    demoConnectionRef.current.addEventListener("message", handleDemoMessage);
+    demoConnectionRef.current.addEventListener("close", handleDemoClose);
+    demoConnectionRef.current.addEventListener("error", handleDemoError);
 
-    if (
-      botConfigRef.current.pauseTime <= 0 &&
-      botConfigRef.current.quantityLoss <= 0
-    ) {
-      toast.error("Preencha o Pause Time ou Quantity Loss.");
-      return;
-    }
-
-    if (forgetIdRef.current) {
-      await derivService.send({ forget: forgetIdRef.current });
-      forgetIdRef.current = null;
-    }
-
-    setIsStart(true);
-    isPausedRef.current = false;
-    setRemainingTime(0);
-    contractTypeIdRealRef.current = null;
-    contractIdVirtualRef.current = null;
-    botConfigRef.current.reset();
-
-    const isFlowWithoutQuantityLoss = verificaFluxo();
-    setIsWaitingForOperations(true);
-    setDisabledQuantityLoss(true);
-
-    if (isFlowWithoutQuantityLoss) {
-      isProporsalCopyRef.current = false;
-      botConfigRef.current.isRealAccount = true;
-      firstOperationRef.current = true;
-    } else {
-      isProporsalCopyRef.current = false;
-      botConfigRef.current.isRealAccount = false;
-      firstOperationRef.current = true;
-    }
-
-    contadorRef.current = 0;
-
-    setForceUpdate((prev) => prev + 1);
-
-    copyTraderRef.current = {};
-
-    const transactionId = await derivService.subscribe({
-      transaction: 1,
-    });
-
-    if (
-      transactionId &&
-      transactionId.transaction &&
-      transactionId.transaction.id
-    ) {
-      forgetIdRef.current = transactionId.transaction.id;
-    } else {
-      toast.error("Falha ao iniciar o stream de transações.");
-      setIsStart(false);
-    }
-  };
-
-  const handleStopBot = useCallback(() => {
-    setIsStart(false);
-    isPausedRef.current = false;
-
-    if (forgetIdRef.current) {
-      derivService.send({ forget: forgetIdRef.current });
-      forgetIdRef.current = null;
-    }
-    setDisabledQuantityLoss(false);
-    botConfigRef.current.isRealAccount = false;
-    copiarDadosRef.current = false;
-    botConfigRef.current.isCopyTrader = false;
-    botConfigRef.current.reset();
-    setForceUpdate((prev) => prev + 1);
-    //derivService.observerInstance.clear();
   }, []);
 
-  const handleWinResult = useCallback(
-    (profit) => {
-      try {
-        botConfigRef.current.handleWin(profit);
-        setForceUpdate((prev) => prev + 1);
-        setTimeout(() => setForceUpdate((prev) => prev + 1), 0);
-      } catch (error: any) {
-        handleStopBot();
-        toast.error(error.message);
-      }
-    },
-    [handleStopBot]
-  );
+  const handleDemoSend = useCallback(async (payload) => {
+    return new Promise((resolve, reject) => {
+      const reqId = reqIdRef.current++;
+      payload.req_id = reqId;
+      demoConnectionRef.current.send(JSON.stringify({...payload, req_id: reqId}));
+
+    });
+  },[]);
+
+  const handleDemoOpen = useCallback(() => {
+    if (tokensRef.current.contaVirtual) {
+      handleDemoSend({authorize: tokensRef.current.contaVirtual.token});
+
+    }
+
+    pingIntervalRef.current = setInterval(() => {
+      demoConnectionRef.current.send('{"ping": 1}');
+    }, 25000)
+  },[handleDemoSend]);
+
+  const handleDemoMessage = useCallback((event: MessageEvent) => {
+    const data = JSON.parse(event.data);
+    console.log("Mensagem do servidor demo:", data);
+  },[]);
+
+  const handleDemoClose = useCallback(() => {
+    console.log("Conexão WebSocket encerrada.");
+
+    demoConnectionRef.current = null;
+    if (pingIntervalRef.current){
+      clearInterval(pingIntervalRef.current);
+    }
+  }, []);
+
+  const handleDemoReconnect = useCallback(() => {
+    demoConnectionRef.current.close();
+
+  },[]);
+
+  const handleDemoError = useCallback((event: Event) => {
+    handleDemoReconnect();
+    console.error("Ocorreu um erro na conexão WebSocket:", event);
+  },[handleDemoReconnect]);
+
+ useEffect(() => {
+   
+    handleDemoConnect();
+
+    realConnectionRef.current = new WebSocket(
+      `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID_REAL}`
+    );
+  }, [handleDemoConnect]);
+
+
+
 
   const handleLossResult = useCallback(
     (stake) => {
@@ -314,160 +152,40 @@ export default function BotTrade() {
     [handleStopBot]
   );
 
-  const handleBuy = useCallback(
-    async (message) => {
-      copyTraderRef.current.price = botConfigRef.current.currentStake;
-      copyTraderRef.current.parameters.amount =
-        botConfigRef.current.currentStake;
 
-      const response = await derivService.send(copyTraderRef.current);
-
-      if (response.error) {
-        toast.error(response.error.message);
-        handleStopBot();
-        return;
-      }
-
-      const contractId = response.buy.contract_id;
-      contractTypeIdRealRef.current = contractId;
-      sendProposal(contractId);
-      setForceUpdate((prev) => prev + 1);
-    },
-    [handleStopBot, sendProposal]
-  );
 
   const handlePauseBot = useCallback(() => {
     isPausedRef.current = true;
   }, []);
 
-  const handlePauseLogic = useCallback(
-    (isWin: boolean) => {
-      if (botConfigRef.current.shouldPause(isWin)) {
-        handlePauseBot();
-        startPauseCountdown();
-        return true;
-      }
-      return false;
-    },
-    [handlePauseBot, startPauseCountdown]
-  );
 
-  const handleRealContractResult = useCallback(
-    (message) => {
-      const poc = message.proposal_open_contract;
-      const contractId = poc.contract_id;
-      const isWin = poc.profit > 0;
-      const profit = poc.profit;
-      const stake = poc.buy_price;
 
-      contadorRef.current = contadorRef.current + 1;
 
-      contractTypeIdRealRef.current = null;
+ 
 
-      const trade = tradeConsole("REAL", isWin, contadorRef.current);
-      setListTrade((prev) => [trade, ...prev]);
-
-      const newTrade = createTradeRecord(message, profit, stake, "REAL");
-      setListTradeReal((prev) => [newTrade, ...prev]);
-
-      const shouldPause = handlePauseLogic(isWin);
-
-      if (isWin) {
-        handleWinResult(profit);
-      } else {
-        handleLossResult(stake);
-        setForceUpdate((prev) => prev + 1);
-      }
-
-      if (!botConfigRef.current.isRealAccount) {
-        firstOperationRef.current = true;
-      }
-
-      if (shouldPause) {
-        return;
-      }
-    },
-    [
-      tradeConsole,
-      createTradeRecord,
-      handlePauseLogic,
-      handleWinResult,
-      handleLossResult,
-    ]
-  );
-
-  const copiarEComprar = useCallback(
-    async (message) => {
-      if (
-        message.msg_type === "transaction" &&
-        message.transaction.action === "buy" &&
-        contractTypeIdRealRef.current !== message.transaction.contract_id
-      ) {
-        handleBuy(message);
-        sendProposal(message.transaction.contract_id);
-        return;
-      }
-
-      if (
-        message.proposal_open_contract?.status === "open" &&
-        message.proposal_open_contract.contract_id !==
-          contractTypeIdRealRef.current
-      ) {
-        derivService.send({ forget: message.subscription.id });
-        copiarDados(message);
-        return;
-      }
-
-      if (
-        message.proposal_open_contract?.is_valid_to_sell &&
-        contractTypeIdRealRef.current ===
-          message.proposal_open_contract.contract_id
-      ) {
-        handleRealContractResult(message);
-        return;
-      }
-    },
-    [handleBuy, sendProposal, copiarDados, handleRealContractResult]
-  );
+  const getAccountReal = () => {
+    return accountReal;
+  }
 
   useEffect(() => {
-    const listenerId = derivService.observerInstance.on(
-      "message",
-      async (message) => {
-        if (
-          message.msg_type !== "transaction" &&
-          message.msg_type !== "proposal_open_contract" &&
-          message.msg_type !== "buy"
-        ) {
-          return;
-        }
-        console.log("MESSAGE", message);
-        if (isPausedRef.current) return;
+    const adicionaToken = async () => {
+      let tokens = derivService.getTokens();
+      tokensRef.current.contaReal = tokens.find((tokens) => tokens.is_virtual == false);
+      tokensRef.current.contaVirtual = tokens.find((tokens) => tokens.is_virtual == true);
+    };
+    adicionaToken();
 
-        if (firstOperationRef.current) {
-          await handleFirstOperation(message);
-          return;
-        }
+    const listenerId = derivService.observerInstance.on("account.update", 
+      (data: AccountInfo) => {
+        const contaReal = data.tokens.find((tokens) => tokens.is_virtual == false);
 
-        if (botConfigRef.current.isRealAccount && !firstOperationRef.current) {
-          await copiarEComprar(message);
-          return;
-        }
-
-        if (!botConfigRef.current.isRealAccount && !firstOperationRef.current) {
-          await handleVirtualTransactions(message);
-          return;
+        if (contaReal) {
+          setAccountReal(contaReal);
         }
       }
     );
-
-    return () => {
-      derivService.observerInstance.removeById(listenerId);
-      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
-      if (countdownIntervalRef.current)
-        clearInterval(countdownIntervalRef.current);
-    };
-  }, [handleFirstOperation, copiarEComprar, handleVirtualTransactions]);
+    return () => derivService.observerInstance.removeById(listenerId);
+  },[])
 
   const handleConfigChange = (field: keyof BotConfig, value: any) => {
     // @ts-ignore
@@ -511,21 +229,23 @@ export default function BotTrade() {
             <span>Configuração</span>
           </div>
           <div className="w-2/3 flex justify-between">
-            <div className="flex flex-col">
+            <div className="flex">
               <div>Trade Action</div>
-              <div>
-                Conta: {botConfigRef.current.isRealAccount ? "REAL" : "VIRTUAL"}
-              </div>
-              <div>ENTRADA: {botConfigRef.current.currentStake}</div>
-              <div>Valor Total Loss: {botConfigRef.current.totalLoss}</div>
-              <div>Valor total Win: {botConfigRef.current.totalWin}</div>
-              <div>Multiplicador: {botConfigRef.current.stakeMultiple}</div>
-              <div className="mt-2 text-yellow-500 text-sm">
+             
+              <div className="ml-2 text-yellow-500 text-sm">
                 <ClockIcon className="inline-block w-4 h-4 mr-1" />
                 Retomando em: {remainingTime}s
               </div>
             </div>
+      <div className="flex items-center gap-2">
+        <div>
+           <input type="checkbox" checked={isTest} onChange={(e) => {
+               //isTestRef.current = e.target.checked;
+               setIsTest(e.target.checked)
 
+           }} className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" /> Testar
+        </div>
+       
             {isStart ? (
               <button
                 onClick={handleStopBot}
@@ -571,6 +291,7 @@ export default function BotTrade() {
                 Start
               </button>
             )}
+            </div>
           </div>
         </div>
         <hr className="my-2 mb-4" />
@@ -607,6 +328,16 @@ export default function BotTrade() {
                   </span>
                 </div>
               </div>
+            </div>
+            <div className="mt-2">
+              <div className="text-green-600">Valor Total Loss: {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(botConfigRef.current.totalLoss)}</div>
+              <div className="text-red-600">Valor Total Win: {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(botConfigRef.current.totalWin)}</div>
+              {getAccountReal()?.token ? (
+                <div className="text-blue-600">{getAccountReal().acct} {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(getAccountReal().balance)}</div>
+              ): (
+                <div className="text-gray-500">Conta não conectada</div>
+              )}
+              
             </div>
             <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5">

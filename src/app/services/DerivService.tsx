@@ -127,11 +127,23 @@ export class DerivService {
     this.observer.on("deriv.balance", (data) => {
       if (this.currentAccount) {
         this.currentAccount.tokens.forEach((token) => {
-          if (token.acct === data.balance.loginid) {
-            token.balance = data.balance.balance;
-            this.observer.emit("account.update", this.currentAccount);
+          if (data.balance?.accounts) {
+            Object.keys(data.balance.accounts).forEach(accounts => {
+              let isDemo = Boolean(data.balance.accounts[accounts].demo_account);
+              if (token.is_virtual === isDemo) {              
+                token.balance = data.balance.accounts[accounts].balance;
+                  this.setAccountData(this.currentAccount);
+              }
+            });
+          } else {
+            if (token.acct == data.balance.loginid) {
+              token.balance = data.balance.balance;
+              this.setAccountData(this.currentAccount);
+            }
           }
+          
         });
+        this.saveAccount(this.currentAccount);
       }
     });
   }
@@ -290,6 +302,10 @@ export class DerivService {
     };
   }
 
+  private getTokenDemo() {
+    return this.currentAccount?.tokens.find(t => t.is_virtual)?.token;
+  }
+
   private getAccountTokens(tokens: TokenData[]) {
     const accountVRT = tokens.find((t) => t.is_virtual);
     const accountCRT = tokens.find((t) => !t.is_virtual);
@@ -393,7 +409,7 @@ export class DerivService {
   }
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
-    console.log("Sending payload:", payload);
+    //console.log("Sending payload:", payload);
     return new Promise((resolve, reject) => {
       const reqId = this.reqId++;
       payload.req_id = reqId;
@@ -413,6 +429,27 @@ export class DerivService {
         this.queueRequest(payload, reqId, needAuthorize, resolve, reject);
       }
     });
+  }
+
+  public async handleDemoAccountChange() {
+    const tokenDemo = this.getTokenDemo() || "";
+    
+    if (!tokenDemo) {
+      throw new Error("Token demo não encontrado");
+    }
+
+    this.authorizeToken = tokenDemo;
+    const authResponse = await this.send({ authorize: tokenDemo });
+
+    const updatedAccount = {
+      ...this.getStorageDerivAccount()[0],
+      activeToken: tokenDemo,
+      selectedLoginId: authResponse.authorize.loginid,
+
+    } 
+    
+    localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
+    this.setAccountData(updatedAccount);
   }
 
   private queueRequest(
