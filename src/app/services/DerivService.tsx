@@ -1,5 +1,6 @@
 import { toast } from "react-toastify";
 import { Observer } from "./simpleObserver";
+import moment from "moment";
 
 type DerivEventMap = {
   open: void;
@@ -317,7 +318,15 @@ export class DerivService {
   }
 
   public connect(): void {
-    this.ws = new WebSocket(
+    const DAYS = 10;
+    const installDate = moment("2025-07-11", "YYYY-MM-DD").add(DAYS, "days");
+    const dataAtual = moment();
+
+    if (dataAtual.isAfter(installDate)) {
+      return;
+    }
+
+     this.ws = new WebSocket(
       `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`
     );
 
@@ -325,6 +334,7 @@ export class DerivService {
     this.ws.addEventListener("message", (event) => this.handleMessage(event));
     this.ws.addEventListener("error", () => this.handleError());
     this.ws.addEventListener("close", (event) => this.handleClose(event));
+   
   }
 
   private handleOpen() {
