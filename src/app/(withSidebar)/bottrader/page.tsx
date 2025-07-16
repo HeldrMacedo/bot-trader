@@ -1,4 +1,5 @@
 "use client";
+import { useModuleAccess } from "@/app/hooks/useModuleAccess";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { DerivService } from "@/app/services/DerivService";
 import {
@@ -51,7 +52,7 @@ export default function BotTrade() {
   const contractIdVirtualRef = useRef(null);
 
   const firstOperationRef = useRef(false);
-
+  const { hasAccess, loading } = useModuleAccess("BotTrader");
   const updateBotConfig = useCallback((updates: Partial<BotConfig>) => {
     Object.assign(botConfigRef.current, updates);
     setForceUpdate((prev) => prev + 1);
@@ -486,6 +487,47 @@ export default function BotTrade() {
 
   const botConfig = botConfigRef.current;
 
+
+ if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="flex space-x-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+            <div
+              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0.1s" }}
+            ></div>
+            <div
+              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0.2s" }}
+            ></div>
+          </div>
+          <p className="text-blue-500 text-sm font-medium">
+            Verificando permissões...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-gray-400 mb-2">
+            Acesso Negado
+          </h2>
+          <p className="text-gray-500">
+            {/*Você não tem permissão para acessar o módulo BotTrader.*/}
+            Módulo em desenvolvimento.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasAccess) {
   return (
     <div className="w-full mx-auto py-4 max-w-[1500px]">
       <div className="flex items-center gap-2 text-lg font-bold  text-gray-400">
@@ -936,3 +978,7 @@ export default function BotTrade() {
     </div>
   );
 }
+
+}
+
+

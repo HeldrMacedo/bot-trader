@@ -1,14 +1,30 @@
 "use client";
 import { useEffect, useState } from "react";
 import { User } from "@prisma/client";
-import { deleteUser, getUsers, createUser, updateUser } from "./actions";
+import { deleteUser, getUsers, createUser, updateUser, getModules } from "./actions";
 import UserModal from "./UserModal";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 import { redirect } from "next/navigation";
 
+interface Module {
+  id: number;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+interface UserWithModules extends User {
+  userModules?: {
+    id: number;
+    moduleId: number;
+    isActive: boolean;
+    module: Module;
+  }[];
+}
+
 export default function UsersPage() {
   const [data, setData] = useState<{
-    users: User[];
+    users: UserWithModules[];
     total: number;
     totalPages: number;
   }>({
@@ -16,11 +32,12 @@ export default function UsersPage() {
     total: 0,
     totalPages: 0,
   });
+  const [modules, setModules] = useState<Module[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserWithModules | null>(null);
 
   const loadUsers = async () => {
     const token = localStorage.getItem("access_token") || "";
@@ -31,8 +48,18 @@ export default function UsersPage() {
     setData(result);
   };
 
+  const loadModules = async () => {
+    const token = localStorage.getItem("access_token") || "";
+    const result = await getModules(token);
+    if (result?.error == true) {
+      redirect("/home");
+    }
+    setModules(result.modules);
+  };
+
   useEffect(() => {
     loadUsers();
+    loadModules();
   }, [search, currentPage, itemsPerPage]);
 
   const handleDelete = async (id: string) => {
@@ -47,12 +74,14 @@ export default function UsersPage() {
   };
 
   const handleSubmit = async (
-    userData: Omit<User, "id" | "createdAt" | "updatedAt">
+    userData: Omit<User, "id" | "createdAt" | "updatedAt">,
+    selectedModules: number[]
   ) => {
     if (editingUser) {
       const token = localStorage.getItem("access_token") || "";
       const result = await updateUser(
         { ...userData, id: editingUser.id },
+        selectedModules,
         token
       );
       if (result?.error == true) {
@@ -60,7 +89,7 @@ export default function UsersPage() {
       }
     } else {
       const token = localStorage.getItem("access_token") || "";
-      const response = await createUser(userData, token);
+      const response = await createUser(userData, selectedModules, token);
       if (response.error == true) {
         redirect("/home");
       }
@@ -127,6 +156,9 @@ export default function UsersPage() {
                   Tipo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
+                  Módulos
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase">
                   Ações
                 </th>
               </tr>
@@ -139,6 +171,18 @@ export default function UsersPage() {
                   <td className="px-6 py-4 whitespace-nowrap">{user.phone}</td>
                   <td className="px-6 py-4 whitespace-nowrap capitalize">
                     {user.role === "admin" ? "Administrador" : "Usuário"}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {user.userModules?.filter(um => um.isActive).map((userModule) => (
+                        <span
+                          key={userModule.id}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                        >
+                          {userModule.module.name}
+                        </span>
+                      ))}
+                    </div>
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap space-x-2">
@@ -232,6 +276,7 @@ export default function UsersPage() {
           }}
           onSubmit={handleSubmit}
           initialData={editingUser}
+          availableModules={modules}
         />
       </div>
     </div>

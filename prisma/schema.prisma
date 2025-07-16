@@ -9,11 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
-
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -22,6 +20,7 @@ model User {
   phone     String
   role      String   @default("user")
   operations  Operation[]
+  userModules UserModule[]
   passwordToken   String?
   tokenSentAt     DateTime?
   createdAt DateTime @default(now())
@@ -41,4 +40,27 @@ model Operation {
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Module {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  userModules UserModule[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserModule {
+  id       Int     @id @default(autoincrement())
+  userId   Int
+  moduleId Int
+  isActive Boolean @default(true)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module   Module  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, moduleId])
 }

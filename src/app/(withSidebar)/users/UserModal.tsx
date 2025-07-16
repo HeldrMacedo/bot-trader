@@ -2,13 +2,31 @@
 import { useState, useEffect } from "react";
 import { User } from "@prisma/client";
 
+interface Module {
+  id: number;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+interface UserWithModules extends User {
+  userModules?: {
+    id: number;
+    moduleId: number;
+    isActive: boolean;
+    module: Module;
+  }[];
+}
+
 interface UserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (
-    data: Omit<User, "id" | "createdAt" | "updatedAt" | "deletedAt">
+    data: Omit<User, "id" | "createdAt" | "updatedAt" | "deletedAt">,
+    modules: number[]
   ) => void;
-  initialData?: User | null;
+  initialData?: UserWithModules | null;
+  availableModules: Module[];
 }
 
 export default function UserModal({
@@ -16,6 +34,7 @@ export default function UserModal({
   onClose,
   onSubmit,
   initialData,
+  availableModules,
 }: UserModalProps) {
   const [formData, setFormData] = useState({
     name: "",
@@ -27,6 +46,8 @@ export default function UserModal({
     passwordToken: "",
     tokenSentAt: null,
   });
+
+  const [selectedModules, setSelectedModules] = useState<number[]>([]);
 
   useEffect(() => {
     if (initialData) {
@@ -41,8 +62,16 @@ export default function UserModal({
         passwordToken: "",
         tokenSentAt: null,
       });
+
+      const userModuleIds = initialData.userModules
+        ?.filter(um => um.isActive)
+        ?.map(um => um.moduleId) || [];
+      setSelectedModules(userModuleIds);
+    } else {
+      setSelectedModules([]);
     }
   }, [initialData]);
+
   const handleRoleChange = (role: "user" | "admin") => {
     setFormData((prev) => ({
       ...prev,
@@ -50,16 +79,26 @@ export default function UserModal({
     }));
   };
 
+  const handleModuleChange = (moduleId: number, checked: boolean) => {
+    setSelectedModules(prev => {
+      if (checked) {
+        return [...prev, moduleId];
+      } else {
+        return prev.filter(id => id !== moduleId);
+      }
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit(formData, selectedModules);
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">
           {initialData ? "Editar Usuário" : "Novo Usuário"}
         </h2>
@@ -132,7 +171,7 @@ export default function UserModal({
                     name="role"
                     checked={formData.role === "user"}
                     onChange={() => handleRoleChange("user")}
-                    className="sr-only" // Esconde o radio button original
+                    className="sr-only"
                   />
                   <div className="w-5 h-5 border-2 border-gray-400 rounded-full flex items-center justify-center">
                     {formData.role === "user" && (
@@ -150,7 +189,7 @@ export default function UserModal({
                     name="role"
                     checked={formData.role === "admin"}
                     onChange={() => handleRoleChange("admin")}
-                    className="sr-only" // Esconde o radio button original
+                    className="sr-only"
                   />
                   <div className="w-5 h-5 border-2 border-gray-400 rounded-full flex items-center justify-center">
                     {formData.role === "admin" && (
@@ -174,6 +213,32 @@ export default function UserModal({
                   </span>
                 </div>
               </label>
+            </div>
+          </div>
+
+          <div>
+            <span className="block text-sm font-medium mb-3">
+              Módulos
+            </span>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {availableModules.map((module) => (
+                <label key={module.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedModules.includes(module.id)}
+                    onChange={(e) => handleModuleChange(module.id, e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-300 text-sm">
+                    {module.name}
+                  </span>
+                  {module.description && (
+                    <span className="text-gray-500 text-xs">
+                      ({module.description})
+                    </span>
+                  )}
+                </label>
+              ))}
             </div>
           </div>
 
