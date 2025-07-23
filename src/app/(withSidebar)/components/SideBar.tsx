@@ -41,29 +41,29 @@ const Sidebar = ({
   const [accountInfo, setAccountInfo] = useState<TokenData | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  const derivService = DerivService.getInstance();
+  // const derivService = DerivService.getInstance();
 
-  useEffect(() => {
-    const fethUser = async () => {
-      const user = await getUser();
-      if (!user) return;
-      setAuth(user);
-    };
-    fethUser();
+  // useEffect(() => {
+  //   const fethUser = async () => {
+  //     const user = await getUser();
+  //     if (!user) return;
+  //     setAuth(user);
+  //   };
+  //   fethUser();
 
-    const listenerId = derivService.observerInstance.on(
-      "account.update",
-      (data: AccountInfo) => {
-        const accountActive = data.tokens.find(
-          (tokens) => tokens.token === data?.activeToken
-        );
-        if (accountActive) {
-          setAccountInfo({ ...accountActive });
-        }
-      }
-    );
-    return () => derivService.observerInstance.removeById(listenerId);
-  }, []);
+  //   const listenerId = derivService.observerInstance.on(
+  //     "account.update",
+  //     (data: AccountInfo) => {
+  //       const accountActive = data.tokens.find(
+  //         (tokens) => tokens.token === data?.activeToken
+  //       );
+  //       if (accountActive) {
+  //         setAccountInfo({ ...accountActive });
+  //       }
+  //     }
+  //   );
+  //   return () => derivService.observerInstance.removeById(listenerId);
+  // }, []);
 
   const handleProfileUpdate = async (data) => {
     try {

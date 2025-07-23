@@ -361,6 +361,7 @@ export class DerivService {
     try {
 
       const data = JSON.parse(event.data);
+      console.log("CHAMOU ", data);
       this.observer.emit("message", data);
       
 

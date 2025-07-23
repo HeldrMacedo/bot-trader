@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { AccountInfo, DerivService, TokenData } from "@/app/services/DerivService";
+import {
+  AccountInfo,
+  DerivService,
+  TokenData,
+} from "@/app/services/DerivService";
 import {
   ExclamationTriangleIcon,
   ClockIcon,
@@ -10,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { BotConfig } from "@/app/models/BotConfig";
 import { toast } from "react-toastify";
+import DerivConnection from "@/app/services/derivConnection";
 
 export default function BotTrade() {
   const [isStart, setIsStart] = useState(false);
@@ -34,8 +39,6 @@ export default function BotTrade() {
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pauseEndTimeRef = useRef<number>(0);
 
-  const derivService = DerivService.getInstance();
-
   const contractTypeIdRealRef = useRef(null);
   const isPausedRef = useRef(false);
 
@@ -52,91 +55,368 @@ export default function BotTrade() {
   const tokensRef = useRef({
     contaReal: null,
     contaVirtual: null,
-  })
+  });
   const firstOperationRef = useRef(false);
-  const demoConnectionRef = useRef(null);
-  const realConnectionRef = useRef(null);
+  const demoConnectionRef = useRef<DerivConnection | null>(null);
+  const realConnectionRef = useRef<DerivConnection | null>(null);
   const reqIdRef = useRef(1);
-  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const reqIdRealRef = useRef(1);
+  const pingIntervalDemoRef = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalRealRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateBotConfig = useCallback((updates: Partial<BotConfig>) => {
     Object.assign(botConfigRef.current, updates);
     setForceUpdate((prev) => prev + 1);
   }, []);
 
-
-
   const verificaFluxo = useCallback(() => {
     return botConfigRef.current.fluxoSomenteComPauseTime();
   }, []);
+  const copiarDados = useCallback((message) => {
+    setForceUpdate((prev) => prev + 1);
 
-
-  const handleDemoConnect = useCallback(async () => {
-     demoConnectionRef.current = new WebSocket(
-      `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`
-    );
-    demoConnectionRef.current.addEventListener("open", handleDemoOpen);
-    demoConnectionRef.current.addEventListener("message", handleDemoMessage);
-    demoConnectionRef.current.addEventListener("close", handleDemoClose);
-    demoConnectionRef.current.addEventListener("error", handleDemoError);
-
+    copyTraderRef.current = {
+      buy: 1,
+      price: botConfigRef.current.currentStake,
+      parameters: {
+        amount: botConfigRef.current.currentStake,
+        basis: "stake",
+        contract_type: message.proposal_open_contract.contract_type,
+        currency: "USD",
+        duration: message.proposal_open_contract.tick_count,
+        duration_unit: "t",
+        symbol: message.proposal_open_contract.underlying,
+        ...(message.proposal_open_contract.barrier && {
+          barrier: message.proposal_open_contract.barrier,
+        }),
+      },
+    };
   }, []);
 
-  const handleDemoSend = useCallback(async (payload) => {
-    return new Promise((resolve, reject) => {
-      const reqId = reqIdRef.current++;
-      payload.req_id = reqId;
-      demoConnectionRef.current.send(JSON.stringify({...payload, req_id: reqId}));
+  
 
+  const handleFirstOperation = useCallback(
+    (message) => {
+      if (
+        message.msg_type === "transaction" &&
+        message.transaction.action === "buy"
+      ) {
+        isProporsalCopyRef.current = true;
+        demoConnectionRef.current.subscribe({
+          proposal_open_contract: 1,
+          contract_id: message.transaction.contract_id,
+        });
+      }
+
+      if (
+        message.msg_type === "proposal_open_contract" &&
+        message.proposal_open_contract.status === "open" &&
+        isProporsalCopyRef.current
+      ) {
+        isProporsalCopyRef.current = false;
+        firstOperationRef.current = false;
+        demoConnectionRef.current.send({ forget: message.subscription.id });
+        copiarDados(message);
+        setIsWaitingForOperations(false);
+      }
+    },
+    [copiarDados]
+  );
+
+  const handleVirtualTransactions = useCallback((message) => {
+    if (
+     message.msg_type === "transaction" &&
+      message.transaction.action === "sell"
+    ) {
+      contadorRef.current = contadorRef.current + 1;
+      const isWin = message.transaction.amount > 0;
+
+      const newTrade = tradeConsole("VIRTUAL", isWin, contadorRef.current);
+      setListTrade((prev) => [newTrade, ...prev]);
+
+      if (isWin) {
+        handleWinResult(0);
+      } else {
+        handleLossResult(0);
+        setForceUpdate((prev) => prev + 1);
+      }
+
+      if (!botConfigRef.current.isRealAccount) {
+        firstOperationRef.current = true;
+      }
+    }
+  }, []);
+
+  const tradeConsole = useCallback(
+    (type: string, isWin: boolean, contador: number) => {
+      return {
+        type: type,
+        isWin: isWin,
+        contador: contador,
+      };
+    },
+    []
+  );
+
+  const createTradeRecord = useCallback(
+    (data: any, profit: number, stake: number, typeAccount: string) => {
+      return {
+        date: new Date().toLocaleString(),
+        ref: data.proposal_open_contract.contract_id,
+        code: data.proposal_open_contract.shortcode,
+        start: data.proposal_open_contract.entry_tick_display_value,
+        exit: data.proposal_open_contract.exit_tick_display_value,
+        stake: stake,
+        payout: data.proposal_open_contract.payout,
+        profit: profit,
+        strategy: data.proposal_open_contract.underlying,
+        typeAccount: typeAccount,
+      };
+    },
+    []
+  );
+
+  const handlePauseBot = useCallback(() => {
+    isPausedRef.current = true;
+  }, []);
+
+  const getAccountReal = () => {
+    return accountReal;
+  };
+
+  useEffect(() => {
+    const adicionaToken = async () => {
+      let tokens = JSON.parse(localStorage.getItem(`token_list`) || "[]");
+      tokensRef.current.contaReal = tokens.find(
+        (tokens) => tokens.is_virtual == false
+      );
+      tokensRef.current.contaVirtual = tokens.find(
+        (tokens) => tokens.is_virtual == true
+      );
+    };
+    adicionaToken();
+  }, []);
+
+  const handleConfigChange = (field: keyof BotConfig, value: any) => {
+    // @ts-ignore
+    botConfigRef.current[field] = value;
+    if (field === 'initialValue') {
+      botConfigRef.current.currentStake = value;
+    }
+    setForceUpdate((prev) => prev + 1);
+  };
+
+  const handleStartBot = async () => {
+    if (!tokensRef.current.contaReal || !tokensRef.current.contaVirtual) {
+      toast.error("Tenha uma conta real ou virtual ativa.");
+      return;
+    }
+
+    if (botConfigRef.current.initialValue < 0.35) {
+      toast.error("Preencha um valor válido para a entrada inicial.");
+      return;
+    }
+
+    if (
+      botConfigRef.current.pauseTime > 0 &&
+      !botConfigRef.current.pauseOnWin &&
+      !botConfigRef.current.pauseOnLoss
+    ) {
+      toast.error("Selecione pelo menos um tipo de pausa.");
+      return;
+    }
+
+    if (
+      botConfigRef.current.pauseTime <= 0 &&
+      botConfigRef.current.quantityLoss <= 0
+    ) {
+      toast.error("Preencha o Pause Time ou Quantity Loss.");
+      return;
+    }
+
+    setIsStart(true);
+    isPausedRef.current = false;
+    setRemainingTime(0);
+
+    const isFlowWithoutQuantityLoss = verificaFluxo();
+    setIsWaitingForOperations(true);
+    setDisabledQuantityLoss(true);
+
+    if (isFlowWithoutQuantityLoss) {
+      botConfigRef.current.isRealAccount = true;
+      firstOperationRef.current = true;
+    } else {
+      botConfigRef.current.isRealAccount = false;
+      firstOperationRef.current = true;
+    }
+
+    contadorRef.current = 0;
+
+    setForceUpdate((prev) => prev + 1);
+    copyTraderRef.current = {};
+
+    try {
+      // Usar a conexão demo para transações
+      const response = await demoConnectionRef.current.subscribe({
+        transaction: 1,
+      });
+
+      if (response.subscription?.id) {
+        forgetIdRef.current = response.subscription.id;
+        setIsStart(true);
+      }
+    } catch (error) {
+      toast.error("Falha ao iniciar o stream de transações.");
+      console.error("Start bot error:", error);
+    }
+  };
+
+const handleStopBot = useCallback(async () => {
+    setIsStart(false);
+    isPausedRef.current = false;
+
+    if (forgetIdRef.current && demoConnectionRef.current) {
+      try {
+        await demoConnectionRef.current.forget(forgetIdRef.current);
+        forgetIdRef.current = null;
+      } catch (error) {
+        console.error("Stop bot error:", error);
+      }
+    }
+
+    setDisabledQuantityLoss(false);
+    botConfigRef.current.isRealAccount = false;
+    botConfigRef.current.reset();
+    setForceUpdate((prev) => prev + 1);
+  }, []);
+
+
+  const startPauseCountdown = useCallback(() => {
+    const pauseTimeSeconds = botConfigRef.current.pauseTime;
+    pauseEndTimeRef.current = Date.now() + pauseTimeSeconds * 1000;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, pauseEndTimeRef.current - now);
+      setRemainingTime(Math.ceil(remaining / 1000));
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+
+        countdownIntervalRef.current = null;
+      }
+    }, 1000);
+    countdownIntervalRef.current = interval;
+
+    const timer = setTimeout(async () => {
+      isPausedRef.current = false;
+      setRemainingTime(0);
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    }, pauseTimeSeconds * 1000);
+    pauseTimerRef.current = timer;
+  }, []);
+
+  const sendProposal = useCallback(async (contractId) => {
+    realConnectionRef.current.subscribe({
+       proposal_open_contract: 1,
+      contract_id: contractId,
     });
-  },[]);
 
-  const handleDemoOpen = useCallback(() => {
-    if (tokensRef.current.contaVirtual) {
-      handleDemoSend({authorize: tokensRef.current.contaVirtual.token});
-
-    }
-
-    pingIntervalRef.current = setInterval(() => {
-      demoConnectionRef.current.send('{"ping": 1}');
-    }, 25000)
-  },[handleDemoSend]);
-
-  const handleDemoMessage = useCallback((event: MessageEvent) => {
-    const data = JSON.parse(event.data);
-    console.log("Mensagem do servidor demo:", data);
-  },[]);
-
-  const handleDemoClose = useCallback(() => {
-    console.log("Conexão WebSocket encerrada.");
-
-    demoConnectionRef.current = null;
-    if (pingIntervalRef.current){
-      clearInterval(pingIntervalRef.current);
-    }
   }, []);
 
-  const handleDemoReconnect = useCallback(() => {
-    demoConnectionRef.current.close();
+  const handleBuy = useCallback(async () => {
+    copyTraderRef.current.price = botConfigRef.current.currentStake;
+    copyTraderRef.current.parameters.amount = botConfigRef.current.currentStake;
 
-  },[]);
+    const response = await realConnectionRef.current.send(copyTraderRef.current);
 
-  const handleDemoError = useCallback((event: Event) => {
-    handleDemoReconnect();
-    console.error("Ocorreu um erro na conexão WebSocket:", event);
-  },[handleDemoReconnect]);
+    if (response.error) {
+        toast.error(response.error.message);
+        handleStopBot();
+        return;
+      }
 
- useEffect(() => {
-   
-    handleDemoConnect();
+      sendProposal(response.buy.contract_id);
 
-    realConnectionRef.current = new WebSocket(
-      `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID_REAL}`
-    );
-  }, [handleDemoConnect]);
+  }, [handleStopBot, sendProposal]);
 
+  const copiarEComprar = useCallback(async (message) => {
+    if (
+      message.msg_type === "transaction" &&
+      message.transaction.action === "buy"
+    ) {
+      handleBuy();
+      
+      demoConnectionRef.current.subscribe({
+        proposal_open_contract: 1,
+        contract_id: message.transaction.contract_id,
+      });
+      return;
+    }
 
+    if (message.proposal_open_contract?.status === "open") {
+      demoConnectionRef.current.send({ forget: message.subscription.id });
+      copiarDados(message);
+    }
+  }, [handleBuy, copiarDados]);
 
+  const handleDemoMessage = useCallback(
+    (message, idDemo) => {
+      if (
+        message.msg_type !== "transaction" &&
+        message.msg_type !== "proposal_open_contract" &&
+        message.msg_type !== "buy"
+      ) {
+        return;
+      }
+      if (isPausedRef.current) return;
+
+      if (firstOperationRef.current) {
+        handleFirstOperation(message);
+        return;
+      }
+
+      if (botConfigRef.current.isRealAccount && !firstOperationRef.current) {
+        copiarEComprar(message);
+        return;
+      }
+
+      if (!botConfigRef.current.isRealAccount && !firstOperationRef.current) {
+        handleVirtualTransactions(message);
+        return;
+      }
+    },
+    [handleFirstOperation, copiarEComprar, handleVirtualTransactions ]
+  );
+
+  const handlePauseLogic = useCallback(
+    (isWin: boolean) => {
+      if (botConfigRef.current.shouldPause(isWin)) {
+        handlePauseBot();
+        startPauseCountdown();
+        return true;
+      }
+      return false;
+    },
+    [handlePauseBot, startPauseCountdown]
+  );
+
+  const handleWinResult = useCallback(
+    (profit) => {
+      try {
+        botConfigRef.current.handleWin(profit);
+        setForceUpdate((prev) => prev + 1);
+        setTimeout(() => setForceUpdate((prev) => prev + 1), 0);
+      } catch (error: any) {
+        handleStopBot();
+        toast.error(error.message);
+      }
+    },
+    [handleStopBot]
+  );
 
   const handleLossResult = useCallback(
     (stake) => {
@@ -151,47 +431,109 @@ export default function BotTrade() {
     },
     [handleStopBot]
   );
+  
+  const handleRealContractResult = useCallback(
+    (message) => {
+      const poc = message.proposal_open_contract;
+      const contractId = poc.contract_id;
+      const isWin = poc.profit > 0;
+      const profit = poc.profit;
+      const stake = poc.buy_price;
 
+      contadorRef.current = contadorRef.current + 1;
+      const trade = tradeConsole("REAL", isWin, contadorRef.current);
+      setListTrade((prev) => [trade, ...prev]);
 
+      const newTrade = createTradeRecord(message, profit, stake, "REAL");
+      setListTradeReal((prev) => [newTrade, ...prev]);
 
-  const handlePauseBot = useCallback(() => {
-    isPausedRef.current = true;
-  }, []);
+      const shouldPause = handlePauseLogic(isWin);
 
+      if (isWin) {
+        handleWinResult(profit);
+      } else {
+        handleLossResult(stake);
+        setForceUpdate((prev) => prev + 1);
+      }
 
+      if (!botConfigRef.current.isRealAccount) {
+        firstOperationRef.current = true;
+      }
 
+      if (shouldPause) {
+        return;
+      }
+    },
+    [
+      tradeConsole,
+      createTradeRecord,
+      handlePauseLogic,
+      handleWinResult,
+      handleLossResult,
+    ]
+  );
 
- 
-
-  const getAccountReal = () => {
-    return accountReal;
-  }
+  const handleRealMessage = useCallback(
+    (message, idDemo) => {
+      if (message.proposal_open_contract?.is_valid_to_sell) {
+        realConnectionRef.current.send({ forget: message.subscription.id });
+        handleRealContractResult(message);
+      }
+    },
+    [handleRealContractResult]
+  );
 
   useEffect(() => {
-    const adicionaToken = async () => {
-      let tokens = derivService.getTokens();
-      tokensRef.current.contaReal = tokens.find((tokens) => tokens.is_virtual == false);
-      tokensRef.current.contaVirtual = tokens.find((tokens) => tokens.is_virtual == true);
-    };
-    adicionaToken();
+    const initConnections = async () => {
+      try {
+        
+        const tokens = JSON.parse(localStorage.getItem("token_list") || "[]");
+        const contaReal = tokens.find((token) => token.is_virtual === false);
+        const contaVirtual = tokens.find((token) => token.is_virtual === true);
 
-    const listenerId = derivService.observerInstance.on("account.update", 
-      (data: AccountInfo) => {
-        const contaReal = data.tokens.find((tokens) => tokens.is_virtual == false);
+        tokensRef.current.contaReal = contaReal;
+        tokensRef.current.contaVirtual = contaVirtual;
 
-        if (contaReal) {
-          setAccountReal(contaReal);
+        if (!demoConnectionRef.current) {
+          demoConnectionRef.current = new DerivConnection(
+            true,
+            handleDemoMessage
+          );
+        } else {
+          demoConnectionRef.current.setMessageCallback(handleDemoMessage);
         }
-      }
-    );
-    return () => derivService.observerInstance.removeById(listenerId);
-  },[])
 
-  const handleConfigChange = (field: keyof BotConfig, value: any) => {
-    // @ts-ignore
-    botConfigRef.current[field] = value;
-    setForceUpdate((prev) => prev + 1);
-  };
+        if (!realConnectionRef.current) {
+          realConnectionRef.current = new DerivConnection(
+            false,
+            handleRealMessage
+          );
+        } else {
+          realConnectionRef.current.setMessageCallback(handleRealMessage);
+        }
+
+        if (contaVirtual?.token) {
+          await demoConnectionRef.current.connect(contaVirtual.token);
+        }
+
+        if (contaReal?.token) {
+          await realConnectionRef.current.connect(contaReal.token);
+        }
+      } catch (error) {
+        console.error("Connection error:", error);
+      }
+    };
+
+    initConnections();
+
+    return () => {
+      demoConnectionRef.current?.removeMessageCallback();
+      realConnectionRef.current?.removeMessageCallback();
+      demoConnectionRef.current?.disconnect();
+      realConnectionRef.current?.disconnect();
+    };
+  }, [handleDemoMessage, handleRealMessage]);
+
 
   const formateInputMoney = (value: string) => {
     let cleanedValue = value.replace(/[^0-9.]/g, "");
@@ -231,66 +573,71 @@ export default function BotTrade() {
           <div className="w-2/3 flex justify-between">
             <div className="flex">
               <div>Trade Action</div>
-             
+
               <div className="ml-2 text-yellow-500 text-sm">
                 <ClockIcon className="inline-block w-4 h-4 mr-1" />
                 Retomando em: {remainingTime}s
               </div>
             </div>
-      <div className="flex items-center gap-2">
-        <div>
-           <input type="checkbox" checked={isTest} onChange={(e) => {
-               //isTestRef.current = e.target.checked;
-               setIsTest(e.target.checked)
+            <div className="flex items-center gap-2">
+              <div>
+                <input
+                  type="checkbox"
+                  checked={isTest}
+                  onChange={(e) => {
+                    //isTestRef.current = e.target.checked;
+                    setIsTest(e.target.checked);
+                  }}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                />{" "}
+                Testar
+              </div>
 
-           }} className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" /> Testar
-        </div>
-       
-            {isStart ? (
-              <button
-                onClick={handleStopBot}
-                className={`flex items-center gap-3 rounded-md pr-4 pl-4 ${
-                  isPausedRef.current ? "bg-yellow-600" : "bg-red-600"
-                } px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-${
-                  isPausedRef.current ? "yellow-500" : "red-500"
-                } focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-${
-                  isPausedRef.current ? "yellow-600" : "red-600"
-                }`}
-              >
-                {isPausedRef.current ? (
-                  <>
-                    <ClockIcon className="w-5 h-5" />
-                    Pausado
-                  </>
-                ) : (
-                  <>
-                    <StopIcon className="w-5 h-5" />
-                    Parar
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={handleStartBot}
-                className="flex items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.5"
-                  stroke="currentColor"
-                  className="size-6"
+              {isStart ? (
+                <button
+                  onClick={handleStopBot}
+                  className={`flex items-center gap-3 rounded-md pr-4 pl-4 ${
+                    isPausedRef.current ? "bg-yellow-600" : "bg-red-600"
+                  } px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-${
+                    isPausedRef.current ? "yellow-500" : "red-500"
+                  } focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-${
+                    isPausedRef.current ? "yellow-600" : "red-600"
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
-                  />
-                </svg>
-                Start
-              </button>
-            )}
+                  {isPausedRef.current ? (
+                    <>
+                      <ClockIcon className="w-5 h-5" />
+                      Pausado
+                    </>
+                  ) : (
+                    <>
+                      <StopIcon className="w-5 h-5" />
+                      Parar
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleStartBot}
+                  className="flex items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                    className="size-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
+                    />
+                  </svg>
+                  Start
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -330,14 +677,31 @@ export default function BotTrade() {
               </div>
             </div>
             <div className="mt-2">
-              <div className="text-green-600">Valor Total Loss: {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(botConfigRef.current.totalLoss)}</div>
-              <div className="text-red-600">Valor Total Win: {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(botConfigRef.current.totalWin)}</div>
+              <div className="text-green-600">
+                Valor Total Loss:{" "}
+                {Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                }).format(botConfigRef.current.totalLoss)}
+              </div>
+              <div className="text-red-600">
+                Valor Total Win:{" "}
+                {Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                }).format(botConfigRef.current.totalWin)}
+              </div>
               {getAccountReal()?.token ? (
-                <div className="text-blue-600">{getAccountReal().acct} {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(getAccountReal().balance)}</div>
-              ): (
+                <div className="text-blue-600">
+                  {getAccountReal().acct}{" "}
+                  {Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                  }).format(getAccountReal().balance)}
+                </div>
+              ) : (
                 <div className="text-gray-500">Conta não conectada</div>
               )}
-              
             </div>
             <div className="mt-2 flex flex-col lg:flex-row">
               <div className="w-2/5">
@@ -454,10 +818,10 @@ export default function BotTrade() {
                     value={inputInitialValue}
                     onChange={(e) => {
                       const rawValue = e.target.value;
-                      const cleanedValueString = formateInputMoney(rawValue); // Usa sua função para limpar
+                      const cleanedValueString = formateInputMoney(rawValue); 
                       const numericValue = parseFloat(cleanedValueString) || 0;
                       setInputInitialValue(cleanedValueString);
-                      handleConfigChange("initialValue", Number(numericValue)); //
+                      handleConfigChange("initialValue", Number(numericValue)); 
                     }}
                     className="w-[7rem] appearance-none rounded-md border border-gray-300 bg-white  pl-8 pr-3 text-base text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm/6"
                     placeholder="0.00"
