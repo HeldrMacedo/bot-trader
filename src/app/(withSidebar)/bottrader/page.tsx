@@ -1,4 +1,5 @@
 "use client";
+import { useModuleAccess } from "@/app/hooks/useModuleAccess";
 import { useEffect, useState, useRef, useCallback } from "react";
 import BotDemo from "./botDemo";
 import BotReal from "./botReal";
@@ -13,3 +14,6 @@ export default function BotTrade() {
         </div>
     )
 }
+
+
+
