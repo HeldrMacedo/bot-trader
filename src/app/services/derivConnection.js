@@ -53,7 +53,6 @@ class DerivConnection {
     }
 
      handleOpen() {
-        console.log(`${this.isDemo ? 'Demo' : 'Real'} WebSocket connection opened`);
         this.reconnectAttempts = 0;
         
         // Autorizar se token estiver disponível
@@ -74,7 +73,6 @@ class DerivConnection {
     handleMessage(event) {
         try {
             const data = JSON.parse(event.data);
-            console.log(`${this.isDemo ? 'Demo' : 'Real'} message:`, data);
 
             if (this.messageCallback && typeof this.messageCallback === 'function') {
                 try {
@@ -89,7 +87,6 @@ class DerivConnection {
             if (data.msg_type === "authorize") {
                 this.isAuthorized = !data.error;
                 if (this.isAuthorized) {
-                    console.log(`${this.isDemo ? 'Demo' : 'Real'} account authorized`);
                     this.dispatchPendingRequests();
                 }
             }
@@ -118,7 +115,6 @@ class DerivConnection {
     }
 
     handleClose(event) {
-        console.log(`${this.isDemo ? 'Demo' : 'Real'} WebSocket connection closed:`, event.code, event.reason);
         this.cleanup();
         
         if (!this.manualClose && this.reconnectAttempts < this.maxReconnectAttempts) {
@@ -142,7 +138,6 @@ class DerivConnection {
 
             const reqId = this.reqId++;
             const messageWithId = { ...payload, req_id: reqId };
-            console.log("SEND ", messageWithId);
             // Configurar timeout para a request
             const timeout = setTimeout(() => {
                 if (this.pendingRequests.has(reqId)) {
@@ -244,7 +239,6 @@ class DerivConnection {
         this.reconnectAttempts++;
         const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1); // Exponential backoff
         
-        console.log(`${this.isDemo ? 'Demo' : 'Real'} reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
         
         setTimeout(() => {
             if (!this.manualClose) {

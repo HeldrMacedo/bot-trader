@@ -1,5 +1,5 @@
 "use client";
-import {  } from "@/app/hooks/useModuleAccess";
+import { useModuleAccess } from "@/app/hooks/useModuleAccess";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { DerivService } from "@/app/services/DerivService";
 import {
@@ -318,8 +318,7 @@ export default function BotDemo() {
   const handleBuy = useCallback(
     async (message) => {
       copyTraderRef.current.price = botConfigRef.current.currentStake;
-      copyTraderRef.current.parameters.amount =
-        botConfigRef.current.currentStake;
+      copyTraderRef.current.parameters.amount = botConfigRef.current.currentStake;
 
       const response = await derivService.send(copyTraderRef.current);
 
@@ -442,7 +441,6 @@ export default function BotDemo() {
         ) {
           return;
         }
-        console.log("MESSAGE", message);
         if (isPausedRef.current) return;
 
         if (firstOperationRef.current) {
@@ -545,29 +543,21 @@ export default function BotDemo() {
             d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"
           />
         </svg>
-        Bot Trade
+        Bot Trade Demo
       </div>
       <div className="flex flex-col bg-principal rounded-lg p-6 mt-4 shadow-md hover:shadow-lg transition-shadow">
         <div className="text-gray-400 text-sm flex">
-          <div className="w-1/3">
-            <span>Configuração</span>
+          <div className="w-1/3 flex">
+            <div className="flex items-end">Configuração</div>
           </div>
           <div className="w-2/3 flex justify-between">
-            <div className="flex flex-col">
-              <div>Trade Action</div>
-              <div>
-                Conta: {botConfigRef.current.isRealAccount ? "REAL" : "VIRTUAL"}
-              </div>
-              <div>ENTRADA: {botConfigRef.current.currentStake}</div>
-              <div>Valor Total Loss: {botConfigRef.current.totalLoss}</div>
-              <div>Valor total Win: {botConfigRef.current.totalWin}</div>
-              <div>Multiplicador: {botConfigRef.current.stakeMultiple}</div>
-              <div className="mt-2 text-yellow-500 text-sm">
+            <div className="flex gap-2">
+              <div className="flex items-end">Trade Action</div>
+              <div className="text-yellow-500 text-sm flex items-end">
                 <ClockIcon className="inline-block w-4 h-4 mr-1" />
                 Retomando em: {remainingTime}s
               </div>
             </div>
-
             {isStart ? (
               <button
                 onClick={handleStopBot}

@@ -89,15 +89,12 @@ export class BotConfig {
   }
   
   shouldPause(isWin: boolean): boolean {
-    console.log("pauseTime", this.pauseTime);
     if (this.pauseTime <= 0) return false;
     
     if (isWin && this.pauseOnWin) {
-      console.log("pauseOnWin", this.pauseOnWin);
       return true;
     }
     if (!isWin && this.pauseOnLoss) {
-      console.log("pauseOnLoss", this.pauseOnLoss);
       return true;
     }
     

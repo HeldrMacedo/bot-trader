@@ -15,7 +15,7 @@ import {
 import { BotConfig } from "@/app/models/BotConfig";
 import { toast } from "react-toastify";
 import DerivConnection from "@/app/services/derivConnection";
-export default function BotReal() {
+export default function BotReal({ setIsTest }: { setIsTest: (value: boolean) => void }) {
 
   const [isStart, setIsStart] = useState(false);
 
@@ -38,8 +38,6 @@ export default function BotReal() {
   const pauseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pauseEndTimeRef = useRef<number>(0);
-
-  const contractTypeIdRealRef = useRef(null);
   const isPausedRef = useRef(false);
 
   const forgetIdRef = useRef<string | null>(null);
@@ -47,11 +45,10 @@ export default function BotReal() {
 
   const contadorRef = useRef(0);
   const isProporsalCopyRef = useRef(false);
-  const copiarDadosRef = useRef(false);
   const [isWaitingForOperations, setIsWaitingForOperations] = useState(false);
-  const contractIdVirtualRef = useRef(null);
   const [accountReal, setAccountReal] = useState<TokenData>();
-  const [isTest, setIsTest] = useState(false);
+  const [balance, setBalance] = useState('0');
+
   const tokensRef = useRef({
     contaReal: null,
     contaVirtual: null,
@@ -59,10 +56,6 @@ export default function BotReal() {
   const firstOperationRef = useRef(false);
   const demoConnectionRef = useRef<DerivConnection | null>(null);
   const realConnectionRef = useRef<DerivConnection | null>(null);
-  const reqIdRef = useRef(1);
-  const reqIdRealRef = useRef(1);
-  const pingIntervalDemoRef = useRef<NodeJS.Timeout | null>(null);
-  const pingIntervalRealRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateBotConfig = useCallback((updates: Partial<BotConfig>) => {
     Object.assign(botConfigRef.current, updates);
@@ -92,8 +85,6 @@ export default function BotReal() {
       },
     };
   }, []);
-
-  
 
   const handleFirstOperation = useCallback(
     (message) => {
@@ -479,6 +470,17 @@ const handleStopBot = useCallback(async () => {
         realConnectionRef.current.send({ forget: message.subscription.id });
         handleRealContractResult(message);
       }
+
+      if (message.msg_type === "authorize") {
+        realConnectionRef.current.subscribe({balance: 1});
+      }
+      
+      if (message.msg_type === "balance") {
+        setBalance(Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+        }).format(message.balance.balance));
+      }
     },
     [handleRealContractResult]
   );
@@ -533,7 +535,8 @@ const handleStopBot = useCallback(async () => {
       realConnectionRef.current?.disconnect();
     };
   }, [handleDemoMessage, handleRealMessage]);
-
+ 
+  
 
   const formateInputMoney = (value: string) => {
     let cleanedValue = value.replace(/[^0-9.]/g, "");
@@ -567,32 +570,27 @@ const handleStopBot = useCallback(async () => {
       </div>
       <div className="flex flex-col bg-principal rounded-lg p-6 mt-4 shadow-md hover:shadow-lg transition-shadow">
         <div className="text-gray-400 text-sm flex">
-          <div className="w-1/3">
-            <span>Configuração</span>
+          <div className="w-1/3 flex gap-2">
+            <div className="self-end">Configuração</div>
+            {/* <div>
+                <button 
+                  onClick={() => setIsTest(true)}
+                  className="flex items-center gap-3 rounded-md pr-4 pl-4 bg-red-600  py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                >
+                  Bot Real
+                </button>
+            </div> */}
           </div>
           <div className="w-2/3 flex justify-between">
-            <div className="flex">
-              <div>Trade Action</div>
+            <div className="flex gap-2">
+              <div className="self-end">Trader Action</div>
 
-              <div className="ml-2 text-yellow-500 text-sm">
-                <ClockIcon className="inline-block w-4 h-4 mr-1" />
+              <div className="text-yellow-500 text-sm self-end">
+                <ClockIcon className="inline-block w-4 h-4 mr-1 " />
                 Retomando em: {remainingTime}s
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div>
-                <input
-                  type="checkbox"
-                  checked={isTest}
-                  onChange={(e) => {
-                    //isTestRef.current = e.target.checked;
-                    setIsTest(e.target.checked);
-                  }}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                />{" "}
-                Testar
-              </div>
-
               {isStart ? (
                 <button
                   onClick={handleStopBot}
@@ -691,16 +689,12 @@ const handleStopBot = useCallback(async () => {
                   currency: "USD",
                 }).format(botConfigRef.current.totalWin)}
               </div>
-              {getAccountReal()?.token ? (
+              {balance !== '0' ? (
                 <div className="text-blue-600">
-                  {getAccountReal().acct}{" "}
-                  {Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "USD",
-                  }).format(getAccountReal().balance)}
+                  Balance: {balance}
                 </div>
               ) : (
-                <div className="text-gray-500">Conta não conectada</div>
+                <div className="text-gray-500">Sem Saldo</div>
               )}
             </div>
             <div className="mt-2 flex flex-col lg:flex-row">

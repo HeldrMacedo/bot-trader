@@ -18,7 +18,6 @@ export function useModuleAccess(moduleName: string) {
     const checkAccess = async () => {
       if (!user?.id) {
         setHasAccess(false);
-        setLoading(false);
         return;
       }
 
@@ -33,6 +32,7 @@ export function useModuleAccess(moduleName: string) {
           );
           setHasAccess(hasModule);
         }
+        setLoading(false);
       } catch (error) {
         console.error("Error checking module access:", error);
         setHasAccess(false);

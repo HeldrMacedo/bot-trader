@@ -32,6 +32,8 @@ interface PendingRequest {
   cancelled: boolean;
   timeToCancel: NodeJS.Timeout | null;
   send: () => void;
+  resolve?: (value: any) => void;
+  reject?: (reason?: any) => void;
 }
 
 export interface AccountInfo {
@@ -126,32 +128,46 @@ export class DerivService {
     });
 
     this.observer.on("deriv.balance", (data) => {
-      if (this.currentAccount) {
-        this.currentAccount.tokens.forEach((token) => {
-          if (data.balance?.accounts) {
-            Object.keys(data.balance.accounts).forEach(accounts => {
-              let isDemo = Boolean(data.balance.accounts[accounts].demo_account);
-              if (token.is_virtual === isDemo) {              
-                token.balance = data.balance.accounts[accounts].balance;
-                  this.setAccountData(this.currentAccount);
-              }
-            });
-          } else {
-            if (token.acct == data.balance.loginid) {
-              token.balance = data.balance.balance;
+  if (this.currentAccount) {
+    this.currentAccount.tokens.forEach((token) => {
+      if (data.balance?.accounts) {
+        Object.keys(data.balance.accounts).forEach(accounts => {
+          let isDemo = Boolean(data.balance.accounts[accounts].demo_account);
+          if (token.is_virtual === isDemo) {              
+            token.balance = data.balance.accounts[accounts].balance;
               this.setAccountData(this.currentAccount);
-            }
           }
-          
         });
-        this.saveAccount(this.currentAccount);
+      } else {
+        // Verificar se loginid existe antes de acessar
+        if (data.balance?.loginid && token.acct == data.balance.loginid) {
+          token.balance = data.balance.balance;
+          this.setAccountData(this.currentAccount);
+        }
       }
+      
     });
+    this.saveAccount(this.currentAccount);
+  }
+});
   }
 
   private setupBalanceMonitoring() {
-    this.subscribe({ balance: 1, account: "all" }).then((subscription) => {
+    if (this.balanceSubscriptionId) {
+    console.log('Balance subscription already exists');
+    return;
+  }
+  
+  this.subscribe({ balance: 1, account: "all" })
+    .then((subscription) => {
       this.balanceSubscriptionId = subscription.subscription.id;
+    })
+    .catch((error) => {
+      if (error.code === 'AlreadySubscribed') {
+        console.log('Balance subscription already exists, skipping...');
+      } else {
+        console.error('Error setting up balance monitoring:', error);
+      }
     });
     // setInterval(async () => {
     //   if (this.currentAccount) {
@@ -288,7 +304,7 @@ export class DerivService {
     };
   }
 
-  private async authenticate(token: string): Promise<UserInfo> {
+  public async authenticate(token: string): Promise<UserInfo> {
     const response = await this.send({ authorize: token });
 
     if (response.error) {
@@ -303,7 +319,7 @@ export class DerivService {
     };
   }
 
-  private getTokenDemo() {
+  public getTokenDemo() {
     return this.currentAccount?.tokens.find(t => t.is_virtual)?.token;
   }
 
@@ -334,13 +350,13 @@ export class DerivService {
   }
 
   public connect(): void {
-    const DAYS = 10;
-    const installDate = moment("2025-07-11", "YYYY-MM-DD").add(DAYS, "days");
-    const dataAtual = moment();
+    // const DAYS = 10;
+    // const installDate = moment("2025-07-11", "YYYY-MM-DD").add(DAYS, "days");
+    // const dataAtual = moment();
 
-    if (dataAtual.isAfter(installDate)) {
-      return;
-    }
+    // if (dataAtual.isAfter(installDate)) {
+    //   return;
+    // }
 
      this.ws = new WebSocket(
       `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`
@@ -353,7 +369,7 @@ export class DerivService {
    
   }
 
-  private handleOpen() {
+  public handleOpen() {
     this.observer.emit("open", undefined);
     if (this.authorizeToken) {
       this.send({ authorize: this.authorizeToken });
@@ -406,18 +422,45 @@ export class DerivService {
     if (!this.manualClose) this.reconnect();
   }
 
-  private cleanup() {
-    this.subscribes.clear();
-    if (this.balanceSubscriptionId) {
-      this.subscribes.delete(this.balanceSubscriptionId);
-    }
-    this.isAuthorized = false;
-    this.ws = null;
-
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-    }
+  public disconnect(): void {
+    this.manualClose = true;
+    
+    // Cancelar todas as subscriptions
+    const forgetPromises = Array.from(this.subscribes.keys()).map(id => 
+      this.send({ forget: id }).catch(error => console.error('Forget error:', error))
+    );
+    
+    Promise.all(forgetPromises).finally(() => {
+      if (this.ws) {
+        this.ws.close();
+        this.ws = null;
+      }
+      this.cleanup();
+    });
   }
+  
+  public cleanup() {
+  this.subscribes.clear();
+  this.balanceSubscriptionId = null; // Reset para permitir nova subscription
+  this.isAuthorized = false;
+  this.ws = null;
+
+  if (this.pingInterval) {
+    clearInterval(this.pingInterval);
+    this.pingInterval = null;
+  }
+  
+  // Limpar requests pendentes
+  this.pendingRequests.forEach(request => {
+    if (request.timeToCancel) {
+      clearTimeout(request.timeToCancel);
+    }
+    if (request.reject) {
+      request.reject(new Error('Connection closed'));
+    }
+  });
+  this.pendingRequests = [];
+}
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
     //console.log("Sending payload:", payload);
@@ -464,39 +507,63 @@ export class DerivService {
   }
 
   private queueRequest(
-    payload: Record<string, any>,
-    reqId: number,
-    needAuthorize: boolean,
-    resolve: (value: any) => void,
-    reject: (reason?: any) => void
-  ) {
-    const timeToCancel = setTimeout(() => {
-      reject({ code: "Timeout", message: "Limite de tempo expirado, sem resposta da corretora" });
-      toast.error("Limite de tempo expirado, sem resposta da corretora");
-    }, 20000);
+  payload: Record<string, any>,
+  reqId: number,
+  needAuthorize: boolean,
+  resolve: (value: any) => void,
+  reject: (reason?: any) => void
+) {
+  const timeToCancel = setTimeout(() => {
+    // Remover da lista de pendentes
+    const index = this.pendingRequests.findIndex(req => req.resolve === resolve);
+    if (index > -1) {
+      this.pendingRequests.splice(index, 1);
+    }
+    reject({ code: "Timeout", message: "Limite de tempo expirado, sem resposta da corretora" });
+    toast.error("Limite de tempo expirado, sem resposta da corretora");
+  }, 20000);
 
-    const pendingRequest: PendingRequest = {
-      needAuthorize,
-      cancelled: false,
-      timeToCancel,
-      send: () => {
-        if (!pendingRequest.cancelled) {
-          clearTimeout(timeToCancel);
-          this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
-        }
-      },
-    };
+  const pendingRequest: PendingRequest = {
+    needAuthorize,
+    cancelled: false,
+    timeToCancel,
+    resolve,
+    reject,
+    send: () => {
+      if (!pendingRequest.cancelled) {
+        clearTimeout(timeToCancel);
+        this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
+      }
+    },
+  };
 
-    this.pendingRequests.push(pendingRequest);
-  }
+  this.pendingRequests.push(pendingRequest);
+}
 
   public subscribe(payload: Record<string, any>): Promise<any> {
-    return this.send({ ...payload, subscribe: 1 }).then((response) => {  
-      if (response.subscription?.id) {
-        this.subscribes.set(response.subscription.id, payload);
-      }
-      return response;
-    });
+    // Verificar se já existe uma subscription similar
+    const existingSubscription = Array.from(this.subscribes.values())
+      .find(sub => JSON.stringify(sub) === JSON.stringify(payload));
+    
+    if (existingSubscription) {
+      console.log('Subscription already exists, skipping duplicate');
+      return Promise.resolve({ subscription: { id: 'existing' } });
+    }
+    
+    return this.send({ ...payload, subscribe: 1 })
+      .then((response) => {  
+        if (response.subscription?.id) {
+          this.subscribes.set(response.subscription.id, payload);
+        }
+        return response;
+      })
+      .catch((error) => {
+        if (error.code === 'AlreadySubscribed') {
+          console.log('Subscription already exists on server side');
+          return { subscription: { id: 'server_existing' } };
+        }
+        throw error;
+      });
   }
 
   private checkNeedAuthorize(payload: Record<string, any>): boolean {
