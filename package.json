@@ -28,7 +28,12 @@
     "react-toastify": "^11.0.3",
     "resend": "^4.5.1",
     "uuid": "^11.1.0",
-    "ws": "^8.18.1"
+    "resolutions": {
+      "ws": "8.17.1"
+    },
+    "overrides": {
+      "ws": "8.17.1"
+    }
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

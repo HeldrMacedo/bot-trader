@@ -33,7 +33,7 @@ class DerivConnection {
         return new Promise((resolve, reject) => {
             try {
                 this.connection = new WebSocket(
-                    `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_DERIV_CLIENT_ID}`
+                    `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`
                 );
                 
                 this.connection.addEventListener("open", () => {

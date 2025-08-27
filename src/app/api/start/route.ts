@@ -1,0 +1,37 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { CopyTradingManager } from '@/app/services/copyTradingManager';
+
+export async function POST(request: Request) {
+  try {
+    const { demoToken, realToken, configure } = await request.json();
+    const authHeader = request.headers.get('authorization');
+    
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Token JWT necessário' }, { status: 401 });
+    }
+    
+    const jwt = authHeader.substring(7);
+    // Configurações das regras (com valores padrão)
+    const tradingConfig = {
+      quantityLoss: configure?.quantityLoss || 0,
+      stopLoss: configure?.stopLoss || 0,
+      stopWin: configure?.stopWin || 0,
+      initialValue: configure?.initialValue || 1,
+      stakeMultiple: configure?.stakeMultiple || 1,
+      pauseTime: configure?.pauseTime || 0,
+      pauseTimeLoss: configure?.pauseTimeLoss || false,
+      pauseTimeWin: configure?.pauseTimeWin || false
+    };
+    
+    const result = await CopyTradingManager.getInstance().startCopyTrading(
+      jwt, 
+      demoToken, 
+      realToken,
+      tradingConfig
+    );
+    
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

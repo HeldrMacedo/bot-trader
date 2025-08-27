@@ -3,6 +3,7 @@ import { useModuleAccess } from "@/app/hooks/useModuleAccess";
 import { useEffect, useState, useRef, useCallback } from "react";
 import BotReal from "./botReal";
 import HasAcessComponet from "./hasAccessComponent";
+import BotTraderX from "./bottraderx";
 
 export default function BotTrade() {
   const [isTest, setIsTest] = useState(false);
@@ -29,7 +30,8 @@ export default function BotTrade() {
             </p>
           </div>
         </div>
-      ) : hasAccess ? ( <BotReal setIsTest={setIsTest} /> ) : ( <HasAcessComponet /> )}
+      ) : hasAccess ? ( <BotTraderX /> ) : ( <HasAcessComponet /> )}
+
     </div>
   );
 }

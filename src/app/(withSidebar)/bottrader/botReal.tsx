@@ -966,10 +966,7 @@ const handleStopBot = useCallback(async () => {
                       Date
                     </th>
                     <th scope="col" className="px-6 py-2">
-                      <div className="flex items-center">Ref</div>
-                    </th>
-                    <th scope="col" className="px-6 py-2">
-                      <div className="flex items-center">Code</div>
+                      <div className="flex items-center">Contract</div>
                     </th>
                     <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Start</div>
@@ -977,6 +974,10 @@ const handleStopBot = useCallback(async () => {
                     <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Exit</div>
                     </th>
+                    <th scope="col" className="px-6 py-2">
+                      <div className="flex items-center">Code</div>
+                    </th>
+                    
 
                     <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Stake</div>

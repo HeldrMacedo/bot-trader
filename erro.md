@@ -1,0 +1,67 @@
+main-app.js?v=1755462419826:2267 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+C:\desenvolvimento\TradePlatform\src\app\(withSidebar)\bottrader\bottraderx.tsx:90 fetchStatus  {isRunning: false, message: 'Copy trading não iniciado'}
+app-router.js:53 TypeError: Cannot read properties of undefined (reading 'length')
+    at BotTraderX (C:\desenvolvimento\TradePlatform\src\app\(withSidebar)\bottrader\bottraderx.tsx:478:30)
+    at react-stack-bottom-frame (react-dom-client.development.js:23610:20)
+    at renderWithHooks (react-dom-client.development.js:4646:22)
+    at updateFunctionComponent (react-dom-client.development.js:8032:19)
+    at beginWork (react-dom-client.development.js:9689:18)
+    at runWithFiberInDEV (react-dom-client.development.js:544:16)
+    at performUnitOfWork (react-dom-client.development.js:15064:22)
+    at workLoopSync (react-dom-client.development.js:14888:41)
+    at renderRootSync (react-dom-client.development.js:14868:11)
+    at performWorkOnRoot (react-dom-client.development.js:14394:44)
+    at performWorkOnRootViaSchedulerTask (react-dom-client.development.js:15955:7)
+    at MessagePort.performWorkUntilDeadline (scheduler.development.js:44:48)
+
+The above error occurred in the <BotTraderX> component. It was handled by the <ReactDevOverlay> error boundary.
+onCaughtError @ app-router.js:53
+logCaughtError @ react-dom-client.development.js:7498
+runWithFiberInDEV @ react-dom-client.development.js:544
+update.callback @ react-dom-client.development.js:7531
+callCallback @ react-dom-client.development.js:10686
+commitCallbacks @ react-dom-client.development.js:10706
+runWithFiberInDEV @ react-dom-client.development.js:544
+commitClassCallbacks @ react-dom-client.development.js:10925
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11496
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11419
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11419
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11424
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11419
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11419
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11419
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11419
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11601
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:12428
+commitLayoutEffectOnFiber @ react-dom-client.development.js:11501
+commitLayoutEffects @ react-dom-client.development.js:12422
+commitRootImpl @ react-dom-client.development.js:15375
+commitRoot @ react-dom-client.development.js:15273
+commitRootWhenReady @ react-dom-client.development.js:14584
+performWorkOnRoot @ react-dom-client.development.js:14505
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:15955
+performWorkUntilDeadline @ scheduler.development.js:44
