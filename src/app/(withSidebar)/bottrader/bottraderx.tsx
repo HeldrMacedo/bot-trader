@@ -25,12 +25,16 @@ interface Stats {
   totalLoss: number;
   totalWin: number;
   totalTrader: number;
+  totalValueWin: number;
+  totalValueLoss: number;
   consecutiveLoss: number;
+  totalProfit: number;
   // Novos campos baseados na API:
   currentStake?: number;
   isPaused?: boolean;
   pauseEndTime?: number;
   timePause: number;
+  balance: number;
 }
 
 interface Console {
@@ -86,14 +90,18 @@ export default function BotTraderX() {
     totalLoss: 0,
     totalWin: 0,
     totalTrader: 0,
+    totalValueWin: 0,
+    totalValueLoss: 0,
+    totalProfit: 0,
     consecutiveLoss: 0,
     console: [] as Console[],
     timePause: 0,
+    balance: 0,
   });
 
   const [loading, setLoading] = useState(false);
-  const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
-  const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  const [demoToken, setDemoToken] = useState("");
+  const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({
@@ -141,10 +149,14 @@ export default function BotTraderX() {
           console: data.console,
           consecutiveLoss: data.consecutiveLosses,
           totalLoss: data.realAccount.totalLoss,
-          totalWin: data.realAccount.totalProfit,
+          totalWin: data.realAccount.totalWin,
           totalTrader: data.realAccount.transactions.length,
-
-          
+          totalValueWin: data.realAccount.totalValueWin,
+          totalValueLoss: data.realAccount.totalValueLoss,
+          totalProfit: data.realAccount.totalProfit,
+          realAccount: data.realTransactions,
+          timePause: data.timePause,
+          balance: data.balance,
         }));
       }
       console.log("fetchStatus ", data);
@@ -188,8 +200,14 @@ export default function BotTraderX() {
   const stopCopyTrading = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem("access_token");
       const response = await fetch("/api/stop", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ stopAll: true }),
       });
 
       const data = await response.json();
@@ -338,7 +356,7 @@ export default function BotTraderX() {
                   <span>Win</span>
                 </div>
                 <div>
-                  <span className="text-green-600">{0}</span>
+                  <span className="text-green-600">{stats.totalWin}</span>
                 </div>
               </div>
               <div>
@@ -346,17 +364,16 @@ export default function BotTraderX() {
                   <span>Loss</span>
                 </div>
                 <div>
-                  <span className="text-red-600">{0}</span>
+                  <span className="text-red-600">{stats.totalLoss}</span>
                 </div>
               </div>
             </div>
             <div className="mt-2">
-              <div className="text-green-600">Valor Total Win {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalWin)}</div>
-              <div className="text-red-600">Valor Total Loss {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalLoss)}</div>
-              <div className="text-yellow-600">Lucro {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalWin - stats.totalLoss)}</div>
+              <div className="text-green-600">Valor Total Win {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalValueWin)}</div>
+              <div className="text-red-600">Valor Total Loss {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalValueLoss)}</div>
+              <div className="text-yellow-600">Lucro {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalProfit)}</div>
 
-              <div className="text-blue-600">Balance Real: R$ 10.000,00</div>
-              <div className="text-blue-600">Balance Demo: R$ 10.000,00</div>
+              <div className="text-blue-600">Balance Real: {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.balance)}</div>
             </div>
 
             <div className="mt-2 flex flex-col lg:flex-row">
@@ -607,7 +624,7 @@ export default function BotTraderX() {
           <div className="w-2/3">
             <div className="flex flex-col h-[180px] bg-black rounded-lg overflow-y-auto">
               {stats.console?.length > 0 ? (
-                stats.console?.map((item, index) => (
+                stats.console?.reverse().map((item, index) => (
                   <div key={index} className="flex items-center">
                     <span>
                       <ChevronDoubleRightIcon width={20} height={20} />
@@ -619,7 +636,7 @@ export default function BotTraderX() {
                           : "text-red-600"
                       }
                     >
-                      {index + 1} {item.isDemo ? '[DEMO] ==> ' : '[REAL] => '} - {item.amount > 0 ? 'WIN' : 'LOSE'} 
+                      {index + 1} {item.isDemo ? '[DEMO] ==> ' : '[REAL] ==> '} - {item.amount > 0 ? 'WIN' : 'LOSE'} 
 
                     </span>
                   </div>
@@ -657,9 +674,6 @@ export default function BotTraderX() {
                 <thead className="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                   <tr>
                     <th scope="col" className="px-6 py-2">
-                      Date
-                    </th>
-                    <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Contract</div>
                     </th>
                     <th scope="col" className="px-6 py-2">
@@ -673,11 +687,12 @@ export default function BotTraderX() {
                       <div className="flex items-center">Buy Price</div>
                     </th>
                     <th scope="col" className="px-6 py-2">
-                      <div className="flex items-center">Payout</div>
-                    </th>
-                    <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Profit</div>
                     </th>
+                    <th scope="col" className="px-6 py-2">
+                      <div className="flex items-center">Payout</div>
+                    </th>
+                    
                     <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Status</div>
                     </th>
@@ -687,19 +702,13 @@ export default function BotTraderX() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.realAccount?.map((item, index) => (
+                  {stats.realAccount?.reverse().map((item, index) => (
                     <tr
                       key={index}
                       className={`bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 ${
                         item.profit > 0 ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      <td
-                        scope="row"
-                        className="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                      >
-                        {item.data}
-                      </td>
                       <td className="px-6 py-2">{item.contract_id}</td>
                       <td className="px-6 py-2">
                         {item.entry_spot_display_value}
@@ -708,8 +717,8 @@ export default function BotTraderX() {
                         {item.exit_tick_display_value}
                       </td>
                       <td className="px-6 py-2">{item.buy_price}</td>
-                      <td className="px-6 py-2">{item.payout}</td>
                       <td className="px-6 py-2">{item.profit}</td>
+                      <td className="px-6 py-2">{item.payout}</td>
                       <td className="px-6 py-2">{item.status}</td>
                       <td className="px-6 py-2">{item.display_name}</td>
                     </tr>

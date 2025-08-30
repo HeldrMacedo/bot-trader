@@ -144,12 +144,6 @@ const Sidebar = ({
       role: ["admin", "user"],
     },
     {
-      name: "BotTrader Demo",
-      icon: CpuChipIcon,
-      href: "/bottraderdemo",
-      role: ["admin", "user"],
-    },
-    {
       name: "Sair",
       icon: ArrowLeftStartOnRectangleIcon,
       href: "/login",

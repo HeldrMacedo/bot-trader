@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       quantityLoss: configure?.quantityLoss || 0,
       stopLoss: configure?.stopLoss || 0,
       stopWin: configure?.stopWin || 0,
-      initialValue: configure?.initialValue || 1,
+      initialValue: configure?.initialValue || 0.35,
       stakeMultiple: configure?.stakeMultiple || 1,
       pauseTime: configure?.pauseTime || 0,
       pauseTimeLoss: configure?.pauseTimeLoss || false,

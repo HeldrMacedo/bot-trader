@@ -26,6 +26,9 @@ interface UserStats {
     transactions: any[];
     totalProfit?: number;
     totalLoss?: number;
+    totalWin?: number;
+    totalValueWin?: number;
+    totalValueLoss?: number;
   };
   copyTrading: {
     isRunning: boolean;
@@ -37,10 +40,12 @@ interface UserStats {
     lastTradeTime?: string;
   };
   consecutiveLosses: number;
+  realTransactions: any[];
   console: any[];
   timePause: number;
   createdAt: Date;
   lastActivity: Date;
+  balance: number;
 }
 
 export class CopyTradingManager {
@@ -131,7 +136,10 @@ export class CopyTradingManager {
         isConnected: true,
         transactions: stats.realAccount?.transactions || [],
         totalLoss: stats.realAccount?.totalLoss,
+        totalWin: stats.realAccount?.totalWin,
         totalProfit: stats.realAccount?.totalProfit,
+        totalValueWin: stats.realAccount?.totalValueWin,
+        totalValueLoss: stats.realAccount?.totalValueLoss,
       },
       copyTrading: {
         isRunning: stats.isRunning,
@@ -144,9 +152,12 @@ export class CopyTradingManager {
       },
       consecutiveLosses: stats.trading.consecutiveLosses,
       console: stats.console || [],
+      realTransactions: stats.realTransactions || [],
+
       timePause: stats.timePause,
       createdAt: userService.createdAt,
-      lastActivity: userService.lastActivity
+      lastActivity: userService.lastActivity,
+      balance: stats.balance,
     };
   }
 
@@ -222,9 +233,11 @@ export class CopyTradingManager {
           },
           consecutiveLosses: stats.trading.consecutiveLosses,
           console: stats.console || [],
+          realTransactions: stats.realTransactions || [],
           timePause: 0,
           createdAt: userService.createdAt,
-          lastActivity: userService.lastActivity
+          lastActivity: userService.lastActivity,
+          balance: stats.balance,
         });
       } catch (error) {
         console.error(`Error getting stats for user ${userId}:`, error);

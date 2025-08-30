@@ -43,6 +43,7 @@ export class CopyTradingService {
   private demoTransactions: any[] = [];
   private realTransactions: any[] = [];
   private console: string[] = [];
+  private balance: number = 0;
 
 
   constructor(demoToken: string, realToken: string, sessionId?: string, configure?: any) {
@@ -61,7 +62,8 @@ export class CopyTradingService {
     this.quantityLoss = configure?.quantityLoss || 0;
     this.stopLoss = configure?.stopLoss || 0;
     this.stopWin = configure?.stopWin || 0;
-    this.initialValue = configure?.initialValue || 0;
+    this.initialValue = configure?.initialValue || 0.35;
+    this.currentStake = this.initialValue;
     this.stakeMultiple = configure?.stakeMultiple || 1;
     this.pauseTime = configure?.pauseTime || 0;
     this.pauseTimeLoss = configure?.pauseTimeLoss || false;
@@ -80,12 +82,13 @@ export class CopyTradingService {
       this.handleDemoTransaction(transaction);
     } else {
       this.console.push({...transaction, isDemo: false});
+      this.realTransactions.push(transaction);
       this.handleRealTransaction(transaction);
     }
   }
 
   private handleDemoTransaction(transaction: any) {
-    const isWin = transaction.profit > 0;
+    const isWin = transaction.amount > 0;
     
     if (isWin) {
       this.consecutiveLosses = 0;
@@ -97,10 +100,11 @@ export class CopyTradingService {
   private handleRealTransaction(transaction: any) {
     const isWin = transaction.profit > 0;
     const profit = transaction.profit;
-    
+    this.consecutiveLosses = 0;
     if (isWin) {
       this.totalProfit += profit;
       this.currentStake = this.initialValue;
+      console.log(`[SYSTEM] PAUSE TIEM WIN: ${this.pauseTimeWin} - ${this.pauseTime}`);
       if (this.pauseTimeWin) {
         this.applyPause(this.pauseTime, 'win');
       }
@@ -112,7 +116,8 @@ export class CopyTradingService {
     } else {
       this.totalLoss += Math.abs(profit);
       this.currentStake = this.currentStake * this.stakeMultiple; 
-      
+    
+      console.log(`[SYSTEM] PAUSE TIEM LOSS: ${this.pauseTimeLoss} - ${this.pauseTime}`);
       if (this.pauseTimeLoss) {
         this.applyPause(this.pauseTime, 'loss');
       }
@@ -147,7 +152,7 @@ export class CopyTradingService {
 
   
 
-  private setupEventHandlers(): void {
+  private  setupEventHandlers(): void {
     // Handler para sinais de trade
     this.wsListener.on('tradeSignal', async (signal: TradeSignal) => {
       this.stats.signalsReceived++;
@@ -155,7 +160,7 @@ export class CopyTradingService {
       
       try {
         if (this.shouldProcessSignal()) {
-          await this.signalProcessor.processSignal(signal);
+          await this.signalProcessor.processSignal({...signal, amount: this.currentStake});
           this.stats.tradesExecuted++;
           this.stats.lastTradeTime = new Date();
           
@@ -179,14 +184,21 @@ export class CopyTradingService {
     });
 
      this.wsListener.on('sellTransaction', (transaction: any) => {
+      
+      if (this.isPaused) {
+        return;
+      }
       console.log('sellTransaction', transaction);
       this.processTransaction(transaction, true); // true = isDemo
     });
     
     this.tradeExecutor.on('transaction', (transaction: any) => {
-      this.processTransaction(transaction, false); // false = isReal
+      this.processTransaction({...transaction, amount: transaction.profit}, false); // false = isReal
     });
 
+    this.tradeExecutor.on('balance', (balance) => {
+      this.balance = balance;
+    });
     // Handlers para conexão
     this.wsListener.on('connected', () => {
       console.log(`[Session ${this.sessionId}] Demo account listener connected`);
@@ -211,9 +223,10 @@ export class CopyTradingService {
   }
 
   private shouldProcessSignal(): boolean {
-    // Verificar se está pausado (sem recalcular timePause)
+    console.log(`[SYSTEM] PAUSE TIEM: ${this.pauseTime} - IS PAUSED ${this.isPaused}`);
+  
     if (this.isPaused) {
-      return false; // O setInterval já gerencia isPaused e timePause
+      return false;
     }
     
     // Se quantityLoss é 0, sempre processa o sinal
@@ -277,8 +290,16 @@ export class CopyTradingService {
     this.signalProcessor.setEnabled(false);
     this.wsListener.disconnect();
     this.tradeExecutor.disconnect();
-    
+    this.clearAllDados();
     console.log(`[Session ${this.sessionId}] Copy Trading Service stopped`);
+  }
+
+  clearAllDados() {
+    this.totalProfit = 0;
+    this.totalLoss = 0;
+    this.isPaused = false;
+    this.consecutiveLosses = 0;
+    this.currentStake = 0;
   }
 
  getStats() {
@@ -318,12 +339,16 @@ export class CopyTradingService {
       realAccount: {
         transactions: this.realTransactions,
         totalWin: this.realTransactions.filter(t => t.profit > 0).length,
-        totalLoss: this.realTransactions.filter(t => t.profit <= 0).length,
+        totalLoss: this.realTransactions.filter(t => t.profit < 0).length,
+        totalValueWin: this.realTransactions.filter(t => t.profit > 0).reduce((acc, t) => acc + t.profit, 0),
+        totalValueLoss: this.realTransactions.filter(t => t.profit < 0).reduce((acc, t) => acc + t.profit, 0),
         consecutiveLoss: 0,
         totalProfit: this.realTransactions.reduce((acc, t) => acc + t.profit, 0)
 
       },
-      console: this.console
+      realTransactions: this.realTransactions,
+      console: this.console,
+      balance: this.balance,
     };
   }
 

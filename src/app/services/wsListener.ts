@@ -4,7 +4,7 @@ import { TradeSignal, DurationInfo, ContractInfo } from '../types/types';
 
 export class WsListener extends EventEmitter {
   private ws: WebSocket | null = null;
-  private baseUrl = 'wss://ws.binaryws.com/websockets/v3?app_id=67957';
+  private baseUrl = `wss://ws.binaryws.com/websockets/v3?app_id=${process.env.NEXT_PUBLIC_APPID}`;
 
   private token: string;
   private isConnected = false;

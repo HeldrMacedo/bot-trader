@@ -5,7 +5,7 @@ import EventEmitter from 'events';
 
 export class TradeExecutor extends EventEmitter {
   private wsMaster: WebSocket | null = null;
-  private baseUrl = 'wss://ws.binaryws.com/websockets/v3?app_id=67957';
+  private baseUrl = `wss://ws.binaryws.com/websockets/v3?app_id=${process.env.NEXT_PUBLIC_APPID}`;
   private token: string;
   private currency = 'USD';
   private appMarkupPercentage = 0;
@@ -97,14 +97,20 @@ export class TradeExecutor extends EventEmitter {
   }
 
   private authenticateReal(): void {
-    console.log('Authenticating real account fora');
     if (this.wsMaster && this.token) {
-      console.log("ENTROU AUTHENTICA REAL");
       const authMessage = {
         authorize: this.token
       };
       this.wsMaster.send(JSON.stringify(authMessage));
     }
+  }
+
+  private balanceSubscribe(){
+    const balance = {
+      balance: 1,
+      subscribe: 1,
+    }
+    this.wsMaster.send(JSON.stringify(balance));
   }
 
   async executeTrade(signal: TradeSignal): Promise<void> {
@@ -129,6 +135,7 @@ export class TradeExecutor extends EventEmitter {
       const buyRequest = this.buildBuyRequest(signal, requestId);
       
       console.log('Sending buy request:', JSON.stringify(buyRequest, null, 2));
+      //this.emit('transaction', buyRequest);
       /*@ts-ignore*/
       this.wsMaster.send(JSON.stringify(buyRequest));
       
@@ -248,7 +255,11 @@ export class TradeExecutor extends EventEmitter {
         // Opcional: log amigável
         console.log('Real contract update (proposal_open_contract):', this.latestRealContractSummary);
       }
-
+      
+      if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
+        this.emit('transaction', message.proposal_open_contract);
+      }
+      
 
       if (message.msg_type === 'buy') {
         if (message.error) {
@@ -258,10 +269,18 @@ export class TradeExecutor extends EventEmitter {
         }
       }
       
-      if (message.msg_type === 'transaction') {
-        console.log('Transaction update:', message.transaction);
-        this.emit('transaction', message.transaction);
+      if (message.msg_type === 'authorize') {
+        if (message.authorize) {
+          this.emit('balance', message.authorize.balance);
+        }
+        this.balanceSubscribe();
       }
+
+      if (message.msg_type === 'balance') {
+        this.emit('balance', message.balance.balance);
+      }
+
+
       
     } catch (error) {
       console.error('Error handling master message:', error);
