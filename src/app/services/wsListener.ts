@@ -336,96 +336,84 @@ export class WsListener extends EventEmitter {
   }
 
   private parseNonForexContract(longcode: string): ContractInfo {
-    // Implementa lógica completa para Non-Forex baseada no method_394
-    
-    // Touch/No Touch com barreiras
-    if (longcode.includes('touches') && (longcode.includes('plus') || longcode.includes('minus'))) {
-      return { type: 'ONETOUCH', barrier: this.extractBarrierWithSign(longcode), isValid: true };
-    }
-    
-    if (longcode.includes('does not touch') && (longcode.includes('plus') || longcode.includes('minus'))) {
-      return { type: 'NOTOUCH', barrier: this.extractBarrierWithSign(longcode), isValid: true };
-    }
-    
-    // Call/Put com barreiras
-    if (longcode.includes('higher') && longcode.includes('than entry spot') && 
-        (longcode.includes('plus') || longcode.includes('minus'))) {
-      return { type: 'CALL', barrier: this.extractBarrierWithSign(longcode), isValid: true };
-    }
-    
-    if (longcode.includes('lower') && longcode.includes('than entry spot') && 
-        (longcode.includes('plus') || longcode.includes('minus'))) {
-      return { type: 'PUT', barrier: this.extractBarrierWithSign(longcode), isValid: true };
-    }
-    
-    // Reset contracts
-    if (longcode.includes('strictly lower than it was')) {
-      return { type: 'RESETPUT', isValid: true };
-    }
-    if (longcode.includes('strictly higher than it was')) {
-      return { type: 'RESETCALL', isValid: true };
-    }
-    
-    // Run contracts
-    if (longcode.includes('rises successively')) {
-      return { type: 'RUNHIGH', isValid: true };
-    }
-    if (longcode.includes('falls successively')) {
-      return { type: 'RUNLOW', isValid: true };
-    }
-    
-    // Digit contracts
-    if (longcode.includes('is odd')) {
-      return { type: 'DIGITODD', isValid: true };
-    }
-    if (longcode.includes('is even')) {
-      return { type: 'DIGITEVEN', isValid: true };
-    }
-    
-    // Digit over/under
-    if (longcode.includes('strictly higher than')) {
-      const barrier = this.extractNumericBarrier(longcode);
-      return { 
-        type: barrier ? 'DIGITOVER' : 'CALLE', 
-        barrier: barrier,
-        isValid: true 
-      };
-    }
-    
-    if (longcode.includes('strictly lower than')) {
-      const barrier = this.extractNumericBarrier(longcode);
-      return { 
-        type: barrier ? 'DIGITUNDER' : 'PUTE', 
-        barrier: barrier,
-        isValid: true 
-      };
-    }
-    
-    // Digit match/diff
-    if (longcode.includes('if the last digit') && longcode.includes('is not') && longcode.includes('after')) {
-      return { type: 'DIGITDIFF', isValid: true };
-    }
-    
-    if (longcode.includes('if the last digit') && longcode.includes('is') && longcode.includes('after')) {
-      return { type: 'DIGITMATCH', isValid: true };
-    }
-    
-    // Call/Put básicos
-    if (longcode.includes('higher than or equal')) {
-      return { type: 'CALLE', isValid: true };
-    }
-    if (longcode.includes('lower than or equal')) {
-      return { type: 'PUTE', isValid: true };
-    }
-    if (longcode.includes('strictly higher')) {
-      return { type: 'CALL', isValid: true };
-    }
-    if (longcode.includes('strictly lower')) {
-      return { type: 'PUT', isValid: true };
-    }
-    
-    return { type: 'CALL', isValid: false }; // Default inválido
+  // Reset contracts
+  if (longcode.includes('strictly higher than it was')) {
+    return { type: 'RESETCALL', isValid: true };
   }
+  if (longcode.includes('strictly lower than it was')) {
+    return { type: 'RESETPUT', isValid: true };
+  }
+  
+  // Run contracts
+  if (longcode.includes('rises successively')) {
+    return { type: 'RUNHIGH', isValid: true };
+  }
+  if (longcode.includes('falls successively')) {
+    return { type: 'RUNLOW', isValid: true };
+  }
+  
+  // Touch contracts
+  if (longcode.includes('touches')) {
+    const barrier = this.extractBarrier(longcode);
+    return { type: 'ONETOUCH', barrier: barrier, isValid: true };
+  }
+  if (longcode.includes('does not touch')) {
+    const barrier = this.extractBarrier(longcode);
+    return { type: 'NOTOUCH', barrier: barrier, isValid: true };
+  }
+  
+  // Digit odd/even
+  if (longcode.includes('is odd')) {
+    return { type: 'DIGITODD', isValid: true };
+  }
+  if (longcode.includes('is even')) {
+    return { type: 'DIGITEVEN', isValid: true };
+  }
+  
+  // Digit over/under with barrier check
+  if (longcode.includes('strictly higher than')) {
+    const barrier = this.extractNumericBarrier(longcode);
+    return { 
+      type: barrier ? 'DIGITOVER' : 'CALL', 
+      barrier: barrier,
+      isValid: true 
+    };
+  }
+  
+  if (longcode.includes('strictly lower than')) {
+    const barrier = this.extractNumericBarrier(longcode);
+    return { 
+      type: barrier ? 'DIGITUNDER' : 'PUT', 
+      barrier: barrier,
+      isValid: true 
+    };
+  }
+  
+  // Digit match/diff
+  if (longcode.includes('if the last digit') && longcode.includes('is not') && longcode.includes('after')) {
+    return { type: 'DIGITDIFF', barrier: this.extractDigitBarrier(longcode), isValid: true };
+  }
+  
+  if (longcode.includes('if the last digit') && longcode.includes('is') && longcode.includes('after')) {
+    return { type: 'DIGITMATCH', barrier: this.extractDigitBarrier(longcode), isValid: true };
+  }
+  
+  // Call/Put básicos
+  if (longcode.includes('higher than or equal')) {
+    return { type: 'CALLE', isValid: true };
+  }
+  if (longcode.includes('lower than or equal')) {
+    return { type: 'PUTE', isValid: true };
+  }
+  if (longcode.includes('strictly higher')) {
+    return { type: 'CALL', isValid: true };
+  }
+  if (longcode.includes('strictly lower')) {
+    return { type: 'PUT', isValid: true };
+  }
+  
+  return { type: 'CALL', isValid: false }; // Default inválido
+}
 
   private extractBarrierWithSign(longcode: string): string {
     const words = longcode.split(' ');
@@ -458,6 +446,12 @@ export class WsListener extends EventEmitter {
     const match = longcode.match(/\b(\d)\b/);
     return match ? match[1] : undefined;
   }
+
+  private extractDigitBarrier(longcode: string): string {
+  // Padrão para extrair o dígito após "is" ou "is not"
+  const match = longcode.match(/last digit of .+ is(?: not)? (\d)/i);
+  return match ? match[1] : '';
+}
 
   private handleOtherMessages(message: any): void {
     switch (message.msg_type) {

@@ -17,6 +17,8 @@ export class TradeExecutor extends EventEmitter {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 5000;
+  private isTestMode = false; // Novo: modo de teste
+  private mockContractId = 1000000; // Contador para IDs de contratos mock
   private latestRealContractSummary: {
     data: string;
     entry_spot_display_value?: string;
@@ -36,6 +38,15 @@ export class TradeExecutor extends EventEmitter {
   constructor(token: string, configure?: any) {
     super();
     this.token = token;
+    //this.isTestMode = configure?.testMode || false;
+    this.isTestMode = false;
+    console.log(`TradeExecutor initialized in ${this.isTestMode ? 'TEST' : 'LIVE'} mode`);
+  }
+
+  // Novo: método para alternar modo de teste
+  public setTestMode(enabled: boolean): void {
+    this.isTestMode = enabled;
+    console.log(`TradeExecutor switched to ${this.isTestMode ? 'TEST' : 'LIVE'} mode`);
   }
 
   public getLatestRealContractSummary() {
@@ -115,6 +126,12 @@ export class TradeExecutor extends EventEmitter {
 
   async executeTrade(signal: TradeSignal): Promise<void> {
     try {
+      
+      // if (this.isTestMode) {
+      //   await this.simulateTestTrade(signal);
+      //   return;
+      // }
+      
       // Implementa lógica similar ao method_348
       if (!this.wsMaster || !this.isConnected) {
         console.log('Master not connected, attempting reconnection...');
@@ -136,6 +153,7 @@ export class TradeExecutor extends EventEmitter {
       
       console.log('Sending buy request:', JSON.stringify(buyRequest, null, 2));
       //this.emit('transaction', buyRequest);
+      
       /*@ts-ignore*/
       this.wsMaster.send(JSON.stringify(buyRequest));
       
@@ -181,11 +199,15 @@ export class TradeExecutor extends EventEmitter {
     };
   }
 
-  private shouldIncludeBarrierAdvanced(contractType: string, barrier: string): boolean {
-    // Lógica avançada baseada no method_394
+  private shouldIncludeBarrierAdvanced(contractType: string, barrier?: string): boolean {
     const barrierTypes = [
-      'CALL', 'PUT', 'ONETOUCH', 'NOTOUCH', 
-      'DIGITOVER', 'DIGITUNDER', 'DIGITMATCH', 'DIGITDIFF'
+      'CALL', 'PUT', 'CALLE', 'PUTE',
+      'ONETOUCH', 'NOTOUCH',
+      'RESETCALL', 'RESETPUT',
+      'RUNHIGH', 'RUNLOW',
+      'DIGITOVER', 'DIGITUNDER',
+      'DIGITODD', 'DIGITEVEN',
+      'DIGITMATCH', 'DIGITDIFF'
     ];
     
     if (!barrierTypes.includes(contractType)) {
@@ -305,4 +327,183 @@ export class TradeExecutor extends EventEmitter {
       this.wsMaster = null;
     }
   }
+
+   // Novo: método para simular transações de teste
+  private async simulateTestTrade(signal: TradeSignal): Promise<void> {
+    console.log('🧪 SIMULATING TEST TRADE:', signal);
+    
+    // Incrementa contador de requisições
+    this.requestCounter++;
+    this.mockContractId++;
+    
+    // Simula tempo de processamento da compra (1-3 segundos)
+    // const buyProcessingTime = Math.random() * 2000 + 1000;
+    
+    // // Simula resposta de compra bem-sucedida
+    // setTimeout(() => {
+    //   const buyResponse = {
+    //     msg_type: 'buy',
+    //     buy: {
+    //       balance_after: 10000 - signal.amount, // Simula saldo após compra
+    //       buy_price: signal.amount,
+    //       contract_id: this.mockContractId,
+    //       longcode: `Mock contract for ${signal.contractType} on ${signal.symbol}`,
+    //       payout: signal.amount * 1.8, // Simula payout de 80%
+    //       purchase_time: Math.floor(Date.now() / 1000),
+    //       shortcode: `${signal.contractType}_${signal.symbol}_${signal.amount}_${Math.floor(Date.now() / 1000)}_${signal.duration}${signal.durationUnit}_${signal.barrier || '0'}_0`,
+    //       start_time: Math.floor(Date.now() / 1000),
+    //       transaction_id: this.mockContractId * 10
+    //     }
+    //   };
+      
+    //   console.log('🧪 Mock buy response:', buyResponse);
+    // }, buyProcessingTime);
+    
+    // Simula tempo de duração do contrato (baseado na duração do sinal)
+    const contractDuration = this.calculateContractDuration(signal);
+    
+    setTimeout(() => {
+      this.simulateContractResult(signal);
+    }, contractDuration);
+    
+    // Atualiza parâmetros da última operação
+    this.updateLastTradeInfo(signal);
+  }
+
+  // Novo: calcula duração do contrato em milissegundos
+  private calculateContractDuration(signal: TradeSignal): number {
+    const duration = parseInt(signal.duration.toString());
+    const unit = signal.durationUnit || 't';
+    
+    switch (unit) {
+      case 't': // ticks
+        return duration * 2000; // ~2 segundos por tick
+      case 's': // segundos
+        return duration * 1000;
+      case 'm': // minutos
+        return duration * 60 * 1000;
+      case 'h': // horas
+        return duration * 60 * 60 * 1000;
+      default:
+        return 10000; // 10 segundos padrão
+    }
+  }
+
+  // Novo: simula resultado do contrato (win/loss aleatório)
+  private simulateContractResult(signal: TradeSignal): void {
+    // Gera resultado aleatório (50% chance de win/loss)
+    const isWin = Math.random() > 0.5;
+    const status = isWin ? 'won' : 'lost';
+    
+    // Gera valores realistas baseados no exemplo fornecido
+    const entrySpot = 1200 + Math.random() * 20; // Entre 1200-1220
+    const exitSpot = entrySpot + (Math.random() - 0.5) * 10; // Variação de ±5
+    const payout = isWin ? signal.amount * 1.8 : 0;
+    const profit = isWin ? (payout - signal.amount) : -signal.amount;
+    
+    const mockProposalOpenContract = {
+      echo_req: {
+        contract_id: this.mockContractId,
+        proposal_open_contract: 1,
+        req_id: this.requestCounter,
+        subscribe: 1
+      },
+      msg_type: 'proposal_open_contract',
+      proposal_open_contract: {
+        account_id: 12345678,
+        audit_details: {
+          all_ticks: [
+            {
+              epoch: Math.floor(Date.now() / 1000) - 10,
+              tick: entrySpot,
+              tick_display_value: entrySpot.toFixed(2)
+            },
+            {
+              epoch: Math.floor(Date.now() / 1000),
+              tick: exitSpot,
+              tick_display_value: exitSpot.toFixed(2)
+            }
+          ]
+        },
+        barrier: signal.barrier || '3',
+        barrier_count: 1,
+        bid_price: 0,
+        buy_price: signal.amount,
+        contract_id: this.mockContractId,
+        contract_type: signal.contractType,
+        currency: this.currency,
+        current_spot: exitSpot,
+        current_spot_display_value: exitSpot.toFixed(2),
+        current_spot_time: Math.floor(Date.now() / 1000),
+        date_expiry: Math.floor(Date.now() / 1000),
+        date_settlement: Math.floor(Date.now() / 1000),
+        date_start: Math.floor(Date.now() / 1000) - 10,
+        display_name: 'Índice Volatility 100 (Mock)',
+        entry_spot: entrySpot,
+        entry_spot_display_value: entrySpot.toFixed(2),
+        entry_tick: entrySpot,
+        entry_tick_display_value: entrySpot.toFixed(2),
+        entry_tick_time: Math.floor(Date.now() / 1000) - 10,
+        exit_tick: exitSpot,
+        exit_tick_display_value: exitSpot.toFixed(2),
+        exit_tick_time: Math.floor(Date.now() / 1000),
+        expiry_time: Math.floor(Date.now() / 1000),
+        id: `mock-${this.mockContractId}-${Date.now()}`,
+        is_expired: 1,
+        is_forward_starting: 0,
+        is_intraday: 1,
+        is_path_dependent: 0,
+        is_settleable: 1,
+        is_sold: 0,
+        is_valid_to_cancel: 0,
+        is_valid_to_sell: 1,
+        longcode: `🧪 TESTE: Receba o pagamento se o último dígito de Índice Volatility 100 for estritamente superior a ${signal.barrier || '3'} após ${signal.duration} ${signal.durationUnit || 'ticks'}.`,
+        payout: payout,
+        profit: profit,
+        profit_percentage: isWin ? ((profit / signal.amount) * 100) : -100,
+        purchase_time: Math.floor(Date.now() / 1000) - 10,
+        shortcode: `${signal.contractType}_R_100_${payout}_${Math.floor(Date.now() / 1000)}_${signal.duration}${signal.durationUnit || 'T'}_${signal.barrier || '3'}_0`,
+        status: status,
+        tick_count: parseInt(signal.duration.toString()),
+        tick_stream: [
+          {
+            epoch: Math.floor(Date.now() / 1000),
+            tick: exitSpot,
+            tick_display_value: exitSpot.toFixed(2)
+          }
+        ],
+        transaction_ids: {
+          buy: this.mockContractId * 10
+        },
+        underlying: signal.symbol
+      },
+      req_id: this.requestCounter,
+      subscription: {
+        id: `mock-${this.mockContractId}-${Date.now()}`
+      }
+    };
+
+    console.log(`🧪 Mock contract result: ${status.toUpperCase()} - Profit: ${profit}`);
+    console.log('🧪 Mock proposal_open_contract:', mockProposalOpenContract);
+    
+    // Atualiza o resumo do contrato
+    this.latestRealContractSummary = {
+      data: moment().format('DD/MM/YYYY HH:mm:ss'),
+      entry_spot_display_value: entrySpot.toFixed(2),
+      exit_tick_display_value: exitSpot.toFixed(2),
+      contract_id: this.mockContractId,
+      contract_type: signal.contractType,
+      display_name: 'Índice Volatility 100 (Mock)',
+      payout: payout,
+      profit: profit,
+      status: status,
+      buy_price: signal.amount,
+      raw: mockProposalOpenContract.proposal_open_contract,
+      at: Date.now(),
+    };
+    
+    // Emite o evento de transação para o copy trading service
+    this.emit('transaction', mockProposalOpenContract.proposal_open_contract);
+  }
+
 }

@@ -100,8 +100,10 @@ export default function BotTraderX() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [demoToken, setDemoToken] = useState("");
-  const [realToken, setRealToken] = useState("");
+  const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
+  const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  //const [demoToken, setDemoToken] = useState("");
+  //const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({
@@ -121,6 +123,7 @@ export default function BotTraderX() {
   const [inputPauseTime, setInputPauseTime] = useState("");
   const [checkedPauseTimeLoss, setCheckedPauseTimeLoss] = useState(false);
   const [checkedPauseTimeWin, setCheckedPauseTimeWin] = useState(false);
+  const [disabledFields, setDisabledFields] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(fetchStatus, 2000);
@@ -183,6 +186,7 @@ export default function BotTraderX() {
       console.log("startCopyTrading ", data);
 
       if (response.ok) {
+        setDisabledFields(true);
         alert("Copy trading iniciado com sucesso!");
         setIsStart(true);
         fetchStatus();
@@ -213,6 +217,7 @@ export default function BotTraderX() {
       const data = await response.json();
 
       if (response.ok) {
+        setDisabledFields(false);
         alert("Copy trading parado com sucesso!");
         setIsStart(false);
         fetchStatus();
@@ -405,7 +410,7 @@ export default function BotTraderX() {
                     </span>
                   </div>
                   <input
-                    disabled={false}
+                    disabled={disabledFields}
                     id="quantity-loss"
                     value={configure.quantityLoss}
                     type="text"
@@ -434,6 +439,7 @@ export default function BotTraderX() {
                     <span className="text-gray-500">$</span>
                   </div>
                   <input
+                    disabled={disabledFields}
                     type="text"
                     id="stop-loss"
                     value={inputStopLoss}
@@ -465,6 +471,7 @@ export default function BotTraderX() {
                     <span className="text-gray-500">$</span>
                   </div>
                   <input
+                    disabled={disabledFields}
                     type="text"
                     id="stop-win"
                     value={inputStopWin}
@@ -496,6 +503,7 @@ export default function BotTraderX() {
                     <span className="text-gray-500">$</span>
                   </div>
                   <input
+                    disabled={disabledFields}
                     type="text"
                     id="entrada-inicial"
                     value={inputInitialValue}
@@ -527,6 +535,7 @@ export default function BotTraderX() {
                     <span className="text-gray-500">X</span>
                   </div>
                   <input
+                    disabled={disabledFields}
                     type="text"
                     id="stake-multiple"
                     value={inputStakeMultiple}
@@ -570,6 +579,7 @@ export default function BotTraderX() {
                     </span>
                   </div>
                   <input
+                    disabled={disabledFields}
                     type="text"
                     id="pause-time"
                     value={inputPauseTime}
@@ -589,6 +599,7 @@ export default function BotTraderX() {
                 <div className="flex flex-row gap-1">
                   <div className="mt-2 flex gap-2">
                     <input
+                      disabled={disabledFields}
                       type="checkbox"
                       checked={checkedPauseTimeWin}
                       onChange={(e) => {
@@ -604,6 +615,7 @@ export default function BotTraderX() {
                   </div>
                   <div className="mt-2 flex gap-2">
                     <input
+                      disabled={disabledFields}
                       type="checkbox"
                       checked={checkedPauseTimeLoss}
                       onChange={(e) => {
