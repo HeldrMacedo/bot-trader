@@ -26,25 +26,23 @@ export async function getOperations(
 ) {
   const isAdmin = await verifyAdminToken(token);
   if (!isAdmin) return { operations: [], total: 0, error: true };
+  
   const filter = {
     OR: [
       {
         operationId: {
           contains: search,
-          mode: "insensitive" as const,
         },
       },
       {
         account: {
           contains: search,
-          mode: "insensitive" as const,
         },
       },
       {
         user: {
           name: {
             contains: search,
-            mode: "insensitive" as const,
           },
         },
       },
