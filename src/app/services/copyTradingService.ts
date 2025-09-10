@@ -2,6 +2,7 @@ import { WsListener } from './wsListener';
 import { SignalProcessor } from './signalProcessor';
 import { TradeExecutor } from './tradeExecutor';
 import { TradeSignal } from '../types/types';
+import { ErrorNotification } from '../types/errorTypes';
 
 export class CopyTradingService {
   private wsListener: WsListener;
@@ -45,6 +46,8 @@ export class CopyTradingService {
   private console: string[] = [];
   private balance: number = 0;
 
+  private errors: ErrorNotification[] = [];
+  private maxErrors: number = 50;
 
   constructor(demoToken: string, realToken: string, sessionId?: string, configure?: any) {
     this.configure = configure;
@@ -72,6 +75,26 @@ export class CopyTradingService {
     
     this.setupEventHandlers();
   }
+
+  private addError(type: 'error' | 'warning' | 'info' | 'success', title: string, message: string, source: string, details?: any) {
+    const error: ErrorNotification = {
+      id: `${Date.now()}-${Math.random()}`,
+      type,
+      title,
+      message,
+      timestamp: new Date(),
+      source: source as any,
+      details
+    };
+    
+    this.errors.unshift(error);
+    if (this.errors.length > this.maxErrors) {
+      this.errors = this.errors.slice(0, this.maxErrors);
+    }
+    
+    console.log(`[${type.toUpperCase()}] ${title}: ${message}`, details);
+  }
+
 
   private processTransaction(transaction: any, isDemo: boolean) {
     if (isDemo) {
@@ -164,22 +187,21 @@ export class CopyTradingService {
           this.stats.tradesExecuted++;
           this.stats.lastTradeTime = new Date();
           
-          console.log(`[Session ${this.sessionId}] Trade executed successfully:`, {
+          this.addError('success', 'Trade Executado', `Trade ${signal.contractType} executado com sucesso`, 'trading', {
             symbol: signal.symbol,
-            contractType: signal.contractType,
             amount: signal.amount
           });
         } else {
           if (this.isPaused) {
-            console.log(`[Session ${this.sessionId}] Signal ignored - paused for ${this.timePause}s more`);
+            this.addError('info', 'Trade Pausado', `Aguardando ${this.timePause}s para próximo trade`, 'trading');
           } else {
-            console.log(`[Session ${this.sessionId}] Signal ignored - waiting for ${this.quantityLoss - this.consecutiveLosses} more consecutive losses`);
+           this.addError('info', 'Aguardando Losses', `Necessário ${this.quantityLoss - this.consecutiveLosses} losses consecutivos`, 'trading');
           }
         }
         
       } catch (error) {
-        this.stats.errors++;
-        console.error(`[Session ${this.sessionId}] Error processing trade signal:`, error);
+       this.stats.errors++;
+        this.addError('error', 'Erro no Trade', `Falha ao processar sinal: ${error.message}`, 'trading', error);
       }
     });
 
@@ -219,6 +241,7 @@ export class CopyTradingService {
     this.wsListener.on('error', (error) => {
       console.error(`[Session ${this.sessionId}] WsListener error:`, error);
       this.stats.errors++;
+      this.addError('error', 'Erro de Conexão Demo', `Falha na conexão da conta demo: ${error.message}`, 'connection', error);
     });
   }
 
@@ -349,6 +372,11 @@ export class CopyTradingService {
       realTransactions: this.realTransactions,
       console: this.console,
       balance: this.balance,
+      errors: {
+        errors: this.errors,
+        lastError: this.errors[0] || null,
+        errorCount: this.errors.filter(e => e.type === 'error').length
+      }
     };
   }
 

@@ -46,6 +46,7 @@ interface UserStats {
   createdAt: Date;
   lastActivity: Date;
   balance: number;
+  errors: any;
 }
 
 export class CopyTradingManager {
@@ -158,7 +159,9 @@ export class CopyTradingManager {
       createdAt: userService.createdAt,
       lastActivity: userService.lastActivity,
       balance: stats.balance,
+      errors: stats.errors || { errors: [], lastError: null, errorCount: 0 }
     };
+  
   }
 
   public stopCopyTrading(jwtToken: string): { success: boolean; message: string } {
@@ -238,6 +241,7 @@ export class CopyTradingManager {
           createdAt: userService.createdAt,
           lastActivity: userService.lastActivity,
           balance: stats.balance,
+          errors: stats.errors || { errors: [], lastError: null, errorCount: 0 }
         });
       } catch (error) {
         console.error(`Error getting stats for user ${userId}:`, error);

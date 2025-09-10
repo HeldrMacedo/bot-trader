@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { toast } from "react-toastify";
 import Head from "next/head";
 import {
   ChevronDoubleRightIcon,
@@ -35,6 +36,7 @@ interface Stats {
   pauseEndTime?: number;
   timePause: number;
   balance: number;
+  detalhes: any[];
 }
 
 interface Console {
@@ -97,13 +99,14 @@ export default function BotTraderX() {
     console: [] as Console[],
     timePause: 0,
     balance: 0,
+    detalhes: [],
   });
 
   const [loading, setLoading] = useState(false);
-  const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
-  const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
-  //const [demoToken, setDemoToken] = useState("");
-  //const [realToken, setRealToken] = useState("");
+  //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
+  //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  const [demoToken, setDemoToken] = useState("");
+  const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({
@@ -144,7 +147,6 @@ export default function BotTraderX() {
       });
 
       const data = await response.json();
-      console.log("fetchStatus ", data);
 
       if (data?.copyTrading?.isRunning) {
         setStats((prev) => ({
@@ -160,10 +162,10 @@ export default function BotTraderX() {
           realAccount: data.realTransactions,
           timePause: data.timePause,
           balance: data.balance,
+          detalhes: data.errors.errors,
         }));
       }
       console.log("fetchStatus ", data);
-      console.log("SET STATS ", stats);
     } catch (error) {
       console.error("Error fetching status:", error);
     }
@@ -173,7 +175,6 @@ export default function BotTraderX() {
     setLoading(true);
     try {
       const token = localStorage.getItem("access_token");
-      console.log("startCopyTrading ", configure);
       const response = await fetch("/api/start", {
         method: "POST",
         headers: {
@@ -182,20 +183,18 @@ export default function BotTraderX() {
         },
         body: JSON.stringify({ demoToken, realToken, configure }),
       });
-      const data = await response.json();
-      console.log("startCopyTrading ", data);
+      const data = await response.json();;
 
       if (response.ok) {
         setDisabledFields(true);
-        alert("Copy trading iniciado com sucesso!");
+        toast.success('Copy trading iniciado com sucesso!');
         setIsStart(true);
         fetchStatus();
       } else {
-        alert(`Erro: ${data.error}`);
+        toast.error(`Erro ao iniciar: ${data.error}`);
       }
     } catch (error) {
-      alert("Erro ao iniciar copy trading");
-      console.error(error);
+      toast.error("Erro ao iniciar copy trading");
     } finally {
       setLoading(false);
     }
@@ -218,14 +217,14 @@ export default function BotTraderX() {
 
       if (response.ok) {
         setDisabledFields(false);
-        alert("Copy trading parado com sucesso!");
+        toast.success("Copy trading parado com sucesso!");
         setIsStart(false);
         fetchStatus();
       } else {
-        alert(`Erro: ${data.error}`);
+        toast.error(`Erro: ${data.error}`);
       }
     } catch (error) {
-      alert("Erro ao parar copy trading");
+      toast.error("Erro ao parar copy trading");
       console.error(error);
     } finally {
       setLoading(false);
@@ -681,7 +680,7 @@ export default function BotTraderX() {
               )}
             </div>
 
-            <div className="relative  shadow-md sm:rounded-lg mt-4 overflow-auto  h-[180px]">
+            <div className="relative  shadow-md sm:rounded-lg mt-4 overflow-auto  h-[200px]">
               <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                 <thead className="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                   <tr>
@@ -737,6 +736,14 @@ export default function BotTraderX() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mt-4 h-[100px] text-blue-300 overflow-auto">
+              {stats.detalhes?.map((item, index) => (
+                <div key={index}>
+                  <small>{item.message}</small>
+                </div>
+              ))}              
             </div>
           </div>
         </div>

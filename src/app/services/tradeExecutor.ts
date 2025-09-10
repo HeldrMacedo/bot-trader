@@ -63,6 +63,7 @@ export class TradeExecutor extends EventEmitter {
           console.log('Connected to master account (real trading)');
           this.isConnected = true;
           this.reconnectAttempts = 0;
+          this.emit('connected');
           resolve();
           this.authenticateReal();
         });
@@ -70,6 +71,7 @@ export class TradeExecutor extends EventEmitter {
         this.wsMaster.on('error', (error) => {
           console.error('Master WebSocket error:', error);
           this.isConnected = false;
+          this.emit('error', error);
           if (this.reconnectAttempts === 0) {
             reject(error);
           }
@@ -78,6 +80,7 @@ export class TradeExecutor extends EventEmitter {
         this.wsMaster.on('close', () => {
           console.log('Master WebSocket disconnected');
           this.isConnected = false;
+          this.emit('disconnected');
           this.attemptReconnect();
         });
         
@@ -86,6 +89,7 @@ export class TradeExecutor extends EventEmitter {
         });
         
       } catch (error) {
+        this.emit('error', error);
         reject(error);
       }
     });
@@ -134,13 +138,15 @@ export class TradeExecutor extends EventEmitter {
       
       // Implementa lógica similar ao method_348
       if (!this.wsMaster || !this.isConnected) {
-        console.log('Master not connected, attempting reconnection...');
+        const error = new Error('Conta real não conectada');
+        this.emit('error', error);
         await this.connectToMaster();
       }
 
       // Proteção contra duplicatas
       if (this.duplicateProtection && this.isDuplicateTrade(signal)) {
-        console.log('Duplicate trade blocked');
+        const error = new Error('Trade duplicado bloqueado');
+        this.emit('warning', error);
         return;
       }
 
@@ -161,7 +167,7 @@ export class TradeExecutor extends EventEmitter {
       this.updateLastTradeInfo(signal);
       
     } catch (error) {
-      console.error('Error executing trade:', error);
+      this.emit('error', error);
       throw error;
     }
   }
@@ -285,9 +291,10 @@ export class TradeExecutor extends EventEmitter {
 
       if (message.msg_type === 'buy') {
         if (message.error) {
-          console.error('Buy error:', message.error);
+          const error = new Error(`Erro na compra: ${message.error.message}`);
+          this.emit('error', error);
         } else {
-          console.log('Buy successful:', message.buy);
+          this.emit('success', { message: 'Trade executado com sucesso', data: message.buy });
         }
       }
       
@@ -301,11 +308,8 @@ export class TradeExecutor extends EventEmitter {
       if (message.msg_type === 'balance') {
         this.emit('balance', message.balance.balance);
       }
-
-
-      
     } catch (error) {
-      console.error('Error handling master message:', error);
+      this.emit('error', new Error(`Erro ao processar mensagem: ${error.message}`));
     }
   }
 
