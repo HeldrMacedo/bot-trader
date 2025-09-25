@@ -325,60 +325,31 @@ export class CopyTradingService {
     this.currentStake = 0;
   }
 
- getStats() {
-    const now = new Date();
-    const uptime = this.stats.startTime ? now.getTime() - this.stats.startTime.getTime() : 0;
-    
-    return {
-      isRunning: this.isRunning,
-      isPaused: this.isPaused,
-      timePause: this.timePause, // Tempo restante de pausa em segundos
-      uptime: this.formatUptime(uptime),
-      stats: {
-        ...this.stats,
-        uptime: uptime
-      },
-      rules: {
-        quantityLoss: this.quantityLoss,
-        stopLoss: this.stopLoss,
-        stopWin: this.stopWin,
-        initialValue: this.initialValue,
-        stakeMultiple: this.stakeMultiple,
-        pauseTimeLoss: this.pauseTimeLoss,
-        pauseTimeWin: this.pauseTimeWin
-      },
-      trading: {
-        consecutiveLosses: this.consecutiveLosses,
-        currentStake: this.currentStake,
-        totalProfit: this.totalProfit,
-        totalLoss: this.totalLoss
-      },
-      demoAccount: {
-        transactions: this.demoTransactions,
-        totalWin: this.demoTransactions.filter(t => t.profit > 0).length,
-        totalLoss: this.demoTransactions.filter(t => t.profit <= 0).length,
-        consecutiveLoss: this.consecutiveLosses
-      },
-      realAccount: {
-        transactions: this.realTransactions,
-        totalWin: this.realTransactions.filter(t => t.profit > 0).length,
-        totalLoss: this.realTransactions.filter(t => t.profit < 0).length,
-        totalValueWin: this.realTransactions.filter(t => t.profit > 0).reduce((acc, t) => acc + t.profit, 0),
-        totalValueLoss: this.realTransactions.filter(t => t.profit < 0).reduce((acc, t) => acc + t.profit, 0),
-        consecutiveLoss: 0,
-        totalProfit: this.realTransactions.reduce((acc, t) => acc + t.profit, 0)
-
-      },
-      realTransactions: this.realTransactions,
-      console: this.console,
-      balance: this.balance,
-      errors: {
-        errors: this.errors,
-        lastError: this.errors[0] || null,
-        errorCount: this.errors.filter(e => e.type === 'error').length
-      }
-    };
-  }
+  getStats() {
+  return {
+    isRunning: this.isRunning,
+    timePause: this.timePause,
+    trading: {
+      consecutiveLosses: this.consecutiveLosses,
+    },
+    realAccount: {
+      transactions: this.realTransactions,
+      totalWin: this.realTransactions.filter(t => t.profit > 0).length,
+      totalLoss: this.realTransactions.filter(t => t.profit < 0).length,
+      totalValueWin: this.realTransactions.filter(t => t.profit > 0).reduce((acc, t) => acc + t.profit, 0),
+      totalValueLoss: this.realTransactions.filter(t => t.profit < 0).reduce((acc, t) => acc + t.profit, 0),
+      totalProfit: this.realTransactions.reduce((acc, t) => acc + t.profit, 0)
+    },
+    realTransactions: this.realTransactions,
+    console: this.console,
+    balance: this.balance,
+    errors: {
+      errors: this.errors,
+      lastError: this.errors[0] || null,
+      errorCount: this.errors.filter(e => e.type === 'error').length
+    }
+  };
+}
 
   private maskToken(token: string): string {
     if (token.length <= 8) return '***';

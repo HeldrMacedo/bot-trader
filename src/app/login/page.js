@@ -131,8 +131,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      <div className="flex w-full md:w-1/3  justify-center p-6">
-        <div className="w-full max-w-md">
+      <div className="flex w-full md:w-1/3 justify-center p-6">
+        <div className="w-full max-w-md flex flex-col min-h-full">
           <Image
             src="/img/form-login.png"
             alt="Imagem Login"
@@ -142,7 +142,7 @@ export default function LoginPage() {
             sizes="(max-width: 768px) 100vw, 50vw"
           />
 
-          <div className="w-full max-w-md mt-5">
+          <div className="w-full max-w-md mt-5 flex-grow">
             <h1 className="text-[#36344D] text-3xl font-semibold text-center">
               {isRegistering ? "Cadastro" : "Login"}
             </h1>
@@ -315,6 +315,27 @@ export default function LoginPage() {
               </form>
             )}
           </div>
+          
+          {/* Rodapé com aviso legal */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="text-xs text-gray-500 leading-relaxed">
+              <p className="mb-3">
+                A Deriv oferece produtos financeiros complexos, como opções e contratos por diferença (CFDs). 
+                Esses instrumentos podem não ser adequados para todos os clientes, e a negociação com eles envolve riscos. 
+                Antes de iniciar qualquer operação com produtos derivativos, é fundamental compreender os seguintes riscos:
+              </p>
+              <p className="mb-2">
+                <strong>a)</strong> Você pode perder parte ou até mesmo a totalidade do valor investido;
+              </p>
+              <p className="mb-3">
+                <strong>b)</strong> Se a negociação envolver conversão de moeda, as variações nas taxas de câmbio podem impactar seus lucros e perdas.
+              </p>
+              <p className="font-medium text-gray-500">
+                <strong>É importante lembrar:</strong> nunca negocie com dinheiro emprestado ou com recursos que você não possa perder.
+              </p>
+            </div>
+          </div>
+          
           {isLoading && (
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
               <div className="flex flex-col items-center">

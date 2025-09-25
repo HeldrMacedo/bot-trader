@@ -11,19 +11,19 @@ interface UserCopyTrading {
 }
 
 interface UserStats {
-  userId: string;
+  userId?: string;
   demoAccount: {
-    token: string;
-    isConnected: boolean;
-    transactions: any[];
+    token?: string;
+    isConnected?: boolean;
+    transactions?: any[];
     totalProfit?: number;
     totalLoss?: number;
     consecutiveLosses?: number;
   };
   realAccount: {
-    token: string;
-    isConnected: boolean;
-    transactions: any[];
+    token?: string;
+    isConnected?: boolean;
+    transactions?: any[];
     totalProfit?: number;
     totalLoss?: number;
     totalWin?: number;
@@ -31,22 +31,22 @@ interface UserStats {
     totalValueLoss?: number;
   };
   copyTrading: {
-    isRunning: boolean;
-    signalsReceived: number;
-    tradesExecuted: number;
-    errors: number;
-    isProcessingEnabled: boolean;
+    isRunning?: boolean;
+    signalsReceived?: number;
+    tradesExecuted?: number;
+    errors?: number;
+    isProcessingEnabled?: boolean;
     lastSignalTime?: string;
     lastTradeTime?: string;
   };
-  consecutiveLosses: number;
-  realTransactions: any[];
-  console: any[];
-  timePause: number;
-  createdAt: Date;
-  lastActivity: Date;
-  balance: number;
-  errors: any;
+  consecutiveLosses?: number;
+  realTransactions?: any[];
+  console?: any[];
+  timePause?: number;
+  createdAt?: Date;
+  lastActivity?: Date;
+  balance?: number;
+  errors?: any;
 }
 
 export class CopyTradingManager {
@@ -113,56 +113,41 @@ export class CopyTradingManager {
   }
 
   public getStatus(jwtToken: string): UserStats | { isRunning: false; message: string } {
-    const userId = this.validateJWT(jwtToken);
-    const userService = this.userServices.get(userId);
-    
-    if (!userService) {
-      return { isRunning: false, message: 'Copy trading não iniciado' };
-    }
-
-    // Atualizar última atividade
-    userService.lastActivity = new Date();
-    
-    const stats = userService.copyTradingService.getStats();
-    
-    return {
-      userId,
-      demoAccount: {
-        token: this.maskToken(userService.demoToken),
-        isConnected: true,
-        transactions: stats.demoAccount?.transactions || [],
-      },
-      realAccount: {
-        token: this.maskToken(userService.realToken),
-        isConnected: true,
-        transactions: stats.realAccount?.transactions || [],
-        totalLoss: stats.realAccount?.totalLoss,
-        totalWin: stats.realAccount?.totalWin,
-        totalProfit: stats.realAccount?.totalProfit,
-        totalValueWin: stats.realAccount?.totalValueWin,
-        totalValueLoss: stats.realAccount?.totalValueLoss,
-      },
-      copyTrading: {
-        isRunning: stats.isRunning,
-        signalsReceived: 0,
-        tradesExecuted: 0,
-        errors: 0,
-        isProcessingEnabled: true,
-        lastSignalTime: '',
-        lastTradeTime: ''
-      },
-      consecutiveLosses: stats.trading.consecutiveLosses,
-      console: stats.console || [],
-      realTransactions: stats.realTransactions || [],
-
-      timePause: stats.timePause,
-      createdAt: userService.createdAt,
-      lastActivity: userService.lastActivity,
-      balance: stats.balance,
-      errors: stats.errors || { errors: [], lastError: null, errorCount: 0 }
-    };
+  const userId = this.validateJWT(jwtToken);
+  const userService = this.userServices.get(userId);
   
+  if (!userService) {
+    return { isRunning: false, message: 'Copy trading não iniciado' };
   }
+
+  // Atualizar última atividade
+  userService.lastActivity = new Date();
+  
+  const stats = userService.copyTradingService.getStats();
+  
+  return {
+    demoAccount: {
+     
+    },
+    realAccount: {
+      totalLoss: stats.realAccount?.totalLoss,
+      totalWin: stats.realAccount?.totalWin,
+      totalProfit: stats.realAccount?.totalProfit,
+      totalValueWin: stats.realAccount?.totalValueWin,
+      totalValueLoss: stats.realAccount?.totalValueLoss,
+      transactions: stats.realAccount?.transactions || [],
+    },
+    copyTrading: {
+      isRunning: stats.isRunning,
+    },
+    consecutiveLosses: stats.trading.consecutiveLosses,
+    console: stats.console || [],
+    realTransactions: stats.realTransactions || [],
+    timePause: stats.timePause,
+    balance: stats.balance,
+    errors: stats.errors || { errors: [], lastError: null, errorCount: 0 }
+  };
+}
 
   public stopCopyTrading(jwtToken: string): { success: boolean; message: string } {
     const userId = this.validateJWT(jwtToken);
@@ -201,54 +186,6 @@ export class CopyTradingManager {
       stoppedCount,
       message: `Paradas ${stoppedCount} sessões`
     };
-  }
-
-  // Obter todas as sessões ativas (para admin)
-  public getAllActiveSessions(): UserStats[] {
-    const allStats: UserStats[] = [];
-    
-    for (const [userId, userService] of this.userServices) {
-      try {
-        const stats = userService.copyTradingService.getStats();
-        
-        allStats.push({
-          userId,
-          demoAccount: {
-            token: this.maskToken(userService.demoToken),
-            isConnected: true,
-            transactions: stats.demoAccount?.transactions || [],
-            totalProfit: 0,
-            totalLoss: 0,
-          },
-          realAccount: {
-            token: this.maskToken(userService.realToken),
-            isConnected: true,
-            transactions: stats.realAccount?.transactions || [],
-          },
-          copyTrading: {
-            isRunning: stats.isRunning,
-            signalsReceived: 0,
-            tradesExecuted: 0,
-            errors: 0,
-            isProcessingEnabled: true,
-            lastSignalTime: '',
-            lastTradeTime: ''
-          },
-          consecutiveLosses: stats.trading.consecutiveLosses,
-          console: stats.console || [],
-          realTransactions: stats.realTransactions || [],
-          timePause: 0,
-          createdAt: userService.createdAt,
-          lastActivity: userService.lastActivity,
-          balance: stats.balance,
-          errors: stats.errors || { errors: [], lastError: null, errorCount: 0 }
-        });
-      } catch (error) {
-        console.error(`Error getting stats for user ${userId}:`, error);
-      }
-    }
-    
-    return allStats;
   }
 
   private maskToken(token: string): string {

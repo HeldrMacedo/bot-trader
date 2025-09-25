@@ -312,7 +312,7 @@ export class WsListener extends EventEmitter {
   }
 
   private parseForexContract(longcode: string): ContractInfo {
-    // Implementa lógica específica para Forex (simplificada no ZeeX)
+    
     if (longcode.includes('touches')) {
       return { type: 'ONETOUCH', barrier: this.extractBarrier(longcode), isValid: true };
     }
@@ -336,7 +336,7 @@ export class WsListener extends EventEmitter {
   }
 
   private parseNonForexContract(longcode: string): ContractInfo {
-  // Reset contracts
+  //Win payout if Volatility 10 (1s) Index after 1 tick is strictly higher than entry spot
   if (longcode.includes('strictly higher than it was')) {
     return { type: 'RESETCALL', isValid: true };
   }
@@ -373,6 +373,7 @@ export class WsListener extends EventEmitter {
   // Digit over/under with barrier check
   if (longcode.includes('strictly higher than')) {
     const barrier = this.extractNumericBarrier(longcode);
+    console.log("BARRIER ", barrier);
     return { 
       type: barrier ? 'DIGITOVER' : 'CALL', 
       barrier: barrier,
@@ -444,6 +445,7 @@ export class WsListener extends EventEmitter {
 
   private extractNumericBarrier(longcode: string): string | undefined {
     const match = longcode.match(/\b(\d)\b/);
+    console.log("NUMERIC BARRIER ", match);
     return match ? match[1] : undefined;
   }
 
