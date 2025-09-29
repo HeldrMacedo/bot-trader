@@ -51,7 +51,7 @@ export class TradeExecutor extends EventEmitter {
         this.wsMaster = new WebSocket(this.baseUrl);
         
         this.wsMaster.on('open', () => {
-          console.log('Connected to master account (real trading)');
+          //console.log('Connected to master account (real trading)');
           this.isConnected = true;
           this.reconnectAttempts = 0;
           this.emit('connected');
@@ -69,7 +69,7 @@ export class TradeExecutor extends EventEmitter {
         });
 
         this.wsMaster.on('close', () => {
-          console.log('Master WebSocket disconnected');
+          //console.log('Master WebSocket disconnected');
           this.isConnected = false;
           this.emit('disconnected');
           this.attemptReconnect();
@@ -93,7 +93,7 @@ export class TradeExecutor extends EventEmitter {
     }
 
     this.reconnectAttempts++;
-    console.log(`Attempting to reconnect master connection (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    //console.log(`Attempting to reconnect master connection (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     setTimeout(() => {
       this.connectToMaster().catch((error) => {
@@ -143,7 +143,7 @@ export class TradeExecutor extends EventEmitter {
       // Constrói e envia a requisição de compra
       const buyRequest = this.buildBuyRequest(signal, requestId);
       
-      console.log('Sending buy request:', JSON.stringify(buyRequest, null, 2));
+      console.log('SEND BUY REQUEST:', JSON.stringify(buyRequest, null, 2));
       //this.emit('transaction', buyRequest);
 
       /*@ts-ignore*/
@@ -180,7 +180,7 @@ export class TradeExecutor extends EventEmitter {
       parameters.app_markup_percentage = this.appMarkupPercentage;
     }
 
-    console.log('Built buy request parameters:', parameters);
+    //console.log('Built buy request parameters:', parameters);
 
     return {
       buy: '1',
@@ -246,7 +246,7 @@ export class TradeExecutor extends EventEmitter {
   private handleMasterMessage(data: string): void {
     try {
       const message = JSON.parse(data);
-      console.log('Received MASTER MESSAGE:', message);
+      //console.log('Received MASTER MESSAGE:', message);
 
       if (message.msg_type === 'proposal_open_contract' && message.proposal_open_contract) {
         const poc = message.proposal_open_contract;
@@ -267,7 +267,7 @@ export class TradeExecutor extends EventEmitter {
         };
 
         // Opcional: log amigável
-        console.log('Real contract update (proposal_open_contract):', this.latestRealContractSummary);
+        //console.log('Real contract update (proposal_open_contract):', this.latestRealContractSummary);
       }
       
       if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {

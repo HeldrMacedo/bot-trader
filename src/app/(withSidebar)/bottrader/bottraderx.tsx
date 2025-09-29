@@ -103,10 +103,10 @@ export default function BotTraderX() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
-  const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
-  //const [demoToken, setDemoToken] = useState("");
-  //const [realToken, setRealToken] = useState("");
+  //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
+  //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  const [demoToken, setDemoToken] = useState("");
+  const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({

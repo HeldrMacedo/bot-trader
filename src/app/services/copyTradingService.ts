@@ -210,7 +210,7 @@ export class CopyTradingService {
       if (this.isPaused) {
         return;
       }
-      console.log('sellTransaction', transaction);
+  
       this.processTransaction(transaction, true); // true = isDemo
     });
     
@@ -223,11 +223,11 @@ export class CopyTradingService {
     });
     // Handlers para conexão
     this.wsListener.on('connected', () => {
-      console.log(`[Session ${this.sessionId}] Demo account listener connected`);
+      
     });
 
     this.wsListener.on('disconnected', () => {
-      console.log(`[Session ${this.sessionId}] Demo account listener disconnected`);
+      
       if (this.isRunning) {
         // Tenta reconectar após 5 segundos
         setTimeout(() => {
