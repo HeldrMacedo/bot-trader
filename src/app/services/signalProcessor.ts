@@ -179,7 +179,7 @@ export class SignalProcessor {
     'UNDEROVER', 'ODDEVEN',
     'HILO', 'RISEFALL',
     'ONLYUPDOWN', 'LISTENER'];
-    if (barrierTypes.includes(signal.contractType) && !signal.barrier) {
+    if (!barrierTypes.includes(signal.contractType)) {
       console.log('Barrier required for contract type:', signal.contractType);
       return false;
     }

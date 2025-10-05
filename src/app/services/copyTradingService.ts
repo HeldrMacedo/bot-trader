@@ -256,7 +256,7 @@ export class CopyTradingService {
     if (this.quantityLoss === 0) {
       return true;
     }
-    
+
     // Se quantityLoss > 0, só processa após atingir a sequência de losses
     return this.consecutiveLosses >= this.quantityLoss;
   }
