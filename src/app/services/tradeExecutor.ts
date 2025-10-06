@@ -34,60 +34,6 @@ export class TradeExecutor extends EventEmitter {
     at: number;
   } | null = null;
 
-  proporsal = {
-    account_id: 78759608,
-    audit_details: { all_ticks: [Array] },
-    barrier: '5899.882',
-    barrier_count: 1,
-    bid_price: 0,
-    buy_price: 10,
-    contract_id: 296013128388,
-    contract_type: 'CALL',
-    currency: 'USD',
-    current_spot: 5899.365,
-    current_spot_display_value: '5899.365',
-    current_spot_time: 1759702390,
-    date_expiry: 1759702388,
-    date_settlement: 1759702388,
-    date_start: 1759702376,
-    display_name: 'Volatility 10 Index',
-    entry_spot: 5899.539,
-    entry_spot_display_value: '5899.539',
-    entry_tick: 5899.539,
-    entry_tick_display_value: '5899.539',
-    entry_tick_time: 1759702378,
-    exit_tick: 5899.347,
-    exit_tick_display_value: '5899.347',
-    exit_tick_time: 1759702388,
-    expiry_time: 1759702388,
-    id: 'a9945a89-8eca-e2b9-80da-00abbb8f608e',
-    is_expired: 1,
-    is_forward_starting: 0,
-    is_intraday: 1,
-    is_path_dependent: 0,
-    is_settleable: 1,
-    is_sold: 1,
-    is_valid_to_cancel: 0,
-    is_valid_to_sell: 0,
-    longcode: 'Win payout if Volatility 10 Index after 5 ticks is strictly higher than entry spot plus 0.343.',
-    payout: 61.38,
-    profit: -10,
-    profit_percentage: -100,
-    purchase_time: 1759702376,
-    sell_price: 0,
-    sell_spot: 5899.347,
-    sell_spot_display_value: '5899.347',
-    sell_spot_time: 1759702388,
-    sell_time: 1759702388,
-    shortcode: 'CALL_R_10_61.38_1759702376_5T_S343P_0',
-    status: 'lost',
-    tick_count: 5,
-    tick_stream: [ [Object], [Object], [Object], [Object], [Object], [Object] ],
-    transaction_ids: { buy: 589482538968, sell: 589482562488 },
-    underlying: 'R_10',
-    validation_error: 'This contract has been sold.',
-    validation_error_code: 'General'
-  }
   
   constructor(token: string, configure?: any) {
     super();
@@ -202,8 +148,7 @@ export class TradeExecutor extends EventEmitter {
 
       /*@ts-ignore*/
       this.wsMaster.send(JSON.stringify(buyRequest));
-      
-      // Atualiza parâmetros da última operação
+
       this.updateLastTradeInfo(signal);
       
     } catch (error) {

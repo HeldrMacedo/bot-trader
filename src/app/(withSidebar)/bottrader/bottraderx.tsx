@@ -635,7 +635,7 @@ export default function BotTraderX() {
           <div className="w-2/3">
             <div className="flex flex-col h-[180px] bg-black rounded-lg overflow-y-auto">
               {stats.console?.length > 0 ? (
-                stats.console?.reverse().map((item, index) => (
+                stats.console?.map((item, index) => (
                   <div key={index} className="flex items-center">
                     <span>
                       <ChevronDoubleRightIcon width={20} height={20} />
@@ -652,7 +652,7 @@ export default function BotTraderX() {
                     </span>
                   </div>
                 ))
-              ) : (
+              ).reverse() : (
                 <div className="flex items-center justify-center h-full">
                   {isStart ? (
                     <div className="flex flex-col items-center space-y-3">
@@ -713,7 +713,7 @@ export default function BotTraderX() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.realAccount?.reverse().map((item, index) => (
+                  {stats.realAccount?.map((item, index) => (
                     <tr
                       key={index}
                       className={`bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 ${
@@ -733,7 +733,7 @@ export default function BotTraderX() {
                       <td className="px-6 py-2">{item.status}</td>
                       <td className="px-6 py-2">{item.display_name}</td>
                     </tr>
-                  ))}
+                  )).reverse()}
                 </tbody>
               </table>
             </div>
@@ -743,7 +743,7 @@ export default function BotTraderX() {
                 <div key={index}>
                   <small>{item.message}</small>
                 </div>
-              ))}              
+              )).reverse()}              
             </div>
           </div>
         </div>
