@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Token JWT necessário' }, { status: 401 });
     }
-    
+    console.log('POST /api/start', demoToken, realToken, configure);
     const jwt = authHeader.substring(7);
     // Configurações das regras (com valores padrão)
     const tradingConfig = {
@@ -20,7 +20,8 @@ export async function POST(request: Request) {
       stakeMultiple: configure?.stakeMultiple || 1,
       pauseTime: configure?.pauseTime || 0,
       pauseTimeLoss: configure?.pauseTimeLoss || false,
-      pauseTimeWin: configure?.pauseTimeWin || false
+      pauseTimeWin: configure?.pauseTimeWin || false,
+      testMode: configure?.testMode || false,
     };
     
     const result = await CopyTradingManager.getInstance().startCopyTrading(

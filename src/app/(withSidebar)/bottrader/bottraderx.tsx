@@ -77,6 +77,7 @@ interface Configure {
 }
 
 export default function BotTraderX() {
+  const [isTestMode, setIsTestMode] = useState(false);
   const [stats, setStats] = useState<Stats>({
     demoToken: "",
     realToken: "",
@@ -103,10 +104,10 @@ export default function BotTraderX() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
-  const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
-  //const [demoToken, setDemoToken] = useState("");
-  //const [realToken, setRealToken] = useState("");
+  //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
+  //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  const [demoToken, setDemoToken] = useState("");
+  const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({
@@ -181,7 +182,7 @@ export default function BotTraderX() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ demoToken, realToken, configure }),
+        body: JSON.stringify({ demoToken, realToken, configure: { ...configure, testMode: isTestMode } }),
       });
       const data = await response.json();;
 
@@ -293,6 +294,17 @@ export default function BotTraderX() {
                   value={realToken}
                   onChange={(e) => setRealToken(e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="inline-block text-sm font-medium text-gray-400">
+                  Test Mode
+                  <input
+                    type="checkbox"
+                    className="ml-2 inline-block w-4 h-4 rounded border border-gray-300 bg-gray-800 text-white focus:ring-2 focus:ring-slate-500"
+                    checked={isTestMode}
+                    onChange={(e) => setIsTestMode(e.target.checked)}
+                  />
+                </label>
               </div>
 
               {isStart ? (

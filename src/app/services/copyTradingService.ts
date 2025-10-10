@@ -3,6 +3,7 @@ import { SignalProcessor } from './signalProcessor';
 import { TradeExecutor } from './tradeExecutor';
 import { TradeSignal } from '../types/types';
 import { ErrorNotification } from '../types/errorTypes';
+import { MockTradeExecutor } from './MockTradeExecutor';
 
 export class CopyTradingService {
   private wsListener: WsListener;
@@ -49,14 +50,21 @@ export class CopyTradingService {
   private errors: ErrorNotification[] = [];
   private maxErrors: number = 50;
 
+  private contract_id: any;
+
   constructor(demoToken: string, realToken: string, sessionId?: string, configure?: any) {
     this.configure = configure;
 
     this.demoToken = demoToken;
     this.realToken = realToken;
     this.sessionId = sessionId;
-    
-    this.tradeExecutor = new TradeExecutor(realToken, configure);
+ 
+    if (configure?.testMode) {
+      // @ts-ignore - Ignorar erro de tipo por enquanto
+      this.tradeExecutor = new MockTradeExecutor(realToken, configure);
+    } else {
+      this.tradeExecutor = new TradeExecutor(realToken, configure);
+    }
 
     this.signalProcessor = new SignalProcessor(this.tradeExecutor);
     this.wsListener = new WsListener(demoToken, configure);
@@ -98,6 +106,7 @@ export class CopyTradingService {
 
   private processTransaction(transaction: any, isDemo: boolean) {
     if (isDemo) {
+
       if (!this.shouldProcessSignal()) {
         this.console.push({...transaction, isDemo: true});
       }
@@ -106,6 +115,7 @@ export class CopyTradingService {
     } else {
       this.console.push({...transaction, isDemo: false});
       this.realTransactions.push(transaction);
+
       this.handleRealTransaction(transaction);
     }
   }
@@ -127,7 +137,7 @@ export class CopyTradingService {
     if (isWin) {
       this.totalProfit += profit;
       this.currentStake = this.initialValue;
-      console.log(`[SYSTEM] PAUSE TIEM WIN: ${this.pauseTimeWin} - ${this.pauseTime}`);
+
       if (this.pauseTimeWin) {
         this.applyPause(this.pauseTime, 'win');
       }
@@ -140,7 +150,6 @@ export class CopyTradingService {
       this.totalLoss += Math.abs(profit);
       this.currentStake = this.currentStake * this.stakeMultiple; 
     
-      console.log(`[SYSTEM] PAUSE TIEM LOSS: ${this.pauseTimeLoss} - ${this.pauseTime}`);
       if (this.pauseTimeLoss) {
         this.applyPause(this.pauseTime, 'loss');
       }
@@ -157,7 +166,6 @@ export class CopyTradingService {
     this.pauseEndTime = Date.now() + (seconds * 1000);
     this.timePause = seconds;
     
-    console.log(`[SYSTEM] Paused for ${seconds}s after ${reason}`);
     
     // Atualizar timePause em tempo real
     const updateTimer = setInterval(() => {
@@ -167,23 +175,24 @@ export class CopyTradingService {
       if (remainingTime <= 0) {
         this.isPaused = false;
         this.timePause = 0;
-        console.log(`[SYSTEM] Pause ended, resuming operations`);
+
         clearInterval(updateTimer);
       }
-    }, 1000); // Atualiza a cada segundo
+    }, 1000); 
   }
 
   
 
   private  setupEventHandlers(): void {
-    // Handler para sinais de trade
     this.wsListener.on('tradeSignal', async (signal: TradeSignal) => {
       this.stats.signalsReceived++;
       this.stats.lastSignalTime = new Date();
       
       try {
+        this.contract_id = null;
         if (this.shouldProcessSignal()) {
           await this.signalProcessor.processSignal({...signal, amount: this.currentStake});
+          this.contract_id = signal.contractId;
           this.stats.tradesExecuted++;
           this.stats.lastTradeTime = new Date();
           
@@ -204,18 +213,22 @@ export class CopyTradingService {
         this.addError('error', 'Erro no Trade', `Falha ao processar sinal: ${error.message}`, 'trading', error);
       }
     });
+    
+    this.tradeExecutor.on('transaction', (transaction: any) => {
+      this.processTransaction({...transaction, amount: transaction.profit}, false); // false = isReal
+    });
 
-     this.wsListener.on('sellTransaction', (transaction: any) => {
-      
+    this.wsListener.on('sellTransaction', (transaction: any) => {
+      console.log('Sell Transaction:', transaction);
       if (this.isPaused) {
+        return;
+      }
+
+      if (this.contract_id === transaction.contract_id) {
         return;
       }
   
       this.processTransaction(transaction, true); // true = isDemo
-    });
-    
-    this.tradeExecutor.on('transaction', (transaction: any) => {
-      this.processTransaction({...transaction, amount: transaction.profit}, false); // false = isReal
     });
 
     this.tradeExecutor.on('balance', (balance) => {

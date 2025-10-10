@@ -106,9 +106,10 @@ export class WsListener extends EventEmitter {
         }));
       }
 
+      /*
       if (message.msg_type === 'proposal_open_contract') {
         console.log('Received message:', message);
-      }
+      }*/
       
   
 

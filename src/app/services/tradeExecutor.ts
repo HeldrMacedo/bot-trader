@@ -148,7 +148,7 @@ export class TradeExecutor extends EventEmitter {
 
       /*@ts-ignore*/
       this.wsMaster.send(JSON.stringify(buyRequest));
-
+     
       this.updateLastTradeInfo(signal);
       
     } catch (error) {
@@ -178,8 +178,6 @@ export class TradeExecutor extends EventEmitter {
     if (this.appMarkupPercentage > 0) {
       parameters.app_markup_percentage = this.appMarkupPercentage;
     }
-
-    //console.log('Built buy request parameters:', parameters);
 
     return {
       buy: '1',
@@ -245,29 +243,6 @@ export class TradeExecutor extends EventEmitter {
   private handleMasterMessage(data: string): void {
     try {
       const message = JSON.parse(data);
-      //console.log('Received MASTER MESSAGE:', message);
-
-      if (message.msg_type === 'proposal_open_contract' && message.proposal_open_contract) {
-        const poc = message.proposal_open_contract;
-
-        this.latestRealContractSummary = {
-          data: moment().format('DD/MM/YYYY HH:mm:ss'),
-          entry_spot_display_value: poc.entry_spot_display_value,
-          exit_tick_display_value: poc.exit_tick_display_value,
-          contract_id: poc.contract_id,
-          contract_type: poc.contract_type,
-          display_name: poc.display_name,
-          payout: poc.payout,
-          profit: poc.profit,
-          status: poc.status,
-          buy_price: poc.buy_price,
-          raw: poc,
-          at: Date.now(),
-        };
-
-        // Opcional: log amigável
-        //console.log('Real contract update (proposal_open_contract):', this.latestRealContractSummary);
-      }
       
       if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
         this.emit('transaction', message.proposal_open_contract);
