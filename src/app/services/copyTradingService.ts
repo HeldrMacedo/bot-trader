@@ -59,13 +59,8 @@ export class CopyTradingService {
     this.realToken = realToken;
     this.sessionId = sessionId;
  
-    if (configure?.testMode) {
-      // @ts-ignore - Ignorar erro de tipo por enquanto
-      this.tradeExecutor = new MockTradeExecutor(realToken, configure);
-    } else {
-      this.tradeExecutor = new TradeExecutor(realToken, configure);
-    }
 
+    this.tradeExecutor = new TradeExecutor(realToken, configure);
     this.signalProcessor = new SignalProcessor(this.tradeExecutor);
     this.wsListener = new WsListener(demoToken, configure);
     
@@ -130,14 +125,32 @@ export class CopyTradingService {
     }
   }
 
+  private calculateNextStake(): number {
+    // Progressão geométrica: initialValue * (1 + stakeMultiple)^consecutiveLosses
+    const losses = this.consecutiveLosses;
+
+    // Para 0 perdas, retorna o valor inicial
+    if (losses === 0) {
+      return Number(this.initialValue.toFixed(2));
+    }
+
+    const ratio = 1 + this.stakeMultiple;
+    const rawStake = this.initialValue * Math.pow(ratio, losses);
+
+    // Arredondamento padrão para 2 casas decimais (fiat)
+    return Number(rawStake.toFixed(2));
+  }
+
   private handleRealTransaction(transaction: any) {
     const isWin = transaction.profit > 0;
     const profit = transaction.profit;
-    this.consecutiveLosses = 0;
+    //this.consecutiveLosses = 0;
     if (isWin) {
       this.totalProfit += profit;
-      this.currentStake = this.initialValue;
+      this.consecutiveLosses = 0;
+      this.currentStake = Number(this.initialValue.toFixed(2));
 
+      
       if (this.pauseTimeWin) {
         this.applyPause(this.pauseTime, 'win');
       }
@@ -148,8 +161,11 @@ export class CopyTradingService {
       }
     } else {
       this.totalLoss += Math.abs(profit);
-      this.currentStake = this.currentStake * this.stakeMultiple; 
-    
+      
+      //this.currentStake = this.currentStake * this.stakeMultiple; 
+      this.consecutiveLosses += 1;
+      this.currentStake = this.calculateNextStake();
+
       if (this.pauseTimeLoss) {
         this.applyPause(this.pauseTime, 'loss');
       }
@@ -160,6 +176,7 @@ export class CopyTradingService {
       }
     }
   }
+
 
   private applyPause(seconds: number, reason: string) {
     this.isPaused = true;
@@ -219,7 +236,7 @@ export class CopyTradingService {
     });
 
     this.wsListener.on('sellTransaction', (transaction: any) => {
-      console.log('Sell Transaction:', transaction);
+
       if (this.isPaused) {
         return;
       }
@@ -234,6 +251,11 @@ export class CopyTradingService {
     this.tradeExecutor.on('balance', (balance) => {
       this.balance = balance;
     });
+
+    this.tradeExecutor.on('error', (error) => {
+      this.stats.errors++;
+      this.addError('error', 'Erro no Trade Executor', `Falha ao processar transação: ${error.message}`, 'trading', error);
+    })
     // Handlers para conexão
     this.wsListener.on('connected', () => {
       

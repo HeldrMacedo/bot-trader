@@ -106,6 +106,7 @@ export default function BotTraderX() {
   const [loading, setLoading] = useState(false);
   //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
   //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  //const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
   const [demoToken, setDemoToken] = useState("");
   const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
