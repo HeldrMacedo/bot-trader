@@ -296,17 +296,6 @@ export default function BotTraderX() {
                   onChange={(e) => setRealToken(e.target.value)}
                 />
               </div>
-              <div>
-                <label className="inline-block text-sm font-medium text-gray-400">
-                  Test Mode
-                  <input
-                    type="checkbox"
-                    className="ml-2 inline-block w-4 h-4 rounded border border-gray-300 bg-gray-800 text-white focus:ring-2 focus:ring-slate-500"
-                    checked={isTestMode}
-                    onChange={(e) => setIsTestMode(e.target.checked)}
-                  />
-                </label>
-              </div>
 
               {isStart ? (
                 <button
