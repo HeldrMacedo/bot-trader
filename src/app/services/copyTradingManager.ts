@@ -52,16 +52,13 @@ interface UserStats {
 export class CopyTradingManager {
   private static instance: CopyTradingManager;
   private userServices = new Map<string, UserCopyTrading>();
-  private cleanupInterval: NodeJS.Timeout;
+  // Removido: cleanupInterval - limpeza automática desativada
   
   // Tempo limite de inatividade (30 minutos)
   private readonly INACTIVITY_TIMEOUT = 30 * 60 * 1000;
 
   private constructor() {
-    // Limpeza automática de sessões inativas a cada 5 minutos
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupInactiveUsers();
-    }, 5 * 60 * 1000);
+    // Removido: cleanup automático para evitar parar bots aguardando sinais
   }
 
   public static getInstance(): CopyTradingManager {
@@ -81,18 +78,17 @@ export class CopyTradingManager {
   }
 
   public startCopyTrading(jwtToken: string, demoToken: string, realToken: string, configure: any): { success: boolean; userId: string; message: string } {
-    const userId = this.validateJWT(jwtToken);
-    
-    // Se já existe, para o existente e cria um novo
-    if (this.userServices.has(userId)) {
+    try {
+      console.log('startCopyTrading', jwtToken, demoToken, realToken, configure);
+      const userId = this.validateJWT(jwtToken);
+       if (this.userServices.has(userId)) {
       const existing = this.userServices.get(userId)!;
       existing.copyTradingService.stop();
       this.userServices.delete(userId);
     }
-
-    // Criar novo serviço com configurações
+    console.log('antes copyTradingService');
     const copyTradingService = new CopyTradingService(demoToken, realToken, userId, configure);
-
+    console.log('apos copyTradingService', copyTradingService);
     this.userServices.set(userId, {
       userId,
       demoToken,
@@ -102,7 +98,6 @@ export class CopyTradingManager {
       lastActivity: new Date()
     });
 
-    // Iniciar o serviço
     copyTradingService.start();
 
     return {
@@ -110,6 +105,9 @@ export class CopyTradingManager {
       userId,
       message: 'Copy trading iniciado com sucesso'
     };
+    } catch (error) {
+      return { success: false, userId: '', message: error.message };
+    }   
   }
 
   public getStatus(jwtToken: string): UserStats | { isRunning: false; message: string } {
@@ -167,6 +165,15 @@ export class CopyTradingManager {
       message: 'Nenhuma sessão ativa encontrada'
     };
   }
+
+  // public cleanupUserSession(userId: string): void {
+  //   const userService = this.userServices.get(userId);
+  //   if (userService) {
+  //     userService.copyTradingService.stop();
+  //     this.userServices.delete(userId);
+  //     console.log(`Sessão do usuário ${userId} limpa manualmente`);
+  //   }
+  // }
 
   public stopAllSessions(): { stoppedCount: number; message: string } {
     let stoppedCount = 0;
@@ -230,9 +237,6 @@ export class CopyTradingManager {
     
     this.userServices.clear();
     
-    // Limpar interval de limpeza
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-    }
+    // Removido: limpeza de interval (não mais necessário)
   }
 }

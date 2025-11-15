@@ -9,9 +9,8 @@ export async function POST(request: Request) {
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Token JWT necessário' }, { status: 401 });
     }
-    console.log('POST /api/start', demoToken, realToken, configure);
     const jwt = authHeader.substring(7);
-    // Configurações das regras (com valores padrão)
+
     const tradingConfig = {
       quantityLoss: configure?.quantityLoss || 0,
       stopLoss: configure?.stopLoss || 0,

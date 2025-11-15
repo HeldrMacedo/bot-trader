@@ -243,7 +243,7 @@ export class TradeExecutor extends EventEmitter {
   private handleMasterMessage(data: string): void {
     try {
       const message = JSON.parse(data);
-      
+      console.log('RECEIVE MESSAGE REAL: ', message);
       if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
         this.emit('transaction', message.proposal_open_contract);
       }
