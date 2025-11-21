@@ -1,67 +1,60 @@
 ```
+# Dependencies
+node_modules/
+
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
+env/
 venv/
 .venv/
-env/
 .ENV
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
+.ENV.local
+env.bak/
+venv.bak/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs
 *.log
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-.DS_Store
 
-# Dependencies
-node_modules/
-julia-*/
-zig*/
-target/
-.gradle/
-node_modules/
-.npm/
-.yarn/
-
-# Local config
+# Environment
 .env
 .env.local
 .env.*
-!.env.example
 
-# IDE
+# Editor
 .vscode/
 .idea/
 *.swp
 *.swo
 *.tmp
 
-# Build and distribution
-dist/
-build/
-*.egg
-*.egg-info/
-*.so
-*.o
-*.a
-*.obj
-*.out
+# OS
+.DS_Store
+Thumbs.db
 
-# Testing
-.coverage
-htmlcov/
-.coverage.*
-.nyc_output
+# Coverage
 coverage/
+htmlcov/
+.coverage
+
+# MyPy
+.mypy_cache/
+
+# PyTest
+.pytest_cache/
+
+# Next.js
+.next/
+out/
+
+# TypeScript
+*.tsbuildinfo
 ```
