@@ -389,7 +389,7 @@ Bot começa a operar
 5️⃣ Re-simule a cada 30-60 min
 ```
 
----
+----
 
 ## 🏆 Melhor Prática Recomendada
 
