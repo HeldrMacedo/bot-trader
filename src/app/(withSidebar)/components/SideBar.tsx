@@ -108,6 +108,12 @@ const Sidebar = ({
       role: ["admin", "user"]
     },
     {
+      name: "Deriv Analyzer",
+      icon: CpuChipIcon,
+      href: "/deriv-analyzer",
+      role: ["admin", "user"]
+    },
+    {
       name: "BotTrader",
       icon: CpuChipIcon,
       href: "/bottrader",
