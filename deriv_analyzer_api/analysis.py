@@ -118,7 +118,7 @@ class StatisticalAnalyzer:
         else:
             strength = 0
             
-        trend_direction = 'up' if recent_change > 0.1 else 'down' if recent_change < -0.1 else 'stable'
+        trend_direction = 'alta' if recent_change > 0.1 else 'baixa' if recent_change < -0.1 else 'estável'
         
         return {
             'trend': trend_direction,
@@ -215,35 +215,35 @@ class StatisticalAnalyzer:
         
         if len(exhaustion) >= 2:
             score += 25
-            reasons.append(f'{len(exhaustion)} exhausted digits detected')
+            reasons.append(f'{len(exhaustion)} dígitos exaustos detectados')
         elif len(exhaustion) >= 1:
             score += 15
-            reasons.append(f'{len(exhaustion)} exhausted digit detected')
+            reasons.append(f'{len(exhaustion)} dígito exausto detectado')
             
         if len(absence) >= 2:
             score += 20
-            reasons.append(f'{len(absence)} absent digits detected')
+            reasons.append(f'{len(absence)} dígitos ausentes detectados')
         elif len(absence) >= 1:
             score += 10
-            reasons.append(f'{len(absence)} absent digit detected')
+            reasons.append(f'{len(absence)} dígito ausente detectado')
             
         # Check distribution uniformity
         probs = self.calculate_probabilities(digits)
         if not probs.get('uniformity_test', True):
             score += 15
-            reasons.append('Distribution shows bias')
+            reasons.append('Distribuição mostra viés')
         else:
             score -= 10
-            reasons.append('Distribution appears uniform (less predictable)')
+            reasons.append('Distribuição parece uniforme (menos previsível)')
             
         # Check trend stability
         trend = self.detect_trends(digits)
         if abs(trend['direction']) > 0.5:
             score += 10
-            reasons.append('Strong trend detected')
+            reasons.append('Tendência forte detectada')
         elif trend['strength'] > 0.7:
             score += 5
-            reasons.append('Consistent trend direction')
+            reasons.append('Direção de tendência consistente')
             
         # Cap the score
         score = max(0, min(100, score))
@@ -297,12 +297,12 @@ class StatisticalAnalyzer:
             for exh in exhaustion:
                 if exh['digit'] >= 7:
                     under7_score += exh['count'] * 3
-                    under7_reasons.append(f'Digit {exh["digit"]} exhausted ({exh["count"]} times)')
+                    under7_reasons.append(f'Dígito {exh["digit"]} exausto ({exh["count"]} vezes)')
                     
             for abs_digit in absence:
                 if abs_digit['digit'] <= 6:
                     under7_score += 2
-                    under7_reasons.append(f'Digit {abs_digit["digit"]} absent for {abs_digit["ticks_since"]} ticks')
+                    under7_reasons.append(f'Dígito {abs_digit["digit"]} ausente por {abs_digit["ticks_since"]} ticks')
                     
             if under7_score >= config.get('min_signal_strength', 10):
                 signals.append({

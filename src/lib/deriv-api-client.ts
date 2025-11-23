@@ -83,7 +83,9 @@ class DerivApiClient {
   private defaultHeaders: HeadersInit;
 
   constructor(baseUrl: string = process.env.NEXT_PUBLIC_DERIV_API_URL || 'http://localhost:8000') {
-    this.baseUrl = baseUrl;
+    const envUrl = baseUrl;
+    const invalidTarget = typeof envUrl === 'string' && envUrl.includes('oauth.deriv.com');
+    this.baseUrl = invalidTarget ? 'http://localhost:8000' : envUrl;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
