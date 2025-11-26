@@ -379,6 +379,7 @@ const DerivAnalyzerDashboard = () => {
                     <div key={symbol} className="border border-gray-200 rounded-lg p-4">
                       <h4 className="font-medium text-gray-900 mb-2">{symbol}</h4>
                       <div className="text-sm space-y-1 text-gray-900">
+                        
                         <div>Dígito Atual: <span className="font-medium">{analysis.current_digit}</span></div>
                         <div>Tendência: <span className="font-medium">{analysis.trends.trend}</span></div>
                         <div>Exaustão: <span className="font-medium">{analysis.exhaustion.length}</span> dígitos</div>
