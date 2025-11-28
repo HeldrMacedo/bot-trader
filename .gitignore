@@ -1,63 +1,36 @@
 ```
-# Dependencies
-node_modules/
-
-
-/exemplo_zeek
-
-# Python
-__pycache__/
+# Compiled and build artifacts
 *.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.ENV.local
-env.bak/
-venv.bak/
-
-# Build artifacts
+__pycache__/
+*.o
+*.obj
 dist/
 build/
-*.egg-info/
+target/
 
-# Logs
-*.log
-
-# Environment
+# Dependencies
+node_modules/
+venv/
+.venv/
 .env
 .env.local
-.env.*
+*.env.*
 
-# Editor
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-*.tmp
-
-# OS
-.DS_Store
-Thumbs.db
 
 # Coverage
 coverage/
 htmlcov/
 .coverage
 
-# MyPy
-.mypy_cache/
-
-# PyTest
-.pytest_cache/
-
-# Next.js
-.next/
-out/
-
-# TypeScript
-*.tsbuildinfo
+# System files
+.DS_Store
+Thumbs.db
 ```
