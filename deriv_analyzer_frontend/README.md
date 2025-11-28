@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Deriv Real-Time Analyzer Frontend
 
-## Getting Started
+This is a Next.js-based frontend that connects to the Deriv Real-Time Analyzer API to display real-time trading analysis and suggestions.
 
-First, run the development server:
+## Technology Stack
 
+- **Next.js 16** with **React 19**
+- **TypeScript** for type safety
+- **Tailwind CSS** for styling
+- **WebSocket** for real-time communication
+- **React Icons** for UI elements
+
+## Architecture
+
+The frontend connects to the backend API via WebSocket to receive real-time market analysis data. It displays digit patterns, trading suggestions, and market quality metrics in a responsive dashboard.
+
+## Features
+
+- Real-time digit analysis dashboard
+- Trading strategy suggestions (OVER 2, UNDER 7, DIFFERS)
+- Market quality assessment
+- Live tick data visualization
+- Connection status monitoring
+- Responsive design for all devices
+
+## Setup
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Start the development server:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Components
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **DerivAnalyzerService**: Handles WebSocket communication with the backend
+- **Dashboard**: Main interface displaying all analysis data
+- **Data Tables**: Organized presentation of trading suggestions
+- **Real-time Charts**: Visual representation of tick data
 
-## Learn More
+## Integration with Backend
 
-To learn more about Next.js, take a look at the following resources:
+The frontend uses the `DerivAnalyzerService` to:
+- Connect to the backend WebSocket
+- Handle real-time data updates
+- Manage reconnection logic
+- Fetch API data when needed
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## UI Elements
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Connection status indicators
+- Market quality metrics
+- Trading suggestions with confidence levels
+- Real-time tick data display
+- Strategy reason explanations
 
-## Deploy on Vercel
+## Trading Strategies Displayed
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **OVER 2**: When low digits (0,1,2) are exhausted
+- **UNDER 7**: When high digits (7,8,9) are exhausted
+- **DIFFERS**: When a particular digit appears frequently

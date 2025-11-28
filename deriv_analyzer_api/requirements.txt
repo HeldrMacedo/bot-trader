@@ -1,11 +1,13 @@
-fastapi==0.115.0
-uvicorn[standard]==0.34.0
-websockets==14.0
-websocket-client==1.8.0
-pandas==2.2.3
-numpy==1.26.4
-scikit-learn==1.5.2
-python-socketio==5.11.4
-redis==5.2.0
-python-dotenv==1.0.1
-requests==2.32.3
+# Node.js dependencies are managed via package.json
+# This file is kept for reference or if Python components are needed later
+# fastapi==0.115.0
+# uvicorn[standard]==0.34.0
+# websockets==14.0
+# websocket-client==1.8.0
+# pandas==2.2.3
+# numpy==1.26.4
+# scikit-learn==1.5.2
+# python-socketio==5.11.4
+# redis==5.2.0
+# python-dotenv==1.0.1
+# requests==2.32.3
