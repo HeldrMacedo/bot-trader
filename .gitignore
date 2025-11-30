@@ -10,6 +10,7 @@ target/
 
 # Dependencies
 node_modules/
+exemplo_zeek/
 venv/
 .venv/
 .env

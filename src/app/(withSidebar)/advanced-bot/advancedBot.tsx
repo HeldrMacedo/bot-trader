@@ -479,6 +479,7 @@ export default function AdvancedBot() {
 
   useEffect(() => {
     if (connected && volatilityData && Object.keys(volatilityData).length > 0) {
+      console.log('volatilityData', volatilityData, connected);
       const interval = setInterval(() => {
         analyzeMarketQuality();
       }, 30000);
@@ -487,6 +488,7 @@ export default function AdvancedBot() {
   }, [connected, volatilityData, suggestions, strategies]);
 
   useEffect(() => {
+    console.log('connected', connected);
     return () => {
       cleanupConnection();
       if (wsRef.current) { wsRef.current.close(); }
