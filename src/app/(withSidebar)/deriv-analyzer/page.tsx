@@ -62,17 +62,39 @@ interface SpecificOperations {
     digits: number[];
   };
 }
-
+interface MartingaleConfig {
+  enabled: boolean;
+  multiplier: number;
+  maxLevels: number;
+  resetOnWin: boolean;
+  currentLevel: number;
+  currentStake: number;
+}
 const DerivAnalyzerDashboard = () => {
   const [isConnected, setIsConnected] = useState(false);
-  const [apiToken, setApiToken] = useState("");
+  const [apiToken, setApiToken] = useState("ehOXyajRlX3TdOu");
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+  
+  // WebSocket Refs and State
+  const wsRef = React.useRef<WebSocket | null>(null);
+  const reconnectAttemptsRef = React.useRef(0);
+  const maxReconnectAttempts = 5;
+  const reconnectDelay = 5000;
+  
   const [bestSignal, setBestSignal] = useState<TradingSignal | null>(null);
   const [config, setConfig] = useState<any>(null);
   const [performance, setPerformance] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-
+  const [stake, setStake] = useState<number>(1);
+ const [martingaleConfig, setMartingaleConfig] = useState<MartingaleConfig>({
+    enabled: false,
+    multiplier: 2.0,
+    maxLevels: 3,
+    resetOnWin: true,
+    currentLevel: 0,
+    currentStake: stake
+  });
   const [specificOperations, setSpecificOperations] =
     useState<SpecificOperations>({
       over: {
@@ -93,29 +115,29 @@ const DerivAnalyzerDashboard = () => {
       },
     });
   // Use the WebSocket hook for real-time updates
-  const {
-    isConnected: isWsConnected,
-    isConnecting: isWsConnecting,
-    analysis: wsAnalysis,
-    lastUpdate,
-    error: wsError,
-    reconnect,
-  } = useDerivWebSocket();
+  // const {
+  //   isConnected: isWsConnected,
+  //   isConnecting: isWsConnecting,
+  //   analysis: wsAnalysis,
+  //   lastUpdate,
+  //   error: wsError,
+  //   reconnect,
+  // } = useDerivWebSocket();
 
-  // Update local state when WebSocket receives new data
-  useEffect(() => {
-    console.log("Received WebSocket analysis:", wsAnalysis);
-    if (wsAnalysis) {
-      setAnalysisData(wsAnalysis);
+  //Update local state when WebSocket receives new data
+  // useEffect(() => {
+  //   console.log("Received WebSocket analysis:", wsAnalysis);
+  //   if (wsAnalysis) {
+  //     setAnalysisData(wsAnalysis);
 
-      // Find the best signal
-      if (wsAnalysis.signals && wsAnalysis.signals.length > 0) {
-        setBestSignal(wsAnalysis.signals[0]);
-      }
-    }
-  }, [wsAnalysis]);
+  //     // Find the best signal
+  //     if (wsAnalysis.signals && wsAnalysis.signals.length > 0) {
+  //       setBestSignal(wsAnalysis.signals[0]);
+  //     }
+  //   }
+  // }, [wsAnalysis]);
 
-  // Load initial data when connected
+  //Load initial data when connected
   useEffect(() => {
     if (isConnected) {
       loadInitialData();
@@ -136,33 +158,108 @@ const DerivAnalyzerDashboard = () => {
     }
   };
 
+  const connectToDeriv = () => {
+    setIsLoading(true);
+    try {
+      // Close existing connection if any
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+
+      const appId = process.env.NEXT_PUBLIC_APPID || '1089';
+      const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('Connected to Deriv (Direct)');
+        setIsConnected(true);
+        reconnectAttemptsRef.current = 0;
+        
+        // Authenticate
+        if (apiToken) {
+          ws.send(JSON.stringify({ authorize: apiToken }));
+        }
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.msg_type === 'authorize') {
+            if (data.error) {
+              console.error('Authorization error:', data.error);
+              alert('Authorization failed: ' + data.error.message);
+              ws.close();
+            } else {
+              console.log('Authorized successfully', data);
+              // Subscribe to ticks or other data here if needed
+              // Example: ws.send(JSON.stringify({ ticks: 'R_100', subscribe: 1 }));
+            }
+          }
+          
+          // Handle other messages if needed
+          
+        } catch (e) {
+          console.error('Error parsing message:', e);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('Deriv WebSocket disconnected');
+        setIsConnected(false);
+        attemptReconnect();
+      };
+
+      ws.onerror = (error) => {
+        console.error('Deriv WebSocket error:', error);
+        // Error handling is often followed by close, which triggers reconnect
+      };
+
+    } catch (error) {
+      console.error('Connection creation error:', error);
+      setIsLoading(false);
+    } finally {
+      setIsLoading(false); // Ensure loading state is cleared
+    }
+  };
+
+  const attemptReconnect = () => {
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      console.error('Max reconnection attempts reached');
+      return;
+    }
+
+    reconnectAttemptsRef.current++;
+    console.log(`Attempting reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
+    
+    setTimeout(() => {
+      connectToDeriv();
+    }, reconnectDelay);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
+
   const handleConnect = async () => {
     if (!apiToken) {
       alert("Please enter your API token");
       return;
     }
-
-    setIsLoading(true);
-    try {
-      console.log("Attempting to connect with token:", apiToken);
-      const response = await derivApiClient.connect({ api_token: apiToken });
-      console.log("Connection response:", response);
-      setIsConnected(true);
-    } catch (error) {
-      console.error("Connection error:", error);
-      alert("Failed to connect: " + (error as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
+    connectToDeriv();
   };
 
   const handleDisconnect = async () => {
-    try {
-      await derivApiClient.disconnect();
-      setIsConnected(false);
-    } catch (error) {
-      console.error("Disconnection error:", error);
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
     }
+    setIsConnected(false);
   };
 
   const updateConfig = async (newConfig: any) => {
@@ -204,9 +301,9 @@ const DerivAnalyzerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <Brain className="text-blue-600" size={32} />
             Deriv Real-Time Analyzer
@@ -215,43 +312,30 @@ const DerivAnalyzerDashboard = () => {
             Advanced system for analyzing Deriv tickets with real-time
             predictions and trading signals
           </p>
-        </div>
+        </div> */}
 
         {/* Connection Status */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                {isWsConnected ? (
+                {isConnected ? (
                   <Wifi className="text-green-500" size={20} />
-                ) : isWsConnecting ? (
+                ) : isLoading ? (
                   <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <WifiOff className="text-red-500" size={20} />
                 )}
                 <span
-                  className={`font-medium ${isWsConnected ? "text-green-600" : isWsConnecting ? "text-blue-600" : "text-red-600"}`}
+                  className={`font-medium ${isConnected ? "text-green-600" : isLoading ? "text-blue-600" : "text-red-600"}`}
                 >
-                  {isWsConnected
+                  {isConnected
                     ? "Connected"
-                    : isWsConnecting
+                    : isLoading
                       ? "Connecting..."
                       : "Disconnected"}
                 </span>
               </div>
-
-              {wsError && (
-                <div className="flex items-center gap-2 text-red-600">
-                  <AlertTriangle size={16} />
-                  <span>{wsError}</span>
-                </div>
-              )}
-
-              {lastUpdate && (
-                <div className="text-sm text-gray-500">
-                  Last update: {new Date(lastUpdate).toLocaleTimeString()}
-                </div>
-              )}
             </div>
 
             <div className="flex gap-3">
@@ -286,15 +370,6 @@ const DerivAnalyzerDashboard = () => {
                   Disconnect
                 </button>
               )}
-
-              <button
-                onClick={reconnect}
-                disabled={isWsConnecting}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
-              >
-                <Zap size={16} />
-                Reconnect
-              </button>
             </div>
           </div>
         </div>

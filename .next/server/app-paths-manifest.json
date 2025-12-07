@@ -1,7 +1,6 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/api/check-token/route": "app/api/check-token/route.js",
+  "/page": "app/page.js",
   "/(withSidebar)/home/page": "app/(withSidebar)/home/page.js",
-  "/(withSidebar)/deriv-analyzer/page": "app/(withSidebar)/deriv-analyzer/page.js",
-  "/(withSidebar)/advanced-bot/page": "app/(withSidebar)/advanced-bot/page.js"
+  "/(withSidebar)/advanced-bot/page": "app/(withSidebar)/advanced-bot/page.js",
+  "/(withSidebar)/deriv-analyzer/page": "app/(withSidebar)/deriv-analyzer/page.js"
 }
