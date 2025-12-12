@@ -20,6 +20,7 @@ import { ConfigTab } from './components/ConfigTab';
 import { OperationMode } from './components/OperationMode';
 import { PerformanceStats } from './components/PerformanceStats';
 import { GlobalConfigPanel } from './components/GlobalConfigPanel';
+import { config } from 'process';
 
 export default function DerivAnalyzerDashboard() {
 	// Connection State
@@ -223,7 +224,7 @@ export default function DerivAnalyzerDashboard() {
 						/>
 
 						{/* Tab Navigation */}
-						<div className='mt-6 bg-white rounded-xl shadow-sm border border-gray-200'>
+						<div className='mt-6 bg-principal rounded-xl shadow-sm border border-gray-200'>
 							<div className='border-b border-gray-200'>
 								<nav className='flex space-x-8 px-6'>
 									{[

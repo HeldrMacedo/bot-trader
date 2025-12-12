@@ -61,13 +61,13 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 	return (
 		<div>
 			{/* Seleção de Volatilidades */}
-			<div className='backdrop-blur-lg rounded-xl p-6 border border-white/20 mb-6'>
+			
 				<h2 className='text-xl font-bold mb-4 flex items-center gap-2'>
 					<Target className='text-yellow-400' />
 					Volatilidades Monitoradas
 				</h2>
 
-				<div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3'>
+				<div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6'>
 					{VOLATILITIES.map((vol) => (
 						<button
 							key={vol.symbol}
@@ -85,11 +85,11 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 						</button>
 					))}
 				</div>
-			</div>
+			
 
 			<h2 className='text-xl font-bold mb-4 flex items-center gap-2'>
 				<Target className='text-purple-400' />
-				<span className='text-gray-900'>Operações Customizáveis</span>
+				<span>Operações Customizáveis</span>
 			</h2>
 
 			<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
@@ -373,7 +373,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 				</div>
 
 				{/* Coluna Direita - Configs de Stake e Martingale */}
-				<div className=' mb-4 text-gray-900'>
+				<div className=' mb-4'>
 					<div className='grid grid-cols-2 mb-2 gap-4'>
 						<div className='mb-2'>
 							<label className='block text-sm mb-2'>
@@ -501,7 +501,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 
 			<h2 className='text-xl font-bold mb-4 flex items-center gap-2 mt-4'>
 				<TrendingUp className='text-orange-400' />
-				<span className='text-gray-900'>Sistema de Martingale</span>
+				<span>Sistema de Martingale</span>
 			</h2>
 
 			<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
