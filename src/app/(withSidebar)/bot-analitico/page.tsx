@@ -1,6 +1,6 @@
 "use client";
 
-import DerivAnalyzerDashboard from "./bot-analitico";
+import DerivAnalyzerDashboard from "./botAnalitico";
 
 export default function Page() {
     return (

@@ -1,14 +1,12 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
-import { toast } from "react-toastify";
-import Head from "next/head";
 import {
   ChevronDoubleRightIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   StopIcon,
 } from "@heroicons/react/24/outline";
-import moment from "moment";
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 interface Stats {
   demoToken: string;
