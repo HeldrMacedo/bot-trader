@@ -50,9 +50,9 @@ export default function DerivAnalyzerDashboard() {
 	// Trading Config State
 	const [stake, setStake] = useState<number>(1);
 	const [stopLoss, setStopLoss] = useState<number>(50);
-	const [takeProfit, setTakeProfit] = useState<number>(100);
+	const [stopWin, setStopWin] = useState<number>(100);
 	const [minConfidence, setMinConfidence] = useState<number>(70);
-	const [maxTrades, setMaxTrades] = useState<number>(50);
+	const [ticksQuantity, setTicksQuantity] = useState<number>(50);
 	const [exhaustionThreshold, setExhaustionThreshold] = useState<number>(5);
 	const [absenceThreshold, setAbsenceThreshold] = useState<number>(15);
 	const [mode, setMode] = useState<'manual' | 'auto'>('manual');
@@ -291,10 +291,10 @@ export default function DerivAnalyzerDashboard() {
 										setStake={setStake}
 										stopLoss={stopLoss}
 										setStopLoss={setStopLoss}
-										takeProfit={takeProfit}
-										setTakeProfit={setTakeProfit}
-										maxTrades={maxTrades}
-										setMaxTrades={setMaxTrades}
+										stopWin={stopWin}
+										setStopWin={setStopWin}
+										ticksQuantity={ticksQuantity}
+										setTicksQuantity={setTicksQuantity}
 										minConfidence={minConfidence}
 										setMinConfidence={setMinConfidence}
 										exhaustionThreshold={exhaustionThreshold}

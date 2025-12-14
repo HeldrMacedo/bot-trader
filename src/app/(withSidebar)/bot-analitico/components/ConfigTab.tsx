@@ -21,10 +21,10 @@ interface ConfigTabProps {
 	setStake: (value: number) => void;
 	stopLoss: number;
 	setStopLoss: (value: number) => void;
-	takeProfit: number;
-	setTakeProfit: (value: number) => void;
-	maxTrades: number;
-	setMaxTrades: (value: number) => void;
+	stopWin: number;
+	setStopWin: (value: number) => void;
+	ticksQuantity: number;
+	setTicksQuantity: (value: number) => void;
 	minConfidence: number;
 	setMinConfidence: (value: number) => void;
 	exhaustionThreshold: number;
@@ -45,10 +45,10 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 	setStake,
 	stopLoss,
 	setStopLoss,
-	takeProfit,
-	setTakeProfit,
-	maxTrades,
-	setMaxTrades,
+	stopWin,
+	setStopWin,
+	ticksQuantity,
+	setTicksQuantity,
 	minConfidence,
 	setMinConfidence,
 	exhaustionThreshold,
@@ -400,13 +400,13 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 
 						<div className='mb-2'>
 							<label className='block text-sm mb-2'>
-								Take Profit
+								Stop Win
 							</label>
 							<input
 								type='number'
-								value={takeProfit}
+								value={stopWin}
 								onChange={(e) =>
-									setTakeProfit(parseFloat(e.target.value))
+									setStopWin(parseFloat(e.target.value))
 								}
 								className='w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white'
 							/>
@@ -414,13 +414,13 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 
 						<div className='mb-2'>
 							<label className='block text-sm mb-2'>
-								Max Trades
+								Ticks Quantity
 							</label>
 							<input
 								type='number'
-								value={maxTrades}
+								value={ticksQuantity}
 								onChange={(e) =>
-									setMaxTrades(parseInt(e.target.value))
+									setTicksQuantity(parseInt(e.target.value))
 								}
 								className='w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white'
 							/>

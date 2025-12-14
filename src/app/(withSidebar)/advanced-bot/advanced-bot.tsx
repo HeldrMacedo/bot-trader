@@ -169,7 +169,7 @@ export default function AdvancedBot() {
   const [learningMode, setLearningMode] = useState<boolean>(true);
   const [stake, setStake] = useState<number>(1);
   const [stopLoss, setStopLoss] = useState<number>(50);
-  const [takeProfit, setTakeProfit] = useState<number>(100);
+  const [stopWin, setStopWin] = useState<number>(100);
   const [maxTrades, setMaxTrades] = useState<number>(50);
   const [minConfidence, setMinConfidence] = useState<number>(70);
   const [exhaustionThreshold, setExhaustionThreshold] = useState<number>(5);
@@ -1022,7 +1022,7 @@ export default function AdvancedBot() {
       alert('Stop Loss atingido!');
       return;
     }
-    if (totalProfit >= takeProfit) {
+    if (totalProfit >= stopWin) {
       setIsRunning(false);
       alert('Meta de lucro atingida!');
       return;
@@ -1324,11 +1324,11 @@ export default function AdvancedBot() {
               </div>
               
               <div>
-                <label className="block text-sm mb-2">Take Profit</label>
+                <label className="block text-sm mb-2">Stop Win</label>
                 <input
                   type="number"
-                  value={takeProfit}
-                  onChange={(e) => setTakeProfit(parseFloat(e.target.value))}
+                  value={stopWin}
+                  onChange={(e) => setStopWin(parseFloat(e.target.value))}
                   className="w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white"
                 />
               </div>

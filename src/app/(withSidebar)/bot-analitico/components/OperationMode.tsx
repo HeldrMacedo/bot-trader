@@ -110,19 +110,18 @@ export const OperationMode: React.FC<OperationModeProps> = ({
                 <label>
                   <span>Multiplicador</span>
                 </label>
-                <div className="relative mb-6">
-                  <div className="absolute inset-y-0 text-gray-400 start-0 flex items-center ps-3.5 pointer-events-none">
-                    <span className="text-gray-500">$</span>
-                  </div>
-                  <input
-                    type="text"
-                    id="entrada-real"
-                    readOnly
-                    value={0}
-                    className="w-full appearance-none rounded-md border border-gray-300 bg-gray-800  py-1.5 pl-8 pr-3 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
-                    placeholder="0.00"
-                  />
-                </div>
+                <div className="relative">
+              <div className="absolute inset-y-0 text-gray-400 start-0 flex items-center ps-3.5 pointer-events-none">
+                <span className="text-gray-500">X</span>
+              </div>
+              <input
+                type="number"
+                id="entrada-inicial"
+                className="w-full appearance-none rounded-md border border-gray-300 bg-gray-800 py-1.5 pl-8 pr-3 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
+                value={0}
+                onChange={(e) => ''}
+              />
+            </div>
               </div>
             </div>
 
