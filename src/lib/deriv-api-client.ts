@@ -26,6 +26,7 @@ export interface TradingSignal {
   expected_profit: number;
   symbol: string;
   timestamp: string;
+  barrier?: number;
 }
 
 export interface SymbolAnalysis {

@@ -8,7 +8,7 @@ interface AnalysisTabProps {
 export const AnalysisTab: React.FC<AnalysisTabProps> = ({ analysisData }) => {
 	return (
 		<div>
-			<h3 className='text-lg font-semibold text-gray-900 mb-4'>
+			<h3 className='text-lg font-semibold  mb-4'>
 				Análise Detalhada
 			</h3>
 			<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -19,10 +19,10 @@ export const AnalysisTab: React.FC<AnalysisTabProps> = ({ analysisData }) => {
 								key={symbol}
 								className='border border-gray-200 rounded-lg p-4'
 							>
-								<h4 className='font-medium text-gray-900 mb-2'>
+								<h4 className='font-medium  mb-2'>
 									{symbol}
 								</h4>
-								<div className='text-sm space-y-1 text-gray-900'>
+								<div className='text-sm space-y-1 '>
 									<div>
 										Dígito Atual:{' '}
 										<span className='font-medium'>

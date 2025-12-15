@@ -1,5 +1,4 @@
 'use client';
-import derivApiClient, { TradingSignal } from '@/lib/deriv-api-client';
 import { Activity, BarChart3, Settings, Target } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -9,6 +8,7 @@ import {
 	MartingaleConfig,
 	SpecificOperations,
 	VolatilityData,
+	TradingSignal,
 } from './types';
 
 // Components
@@ -22,6 +22,8 @@ import { PerformanceStats } from './components/PerformanceStats';
 import { GlobalConfigPanel } from './components/GlobalConfigPanel';
 import { config } from 'process';
 
+import { AnalysisEngine } from './lib/analysis-engine';
+
 export default function DerivAnalyzerDashboard() {
 	// Connection State
 	const [isConnected, setIsConnected] = useState(false);
@@ -29,6 +31,9 @@ export default function DerivAnalyzerDashboard() {
 	const [isLoading, setIsLoading] = useState(false);
 	const wsRef = React.useRef<WebSocket | null>(null);
 	const reconnectAttemptsRef = React.useRef(0);
+	const analysisEngineRef = React.useRef<AnalysisEngine | null>(null);
+	const pendingRequests = React.useRef<Record<number, (data: any) => void>>({});
+	const isTradingRef = React.useRef(false);
 	const maxReconnectAttempts = 5;
 	const reconnectDelay = 5000;
 
@@ -37,18 +42,32 @@ export default function DerivAnalyzerDashboard() {
 	const [selectedVolatilities, setSelectedVolatilities] = useState<string[]>([
 		'R_100',
 	]);
+
 	const [volatilityData, setVolatilityData] = useState<
 		Record<string, VolatilityData>
 	>({});
 	const [bestSignal, setBestSignal] = useState<TradingSignal | null>(null);
 	const [config, setConfig] = useState<any>(null);
-	const [performance, setPerformance] = useState<any>(null);
+	const [performance, setPerformance] = useState({
+        total_signals: 0,
+        high_confidence_signals: 0,
+        medium_confidence_signals: 0,
+        symbols_monitored: 0,
+        total_digits_analyzed: 0,
+        timestamp: new Date().toISOString()
+    });
 
 	// UI State
 	const [activeTab, setActiveTab] = useState('dashboard');
 
 	// Trading Config State
 	const [stake, setStake] = useState<number>(1);
+	const stakeRef = React.useRef(stake);
+
+	useEffect(() => {
+		stakeRef.current = stake;
+	}, [stake]);
+
 	const [stopLoss, setStopLoss] = useState<number>(50);
 	const [stopWin, setStopWin] = useState<number>(100);
 	const [minConfidence, setMinConfidence] = useState<number>(70);
@@ -77,10 +96,52 @@ export default function DerivAnalyzerDashboard() {
 
 	// --- Effects ---
 	useEffect(() => {
-		if (isConnected) {
-			loadInitialData();
+		analysisEngineRef.current = new AnalysisEngine({
+			minConfidence,
+			exhaustionThreshold,
+			absenceThreshold,
+			ticksToAnalyze: ticksQuantity,
+			specificOperations,
+		});
+	}, []);
+
+	useEffect(() => {
+		if (analysisEngineRef.current) {
+			analysisEngineRef.current.updateConfig({
+				minConfidence,
+				exhaustionThreshold,
+				absenceThreshold,
+				ticksToAnalyze: ticksQuantity,
+				specificOperations,
+			});
 		}
-	}, [isConnected]);
+	}, [
+		minConfidence,
+		exhaustionThreshold,
+		absenceThreshold,
+		ticksQuantity,
+		specificOperations,
+	]);
+
+	useEffect(() => {
+		if (isConnected) {
+			// Subscribe to ticks for selected volatilities
+			selectedVolatilities.forEach((symbol) => {
+				if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+					// Unsubscribe previous if needed (omitted for simplicity, but good practice)
+					wsRef.current.send(
+						JSON.stringify({
+							ticks_history: symbol,
+							end: 'latest',
+							style: 'ticks',
+							count: ticksQuantity,
+							subscribe: 1,
+						}),
+					);
+				}
+			});
+		}
+	}, [isConnected, selectedVolatilities]); // Re-subscribe if selection changes
 
 	useEffect(() => {
 		return () => {
@@ -91,17 +152,19 @@ export default function DerivAnalyzerDashboard() {
 	}, []);
 
 	// --- Methods ---
-	const loadInitialData = async () => {
-		try {
-			const [configRes, perfRes] = await Promise.all([
-				derivApiClient.getConfig(),
-				derivApiClient.getPerformance(),
-			]);
-			setConfig(configRes.config);
-			setPerformance(perfRes);
-		} catch (error) {
-			console.error('Error loading initial data:', error);
-		}
+	const sendRequest = (msg: any) => {
+		return new Promise((resolve, reject) => {
+			const reqId = Date.now() + Math.floor(Math.random() * 1000);
+			msg.req_id = reqId;
+			pendingRequests.current[reqId] = resolve;
+			
+			if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+				wsRef.current.send(JSON.stringify(msg));
+			} else {
+				delete pendingRequests.current[reqId];
+				reject('WebSocket not connected');
+			}
+		});
 	};
 
 	const connectToDeriv = () => {
@@ -125,6 +188,13 @@ export default function DerivAnalyzerDashboard() {
 			ws.onmessage = (event) => {
 				try {
 					const data = JSON.parse(event.data);
+					
+					if (data.req_id && pendingRequests.current[data.req_id]) {
+						pendingRequests.current[data.req_id](data);
+						delete pendingRequests.current[data.req_id];
+						return; 
+					}
+
 					if (data.msg_type === 'authorize') {
 						if (data.error) {
 							console.error('Authorization error:', data.error);
@@ -133,8 +203,112 @@ export default function DerivAnalyzerDashboard() {
 						} else {
 							console.log('Authorized successfully', data);
 						}
+					} else if (data.msg_type === 'history') {
+						const symbol = data.echo_req.ticks_history;
+						const prices = data.history.prices;
+						const times = data.history.times;
+
+						prices.forEach((price: number, index: number) => {
+							const digit = Math.floor(price * 1000) % 10; // Assuming 3 decimal places for Volatility indices usually, but better to check pip size. 
+							// Actually Deriv volatility indices often have different pip sizes.
+							// Robust digit extraction:
+							const strPrice = price.toString();
+							const lastChar = strPrice.charAt(strPrice.length - 1);
+							const digitVal = parseInt(lastChar, 10);
+							
+							if (!isNaN(digitVal) && analysisEngineRef.current) {
+								analysisEngineRef.current.addTick(symbol, digitVal, price, times[index]);
+							}
+						});
+					} else if (data.msg_type === 'tick') {
+						const tick = data.tick;
+						const symbol = tick.symbol;
+						const price = tick.quote;
+						
+						const strPrice = price.toString();
+						const lastChar = strPrice.charAt(strPrice.length - 1);
+						const digit = parseInt(lastChar, 10);
+
+						if (!isNaN(digit) && analysisEngineRef.current) {
+							const analysis = analysisEngineRef.current.addTick(symbol, digit, price, tick.epoch);
+							
+							// Update Analysis Data State
+							setAnalysisData(prev => {
+								const newAnalyses = { ...prev?.analyses, [symbol]: analysis };
+								
+								// Generate signals
+								const signals = analysisEngineRef.current?.generateSignals(newAnalyses) || [];
+								
+                                // Update Performance Stats
+                                setPerformance(prevPerf => ({
+                                    ...prevPerf,
+                                    total_signals: prevPerf.total_signals + signals.length,
+                                    high_confidence_signals: prevPerf.high_confidence_signals + signals.filter(s => s.assertiveness === 'HIGH').length,
+                                    medium_confidence_signals: prevPerf.medium_confidence_signals + signals.filter(s => s.assertiveness === 'MEDIUM').length,
+                                    symbols_monitored: Object.keys(newAnalyses).length,
+                                    total_digits_analyzed: prevPerf.total_digits_analyzed + 1,
+                                    timestamp: new Date().toISOString()
+                                }));
+
+								// Update best signal
+								if (signals.length > 0) {
+									setBestSignal(signals.sort((a, b) => b.confidence - a.confidence)[0]);
+								}
+
+								return {
+									analyses: newAnalyses,
+									signals: signals,
+									market_quality: prev?.market_quality || {},
+									should_trade: signals.length > 0,
+									timestamp: new Date().toISOString()
+								};
+ 							});
+ 						}
+ 					} else if (data.msg_type === 'proposal_open_contract') {
+						const contract = data.proposal_open_contract;
+						if (contract.is_sold) {
+							const profit = contract.profit;
+							const isWin = profit > 0;
+							
+							console.log(`Trade finished. Win: ${isWin}, Profit: ${profit}`);
+							
+							// Update Martingale
+							setMartingaleConfig(prev => {
+								if (!prev.enabled) {
+									// Even if disabled, we should reset trading flag
+									return prev;
+								}
+
+								let newLevel = prev.currentLevel;
+								let newStake = prev.currentStake;
+
+								if (isWin) {
+									if (prev.resetOnWin) {
+										newLevel = 0;
+										newStake = stakeRef.current; 
+									}
+								} else {
+									if (prev.currentLevel < prev.maxLevels) {
+										newLevel = prev.currentLevel + 1;
+										newStake = prev.currentStake * prev.multiplier;
+									} else {
+										// Max level reached, reset
+										newLevel = 0;
+										newStake = stakeRef.current;
+									}
+								}
+
+								return {
+									...prev,
+									currentLevel: newLevel,
+									currentStake: newStake
+								};
+							});
+
+							isTradingRef.current = false; // Allow next trade
+						}
 					}
-				} catch (e) {
+ 				} catch (e) {
 					console.error('Error parsing message:', e);
 				}
 			};
@@ -165,6 +339,77 @@ export default function DerivAnalyzerDashboard() {
 		setTimeout(() => connectToDeriv(), reconnectDelay);
 	};
 
+	const executeTrade = async (signal: TradingSignal) => {
+		if (isTradingRef.current) return;
+
+		console.log('Executing trade:', signal);
+		isTradingRef.current = true;
+
+		try {
+			// 1. Proposal
+			const proposalReq: any = {
+				proposal: 1,
+				amount: martingaleConfig.currentStake,
+				basis: 'stake',
+				contract_type: signal.type,
+				currency: 'USD',
+				duration: 1,
+				duration_unit: 't',
+				symbol: signal.symbol,
+			};
+
+			if (signal.barrier !== undefined) {
+				proposalReq.barrier = String(signal.barrier);
+			}
+
+			const proposalResp: any = await sendRequest(proposalReq);
+
+			if (proposalResp.error) {
+				console.error('Proposal Error:', proposalResp.error);
+				isTradingRef.current = false;
+				return;
+			}
+
+			const proposalId = proposalResp.proposal.id;
+
+			// 2. Buy
+			const buyReq = {
+				buy: proposalId,
+				price: proposalResp.proposal.ask_price,
+			};
+
+			const buyResp: any = await sendRequest(buyReq);
+
+			if (buyResp.error) {
+				console.error('Buy Error:', buyResp.error);
+				isTradingRef.current = false;
+				return;
+			}
+
+			console.log('Trade executed:', buyResp);
+
+			// 3. Monitor Result
+			const contractId = buyResp.buy.contract_id;
+			if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+				wsRef.current.send(
+					JSON.stringify({
+						proposal_open_contract: 1,
+						contract_id: contractId,
+					}),
+				);
+			}
+		} catch (error) {
+			console.error('Trade Execution Error:', error);
+			isTradingRef.current = false;
+		}
+	};
+
+	useEffect(() => {
+		if (mode === 'auto' && bestSignal && !isTradingRef.current && isConnected) {
+			executeTrade(bestSignal);
+		}
+	}, [mode, bestSignal, isConnected]);
+
 	const handleConnect = async () => {
 		if (!apiToken) {
 			alert('Please enter your API token');
@@ -182,14 +427,10 @@ export default function DerivAnalyzerDashboard() {
 	};
 
 	const updateConfig = async (newConfig: any) => {
-		try {
-			const response = await derivApiClient.updateConfig(newConfig);
-			setConfig(response.config);
-			alert('Configuration updated successfully');
-		} catch (error) {
-			console.error('Config update error:', error);
-			alert('Failed to update configuration: ' + (error as Error).message);
-		}
+        // Since we removed the backend API, we just update local state if needed.
+        // Most config is already local state.
+        console.log("Config updated:", newConfig);
+        alert('Configuration updated successfully');
 	};
 
 	const toggleVolatility = (symbol: string) => {

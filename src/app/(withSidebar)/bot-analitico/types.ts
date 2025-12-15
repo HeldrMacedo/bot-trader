@@ -1,4 +1,22 @@
-import { MarketQuality, TradingSignal } from '@/lib/deriv-api-client';
+export interface MarketQuality {
+  quality_score: number;
+  reasons: string[];
+  should_trade: boolean;
+  trend_direction: string;
+  volatility_symbol: string;
+}
+
+export interface TradingSignal {
+  strategy: string;
+  type: string;
+  confidence: number;
+  reasons: string[];
+  assertiveness: string;
+  expected_profit: number;
+  symbol: string;
+  timestamp: string;
+  barrier?: number;
+}
 
 export interface Volatility {
 	symbol: string;
