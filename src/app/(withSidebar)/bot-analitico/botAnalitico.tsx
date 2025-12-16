@@ -7,20 +7,19 @@ import {
 	AnalysisData,
 	MartingaleConfig,
 	SpecificOperations,
-	VolatilityData,
 	TradingSignal,
+	VolatilityData,
 } from './types';
 
 // Components
-import { ConnectionStatus } from './components/ConnectionStatus';
-import { SignalsPanel } from './components/SignalsPanel';
-import { DashboardTab } from './components/DashboardTab';
 import { AnalysisTab } from './components/AnalysisTab';
 import { ConfigTab } from './components/ConfigTab';
+import { ConnectionStatus } from './components/ConnectionStatus';
+import { DashboardTab } from './components/DashboardTab';
+import { GlobalConfigPanel } from './components/GlobalConfigPanel';
 import { OperationMode } from './components/OperationMode';
 import { PerformanceStats } from './components/PerformanceStats';
-import { GlobalConfigPanel } from './components/GlobalConfigPanel';
-import { config } from 'process';
+import { SignalsPanel } from './components/SignalsPanel';
 
 import { AnalysisEngine } from './lib/analysis-engine';
 
@@ -188,6 +187,9 @@ export default function DerivAnalyzerDashboard() {
 			ws.onmessage = (event) => {
 				try {
 					const data = JSON.parse(event.data);
+					// if (data.msg_type != 'tick') {
+					// 	console.log('Received message:', data);
+					// }
 					
 					if (data.req_id && pendingRequests.current[data.req_id]) {
 						pendingRequests.current[data.req_id](data);
@@ -405,6 +407,10 @@ export default function DerivAnalyzerDashboard() {
 	};
 
 	useEffect(() => {
+		console.log('bestSignal:', bestSignal);
+		console.log('mode:', mode);
+		console.log('isTradingRef.current:', isTradingRef.current);
+		console.log('isConnected:', isConnected);
 		if (mode === 'auto' && bestSignal && !isTradingRef.current && isConnected) {
 			executeTrade(bestSignal);
 		}

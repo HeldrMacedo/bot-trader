@@ -1,7 +1,7 @@
-import React from 'react';
-import { BarChart3 } from 'lucide-react';
-import { AnalysisData } from '../types';
 import { TradingSignal } from '@/lib/deriv-api-client';
+import { BarChart3 } from 'lucide-react';
+import React from 'react';
+import { AnalysisData } from '../types';
 
 interface SignalsPanelProps {
 	bestSignal: TradingSignal | null;
@@ -43,14 +43,14 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 			{/* Best Signal Card */}
 			{bestSignal && (
 				<div
-					className={`bg-white rounded-xl shadow-sm border p-6 ${getSignalBg(bestSignal.assertiveness)}`}
+					className={`bg-principal rounded-xl shadow-sm border p-6 ${getSignalBg(bestSignal.assertiveness)}`}
 				>
 					<div className='flex items-start justify-between mb-4'>
 						<div>
-							<h3 className='text-lg font-semibold text-gray-900'>
+							<h3 className='text-lg font-semibold'>
 								🎯 MELHOR ENTRADA
 							</h3>
-							<p className='text-gray-600'>Based on real-time analysis</p>
+							<p>Based on real-time analysis</p>
 						</div>
 						<span
 							className={`px-3 py-1 rounded-full text-sm font-medium ${getSignalColor(bestSignal.assertiveness)}`}
@@ -59,7 +59,7 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 						</span>
 					</div>
 
-					<div className='space-y-3 text-gray-900'>
+					<div className='space-y-3'>
 						<div className='flex justify-between items-center'>
 							<span className='font-medium'>Estratégia:</span>
 							<span className='text-blue-600 font-semibold'>
@@ -69,12 +69,12 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 
 						<div className='flex justify-between items-center'>
 							<span className='font-medium'>Ativo:</span>
-							<span className='text-gray-900'>{bestSignal.symbol}</span>
+							<span>{bestSignal.symbol}</span>
 						</div>
 
 						<div className='flex justify-between items-center'>
 							<span className='font-medium'>Confiança:</span>
-							<span className='text-gray-900 font-semibold'>
+							<span className=' font-semibold'>
 								{bestSignal.confidence.toFixed(1)}%
 							</span>
 						</div>
@@ -90,14 +90,14 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 						</div>
 
 						<div className='mt-4'>
-							<h4 className='font-medium text-gray-900 mb-2'>
+							<h4 className='font-medium mb-2'>
 								Gatilhos Detectados:
 							</h4>
 							<ul className='space-y-1'>
 								{bestSignal.reasons.map((reason, index) => (
 									<li
 										key={index}
-										className='text-sm text-gray-700 flex items-start gap-2'
+										className='text-sm flex items-start gap-2'
 									>
 										<div className='w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0'></div>
 										{reason}
@@ -110,12 +110,12 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 			)}
 
 			{/* All Signals */}
-			<div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+			<div className='bg-principal rounded-xl shadow-sm border border-gray-200 p-6'>
 				<div className='flex items-center justify-between mb-4'>
-					<h3 className='text-lg font-semibold text-gray-900'>
+					<h3 className='text-lg font-semibold'>
 						📊 Todas as Sugestões
 					</h3>
-					<span className='text-sm text-gray-500'>
+					<span className='text-sm'>
 						{analysisData?.signals.length || 0} sinais encontrados
 					</span>
 				</div>
@@ -128,10 +128,10 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 						>
 							<div className='flex justify-between items-start mb-2'>
 								<div>
-									<h4 className='font-medium text-gray-900'>
+									<h4 className='font-medium'>
 										{signal.type}
 									</h4>
-									<p className='text-sm text-gray-600'>{signal.symbol}</p>
+									<p className='text-sm'>{signal.symbol}</p>
 								</div>
 								<div className='text-right'>
 									<div
@@ -139,13 +139,13 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 									>
 										{signal.confidence.toFixed(1)}%
 									</div>
-									<div className='text-xs text-gray-500 mt-1'>
+									<div className='text-xs mt-1'>
 										{signal.assertiveness}
 									</div>
 								</div>
 							</div>
 
-							<div className='text-sm text-gray-700'>
+							<div className='text-sm'>
 								{signal.reasons.slice(0, 2).map((reason, i) => (
 									<div
 										key={i}
@@ -156,7 +156,7 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 									</div>
 								))}
 								{signal.reasons.length > 2 && (
-									<div className='text-xs text-gray-500 mt-1'>
+									<div className='text-xs mt-1'>
 										+{signal.reasons.length - 2} more triggers...
 									</div>
 								)}
@@ -165,10 +165,10 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 					))}
 
 					{(!analysisData || analysisData.signals.length === 0) && (
-						<div className='text-center py-8 text-gray-500'>
+						<div className='text-center py-8'>
 							<BarChart3
 								size={48}
-								className='mx-auto mb-4 opacity-50'
+								className='mx-auto mb-4'
 							/>
 							<p>Nenhuma sugestão disponível no momento</p>
 							<p className='text-sm'>
