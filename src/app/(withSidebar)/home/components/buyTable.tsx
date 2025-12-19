@@ -35,6 +35,7 @@ const BuyTable = ({
   const [activeContractId, setActiveContractId] = useState<string | null>(null);
   const [buyResponseId, setBuyResponseId] = useState<string | null>(null);
   const [tradeType, setTradeType] = useState<Number>(1);
+  const [disabledBuyButton, setDisabledBuyButton] = useState<boolean>(false);
 
   useEffect(() => {
     const contractListener = derivService.observerInstance.on(
@@ -109,13 +110,16 @@ const BuyTable = ({
   };
 
   const handleBuy = async (contractType: string) => {
+    setDisabledBuyButton(true);
     try {
       if (!derivService.hasAuthorized) {
+        setDisabledBuyButton(false);
         throw new Error("Usuário não autenticado");
       }
 
       const accountInfo = derivService.getStorageDerivAccount()[0];
       if (!accountInfo) {
+        setDisabledBuyButton(false);
         setErrorMessage("Conta não encontrada");
         return;
       }
@@ -125,6 +129,7 @@ const BuyTable = ({
         accountInfo.digits === undefined ||
         accountInfo.digits === null
       ) {
+        setDisabledBuyButton(false);
         throw new Error("Configuração de trade incompleta");
       }
 
@@ -150,6 +155,7 @@ const BuyTable = ({
       const buyResponse = await derivService.send(payload);
 
       if (buyResponse.error) {
+        setDisabledBuyButton(false);
         setErrorMessage(buyResponse.error.message);
         return;
       }
@@ -161,23 +167,16 @@ const BuyTable = ({
       });
       setActiveContractId(contractId);
       if (buyResponse.echo_req) {
+        setDisabledBuyButton(false);
         setBuyResponseId(buyResponse.echo_req.buy);
       }
+      setDisabledBuyButton(false);
     } catch (error) {
+      setDisabledBuyButton(false);
       toast.error(error.message);
     }
   };
 
-  const generateValidID = () => {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-      /[xy]/g,
-      function (c) {
-        const r = (Math.random() * 16) | 0,
-          v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      }
-    );
-  };
 
   useEffect(() => {
     setSelected(derivService.currentDigits);
@@ -383,6 +382,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITOVER")}
                 onMouseEnter={() => handleMouseEnter("above")}
                 onMouseLeave={handleMouseLeave}
+                disabled={disabledBuyButton}
                 className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
               >
                 <svg
@@ -408,6 +408,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITUNDER")}
                 onMouseEnter={() => handleMouseEnter("below")}
                 onMouseLeave={handleMouseLeave}
+                disabled={disabledBuyButton}
                 className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
                 <svg
@@ -436,6 +437,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITEVEN")}
                 onMouseEnter={() => handleMouseEnter("even")}
                 onMouseLeave={handleMouseLeave}
+                disabled={disabledBuyButton}
                 className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
               >
                 <i className="me-2">²</i>
@@ -448,6 +450,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITODD")}
                 onMouseEnter={() => handleMouseEnter("odd")}
                 onMouseLeave={handleMouseLeave}
+                disabled={disabledBuyButton}
                 className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
                 <i className="me-2">³</i>
@@ -464,6 +467,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITDIFF")}
                 onMouseEnter={() => handleMouseEnter("diff")}
                 onMouseLeave={handleMouseLeave}
+                disabled={disabledBuyButton}
                 className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
                 <CodeBracketIcon aria-hidden="true" className="size-5" />

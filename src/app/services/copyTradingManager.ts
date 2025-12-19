@@ -79,16 +79,15 @@ export class CopyTradingManager {
 
   public startCopyTrading(jwtToken: string, demoToken: string, realToken: string, configure: any): { success: boolean; userId: string; message: string } {
     try {
-      console.log('startCopyTrading', jwtToken, demoToken, realToken, configure);
+
       const userId = this.validateJWT(jwtToken);
        if (this.userServices.has(userId)) {
       const existing = this.userServices.get(userId)!;
       existing.copyTradingService.stop();
       this.userServices.delete(userId);
     }
-    console.log('antes copyTradingService');
     const copyTradingService = new CopyTradingService(demoToken, realToken, userId, configure);
-    console.log('apos copyTradingService', copyTradingService);
+
     this.userServices.set(userId, {
       userId,
       demoToken,
@@ -212,7 +211,7 @@ export class CopyTradingManager {
     }
     
     usersToRemove.forEach(userId => {
-      console.log(`Removing inactive user session: ${userId}`);
+ 
       const userService = this.userServices.get(userId);
       if (userService) {
         userService.copyTradingService.stop();

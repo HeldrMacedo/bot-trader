@@ -90,7 +90,7 @@ const Sidebar = ({
       }
     } catch (error) {
       toast.error("Erro ao conectar com o servidor");
-      console.error(error);
+     
     }
   };
 

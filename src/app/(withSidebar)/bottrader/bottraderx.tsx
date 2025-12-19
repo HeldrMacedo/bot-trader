@@ -104,11 +104,11 @@ export default function BotTraderX() {
   });
 
   const [loading, setLoading] = useState(false);
-  //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
-  //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
+  const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
   //const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
-  const [demoToken, setDemoToken] = useState("");
-  const [realToken, setRealToken] = useState("");
+  //const [demoToken, setDemoToken] = useState("");
+  //const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({
@@ -167,9 +167,9 @@ export default function BotTraderX() {
           detalhes: data.errors.errors,
         }));
       }
-      console.log("fetchStatus ", data);
+      
     } catch (error) {
-      console.error("Error fetching status:", error);
+      
     }
   };
 
@@ -227,7 +227,7 @@ export default function BotTraderX() {
       }
     } catch (error) {
       toast.error("Erro ao parar copy trading");
-      console.error(error);
+      
     } finally {
       setLoading(false);
     }

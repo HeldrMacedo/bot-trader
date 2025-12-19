@@ -66,7 +66,7 @@ export const TicksTest = () => {
       if (!user) return;
       setUserData(user);
     } catch (error) {
-      console.error("Erro ao buscar dados do usuário:", error);
+      
     }
   }, []);
 
@@ -93,7 +93,7 @@ export const TicksTest = () => {
   useEffect(() => {
     const fethUser = async () => {
       const user = await getUser();
-      console.log("user", user);
+      
       if (!user) return;
       setUserData(user);
     };
@@ -136,7 +136,7 @@ export const TicksTest = () => {
       deriv.setAccountData(updatedAccount);
       setValorEntrada(updatedAccount.amount.toString());
     } catch (error) {
-      console.error("Erro na autenticação:", error);
+     
     }
     setIsVirtual(accountInfo.tokens.find((t) => t.token === token)?.is_virtual);
     setLoading(false);

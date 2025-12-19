@@ -175,7 +175,7 @@ export class WsListener extends EventEmitter {
       if (!contractInfo.isValid) {
         return null;
       }
-      console.log("CONTRACT INFO ", contractInfo, longcode);
+
       //parseFloat(transaction.buy_price || transaction.amount || '0')
       return {
         symbol: symbol,

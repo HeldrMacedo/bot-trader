@@ -51,7 +51,7 @@ export default function UserModal({
 
   useEffect(() => {
     if (initialData) {
-      console.log("initialData", initialData);
+
       setFormData({
         name: initialData.name,
         email: initialData.email,

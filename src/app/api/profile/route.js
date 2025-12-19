@@ -23,14 +23,14 @@ export async function PUT(request) {
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded token:", decoded);
+
     } catch (error) {
       return NextResponse.json(
         { message: "Token inválido ou expirado" },
         { status: 401 }
       );
     }
-    console.log("Decoded token:", decoded);
+
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
     });

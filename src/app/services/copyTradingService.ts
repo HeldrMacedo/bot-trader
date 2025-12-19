@@ -3,7 +3,6 @@ import { SignalProcessor } from './signalProcessor';
 import { TradeExecutor } from './tradeExecutor';
 import { TradeSignal } from '../types/types';
 import { ErrorNotification } from '../types/errorTypes';
-import { MockTradeExecutor } from './MockTradeExecutor';
 
 export class CopyTradingService {
   private wsListener: WsListener;
@@ -95,7 +94,6 @@ export class CopyTradingService {
       this.errors = this.errors.slice(0, this.maxErrors);
     }
     
-    console.log(`[${type.toUpperCase()}] ${title}: ${message}`, details);
   }
 
 
@@ -281,7 +279,6 @@ export class CopyTradingService {
   }
 
   private shouldProcessSignal(): boolean {
-    console.log(`[SYSTEM] PAUSE TIEM: ${this.pauseTime} - IS PAUSED ${this.isPaused}`);
   
     if (this.isPaused) {
       return false;
@@ -298,10 +295,9 @@ export class CopyTradingService {
 
   async start(): Promise<void> {
     try {
-      console.log(`[Session ${this.sessionId}] Starting Copy Trading Service...`);
+
       
       if (this.isRunning) {
-        console.log(`[Session ${this.sessionId}] Service is already running`);
         return;
       }
       
@@ -317,10 +313,8 @@ export class CopyTradingService {
       this.signalProcessor.setEnabled(true);
       
       this.isRunning = true;
-      console.log(`[Session ${this.sessionId}] Copy Trading Service started successfully`);
       
     } catch (error) {
-      console.error(`[Session ${this.sessionId}] Failed to start Copy Trading Service:`, error);
       throw error;
     }
   }
@@ -329,10 +323,8 @@ export class CopyTradingService {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         await this.tradeExecutor.connectToMaster();
-        console.log(`[Session ${this.sessionId}] Master connection established`);
         return;
       } catch (error) {
-        console.error(`[Session ${this.sessionId}] Master connection attempt ${attempt} failed:`, error);
         if (attempt === maxAttempts) {
           throw error;
         }
@@ -342,14 +334,12 @@ export class CopyTradingService {
   }
 
   stop(): void {
-    console.log(`[Session ${this.sessionId}] Stopping Copy Trading Service...`);
     
     this.isRunning = false;
     this.signalProcessor.setEnabled(false);
     this.wsListener.disconnect();
     this.tradeExecutor.disconnect();
     this.clearAllDados();
-    console.log(`[Session ${this.sessionId}] Copy Trading Service stopped`);
   }
 
   clearAllDados() {

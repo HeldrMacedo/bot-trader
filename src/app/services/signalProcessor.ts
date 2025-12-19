@@ -116,11 +116,9 @@ export class SignalProcessor {
 
   async processSignal(signal: TradeSignal): Promise<void> {
     try {
-      console.log('Processing advanced trade signal:', signal);
       
       // Validações avançadas baseadas no method_394
       if (!this.validateSignalAdvanced(signal)) {
-        console.log('Advanced signal validation failed');
         return;
       }
 
@@ -130,7 +128,6 @@ export class SignalProcessor {
         this.processNonForexSignal(signal);
       
       if (!processedSignal) {
-        console.log('Signal processing failed');
         return;
       }
       
@@ -138,7 +135,6 @@ export class SignalProcessor {
       await this.tradeExecutor.executeTrade(processedSignal);
       
     } catch (error) {
-      console.error('Error processing signal:', error);
       throw error;
     }
   }
@@ -146,25 +142,21 @@ export class SignalProcessor {
   private validateSignalAdvanced(signal: TradeSignal): boolean {
     // Validações básicas
     if (!signal.symbol || !signal.contractType || !signal.contractId) {
-      console.log('Missing required signal fields');
       return false;
     }
 
     // Valida tipo de contrato
     if (!this.validContractTypes.includes(signal.contractType)) {
-      console.log('Invalid contract type:', signal.contractType);
       return false;
     }
 
     // Valida duração
     if (signal.duration <= 0) {
-      console.log('Invalid duration:', signal.duration);
       return false;
     }
 
     // Valida valor
     if (signal.amount <= 0) {
-      console.log('Invalid amount:', signal.amount);
       return false;
     }
 
@@ -180,7 +172,6 @@ export class SignalProcessor {
     'HILO', 'RISEFALL',
     'ONLYUPDOWN', 'LISTENER'];
     if (!barrierTypes.includes(signal.contractType)) {
-      console.log('Barrier required for contract type:', signal.contractType);
       return false;
     }
 
@@ -189,13 +180,11 @@ export class SignalProcessor {
 
   private processForexSignal(signal: TradeSignal): TradeSignal | null {
     // Processamento específico para Forex (lógica simplificada)
-    console.log('Processing Forex signal:', signal.symbol);
     return signal;
   }
 
   private processNonForexSignal(signal: TradeSignal): TradeSignal | null {
     // Processamento específico para Non-Forex
-    console.log('Processing Non-Forex signal:', signal.symbol);
     
     // Mapeia o mercado
     const marketId = this.marketMappings[signal.symbol];
@@ -209,7 +198,6 @@ export class SignalProcessor {
 
   setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
-    console.log('Signal processing', enabled ? 'enabled' : 'disabled');
   }
 
   isProcessingEnabled(): boolean {

@@ -143,7 +143,6 @@ export class TradeExecutor extends EventEmitter {
       // Constrói e envia a requisição de compra
       const buyRequest = this.buildBuyRequest(signal, requestId);
       
-      console.log('SEND BUY REQUEST:', JSON.stringify(buyRequest, null, 2));
       //this.emit('transaction', buyRequest);
 
       /*@ts-ignore*/
@@ -243,7 +242,6 @@ export class TradeExecutor extends EventEmitter {
   private handleMasterMessage(data: string): void {
     try {
       const message = JSON.parse(data);
-      console.log('RECEIVE MESSAGE REAL: ', message);
       if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
         this.emit('transaction', message.proposal_open_contract);
       }

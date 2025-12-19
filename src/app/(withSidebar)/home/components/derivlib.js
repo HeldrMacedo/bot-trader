@@ -98,7 +98,7 @@ const Deriv = {
         const appId = Deriv.appId;
 
         function connect() {
-            console.log('connecting')
+            
             ws = new WebSocket('wss://ws.derivws.com/websockets/v3?l=pt&app_id=' + appId)
             ws.addEventListener('open', onOpen)
             ws.addEventListener('message', onMessage)

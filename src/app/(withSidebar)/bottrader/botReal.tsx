@@ -258,7 +258,7 @@ export default function BotReal({ setIsTest }: { setIsTest: (value: boolean) => 
       }
     } catch (error) {
       toast.error("Falha ao iniciar o stream de transações.");
-      console.error("Start bot error:", error);
+      
     }
   };
 
@@ -271,7 +271,7 @@ const handleStopBot = useCallback(async () => {
         await demoConnectionRef.current.forget(forgetIdRef.current);
         forgetIdRef.current = null;
       } catch (error) {
-        console.error("Stop bot error:", error);
+
       }
     }
 
@@ -522,7 +522,7 @@ const handleStopBot = useCallback(async () => {
           await realConnectionRef.current.connect(contaReal.token);
         }
       } catch (error) {
-        console.error("Connection error:", error);
+        
       }
     };
 

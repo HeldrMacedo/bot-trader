@@ -43,7 +43,7 @@ export default function MarkupDetailsReport() {
   const fetchMarkupDetails = async () => {
     setLoading(true);
     setError(null);
-    console.log(filters);
+   
     try {
       // Verificar se o serviço está conectado e autorizado
       if (!derivService.isConnected) {
@@ -63,10 +63,8 @@ export default function MarkupDetailsReport() {
         date_to: filters.date_to + ' 23:59:59',
         passthrough: {},
       };
-      console.log("requestObj:", requestObj);
       // Enviar a requisição usando o DerivService
       const response = await derivService.send<MarkupDetailsResponse>(requestObj);
-      console.log("response:", response);
       // if (response.error) {
       //   throw new Error(response.error.message || "Erro ao obter detalhes de markup");
       // }
@@ -283,11 +281,9 @@ export default function MarkupDetailsReport() {
                     passthrough: {},
                   };
                   
-                  console.log("Export requestObj:", exportRequestObj);
                   
                   // Fazer requisição separada para exportação
                   const exportResponse = await derivService.send(exportRequestObj);
-                  console.log("Export response:", exportResponse);
                   
                   if (!exportResponse.app_markup_details || !exportResponse.app_markup_details.transactions) {
                     throw new Error("Nenhum dado encontrado para exportação");

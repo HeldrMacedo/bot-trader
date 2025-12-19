@@ -78,7 +78,7 @@ class DerivConnection {
                 try {
                     this.messageCallback(data, this.isDemo);
                 } catch (callbackError) {
-                    console.error(`${this.isDemo ? 'Demo' : 'Real'} callback error:`, callbackError);
+                    
                 }
             }
 
@@ -110,7 +110,7 @@ class DerivConnection {
             }
 
         } catch (error) {
-            console.error(`${this.isDemo ? 'Demo' : 'Real'} error parsing message:`, error);
+            
         }
     }
 
@@ -123,7 +123,7 @@ class DerivConnection {
     }
 
     handleError(error) {
-        console.error(`${this.isDemo ? 'Demo' : 'Real'} WebSocket error:`, error);
+       
         if (!this.manualClose) {
             this.reconnect();
         }
@@ -170,7 +170,7 @@ class DerivConnection {
             
             return response;
         } catch (error) {
-            console.error(`${this.isDemo ? 'Demo' : 'Real'} subscription error:`, error);
+            
             throw error;
         }
     }
@@ -184,7 +184,6 @@ class DerivConnection {
             }
             return response;
         } catch (error) {
-            console.error(`${this.isDemo ? 'Demo' : 'Real'} authorization failed:`, error);
             throw error;
         }
     }

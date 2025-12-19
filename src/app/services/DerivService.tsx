@@ -154,7 +154,6 @@ export class DerivService {
 
   private setupBalanceMonitoring() {
     if (this.balanceSubscriptionId) {
-    console.log('Balance subscription already exists');
     return;
   }
   
@@ -164,9 +163,9 @@ export class DerivService {
     })
     .catch((error) => {
       if (error.code === 'AlreadySubscribed') {
-        console.log('Balance subscription already exists, skipping...');
+
       } else {
-        console.error('Error setting up balance monitoring:', error);
+        7
       }
     });
     // setInterval(async () => {
@@ -387,7 +386,6 @@ export class DerivService {
     try {
 
       const data = JSON.parse(event.data);
-      console.log("CHAMOU ", data);
       this.observer.emit("message", data);
       
 
@@ -546,7 +544,6 @@ export class DerivService {
       .find(sub => JSON.stringify(sub) === JSON.stringify(payload));
     
     if (existingSubscription) {
-      console.log('Subscription already exists, skipping duplicate');
       return Promise.resolve({ subscription: { id: 'existing' } });
     }
     
@@ -559,7 +556,6 @@ export class DerivService {
       })
       .catch((error) => {
         if (error.code === 'AlreadySubscribed') {
-          console.log('Subscription already exists on server side');
           return { subscription: { id: 'server_existing' } };
         }
         throw error;

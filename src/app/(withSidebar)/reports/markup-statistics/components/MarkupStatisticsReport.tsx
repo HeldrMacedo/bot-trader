@@ -46,12 +46,10 @@ export default function MarkupStatisticsReport() {
         passthrough: {},
       };
       
-      console.log("Enviando requisição:", requestObj);
       
       // Enviar a requisição usando o DerivService
       const response = await derivService.send<MarkupStatisticsResponse>(requestObj);
       
-      console.log("Resposta recebida:", response);
       
     //   if (response.error) {
     //     throw new Error(response.error.message || "Erro ao obter estatísticas de markup");
