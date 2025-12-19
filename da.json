@@ -1,0 +1,226 @@
+{
+    "strategy": "UNDER_SPECIFIC",
+    "type": "DIGITUNDER",
+    "confidence": 80,
+    "reasons": [
+        "Dígitos 8, 9 estão exaustos"
+    ],
+    "assertiveness": "High",
+    "expected_profit": 0.95,
+    "symbol": "1HZ25V",
+    "timestamp": "2025-12-19T17:08:36.450Z",
+    "barrier": 8
+}
+
+{
+    "echo_req": {
+        "amount": 1,
+        "barrier": "8",
+        "basis": "stake",
+        "contract_type": "DIGITUNDER",
+        "currency": "USD",
+        "duration": 1,
+        "duration_unit": "t",
+        "product_type": "basic",
+        "proposal": 1,
+        "req_id": 1766164116497,
+        "symbol": "1HZ25V"
+    },
+    "msg_type": "proposal",
+    "proposal": {
+        "ask_price": 1,
+        "contract_details": {
+            "barrier": "8"
+        },
+        "date_expiry": 1766164118,
+        "date_start": 1766164117,
+        "display_value": "1.00",
+        "id": "caee51d5-d92c-7534-2576-ae93f4034a90",
+        "longcode": "Win payout if the last digit of Volatility 25 (1s) Index is strictly lower than 8 after 1 ticks.",
+        "payout": 1.23,
+        "spot": 736157.29,
+        "spot_time": 1766164117,
+        "validation_params": {
+            "payout": {
+                "max": "30000.00"
+            },
+            "stake": {
+                "min": "0.35"
+            }
+        }
+    },
+    "req_id": 1766164116497
+}
+
+{
+    "buy": {
+        "balance_after": 9985.38,
+        "buy_price": 1,
+        "contract_id": 302069650228,
+        "longcode": "Win payout if the last digit of Volatility 25 (1s) Index is strictly lower than 8 after 1 ticks.",
+        "payout": 1.23,
+        "purchase_time": 1766164117,
+        "shortcode": "DIGITUNDER_1HZ25V_1.23_1766164117_1T_8_0",
+        "start_time": 1766164117,
+        "transaction_id": 601300629868
+    },
+    "echo_req": {
+        "buy": "caee51d5-d92c-7534-2576-ae93f4034a90",
+        "price": 1,
+        "req_id": 1766164117215
+    },
+    "msg_type": "buy",
+    "req_id": 1766164117215
+}
+
+{
+    "echo_req": {
+        "contract_id": 302069650228,
+        "proposal_open_contract": 1
+    },
+    "msg_type": "proposal_open_contract",
+    "proposal_open_contract": {
+        "account_id": 78759608,
+        "barrier": "8",
+        "barrier_count": 1,
+        "bid_price": 0.96,
+        "buy_price": 1,
+        "contract_id": 302069650228,
+        "contract_type": "DIGITUNDER",
+        "currency": "USD",
+        "current_spot": 736157.29,
+        "current_spot_display_value": "736157.29",
+        "current_spot_time": 1766164117,
+        "date_expiry": 1766164118,
+        "date_settlement": 1766164118,
+        "date_start": 1766164117,
+        "display_name": "Volatility 25 (1s) Index",
+        "expiry_time": 1766164118,
+        "is_expired": 0,
+        "is_forward_starting": 0,
+        "is_intraday": 1,
+        "is_path_dependent": 0,
+        "is_settleable": 0,
+        "is_sold": 0,
+        "is_valid_to_cancel": 0,
+        "is_valid_to_sell": 0,
+        "longcode": "Win payout if the last digit of Volatility 25 (1s) Index is strictly lower than 8 after 1 ticks.",
+        "payout": 1.23,
+        "profit": -0.04,
+        "profit_percentage": -4,
+        "purchase_time": 1766164117,
+        "shortcode": "DIGITUNDER_1HZ25V_1.23_1766164117_1T_8_0",
+        "status": "open",
+        "tick_count": 1,
+        "tick_stream": [],
+        "transaction_ids": {
+            "buy": 601300629868
+        },
+        "underlying": "1HZ25V",
+        "validation_error": "Contract cannot be sold at this time. Please try again.",
+        "validation_error_code": "General"
+    }
+}
+
+
+{
+    "echo_req": {
+        "contract_id": 302075517148,
+        "proposal_open_contract": 1,
+        "subscribe": 1
+    },
+    "msg_type": "proposal_open_contract",
+    "proposal_open_contract": {
+        "account_id": 78759608,
+        "audit_details": {
+            "all_ticks": [
+                {
+                    "epoch": 1766170412,
+                    "tick": 607.31,
+                    "tick_display_value": "607.31"
+                },
+                {
+                    "epoch": 1766170414,
+                    "flag": "highlight_time",
+                    "name": "Start Time",
+                    "tick": 607.18,
+                    "tick_display_value": "607.18"
+                },
+                {
+                    "epoch": 1766170416,
+                    "flag": "highlight_tick",
+                    "name": "Entry Spot and End Time and Exit Spot",
+                    "tick": 607.25,
+                    "tick_display_value": "607.25"
+                },
+                {
+                    "epoch": 1766170418,
+                    "tick": 607.22,
+                    "tick_display_value": "607.22"
+                }
+            ]
+        },
+        "barrier": "8",
+        "barrier_count": 1,
+        "bid_price": 1.23,
+        "buy_price": 1,
+        "contract_id": 302075517148,
+        "contract_type": "DIGITUNDER",
+        "currency": "USD",
+        "current_spot": 607.34,
+        "current_spot_display_value": "607.34",
+        "current_spot_time": 1766170420,
+        "date_expiry": 1766170416,
+        "date_settlement": 1766170416,
+        "date_start": 1766170414,
+        "display_name": "Volatility 100 Index",
+        "entry_spot": 607.25,
+        "entry_spot_display_value": "607.25",
+        "entry_tick": 607.25,
+        "entry_tick_display_value": "607.25",
+        "entry_tick_time": 1766170416,
+        "exit_tick": 607.25,
+        "exit_tick_display_value": "607.25",
+        "exit_tick_time": 1766170416,
+        "expiry_time": 1766170416,
+        "id": "3db635e2-e947-a7ec-faee-6bf8aa5c177e",
+        "is_expired": 1,
+        "is_forward_starting": 0,
+        "is_intraday": 1,
+        "is_path_dependent": 0,
+        "is_settleable": 1,
+        "is_sold": 1,
+        "is_valid_to_cancel": 0,
+        "is_valid_to_sell": 0,
+        "longcode": "Win payout if the last digit of Volatility 100 Index is strictly lower than 8 after 1 ticks.",
+        "payout": 1.23,
+        "profit": 0.23,
+        "profit_percentage": 23,
+        "purchase_time": 1766170414,
+        "sell_price": 1.23,
+        "sell_spot": 607.25,
+        "sell_spot_display_value": "607.25",
+        "sell_spot_time": 1766170416,
+        "sell_time": 1766170418,
+        "shortcode": "DIGITUNDER_R_100_1.23_1766170414_1T_8_0",
+        "status": "won",
+        "tick_count": 1,
+        "tick_stream": [
+            {
+                "epoch": 1766170416,
+                "tick": 607.25,
+                "tick_display_value": "607.25"
+            }
+        ],
+        "transaction_ids": {
+            "buy": 601312257288,
+            "sell": 601312264488
+        },
+        "underlying": "R_100",
+        "validation_error": "This contract has been sold.",
+        "validation_error_code": "General"
+    },
+    "subscription": {
+        "id": "3db635e2-e947-a7ec-faee-6bf8aa5c177e"
+    }
+}

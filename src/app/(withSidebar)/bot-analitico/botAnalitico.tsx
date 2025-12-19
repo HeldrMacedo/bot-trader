@@ -1,5 +1,5 @@
 'use client';
-import { Activity, BarChart3, Settings, Target } from 'lucide-react';
+import { Activity, BarChart3, CheckCircle, Settings, Target } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 // Types
@@ -21,7 +21,10 @@ import { OperationMode } from './components/OperationMode';
 import { PerformanceStats } from './components/PerformanceStats';
 import { SignalsPanel } from './components/SignalsPanel';
 
+import ResultsTab from './components/ResultsTab';
 import { AnalysisEngine } from './lib/analysis-engine';
+import { config } from 'process';
+import moment from 'moment';
 
 export default function DerivAnalyzerDashboard() {
 	// Connection State
@@ -32,6 +35,7 @@ export default function DerivAnalyzerDashboard() {
 	const reconnectAttemptsRef = React.useRef(0);
 	const analysisEngineRef = React.useRef<AnalysisEngine | null>(null);
 	const pendingRequests = React.useRef<Record<number, (data: any) => void>>({});
+	const resultsList = React.useRef<any[]>([]);
 	const isTradingRef = React.useRef(false);
 	const maxReconnectAttempts = 5;
 	const reconnectDelay = 5000;
@@ -187,11 +191,12 @@ export default function DerivAnalyzerDashboard() {
 			ws.onmessage = (event) => {
 				try {
 					const data = JSON.parse(event.data);
-					// if (data.msg_type != 'tick') {
-					// 	console.log('Received message:', data);
-					// }
+					if (data.msg_type != 'tick') {
+						console.log('Received message:', data);
+					}
 					
 					if (data.req_id && pendingRequests.current[data.req_id]) {
+						console.log('Resolvendo requisição:', data.req_id);
 						pendingRequests.current[data.req_id](data);
 						delete pendingRequests.current[data.req_id];
 						return; 
@@ -307,6 +312,20 @@ export default function DerivAnalyzerDashboard() {
 								};
 							});
 
+							resultsList.current.push(
+								{
+									time: moment().format('HH:mm:ss'),
+									symbol: contract.underlying,
+									type: contract.contract_type,
+									target: contract.barrier ?? '-',
+									exit: contract.exit_tick_display_value,
+									stake: contract.buy_price,
+									status: isWin ? 'Won' : 'Lost',
+									profit: profit
+								}
+							);
+
+
 							isTradingRef.current = false; // Allow next trade
 						}
 					}
@@ -349,38 +368,22 @@ export default function DerivAnalyzerDashboard() {
 
 		try {
 			// 1. Proposal
-			const proposalReq: any = {
-				proposal: 1,
-				amount: martingaleConfig.currentStake,
-				basis: 'stake',
-				contract_type: signal.type,
-				currency: 'USD',
-				duration: 1,
-				duration_unit: 't',
-				symbol: signal.symbol,
-			};
-
-			if (signal.barrier !== undefined) {
-				proposalReq.barrier = String(signal.barrier);
+			const payload = {
+				buy: 1,
+				price: martingaleConfig.currentStake,
+				parameters: {
+					amount: martingaleConfig.currentStake,
+					basis: 'stake',
+					contract_type: signal.type,
+					currency: 'USD',
+					duration: 1,
+					duration_unit: 't',
+					symbol: signal.symbol,
+					...(signal.barrier !== undefined && { barrier: String(signal.barrier) }),
+				}
 			}
 
-			const proposalResp: any = await sendRequest(proposalReq);
-
-			if (proposalResp.error) {
-				console.error('Proposal Error:', proposalResp.error);
-				isTradingRef.current = false;
-				return;
-			}
-
-			const proposalId = proposalResp.proposal.id;
-
-			// 2. Buy
-			const buyReq = {
-				buy: proposalId,
-				price: proposalResp.proposal.ask_price,
-			};
-
-			const buyResp: any = await sendRequest(buyReq);
+			const buyResp: any = await sendRequest(payload);
 
 			if (buyResp.error) {
 				console.error('Buy Error:', buyResp.error);
@@ -388,13 +391,13 @@ export default function DerivAnalyzerDashboard() {
 				return;
 			}
 
-			console.log('Trade executed:', buyResp);
-
 			// 3. Monitor Result
 			const contractId = buyResp.buy.contract_id;
 			if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+				console.log("ENTROU NO MONITOR RESULT");
 				wsRef.current.send(
 					JSON.stringify({
+						subscribe: 1,
 						proposal_open_contract: 1,
 						contract_id: contractId,
 					}),
@@ -407,11 +410,8 @@ export default function DerivAnalyzerDashboard() {
 	};
 
 	useEffect(() => {
-		console.log('bestSignal:', bestSignal);
-		console.log('mode:', mode);
-		console.log('isTradingRef.current:', isTradingRef.current);
-		console.log('isConnected:', isConnected);
 		if (mode === 'auto' && bestSignal && !isTradingRef.current && isConnected) {
+			
 			executeTrade(bestSignal);
 		}
 	}, [mode, bestSignal, isConnected]);
@@ -495,13 +495,18 @@ export default function DerivAnalyzerDashboard() {
 											label: 'Configurações',
 											icon: Settings,
 										},
+										{
+											id: 'results',
+											label: 'Resultados',
+											icon: CheckCircle,
+										}
 									].map((tab) => (
 										<button
 											key={tab.id}
 											onClick={() => setActiveTab(tab.id)}
 											className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
 												activeTab === tab.id
-													? 'border-blue-500 text-blue-600'
+													? 'border-white text-white'
 													: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
 											}`}
 										>
@@ -551,6 +556,9 @@ export default function DerivAnalyzerDashboard() {
 										martingaleConfig={martingaleConfig}
 										setMartingaleConfig={setMartingaleConfig}
 									/>
+								)}
+								{activeTab === 'results' && (
+									<ResultsTab  reultsList={resultsList.current} />
 								)}
 							</div>
 						</div>
