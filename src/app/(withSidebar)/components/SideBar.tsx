@@ -102,6 +102,24 @@ const Sidebar = ({
       role: ["admin", "user"],
     },
     {
+      name: "Bot Analitico",
+      icon: CpuChipIcon,
+      href: "/bot-analitico",
+      role: ["admin", "user"],
+    },
+    {
+      name: "Bot Advanced",
+      icon: CpuChipIcon,
+      href: "/advanced-bot",
+      role: ["admin", "user"],
+    },
+    {
+      name: "BotTrader",
+      icon: CpuChipIcon,
+      href: "/bottrader",
+      role: ["admin", "user"],
+    },
+    {
       name: "Minha Conta",
       icon: UserIcon,
       href: "/profile",
@@ -136,12 +154,6 @@ const Sidebar = ({
       icon: UserGroupIcon,
       href: "/operations",
       role: ["admin"],
-    },
-    {
-      name: "BotTrader",
-      icon: CpuChipIcon,
-      href: "/bottrader",
-      role: ["admin", "user"],
     },
     {
       name: "Sair",

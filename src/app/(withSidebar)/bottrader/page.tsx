@@ -1,9 +1,8 @@
 "use client";
 import { useModuleAccess } from "@/app/hooks/useModuleAccess";
-import { useEffect, useState, useRef, useCallback } from "react";
-import BotReal from "./botReal";
-import HasAcessComponet from "./hasAccessComponent";
+import { useState } from "react";
 import BotTraderX from "./bottraderx";
+import HasAcessComponet from "./hasAccessComponent";
 
 export default function BotTrade() {
   const [isTest, setIsTest] = useState(false);

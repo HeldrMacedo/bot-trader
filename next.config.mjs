@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    // Turbopack options
+  },
   turbopack: {},
   webpack: (config, { isServer }) => {
     if (isServer) {
