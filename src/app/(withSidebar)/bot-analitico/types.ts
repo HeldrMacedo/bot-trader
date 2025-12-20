@@ -89,6 +89,12 @@ export interface MartingaleConfig {
 	currentStake: number;
 }
 
+export interface Account {
+	balance: number,
+	is_virtual: number,
+	broker: string,
+}
+
 export const VOLATILITIES: Volatility[] = [
 	{ symbol: 'ALL', name: 'All Volatilities', color: 'gray' },
 	{ symbol: 'R_10', name: 'Volatility 10', color: 'sky' },
@@ -101,7 +107,4 @@ export const VOLATILITIES: Volatility[] = [
 	{ symbol: '1HZ75V', name: 'Volatility 75 (1s)', color: 'sky' },
 	{ symbol: 'R_100', name: 'Volatility 100', color: 'sky' },
 	{ symbol: '1HZ100V', name: 'Volatility 100 (1s)', color: 'sky' },
-	{ symbol: '1HZ150V', name: 'Volatility 150 (1s)', color: 'sky' },
-	{ symbol: '1HZ200V', name: 'Volatility 200 (1s)', color: 'sky' },
-	{ symbol: '1HZ250V', name: 'Volatility 250 (1s)', color: 'sky' },
 ];

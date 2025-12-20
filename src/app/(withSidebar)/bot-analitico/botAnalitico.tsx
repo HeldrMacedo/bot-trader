@@ -9,6 +9,8 @@ import {
 	SpecificOperations,
 	TradingSignal,
 	VolatilityData,
+	VOLATILITIES,
+	Account,
 } from './types';
 
 // Components
@@ -26,6 +28,7 @@ import { AnalysisEngine } from './lib/analysis-engine';
 import { config } from 'process';
 import moment from 'moment';
 
+
 export default function DerivAnalyzerDashboard() {
 	// Connection State
 	const [isConnected, setIsConnected] = useState(false);
@@ -35,7 +38,7 @@ export default function DerivAnalyzerDashboard() {
 	const reconnectAttemptsRef = React.useRef(0);
 	const analysisEngineRef = React.useRef<AnalysisEngine | null>(null);
 	const pendingRequests = React.useRef<Record<number, (data: any) => void>>({});
-	const resultsList = React.useRef<any[]>([]);
+	const [resultsList, setResultsList] = useState<any[]>([]);
 	const isTradingRef = React.useRef(false);
 	const maxReconnectAttempts = 5;
 	const reconnectDelay = 5000;
@@ -78,6 +81,11 @@ export default function DerivAnalyzerDashboard() {
 	const [exhaustionThreshold, setExhaustionThreshold] = useState<number>(5);
 	const [absenceThreshold, setAbsenceThreshold] = useState<number>(15);
 	const [mode, setMode] = useState<'manual' | 'auto'>('manual');
+	const [account, setAccount] = useState<Account>({
+		balance: 0,
+		is_virtual: 0,
+		broker: '',
+	});
 
 	// Complex Config State
 	const [martingaleConfig, setMartingaleConfig] = useState<MartingaleConfig>({
@@ -91,10 +99,10 @@ export default function DerivAnalyzerDashboard() {
 
 	const [specificOperations, setSpecificOperations] =
 		useState<SpecificOperations>({
-			over: { enabled: false, digits: [0, 1, 2, 3, 4] },
-			under: { enabled: false, digits: [7, 8, 9] },
+			over: { enabled: false, digits: [2] },
+			under: { enabled: false, digits: [8] },
 			matches: { enabled: false, digit: 5 },
-			differs: { enabled: false, digits: [0, 5, 9] },
+			differs: { enabled: false, digits: [5] },
 		});
 
 	// --- Effects ---
@@ -191,12 +199,11 @@ export default function DerivAnalyzerDashboard() {
 			ws.onmessage = (event) => {
 				try {
 					const data = JSON.parse(event.data);
-					if (data.msg_type != 'tick') {
-						console.log('Received message:', data);
-					}
+					// if (data.msg_type != 'tick') {
+					// 	console.log('Received message:', data);
+					// }
 					
 					if (data.req_id && pendingRequests.current[data.req_id]) {
-						console.log('Resolvendo requisição:', data.req_id);
 						pendingRequests.current[data.req_id](data);
 						delete pendingRequests.current[data.req_id];
 						return; 
@@ -208,7 +215,16 @@ export default function DerivAnalyzerDashboard() {
 							alert('Authorization failed: ' + data.error.message);
 							ws.close();
 						} else {
-							console.log('Authorized successfully', data);
+
+							const account = data.authorize.account_list.find(
+								(account: Account) => account.is_virtual === data.authorize.is_virtual
+							);
+
+							setAccount({
+								balance: data?.authorize?.balance || 0,
+								is_virtual: account?.is_virtual || 0,
+								broker: account?.broker || '',
+							});
 						}
 					} else if (data.msg_type === 'history') {
 						const symbol = data.echo_req.ticks_history;
@@ -277,8 +293,6 @@ export default function DerivAnalyzerDashboard() {
 							const profit = contract.profit;
 							const isWin = profit > 0;
 							
-							console.log(`Trade finished. Win: ${isWin}, Profit: ${profit}`);
-							
 							// Update Martingale
 							setMartingaleConfig(prev => {
 								if (!prev.enabled) {
@@ -312,7 +326,8 @@ export default function DerivAnalyzerDashboard() {
 								};
 							});
 
-							resultsList.current.push(
+							setResultsList((prev) => [
+								...prev,
 								{
 									time: moment().format('HH:mm:ss'),
 									symbol: contract.underlying,
@@ -321,9 +336,9 @@ export default function DerivAnalyzerDashboard() {
 									exit: contract.exit_tick_display_value,
 									stake: contract.buy_price,
 									status: isWin ? 'Won' : 'Lost',
-									profit: profit
-								}
-							);
+									profit: profit,
+								},
+							]);
 
 
 							isTradingRef.current = false; // Allow next trade
@@ -337,7 +352,9 @@ export default function DerivAnalyzerDashboard() {
 			ws.onclose = () => {
 				console.log('Deriv WebSocket disconnected');
 				setIsConnected(false);
-				attemptReconnect();
+				if (isConnected) {
+					attemptReconnect();
+				}
 			};
 
 			ws.onerror = (error) => {
@@ -394,7 +411,6 @@ export default function DerivAnalyzerDashboard() {
 			// 3. Monitor Result
 			const contractId = buyResp.buy.contract_id;
 			if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-				console.log("ENTROU NO MONITOR RESULT");
 				wsRef.current.send(
 					JSON.stringify({
 						subscribe: 1,
@@ -441,6 +457,16 @@ export default function DerivAnalyzerDashboard() {
 
 	const toggleVolatility = (symbol: string) => {
 		setSelectedVolatilities((prev) => {
+			if (symbol.toLowerCase() === 'all') {
+				return Array.from(
+					new Set(
+						VOLATILITIES.filter((v) => v.symbol.toLowerCase() !== 'all').map(
+							(v) => v.symbol,
+						),
+					),
+				);
+			}
+
 			if (prev.includes(symbol)) {
 				return prev.filter((s) => s !== symbol);
 			} else {
@@ -460,6 +486,7 @@ export default function DerivAnalyzerDashboard() {
 					setApiToken={setApiToken}
 					handleConnect={handleConnect}
 					handleDisconnect={handleDisconnect}
+					account={account}
 				/>
 
 				<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
@@ -558,7 +585,7 @@ export default function DerivAnalyzerDashboard() {
 									/>
 								)}
 								{activeTab === 'results' && (
-									<ResultsTab  reultsList={resultsList.current} />
+									<ResultsTab resultsList={resultsList} />
 								)}
 							</div>
 						</div>
@@ -566,7 +593,10 @@ export default function DerivAnalyzerDashboard() {
 
 					{/* Right Column - Market Quality and Stats */}
 					<div className='space-y-6'>
-						<OperationMode mode={mode} setMode={setMode} />
+						<OperationMode
+							mode={mode}
+							setMode={setMode}
+						/>
 						<PerformanceStats performance={performance} />
 						<GlobalConfigPanel
 							config={config}

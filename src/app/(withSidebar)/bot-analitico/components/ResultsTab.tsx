@@ -1,43 +1,91 @@
-import { Type, Target } from 'lucide-react';
-import { text } from 'stream/consumers';
+import { useMemo } from 'react';
 
 export default function ResultsTab({ resultsList }: { resultsList: any[] }) {
+	const totals = useMemo(() => {
+		const totalTrader = resultsList.length;
+		const totalWin = resultsList
+			.filter((result) => result.status === 'Won')
+			.reduce((acc, result) => acc + Number(result.profit), 0);
+		const totalLoss = resultsList
+			.filter((result) => result.status === 'Lost')
+			.reduce((acc, result) => acc + Number(result.profit), 0);
+		const lucro = resultsList.reduce(
+			(acc, result) => acc + Number(result.profit),
+			0,
+		);
+
+		return { totalTrader, totalWin, totalLoss, lucro };
+	}, [resultsList]);
+
 	return (
 		<div className='bg-gray-800 p-4 rounded-md shadow'>
 			<h3 className=' font-medium text-white'>Trade Resultados</h3>
+			<div className='gap-4 flex'>
+				<div className='text-white text-sm'>Trade: {totals.totalTrader}</div>
+				<div className='text-white text-sm'>
+					Total Win:{' '}
+					<span className='text-green-500'>
+						{Intl.NumberFormat('en-US', {
+							style: 'currency',
+							currency: 'USD',
+						}).format(totals.totalWin)}
+					</span>
+				</div>
+				<div className='text-white text-sm'>
+					Total Loss:{' '}
+					<span className='text-red-500'>
+						{Intl.NumberFormat('en-US', {
+							style: 'currency',
+							currency: 'USD',
+						}).format(totals.totalLoss)}
+					</span>
+				</div>
+				<div className='text-white text-sm'>
+					Lucro:{' '}
+					<span
+						className={
+							totals.lucro > 0 ? 'text-green-500' : 'text-red-500'
+						}
+					>
+						{Intl.NumberFormat('en-US', {
+							style: 'currency',
+							currency: 'USD',
+						}).format(totals.lucro)}
+					</span>
+				</div>
+			</div>
 			<div className='overflow-x-auto rounded-lg mt-4'>
 				<div className='rounded-lg max-h-48'>
 					<table className='min-w-full'>
 						<thead className='bg-gray-50'>
 							<tr>
-								<th class='px-4 py-2 text-left text-sm font-medium text-gray-500'>
+								<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>
 									Time
 								</th>
-								<th class='px-4 py-2 text-left text-sm font-medium text-gray-500'>
+								<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>
 									Symbol
 								</th>
-								<th class='px-4 py-2 text-left text-sm font-medium text-gray-500'>
+								<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>
 									Type
 								</th>
-								<th class='px-4 py-2 text-left text-sm font-medium text-gray-500'>
+								<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>
 									Target
 								</th>
-								<th class='px-4 py-2 text-left text-sm font-medium text-gray-500'>
+								<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>
 									Exit
 								</th>
-								<th class='px-4 py-2 text-left text-sm font-medium text-gray-500'>
+								<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>
 									Stake
 								</th>
-								<th class='px-4 py-2 text-left text-sm font-medium text-gray-500'>
+								<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>
 									Status
 								</th>
-								<th class='px-4 py-2 text-left text-sm font-medium text-gray-500'>
+								<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>
 									Profit/Loss
 								</th>
 							</tr>
 						</thead>
 						<tbody id='tradeHistoryBody'>
-							<tr>
 								{resultsList.map((result, index) => (
 									<tr key={index}>
 										<td className='px-4 py-2 text-sm whitespace-nowrap'>{result.time}</td>
@@ -45,177 +93,17 @@ export default function ResultsTab({ resultsList }: { resultsList: any[] }) {
 										<td className='px-4 py-2 text-sm whitespace-nowrap'>{result.type}</td>
 										<td className='px-4 py-2 text-sm whitespace-nowrap'>{result.target}</td>
 										<td className='px-4 py-2 text-sm whitespace-nowrap'>{result.exit}</td>
-										<td class='px-4 py-2 text-sm font-mono'>{result.stake}</td>
-										<td class='px-4 py-2 text-sm capitalize'>
+										<td className='px-4 py-2 text-sm font-mono'>{result.stake}</td>
+										<td className='px-4 py-2 text-sm capitalize'>
 											<span
-												class='px-2 py-1 rounded-full text-xs font-medium
-                bg-{result.status === 'Won' ? 'green' : 'red'}-100 text-{result.status === 'Won' ? 'green' : 'red'}-800'
-
+												className={`px-2 py-1 rounded-full text-xs font-medium ${result.status === 'Won' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
 											>{result.status}</span>
 										</td>
-										<td className='px-4 py-2 text-sm text-{result.status === 'Won' ? 'green' : 'red'}-600 font-medium'>
-											{result.status === 'Won' ? '+' : '-'}
-											{result.profitLoss}
+										<td className={`px-4 py-2 text-sm font-medium ${result.status === 'Won' ? 'text-green-600' : 'text-red-600'}`}>
+											{result.status === 'Won' ? '+' : ''}{result.profit}
 										</td>
 									</tr>
 								))}
-							</tr>
-
-
-							<tr
-								id='trade-302067944608'
-								class='bg-green-50 hover:bg-opacity-75 transition-colors duration-200'
-							>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>13:36:34</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>R_100</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>DIGITOVER</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>2</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>6</td>
-								<td class='px-4 py-2 text-sm font-mono'>1.00</td>
-								<td class='px-4 py-2 text-sm capitalize'>
-									<span
-										class='px-2 py-1 rounded-full text-xs font-medium
-                bg-green-100 text-green-800'
-									>
-										won
-									</span>
-								</td>
-								<td class='px-4 py-2 text-sm text-green-600 font-medium'>
-									+0.37 USD
-								</td>
-							</tr>
-							<tr
-								id='trade-302066919848'
-								class='bg-green-50 hover:bg-opacity-75 transition-colors duration-200'
-							>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>13:18:15</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>R_100</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>DIGITODD</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>-</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>7</td>
-								<td class='px-4 py-2 text-sm font-mono'>1.00</td>
-								<td class='px-4 py-2 text-sm capitalize'>
-									<span
-										class='px-2 py-1 rounded-full text-xs font-medium
-                bg-green-100 text-green-800'
-									>
-										won
-									</span>
-								</td>
-								<td class='px-4 py-2 text-sm text-green-600 font-medium'>
-									+0.88 USD
-								</td>
-							</tr>
-							<tr
-								id='trade-302066918928'
-								class='bg-green-50 hover:bg-opacity-75 transition-colors duration-200'
-							>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>13:18:14</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>R_100</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>DIGITODD</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>-</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>7</td>
-								<td class='px-4 py-2 text-sm font-mono'>1.00</td>
-								<td class='px-4 py-2 text-sm capitalize'>
-									<span
-										class='px-2 py-1 rounded-full text-xs font-medium
-                bg-green-100 text-green-800'
-									>
-										won
-									</span>
-								</td>
-								<td class='px-4 py-2 text-sm text-green-600 font-medium'>
-									+0.88 USD
-								</td>
-							</tr>
-							<tr
-								id='trade-302066917408'
-								class='bg-red-50 hover:bg-opacity-75 transition-colors duration-200'
-							>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>13:18:13</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>R_100</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>DIGITODD</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>-</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>0</td>
-								<td class='px-4 py-2 text-sm font-mono'>1.00</td>
-								<td class='px-4 py-2 text-sm capitalize'>
-									<span
-										class='px-2 py-1 rounded-full text-xs font-medium
-                bg-red-100 text-red-800'
-									>
-										lost
-									</span>
-								</td>
-								<td class='px-4 py-2 text-sm text-red-600 font-medium'>
-									-1.00 USD
-								</td>
-							</tr>
-							<tr
-								id='trade-302066914568'
-								class='bg-green-50 hover:bg-opacity-75 transition-colors duration-200'
-							>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>13:18:09</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>R_100</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>DIGITODD</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>-</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>9</td>
-								<td class='px-4 py-2 text-sm font-mono'>1.00</td>
-								<td class='px-4 py-2 text-sm capitalize'>
-									<span
-										class='px-2 py-1 rounded-full text-xs font-medium
-                bg-green-100 text-green-800'
-									>
-										won
-									</span>
-								</td>
-								<td class='px-4 py-2 text-sm text-green-600 font-medium'>
-									+0.88 USD
-								</td>
-							</tr>
-							<tr
-								id='trade-302066912868'
-								class='bg-green-50 hover:bg-opacity-75 transition-colors duration-200'
-							>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>13:18:08</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>R_100</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>DIGITODD</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>-</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>9</td>
-								<td class='px-4 py-2 text-sm font-mono'>1.00</td>
-								<td class='px-4 py-2 text-sm capitalize'>
-									<span
-										class='px-2 py-1 rounded-full text-xs font-medium
-                bg-green-100 text-green-800'
-									>
-										won
-									</span>
-								</td>
-								<td class='px-4 py-2 text-sm text-green-600 font-medium'>
-									+0.88 USD
-								</td>
-							</tr>
-							<tr
-								id='trade-302066909988'
-								class='bg-red-50 hover:bg-opacity-75 transition-colors duration-200'
-							>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>13:18:04</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>R_100</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>DIGITODD</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>-</td>
-								<td class='px-4 py-2 text-sm whitespace-nowrap'>0</td>
-								<td class='px-4 py-2 text-sm font-mono'>1.00</td>
-								<td class='px-4 py-2 text-sm capitalize'>
-									<span
-										class='px-2 py-1 rounded-full text-xs font-medium
-                bg-red-100 text-red-800'
-									>
-										lost
-									</span>
-								</td>
-								<td class='px-4 py-2 text-sm text-red-600 font-medium'>
-									-1.00 USD
-								</td>
-							</tr>
 						</tbody>
 					</table>
 				</div>

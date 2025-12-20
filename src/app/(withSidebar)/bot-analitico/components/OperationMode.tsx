@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Play } from "lucide-react";
+import { PauseCircle, Play, StopCircle } from "lucide-react";
 import { VOLATILITIES, Volatility } from "../types";
 import { ChevronDownIcon, CodeBracketIcon } from "@heroicons/react/16/solid";
 interface OperationModeProps {
@@ -13,10 +13,19 @@ export const OperationMode: React.FC<OperationModeProps> = ({
 }) => {
   const [tradeType, setTradeType] = useState<Number>(1);
 	const [selected, setSelected] = useState<number | null>(null);
+  const [ isRunning, setIsRunning ] = useState<boolean>(false);
   const handleBuy = (type: any) => {};
   const handleSelect = (number: number) => {
    	const newSelected = selected === number ? null : number;
     setSelected(newSelected);
+  }
+
+  const handleStart = () => {
+    setIsRunning(true);
+  }
+
+  const handleStop = () => {
+    setIsRunning(false);
   }
 
   return (
@@ -259,9 +268,15 @@ export const OperationMode: React.FC<OperationModeProps> = ({
           </div>
         ) : (
           <div>
-            <button className="flex justify-center w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-2 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
-              <Play size={16} /> Iniciar
-            </button>
+            {/* { !isRunning ? (
+              <button onClick={handleStart} className="flex justify-center w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-2 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+                <Play size={16} /> Iniciar
+              </button>
+            ) : (
+              <button onClick={handleStop} className="flex justify-center w-full items-center gap-3 rounded-md bg-red-600 pr-4 pl-4 px-3 py-2 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+                <PauseCircle size={16} /> Parar
+              </button>
+            )} */}
           </div>
         )}
       </div>

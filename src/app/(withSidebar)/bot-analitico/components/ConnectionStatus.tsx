@@ -1,10 +1,12 @@
 import { Pause, Play, Wifi, WifiOff } from 'lucide-react';
 import React from 'react';
+import { Account } from '../types';
 
 interface ConnectionStatusProps {
 	isConnected: boolean;
 	isLoading: boolean;
 	apiToken: string;
+	account: Account
 	setApiToken: (token: string) => void;
 	handleConnect: () => void;
 	handleDisconnect: () => void;
@@ -17,6 +19,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
 	setApiToken,
 	handleConnect,
 	handleDisconnect,
+	account
 }) => {
 	return (
 		<div className='bg-white rounded-xl shadow-sm border bg-principal p-6 mb-6'>
@@ -66,13 +69,18 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
 							</button>
 						</div>
 					) : (
-						<button
-							onClick={handleDisconnect}
-							className='flex items-center gap-3 rounded-md pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs bg-red-600 hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600'
-						>
-							<Pause size={16} />
-							Disconnect
-						</button>
+						<div className='flex items-center gap-3'>
+							<span className='font-medium text-white'>
+								Balance: {account.broker} {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(account.balance)}
+							</span>
+							<button
+								onClick={handleDisconnect}
+								className='flex items-center gap-3 rounded-md pr-4 pl-4 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs bg-red-600 hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600'
+							>
+								<Pause size={16} />
+								Disconnect
+							</button>
+						</div>
 					)}
 				</div>
 			</div>
