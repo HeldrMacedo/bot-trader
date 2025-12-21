@@ -1,47 +1,76 @@
 import React, { useState } from "react";
-import { PauseCircle, Play, StopCircle } from "lucide-react";
+import { PauseCircle, Play, StopCircle, Brain } from "lucide-react";
 import { VOLATILITIES, Volatility } from "../types";
 import { ChevronDownIcon, CodeBracketIcon } from "@heroicons/react/16/solid";
+
 interface OperationModeProps {
   mode: "manual" | "auto";
   setMode: (mode: "manual" | "auto") => void;
+  onToggleML?: (enabled: boolean) => void;
+  mlEnabled?: boolean;
 }
 
 export const OperationMode: React.FC<OperationModeProps> = ({
   mode,
   setMode,
+  onToggleML,
+  mlEnabled = false
 }) => {
   const [tradeType, setTradeType] = useState<Number>(1);
-	const [selected, setSelected] = useState<number | null>(null);
-  const [ isRunning, setIsRunning ] = useState<boolean>(false);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  
   const handleBuy = (type: any) => {};
+  
   const handleSelect = (number: number) => {
-   	const newSelected = selected === number ? null : number;
+    const newSelected = selected === number ? null : number;
     setSelected(newSelected);
-  }
+  };
 
   const handleStart = () => {
     setIsRunning(true);
-  }
+  };
 
   const handleStop = () => {
     setIsRunning(false);
-  }
+  };
+
+  const handleToggleML = () => {
+    if (onToggleML) {
+      onToggleML(!mlEnabled);
+    }
+  };
+
 
   return (
-    <div className="bg-principal rounded-xl shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-400 mb-4">
-        📈 Modo de Operação
-      </h3>
+    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-sm border border-gray-700 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-white">
+          📈 Modo de Operação
+        </h3>
+        
+        {/* Toggle ML */}
+        <button
+          onClick={handleToggleML}
+          className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+            mlEnabled 
+              ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+        >
+          <Brain size={16} />
+          {mlEnabled ? 'ML ON' : 'ML OFF'}
+        </button>
+      </div>
 
-      <div className="mb-4">
+       <div className="mb-4">
         <div className="flex gap-2">
           <button
             onClick={() => setMode("manual")}
             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
               mode === "manual"
-                ? "bg-indigo-600 text-white"
-                : "bg-white/10 hover:bg-white/20"
+                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+                : "bg-gray-700 hover:bg-gray-600 text-gray-300"
             }`}
           >
             Manual
@@ -50,8 +79,8 @@ export const OperationMode: React.FC<OperationModeProps> = ({
             onClick={() => setMode("auto")}
             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
               mode === "auto"
-                ? "bg-orange-600 text-white"
-                : "bg-white/10 hover:bg-white/20"
+                ? "bg-gradient-to-r from-orange-600 to-red-600 text-white"
+                : "bg-gray-700 hover:bg-gray-600 text-gray-300"
             }`}
           >
             Automático

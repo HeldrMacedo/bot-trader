@@ -1,67 +1,172 @@
 import React from 'react';
-import { Target, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Target, TrendingUp, AlertTriangle, Brain } from 'lucide-react';
 import {
-	VOLATILITIES,
-	VolatilityData,
-	SpecificOperations,
-	MartingaleConfig,
+  VOLATILITIES,
+  VolatilityData,
+  SpecificOperations,
+  MartingaleConfig,
+  MLConfig,
 } from '../types';
-import { min, max } from 'moment';
-import { type } from 'os';
 
 interface ConfigTabProps {
-	selectedVolatilities: string[];
-	toggleVolatility: (symbol: string) => void;
-	volatilityData: Record<string, VolatilityData>;
-	specificOperations: SpecificOperations;
-	setSpecificOperations: React.Dispatch<
-		React.SetStateAction<SpecificOperations>
-	>;
-	stake: number;
-	setStake: (value: number) => void;
-	stopLoss: number;
-	setStopLoss: (value: number) => void;
-	stopWin: number;
-	setStopWin: (value: number) => void;
-	ticksQuantity: number;
-	setTicksQuantity: (value: number) => void;
-	minConfidence: number;
-	setMinConfidence: (value: number) => void;
-	exhaustionThreshold: number;
-	setExhaustionThreshold: (value: number) => void;
-	absenceThreshold: number;
-	setAbsenceThreshold: (value: number) => void;
-	martingaleConfig: MartingaleConfig;
-	setMartingaleConfig: React.Dispatch<React.SetStateAction<MartingaleConfig>>;
+  selectedVolatilities: string[];
+  toggleVolatility: (symbol: string) => void;
+  volatilityData: Record<string, VolatilityData>;
+  specificOperations: SpecificOperations;
+  setSpecificOperations: React.Dispatch<
+    React.SetStateAction<SpecificOperations>
+  >;
+  stake: number;
+  setStake: (value: number) => void;
+  stopLoss: number;
+  setStopLoss: (value: number) => void;
+  stopWin: number;
+  setStopWin: (value: number) => void;
+  ticksQuantity: number;
+  setTicksQuantity: (value: number) => void;
+  minConfidence: number;
+  setMinConfidence: (value: number) => void;
+  exhaustionThreshold: number;
+  setExhaustionThreshold: (value: number) => void;
+  absenceThreshold: number;
+  setAbsenceThreshold: (value: number) => void;
+  martingaleConfig: MartingaleConfig;
+  setMartingaleConfig: React.Dispatch<React.SetStateAction<MartingaleConfig>>;
+  mlConfig: MLConfig;
+  setMlConfig: React.Dispatch<React.SetStateAction<MLConfig>>;
 }
 
 export const ConfigTab: React.FC<ConfigTabProps> = ({
 	selectedVolatilities,
-	toggleVolatility,
-	volatilityData,
-	specificOperations,
-	setSpecificOperations,
-	stake,
-	setStake,
-	stopLoss,
-	setStopLoss,
-	stopWin,
-	setStopWin,
-	ticksQuantity,
-	setTicksQuantity,
-	minConfidence,
-	setMinConfidence,
-	exhaustionThreshold,
-	setExhaustionThreshold,
-	absenceThreshold,
-	setAbsenceThreshold,
-	martingaleConfig,
-	setMartingaleConfig,
+  toggleVolatility,
+  volatilityData,
+  specificOperations,
+  setSpecificOperations,
+  stake,
+  setStake,
+  stopLoss,
+  setStopLoss,
+  stopWin,
+  setStopWin,
+  ticksQuantity,
+  setTicksQuantity,
+  minConfidence,
+  setMinConfidence,
+  exhaustionThreshold,
+  setExhaustionThreshold,
+  absenceThreshold,
+  setAbsenceThreshold,
+  martingaleConfig,
+  setMartingaleConfig,
+  mlConfig,
+  setMlConfig,
 }) => {
 	return (
 		<div>
+
+			<div className='mb-8 p-6 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-xl border border-purple-500/30'>
+        <h2 className='text-2xl font-bold mb-4 flex items-center gap-3'>
+          <Brain className='text-purple-400' size={28} />
+          <span className='bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent'>
+            Machine Learning
+          </span>
+        </h2>
+        
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-6'>
+          <div className='bg-gray-900/50 p-4 rounded-lg'>
+            <label className='flex items-center gap-3 cursor-pointer mb-3'>
+              <input
+                type='checkbox'
+                checked={mlConfig.useML}
+                onChange={(e) => setMlConfig({...mlConfig, useML: e.target.checked})}
+                className='w-5 h-5 rounded bg-gray-700'
+              />
+              <span className='font-bold text-lg text-white'>
+                Ativar Machine Learning
+              </span>
+            </label>
+            <p className='text-sm text-gray-400'>
+              Use redes neurais para prever padrões e melhorar sinais
+            </p>
+          </div>
+
+          <div className='bg-gray-900/50 p-4 rounded-lg'>
+            <label className='flex items-center gap-3 cursor-pointer mb-3'>
+              <input
+                type='checkbox'
+                checked={mlConfig.onlineLearning}
+                onChange={(e) => setMlConfig({...mlConfig, onlineLearning: e.target.checked})}
+                className='w-5 h-5 rounded bg-gray-700'
+              />
+              <span className='font-bold text-lg text-white'>
+                Aprendizado Online
+              </span>
+            </label>
+            <p className='text-sm text-gray-400'>
+              Melhora continuamente com novos dados
+            </p>
+          </div>
+
+          <div className='bg-gray-900/50 p-4 rounded-lg'>
+            <label className='flex items-center gap-3 cursor-pointer mb-3'>
+              <input
+                type='checkbox'
+                checked={mlConfig.trainingEnabled}
+                onChange={(e) => setMlConfig({...mlConfig, trainingEnabled: e.target.checked})}
+                className='w-5 h-5 rounded bg-gray-700'
+              />
+              <span className='font-bold text-lg text-white'>
+                Treinamento Automático
+              </span>
+            </label>
+            <p className='text-sm text-gray-400'>
+              Treina modelos periodicamente
+            </p>
+          </div>
+        </div>
+
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+          <div>
+            <label className='block text-sm font-medium mb-2'>
+              Limite de Confiança ML: <strong>{mlConfig.confidenceThreshold}%</strong>
+            </label>
+            <input
+              type='range'
+              min='50'
+              max='95'
+              value={mlConfig.confidenceThreshold}
+              onChange={(e) => setMlConfig({...mlConfig, confidenceThreshold: parseInt(e.target.value)})}
+              className='w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500'
+            />
+            <p className='text-xs text-gray-400 mt-1'>
+              Só aceita sinais com confiança ML ≥ {mlConfig.confidenceThreshold}%
+            </p>
+          </div>
+
+          <div>
+            <label className='block text-sm font-medium mb-2'>
+              Janela de Features: <strong>{mlConfig.featureWindow} ticks</strong>
+            </label>
+            <input
+              type='range'
+              min='20'
+              max='100'
+              step='10'
+              value={mlConfig.featureWindow}
+              onChange={(e) => setMlConfig({...mlConfig, featureWindow: parseInt(e.target.value)})}
+              className='w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500'
+            />
+            <p className='text-xs text-gray-400 mt-1'>
+              Quantidade de ticks usados para análise ML
+            </p>
+          </div>
+        </div>
+      </div>
+
+
+
 			{/* Seleção de Volatilidades */}
-			
+
 				<h2 className='text-xl font-bold mb-4 flex items-center gap-2'>
 					<Target className='text-yellow-400' />
 					Volatilidades Monitoradas
