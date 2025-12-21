@@ -1,17 +1,19 @@
 import React from 'react';
-import { Brain, TrendingUp, Target, BarChart3, Cpu } from 'lucide-react';
+import { Brain, TrendingUp, Target, BarChart3, Cpu, Trash } from 'lucide-react';
 import { AnalysisData, MLPerformanceStats } from '../types';
 
 interface MLAnalysisPanelProps {
   analysisData: AnalysisData | null;
   mlStats: MLPerformanceStats;
   onTrainModels: () => void;
+  onHandleClearModels: () => void;
 }
 
 export const MLAnalysisPanel: React.FC<MLAnalysisPanelProps> = ({ 
   analysisData, 
   mlStats,
-  onTrainModels 
+  onTrainModels,
+  onHandleClearModels
 }) => {
   const getMLPredictions = () => {
     if (!analysisData?.analyses) return null;
@@ -31,13 +33,22 @@ export const MLAnalysisPanel: React.FC<MLAnalysisPanelProps> = ({
             Análise de Machine Learning
           </h3>
         </div>
-        <button
+        <div className="flex items-center gap-3">
+          <button
           onClick={onTrainModels}
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors"
         >
           <Cpu size={16} />
           Treinar Modelos
         </button>
+        <button
+            onClick={onHandleClearModels}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-sm text-white font-medium transition-colors"
+          >
+           <Trash size={16}/> Limpar Modelos ML
+          </button>
+        </div>
+        
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -2,7 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import { MLAnalysisConfig, SymbolAnalysis, TradingSignal, MLPredictions, MLConfig } from '../types';
 
 export class MLAnalysisEngine {
-  private history: Record<string, {
+   private history: Record<string, {
     digits: number[];
     prices: number[];
     timestamps: number[];
@@ -13,6 +13,8 @@ export class MLAnalysisEngine {
   private models: Map<string, tf.LayersModel> = new Map();
   private config: MLAnalysisConfig;
   private isInitialized = false;
+  private trainingQueue: Array<{symbol: string, features: number[], label: number}> = [];
+
   private mlStats = {
     ml_accuracy: 0,
     ml_precision: 0,
@@ -34,17 +36,39 @@ export class MLAnalysisEngine {
       
       for (const modelName of savedModels) {
         try {
+          // Tentar carregar modelo salvo
           const model = await tf.loadLayersModel(`indexeddb://${modelName}_model`);
+          
+          // 🔥 CORREÇÃO: Recompilar o modelo após carregar
+          if (modelName === 'probability_predictor') {
+            model.compile({
+              optimizer: tf.train.adam(0.001),
+              loss: 'categoricalCrossentropy',
+              metrics: ['accuracy']
+            });
+          } else if (modelName === 'pattern_detector') {
+            model.compile({
+              optimizer: tf.train.adam(0.001),
+              loss: 'binaryCrossentropy',
+              metrics: ['accuracy']
+            });
+          }
+          
           this.models.set(modelName, model);
           this.mlStats.model_versions[modelName] = 1;
+          console.log(`✅ Modelo ${modelName} carregado e recompilado`);
         } catch (e) {
-          this.models.set(modelName, this.createModel(modelName));
+          console.log(`🆕 Criando novo modelo: ${modelName}`);
+          const newModel = this.createModel(modelName);
+          this.models.set(modelName, newModel);
           this.mlStats.model_versions[modelName] = 1;
         }
       }
       
       this.isInitialized = true;
+      console.log('✅ Sistema ML inicializado com sucesso');
     } catch (error) {
+      console.error('❌ Erro ao inicializar modelos ML:', error);
       this.createFallbackModels();
     }
   }
@@ -53,13 +77,14 @@ export class MLAnalysisEngine {
     const model = tf.sequential();
     
     if (modelName === 'probability_predictor') {
+      // 🔥 CORREÇÃO: Alterado de 35 para 30 features
       model.add(tf.layers.dense({
-        units: 64,
+        units: 32,  // Reduzido para melhor performance
         activation: 'relu',
-        inputShape: [35]
+        inputShape: [30]  // AQUI: Alterado de 35 para 30
       }));
       model.add(tf.layers.dropout({ rate: 0.2 }));
-      model.add(tf.layers.dense({ units: 32, activation: 'relu' }));
+      model.add(tf.layers.dense({ units: 16, activation: 'relu' }));
       model.add(tf.layers.dense({ units: 10, activation: 'softmax' }));
       
       model.compile({
@@ -68,12 +93,13 @@ export class MLAnalysisEngine {
         metrics: ['accuracy']
       });
     } else if (modelName === 'pattern_detector') {
+      // 🔥 CORREÇÃO: Alterado de 35 para 30 features
       model.add(tf.layers.dense({
-        units: 32,
+        units: 16,
         activation: 'relu',
-        inputShape: [35]
+        inputShape: [30]  // AQUI: Alterado de 35 para 30
       }));
-      model.add(tf.layers.dense({ units: 16, activation: 'relu' }));
+      model.add(tf.layers.dense({ units: 8, activation: 'relu' }));
       model.add(tf.layers.dense({ units: 4, activation: 'sigmoid' }));
       
       model.compile({
@@ -147,78 +173,114 @@ export class MLAnalysisEngine {
     };
   }
 
-  private extractFeatures(symbol: string): number[] {
+ private extractFeatures(symbol: string): number[] {
     const history = this.history[symbol];
-    const recentDigits = history.digits.slice(0, 50);
-    const recentPrices = history.prices.slice(0, 50);
+    if (!history || history.digits.length < 5) {
+      return new Array(30).fill(0); // Retorna 30 zeros
+    }
+    
+    const recentDigits = history.digits.slice(0, Math.min(50, history.digits.length));
+    const recentPrices = history.prices.slice(0, Math.min(50, history.prices.length));
 
-    if (recentDigits.length < 10) return new Array(35).fill(0);
-
-    return [
-      // Features estatísticas básicas
+    // 🔥 CORREÇÃO: Garantir que sempre retorne 30 features
+    const features = [
+      // 1-5: Features estatísticas básicas (5)
       this.calculateMean(recentDigits),
       this.calculateStdDev(recentDigits),
       this.calculateEntropy(recentDigits),
       this.calculateVariance(recentDigits),
       this.calculateSkewness(recentDigits),
       
-      // Features temporais
+      // 6-8: Features temporais (3)
       this.calculateAutocorrelation(recentDigits, 1),
       this.calculateAutocorrelation(recentDigits, 2),
       this.calculateAutocorrelation(recentDigits, 3),
+      
+      // 9: Tendência (1)
       this.calculateTrend(recentDigits),
       
-      // Features de distribuição (probabilidades de cada dígito 0-9)
+      // 10-19: Distribuição de dígitos (10) - TOTAL: 19
       ...this.calculateDigitDistribution(recentDigits),
       
-      // Features de mercado
+      // 20-22: Features de mercado (3) - TOTAL: 22
       this.calculateVolatility(recentPrices),
       this.calculateMomentum(recentPrices),
       this.calculateRSI(recentPrices, 14),
       
-      // Features de padrão
+      // 23-25: Features de padrão (3) - TOTAL: 25
       this.detectStreaks(recentDigits),
       this.detectReversals(recentDigits),
       this.calculateConsecutiveCount(recentDigits),
       
-      // Features derivadas
+      // 26-28: Features derivadas (3) - TOTAL: 28
       this.calculateAbsencePattern(recentDigits),
       this.calculateExhaustionScore(recentDigits, 5),
       this.calculateTransitionProbability(recentDigits),
       
-      // Features de tempo
-      Date.now() % 86400000 / 86400000,
-      new Date().getDay() / 7,
+      // 29-30: Features de tempo (2) - TOTAL: 30
+      Date.now() % 86400000 / 86400000, // Hora normalizada
+      new Date().getDay() / 7, // Dia da semana normalizado
     ];
+
+    // 🔥 GARANTIR que temos exatamente 30 features
+    if (features.length !== 30) {
+      console.warn(`⚠️ Features count mismatch: ${features.length}. Padding to 30.`);
+      while (features.length < 30) features.push(0);
+      features.splice(30); // Corta se tiver mais de 30
+    }
+
+    return features;
   }
 
   private analyzeWithML(symbol: string, features: number[]): MLPredictions | undefined {
     if (!this.isInitialized || !this.config.mlConfig.useML) return undefined;
+
+    // 🔥 VERIFICAÇÃO: Garantir que temos 30 features
+    if (features.length !== 30) {
+      console.warn(`❌ Features length mismatch: ${features.length}. Expected 30. Skipping ML prediction.`);
+      return undefined;
+    }
 
     const startTime = performance.now();
     
     try {
       const featuresTensor = tf.tensor2d([features]);
       
-      // Predição de probabilidades
+      // 🔥 VERIFICAÇÃO: Checar compatibilidade do modelo antes de usar
       const probModel = this.models.get('probability_predictor');
+      if (!probModel || !probModel.optimizer) {
+        console.warn('❌ Modelo não está compilado. Recriando...');
+        this.models.set('probability_predictor', this.createModel('probability_predictor'));
+        return undefined;
+      }
+      
       let probabilities: number[] = [];
       
       if (probModel) {
-        const prediction = probModel.predict(featuresTensor) as tf.Tensor;
-        const probsArray = Array.from(prediction.dataSync());
-        probabilities = probsArray;
-        tf.dispose(prediction);
+        try {
+          const prediction = probModel.predict(featuresTensor) as tf.Tensor;
+          const probsArray = Array.from(prediction.dataSync());
+          probabilities = probsArray;
+          tf.dispose(prediction);
+        } catch (predictError) {
+          console.error('❌ Erro na predição:', predictError);
+          // Recriar modelo se falhar
+          this.models.set('probability_predictor', this.createModel('probability_predictor'));
+        }
       }
 
-      // Detecção de padrões
+      // Similar para pattern_detector...
       const patternModel = this.models.get('pattern_detector');
       let patternScore: number[] = [];
       
-      if (patternModel) {
-        const patternPred = patternModel.predict(featuresTensor) as tf.Tensor;
-        patternScore = Array.from(patternPred.dataSync());
-        tf.dispose(patternPred);
+      if (patternModel && patternModel.optimizer) {
+        try {
+          const patternPred = patternModel.predict(featuresTensor) as tf.Tensor;
+          patternScore = Array.from(patternPred.dataSync());
+          tf.dispose(patternPred);
+        } catch (patternError) {
+          console.error('❌ Erro na detecção de padrões:', patternError);
+        }
       }
 
       tf.dispose(featuresTensor);
@@ -231,14 +293,14 @@ export class MLAnalysisEngine {
         probabilities.indexOf(Math.max(...probabilities)) : undefined;
 
       return {
-        next_digit_probabilities: probabilities,
-        pattern_score: patternScore,
+        next_digit_probabilities: probabilities.length > 0 ? probabilities : new Array(10).fill(0.1),
+        pattern_score: patternScore.length > 0 ? patternScore : new Array(4).fill(0.5),
         volatility_prediction: this.predictVolatility(features),
         confidence: confidence,
         predicted_digit: predictedDigit
       };
     } catch (error) {
-      console.error('Erro na predição ML:', error);
+      console.error('❌ Erro geral na predição ML:', error);
       return undefined;
     }
   }
@@ -321,10 +383,8 @@ export class MLAnalysisEngine {
     }
   }
 
-  private trainingQueue: Array<{symbol: string, features: number[], label: number}> = [];
-
   private async trainIncremental() {
-    if (this.trainingQueue.length < 50) return;
+    if (this.trainingQueue.length < 20) return; // Reduzido de 50 para 20
 
     try {
       const X = this.trainingQueue.map(item => item.features);
@@ -337,30 +397,53 @@ export class MLAnalysisEngine {
       const XTensor = tf.tensor2d(X);
       const yTensor = tf.tensor2d(y);
 
-      const model = this.models.get('probability_predictor');
-      if (model) {
-        const history = await model.fit(XTensor, yTensor, {
-          epochs: 10,
-          batchSize: 32,
-          validationSplit: 0.2,
-          verbose: 0
+      let model = this.models.get('probability_predictor');
+      
+      // 🔥 CORREÇÃO: Garantir que o modelo existe e está compilado
+      if (!model) {
+        model = this.createModel('probability_predictor');
+        this.models.set('probability_predictor', model);
+      }
+      
+      if (!model.optimizer) {
+        model.compile({
+          optimizer: tf.train.adam(0.001),
+          loss: 'categoricalCrossentropy',
+          metrics: ['accuracy']
         });
+      }
 
-        // CORREÇÃO AQUI: usando 'accuracy' (não 'acc')
-        const loss = history.history.loss[0];
-        const accuracy = history.history.accuracy ? history.history.accuracy[0] : 0;
-        
-        this.mlStats.ml_accuracy = Number(accuracy) * 100;
-        this.mlStats.training_samples += this.trainingQueue.length;
-        this.mlStats.last_trained = new Date().toISOString();
-        this.mlStats.model_versions['probability_predictor']++;
+      const history = await model.fit(XTensor, yTensor, {
+        epochs: 5,  // Reduzido de 10 para 5
+        batchSize: 16, // Reduzido de 32 para 16
+        validationSplit: 0.1, // Reduzido de 0.2 para 0.1
+        verbose: 0
+      });
 
+      // 🔥 CORREÇÃO: Usar 'accuracy' corretamente
+      const loss = history.history.loss[0];
+      const accuracy = history.history.acc ? history.history.acc[0] : 
+                      (history.history.accuracy ? history.history.accuracy[0] : 0);
+      
+      this.mlStats.ml_accuracy = Number(accuracy) * 100;
+      this.mlStats.training_samples += this.trainingQueue.length;
+      this.mlStats.last_trained = new Date().toISOString();
+      this.mlStats.model_versions['probability_predictor'] = 
+        (this.mlStats.model_versions['probability_predictor'] || 0) + 1;
+
+      // Salvar modelo atualizado
+      try {
         await model.save(`indexeddb://probability_predictor_model`);
+        console.log(`✅ Modelo treinado. Loss: ${loss}, Accuracy: ${(Number(accuracy) * 100).toFixed(2)}%`);
+      } catch (saveError) {
+        console.warn('⚠️ Não foi possível salvar o modelo:', saveError);
       }
 
       tf.dispose([XTensor, yTensor]);
     } catch (error) {
-      console.error('Erro no treinamento incremental:', error);
+      console.error('❌ Erro no treinamento incremental:', error);
+    } finally {
+      this.trainingQueue = [];
     }
   }
 
@@ -577,10 +660,75 @@ export class MLAnalysisEngine {
     return numbers[0] - numbers[numbers.length - 1];
   }
 
-  private calculateDigitDistribution(numbers: number[]): number[] {
+   private calculateDigitDistribution(numbers: number[]): number[] {
     const distribution = new Array(10).fill(0);
-    numbers.forEach(d => distribution[d]++);
-    return distribution.map(d => d / numbers.length);
+    numbers.forEach(d => {
+      if (d >= 0 && d <= 9) distribution[d]++;
+    });
+    const total = numbers.length || 1;
+    return distribution.map(d => d / total);
+  }
+
+   // 🔥 ADICIONAR: Método para limpar modelos antigos
+  public async clearOldModels() {
+    try {
+      // Limpar IndexedDB
+      const databases = await window.indexedDB.databases();
+      for (const db of databases) {
+        if (db.name && db.name.includes('tensorflowjs')) {
+          window.indexedDB.deleteDatabase(db.name);
+        }
+      }
+      
+      // Resetar modelos na memória
+      this.models.clear();
+      await this.initializeModels();
+      
+      console.log('✅ Modelos antigos limpos com sucesso');
+      return true;
+    } catch (error) {
+      console.error('❌ Erro ao limpar modelos:', error);
+      return false;
+    }
+  }
+
+  // 🔥 ADICIONAR: Verificação de compatibilidade do modelo
+  private async checkModelCompatibility(modelName: string): Promise<boolean> {
+    try {
+      const model = this.models.get(modelName);
+      if (!model) return false;
+      
+      // Verificar shape esperado
+      const expectedInputShape = model.inputs[0].shape;
+      if (!expectedInputShape || expectedInputShape[1] !== 30) {
+        console.log(`🔄 Modelo ${modelName} tem shape incompatível: ${expectedInputShape}. Recriando...`);
+        return false;
+      }
+      
+      // Verificar se está compilado
+      if (!model.optimizer) {
+        console.log(`🔄 Modelo ${modelName} não está compilado. Recriando...`);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+    public async verifyAndFixModels() {
+    console.log('🔍 Verificando modelos ML...');
+    
+    for (const [name, model] of this.models.entries()) {
+      const isCompatible = await this.checkModelCompatibility(name);
+      if (!isCompatible) {
+        console.log(`🔄 Recriando modelo ${name}...`);
+        this.models.set(name, this.createModel(name));
+      }
+    }
+    
+    console.log('✅ Verificação de modelos concluída');
   }
 
   private calculateVolatility(prices: number[]): number {

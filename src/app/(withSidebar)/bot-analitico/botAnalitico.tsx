@@ -32,6 +32,7 @@ import { MLAnalysisEngine } from './lib/ml-analysis-engine';
 import { AnalysisEngine } from './lib/analysis-engine';
 import moment from 'moment';
 import * as tf from '@tensorflow/tfjs';
+import { MLInitializer } from './lib/ml-init';
 
 export default function DerivAnalyzerDashboard() {
   // Connection State
@@ -129,12 +130,26 @@ export default function DerivAnalyzerDashboard() {
       differs: { enabled: false, digits: [5] },
     });
 
-  // --- Effects ---
+
+
   useEffect(() => {
-    // Inicializar TensorFlow.js
-    tf.ready().then(() => {
-      console.log('TensorFlow.js está pronto');
+  const initML = async () => {
+    try {
+      // 1. Inicializar TensorFlow.js
+      const tfReady = await MLInitializer.initialize();
+      if (!tfReady) {
+        console.warn('⚠️ TensorFlow.js não pôde ser inicializado. ML desativado.');
+        setMlConfig(prev => ({ ...prev, useML: false }));
+        return;
+      }
       
+      // 2. Verificar compatibilidade
+      const compatibility = await MLInitializer.checkCompatibility();
+if (!compatibility.backendAvailable) {
+  console.warn('⚠️ Backend não compatível. Usando modo fallback.');
+}
+      
+      // 3. Criar engine ML
       analysisEngineRef.current = new MLAnalysisEngine({
         minConfidence,
         exhaustionThreshold,
@@ -143,8 +158,24 @@ export default function DerivAnalyzerDashboard() {
         specificOperations,
         mlConfig
       });
-    });
-  }, []);
+      
+      // 4. Verificar e corrigir modelos
+      setTimeout(async () => {
+        if (analysisEngineRef.current) {
+          await analysisEngineRef.current.verifyAndFixModels();
+        }
+      }, 2000);
+      
+    } catch (error) {
+      console.error('❌ Erro na inicialização do ML:', error);
+      setMlConfig(prev => ({ ...prev, useML: false }));
+    }
+  };
+  
+  if (mlConfig.useML) {
+    initML();
+  }
+}, [mlConfig.useML]); // Apenas quando mlConfig.useML mudar
 
   useEffect(() => {
     if (analysisEngineRef.current) {
@@ -215,6 +246,18 @@ export default function DerivAnalyzerDashboard() {
       }
     };
   }, []);
+
+  // Adicione um botão para limpar modelos no UI:
+const handleClearModels = async () => {
+  if (analysisEngineRef.current) {
+    const confirmed = confirm('⚠️ Isso irá apagar todos os modelos ML treinados. Continuar?');
+    if (confirmed) {
+      await analysisEngineRef.current.clearOldModels();
+      alert('✅ Modelos ML limpos com sucesso! Reinicie o bot.');
+      window.location.reload();
+    }
+  }
+};
 
   // --- Methods ---
   const sendRequest = (msg: any) => {
@@ -573,6 +616,7 @@ export default function DerivAnalyzerDashboard() {
                 analysisData={analysisData}
                 mlStats={mlStats}
                 onTrainModels={handleTrainModels}
+                onHandleClearModels={handleClearModels}
               />
             )}
 

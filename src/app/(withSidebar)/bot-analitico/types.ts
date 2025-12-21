@@ -153,3 +153,13 @@ export interface AnalysisConfig {
 export interface MLAnalysisConfig extends AnalysisConfig {
     mlConfig: MLConfig;
 }
+
+export interface CompatibilityCheck {
+  webgl: boolean;
+  memory: boolean;
+  backendAvailable: boolean;
+  features: {
+    hasWebGL: boolean;
+    hasCPU: boolean;
+  };
+}
