@@ -197,6 +197,25 @@ if (!compatibility.backendAvailable) {
     mlConfig
   ]);
 
+  // No useEffect principal
+useEffect(() => {
+  // Backup automático a cada 24 horas
+  const backupInterval = setInterval(async () => {
+    if (analysisEngineRef.current && mlConfig.useML) {
+      const lastBackup = localStorage.getItem('last_model_backup');
+      const now = Date.now();
+      
+      if (!lastBackup || (now - parseInt(lastBackup)) > 24 * 60 * 60 * 1000) {
+        console.log('🔄 Backup automático de modelos...');
+        await analysisEngineRef.current.saveAllModels();
+        localStorage.setItem('last_model_backup', now.toString());
+      }
+    }
+  }, 60 * 60 * 1000); // Verifica a cada hora
+
+  return () => clearInterval(backupInterval);
+}, [mlConfig.useML]);
+
   // Atualizar estatísticas ML periodicamente
   useEffect(() => {
     const interval = setInterval(() => {

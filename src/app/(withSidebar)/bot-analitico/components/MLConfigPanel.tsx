@@ -1,6 +1,7 @@
 import React from 'react';
-import { Brain, Cpu, Database, Zap, Save, Download } from 'lucide-react';
+import { Brain, Cpu, Database, Zap, Save, Download, Info, Upload } from 'lucide-react';
 import { MLConfig } from '../types';
+import { ModelBackupManager } from '../lib/backup-models';
 
 interface MLConfigPanelProps {
   mlConfig: MLConfig;
@@ -177,6 +178,54 @@ export const MLConfigPanel: React.FC<MLConfigPanelProps> = ({ mlConfig, updateML
                 Exportar Dados
               </button>
             </div>
+
+            <div className="mt-4 space-y-3">
+  <h4 className="text-sm font-medium text-gray-300">Backup e Restauração</h4>
+  
+  <div className="grid grid-cols-2 gap-2">
+    <button
+      onClick={async () => {
+        try {
+          await ModelBackupManager.exportModels();
+          alert('✅ Backup dos modelos realizado com sucesso!');
+        } catch (error) {
+          alert('❌ Erro ao fazer backup: ' + error.message);
+        }
+      }}
+      className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium"
+    >
+      <Download size={16} />
+      Exportar Modelos
+    </button>
+    
+    <label className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium cursor-pointer">
+      <Upload size={16} />
+      Importar Modelos
+      <input
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            try {
+              await ModelBackupManager.importModels(file);
+              alert('✅ Modelos importados com sucesso! Recarregue a página.');
+              window.location.reload();
+            } catch (error) {
+              alert('❌ Erro ao importar modelos: ' + error.message);
+            }
+          }
+        }}
+      />
+    </label>
+  </div>
+  
+  <div className="flex items-center gap-2 text-xs text-gray-400">
+    <Info size={12} />
+    <span>Faça backup periódico para não perder treinamento</span>
+  </div>
+</div>
 
             {/* Status */}
             <div className="p-3 bg-gray-800/50 rounded-lg">
