@@ -1,5 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import { MLAnalysisConfig, SymbolAnalysis, TradingSignal, MLPredictions, MLConfig } from '../types';
+import { ModelBackupManager } from './backup-models';
 
 export class MLAnalysisEngine {
    private history: Record<string, {
@@ -14,6 +15,7 @@ export class MLAnalysisEngine {
   private config: MLAnalysisConfig;
   private isInitialized = false;
   private trainingQueue: Array<{symbol: string, features: number[], label: number}> = [];
+  private trainingPromise: Promise<void> | null = null;
 
   private mlStats = {
     ml_accuracy: 0,
@@ -30,34 +32,37 @@ export class MLAnalysisEngine {
     this.initializeModels();
   }
 
+  private compileModel(modelName: string, model: tf.LayersModel) {
+    if (modelName === 'probability_predictor') {
+      model.compile({
+        optimizer: tf.train.adam(0.001),
+        loss: 'categoricalCrossentropy',
+        metrics: ['accuracy']
+      });
+      return;
+    }
+
+    if (modelName === 'pattern_detector') {
+      model.compile({
+        optimizer: tf.train.adam(0.001),
+        loss: 'binaryCrossentropy',
+        metrics: ['accuracy']
+      });
+    }
+  }
+
   private async initializeModels() {
     try {
       const savedModels = ['probability_predictor', 'pattern_detector'];
       
       for (const modelName of savedModels) {
-        try {
-          // Tentar carregar modelo salvo
-          const model = await tf.loadLayersModel(`indexeddb://${modelName}_model`);
-          
-          // 🔥 CORREÇÃO: Recompilar o modelo após carregar
-          if (modelName === 'probability_predictor') {
-            model.compile({
-              optimizer: tf.train.adam(0.001),
-              loss: 'categoricalCrossentropy',
-              metrics: ['accuracy']
-            });
-          } else if (modelName === 'pattern_detector') {
-            model.compile({
-              optimizer: tf.train.adam(0.001),
-              loss: 'binaryCrossentropy',
-              metrics: ['accuracy']
-            });
-          }
-          
-          this.models.set(modelName, model);
+        const storedModel = await ModelBackupManager.loadStoredModel(modelName);
+        if (storedModel) {
+          this.compileModel(modelName, storedModel);
+          this.models.set(modelName, storedModel);
           this.mlStats.model_versions[modelName] = 1;
-          console.log(`✅ Modelo ${modelName} carregado e recompilado`);
-        } catch (e) {
+          console.log(`✅ Modelo ${modelName} carregado do IndexedDB`);
+        } else {
           console.log(`🆕 Criando novo modelo: ${modelName}`);
           const newModel = this.createModel(modelName);
           this.models.set(modelName, newModel);
@@ -378,24 +383,41 @@ export class MLAnalysisEngine {
     });
 
     if (this.trainingQueue.length >= 100 && this.config.mlConfig.trainingEnabled) {
-      this.trainIncremental();
-      this.trainingQueue = [];
+      this.scheduleTraining();
     }
   }
 
-  private async trainIncremental() {
-    if (this.trainingQueue.length < 20) return; // Reduzido de 50 para 20
+  private scheduleTraining() {
+    if (this.trainingPromise) return;
+    this.trainingPromise = this.drainTrainingQueue().finally(() => {
+      this.trainingPromise = null;
+    });
+  }
+
+  private async drainTrainingQueue() {
+    while (this.trainingQueue.length >= 20 && this.config.mlConfig.trainingEnabled) {
+      const batch = this.trainingQueue.splice(0, 120);
+      await this.trainIncremental(batch);
+      await tf.nextFrame();
+    }
+  }
+
+  private async trainIncremental(batch: Array<{symbol: string, features: number[], label: number}>) {
+    if (batch.length < 20) return;
+
+    let XTensor: tf.Tensor2D | null = null;
+    let yTensor: tf.Tensor2D | null = null;
 
     try {
-      const X = this.trainingQueue.map(item => item.features);
-      const y = this.trainingQueue.map(item => {
+      const X = batch.map(item => item.features);
+      const y = batch.map(item => {
         const arr = new Array(10).fill(0);
         arr[item.label] = 1;
         return arr;
       });
 
-      const XTensor = tf.tensor2d(X);
-      const yTensor = tf.tensor2d(y);
+      XTensor = tf.tensor2d(X);
+      yTensor = tf.tensor2d(y);
 
       let model = this.models.get('probability_predictor');
       
@@ -406,11 +428,7 @@ export class MLAnalysisEngine {
       }
       
       if (!model.optimizer) {
-        model.compile({
-          optimizer: tf.train.adam(0.001),
-          loss: 'categoricalCrossentropy',
-          metrics: ['accuracy']
-        });
+        this.compileModel('probability_predictor', model);
       }
 
       const history = await model.fit(XTensor, yTensor, {
@@ -426,24 +444,31 @@ export class MLAnalysisEngine {
                       (history.history.accuracy ? history.history.accuracy[0] : 0);
       
       this.mlStats.ml_accuracy = Number(accuracy) * 100;
-      this.mlStats.training_samples += this.trainingQueue.length;
+      this.mlStats.training_samples += batch.length;
       this.mlStats.last_trained = new Date().toISOString();
       this.mlStats.model_versions['probability_predictor'] = 
         (this.mlStats.model_versions['probability_predictor'] || 0) + 1;
 
       // Salvar modelo atualizado
       try {
-        await model.save(`indexeddb://probability_predictor_model`);
+        await ModelBackupManager.saveModel('probability_predictor', model);
         console.log(`✅ Modelo treinado. Loss: ${loss}, Accuracy: ${(Number(accuracy) * 100).toFixed(2)}%`);
       } catch (saveError) {
         console.warn('⚠️ Não foi possível salvar o modelo:', saveError);
       }
 
-      tf.dispose([XTensor, yTensor]);
     } catch (error) {
+      const msg = (error as any)?.message || String(error);
+      if (msg.includes('another fit() call is ongoing')) {
+        this.trainingQueue.unshift(...batch);
+        await new Promise((r) => setTimeout(r, 50));
+        this.scheduleTraining();
+        return;
+      }
       console.error('❌ Erro no treinamento incremental:', error);
     } finally {
-      this.trainingQueue = [];
+      if (XTensor) XTensor.dispose();
+      if (yTensor) yTensor.dispose();
     }
   }
 
@@ -879,9 +904,37 @@ export class MLAnalysisEngine {
   }
 
   public async saveAllModels() {
-    for (const [name, model] of this.models.entries()) {
-      await model.save(`indexeddb://${name}_model`);
+    if (this.trainingPromise) {
+      await this.trainingPromise;
     }
+    await ModelBackupManager.saveModels(this.models.entries());
+  }
+
+  public async loadModelsFromStorage() {
+    if (this.trainingPromise) {
+      await this.trainingPromise;
+    }
+
+    const modelNames = ['probability_predictor', 'pattern_detector'];
+    const loaded: Record<string, boolean> = {};
+
+    for (const modelName of modelNames) {
+      try {
+        const model = await ModelBackupManager.loadStoredModel(modelName);
+        if (!model) {
+          loaded[modelName] = false;
+          continue;
+        }
+        this.compileModel(modelName, model);
+        this.models.set(modelName, model);
+        loaded[modelName] = true;
+      } catch {
+        loaded[modelName] = false;
+      }
+    }
+
+    this.isInitialized = true;
+    return loaded;
   }
 
   public updateConfig(config: MLAnalysisConfig) {

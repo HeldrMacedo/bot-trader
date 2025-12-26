@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
 
 export class MLInitializer {
-  static async initialize() {
+  static async initialize(options?: { clearIndexedDB?: boolean }) {
     console.log('🚀 Inicializando TensorFlow.js...');
     
     try {
@@ -11,13 +11,16 @@ export class MLInitializer {
         console.warn('⚠️ WebGL não disponível. Usando CPU backend.');
         await tf.setBackend('cpu');
       }
+
+      await tf.ready();
       
       // 2. Verificar memória
       const memoryInfo = tf.memory();
       console.log(`💾 Memória TF.js: ${memoryInfo.numBytes} bytes`);
       
-      // 3. Limpar modelos antigos se necessário
-      await this.clearOldIndexedDB();
+      if (options?.clearIndexedDB) {
+        await this.clearOldIndexedDB();
+      }
       
       console.log('✅ TensorFlow.js inicializado com sucesso');
       return true;

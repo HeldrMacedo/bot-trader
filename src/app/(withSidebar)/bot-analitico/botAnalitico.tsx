@@ -1,5 +1,5 @@
 'use client';
-import { Activity, BarChart3, CheckCircle, Settings, Target, Brain } from 'lucide-react';
+import { Activity, BarChart3, CheckCircle, Settings, Target, Brain, Save, Upload } from 'lucide-react';
 import React, { useEffect, useState, useRef } from 'react';
 
 // Types
@@ -31,7 +31,6 @@ import ResultsTab from './components/ResultsTab';
 import { MLAnalysisEngine } from './lib/ml-analysis-engine';
 import { AnalysisEngine } from './lib/analysis-engine';
 import moment from 'moment';
-import * as tf from '@tensorflow/tfjs';
 import { MLInitializer } from './lib/ml-init';
 
 export default function DerivAnalyzerDashboard() {
@@ -597,6 +596,17 @@ const handleClearModels = async () => {
     }
   };
 
+  const handleSaveModels = async () => {
+    if (!analysisEngineRef.current) return;
+    await analysisEngineRef.current.saveAllModels();
+  };
+
+  const handleLoadModels = async () => {
+    if (!analysisEngineRef.current) return;
+    await analysisEngineRef.current.loadModelsFromStorage();
+    await analysisEngineRef.current.verifyAndFixModels();
+  };
+
   const toggleML = (useML: boolean) => {
     setMlConfig(prev => ({ ...prev, useML }));
     
@@ -827,9 +837,45 @@ const handleClearModels = async () => {
               config={config}
               updateConfig={updateConfig}
             />
+            {mlConfig.useML && (
+              <div className='bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-700 p-4'>
+                <div className='grid grid-cols-2 gap-2'>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await handleSaveModels();
+                        alert('✅ Modelo(s) salvo(s) no navegador (IndexedDB)');
+                      } catch (error: any) {
+                        alert('❌ Erro ao salvar: ' + (error?.message || String(error)));
+                      }
+                    }}
+                    className='flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium'
+                  >
+                    <Save size={16} />
+                    Salvar Modelo
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await handleLoadModels();
+                        alert('✅ Modelo(s) carregado(s) do navegador (IndexedDB)');
+                      } catch (error: any) {
+                        alert('❌ Erro ao carregar: ' + (error?.message || String(error)));
+                      }
+                    }}
+                    className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium'
+                  >
+                    <Upload size={16} />
+                    Carregar Modelo
+                  </button>
+                </div>
+              </div>
+            )}
             <MLConfigPanel
               mlConfig={mlConfig}
               updateMLConfig={setMlConfig}
+              onSaveModels={handleSaveModels}
+              onLoadModels={handleLoadModels}
             />
           </div>
         </div>

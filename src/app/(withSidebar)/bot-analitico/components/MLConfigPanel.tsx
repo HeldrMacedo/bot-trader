@@ -6,9 +6,11 @@ import { ModelBackupManager } from '../lib/backup-models';
 interface MLConfigPanelProps {
   mlConfig: MLConfig;
   updateMLConfig: (config: MLConfig) => void;
+  onSaveModels?: () => Promise<void>;
+  onLoadModels?: () => Promise<void>;
 }
 
-export const MLConfigPanel: React.FC<MLConfigPanelProps> = ({ mlConfig, updateMLConfig }) => {
+export const MLConfigPanel: React.FC<MLConfigPanelProps> = ({ mlConfig, updateMLConfig, onSaveModels, onLoadModels }) => {
   return (
     <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -159,9 +161,17 @@ export const MLConfigPanel: React.FC<MLConfigPanelProps> = ({ mlConfig, updateML
             <div className="grid grid-cols-2 gap-3">
               <button
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
-                onClick={() => {
-                  // Ação para treinar modelos
-                  alert('Iniciando treinamento dos modelos...');
+                onClick={async () => {
+                  try {
+                    if (!onSaveModels) {
+                      alert('❌ Ação não disponível');
+                      return;
+                    }
+                    await onSaveModels();
+                    alert('✅ Modelos salvos no navegador (IndexedDB)');
+                  } catch (error: any) {
+                    alert('❌ Erro ao salvar modelos: ' + (error?.message || String(error)));
+                  }
                 }}
               >
                 <Save size={16} />
@@ -169,13 +179,21 @@ export const MLConfigPanel: React.FC<MLConfigPanelProps> = ({ mlConfig, updateML
               </button>
               <button
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors"
-                onClick={() => {
-                  // Ação para exportar dados
-                  alert('Exportando dados de treinamento...');
+                onClick={async () => {
+                  try {
+                    if (!onLoadModels) {
+                      alert('❌ Ação não disponível');
+                      return;
+                    }
+                    await onLoadModels();
+                    alert('✅ Modelos carregados do navegador (IndexedDB)');
+                  } catch (error: any) {
+                    alert('❌ Erro ao carregar modelos: ' + (error?.message || String(error)));
+                  }
                 }}
               >
-                <Download size={16} />
-                Exportar Dados
+                <Upload size={16} />
+                Carregar Modelos
               </button>
             </div>
 
@@ -203,17 +221,24 @@ export const MLConfigPanel: React.FC<MLConfigPanelProps> = ({ mlConfig, updateML
       Importar Modelos
       <input
         type="file"
-        accept=".json"
+        accept=".json,.bin"
+        multiple
         className="hidden"
         onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
+          const files = e.target.files;
+          if (files && files.length > 0) {
             try {
-              await ModelBackupManager.importModels(file);
-              alert('✅ Modelos importados com sucesso! Recarregue a página.');
+              const imported = await ModelBackupManager.importModels(files);
+              const ok = imported.filter(i => i.imported).length;
+              const fail = imported.filter(i => !i.imported).length;
+              if (fail > 0) {
+                alert(`⚠️ Importação concluída: ${ok} ok, ${fail} falharam`);
+              } else {
+                alert('✅ Modelos importados com sucesso! Recarregue a página.');
+              }
               window.location.reload();
             } catch (error) {
-              alert('❌ Erro ao importar modelos: ' + error.message);
+              alert('❌ Erro ao importar modelos: ' + (error as any)?.message);
             }
           }
         }}
