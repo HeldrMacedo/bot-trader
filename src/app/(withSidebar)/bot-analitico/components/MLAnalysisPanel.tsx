@@ -89,6 +89,38 @@ export const MLAnalysisPanel: React.FC<MLAnalysisPanelProps> = ({
             </div>
           </div>
 
+          {/* Status de Coleta de Dados */}
+          <div className="bg-gray-800/30 p-3 rounded-lg">
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-gray-400">Status de Coleta de Dados</span>
+              <span className={`text-xs font-medium ${mlStats.data_collection_active ? 'text-green-400' : 'text-red-400'}`}>
+                {mlStats.data_collection_active ? 'ATIVO' : 'INATIVO'}
+              </span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${mlStats.data_collection_active ? 'bg-green-500' : 'bg-red-500'}`}
+                style={{ width: mlStats.data_collection_active ? '100%' : '30%' }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Status de Treinamento */}
+          <div className="bg-gray-800/30 p-3 rounded-lg">
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-gray-400">Status de Treinamento</span>
+              <span className={`text-xs font-medium ${mlStats.is_training ? 'text-green-400' : 'text-yellow-400'}`}>
+                {mlStats.is_training ? 'TREINANDO' : 'AGUARDANDO'}
+              </span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${mlStats.is_training ? 'bg-gradient-to-r from-green-500 to-blue-500' : 'bg-yellow-500'}`}
+                style={{ width: mlStats.is_training ? '100%' : '40%' }}
+              ></div>
+            </div>
+          </div>
+
           {/* Progresso de Treinamento */}
           <div className="bg-gray-800/30 p-3 rounded-lg">
             <div className="flex justify-between text-xs mb-2">
@@ -202,6 +234,74 @@ export const MLAnalysisPanel: React.FC<MLAnalysisPanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* Informações Detalhadas de Treinamento */}
+      <div className="mt-6 pt-6 border-t border-gray-700">
+        <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+          <Cpu size={16} className="text-blue-400" />
+          Informações de Treinamento Detalhadas
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gray-800/50 p-4 rounded-lg">
+            <div className="text-xs text-gray-400 mb-1">Fila de Treinamento</div>
+            <div className="text-xl font-bold text-blue-400">
+              {mlStats.training_queue_size}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">Amostras aguardando</div>
+          </div>
+          
+          <div className="bg-gray-800/50 p-4 rounded-lg">
+            <div className="text-xs text-gray-400 mb-1">Tamanho do Batch</div>
+            <div className="text-xl font-bold text-purple-400">
+              {mlStats.current_batch_size}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">Amostras por treino</div>
+          </div>
+          
+          <div className="bg-gray-800/50 p-4 rounded-lg">
+            <div className="text-xs text-gray-400 mb-1">Taxa de Aprendizado</div>
+            <div className="text-xl font-bold text-green-400">
+              {mlStats.learning_rate}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">Valor do LR</div>
+          </div>
+        </div>
+
+        <div className="mt-4 bg-gray-800/30 p-4 rounded-lg">
+          <h5 className="text-xs font-medium text-gray-400 mb-2">Status dos Modelos</h5>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-300">Probabilidade Predictor:</span>
+              <span className={`font-medium ${mlStats.models_trained.probability_predictor ? 'text-green-400' : 'text-yellow-400'}`}>
+                {mlStats.models_trained.probability_predictor ? 'TREINADO' : 'AGUARDANDO'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-300">Pattern Detector:</span>
+              <span className={`font-medium ${mlStats.models_trained.pattern_detector ? 'text-green-400' : 'text-yellow-400'}`}>
+                {mlStats.models_trained.pattern_detector ? 'TREINADO' : 'AGUARDANDO'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-300">Versão do Modelo:</span>
+              <span className="font-medium text-blue-400">
+                {mlStats.model_versions.current || 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 bg-gray-800/30 p-4 rounded-lg">
+          <h5 className="text-xs font-medium text-gray-400 mb-2">Características do Treinamento</h5>
+          <div className="text-sm text-gray-300">
+            <div className="mb-1">• <span className="text-blue-400">Features utilizadas:</span> {mlStats.features_count} características extraídas dos dados de mercado</div>
+            <div className="mb-1">• <span className="text-blue-400">Arquitetura:</span> Redes neurais com {mlStats.model_architecture} camadas</div>
+            <div className="mb-1">• <span className="text-blue-400">Frequência de treinamento:</span> Atualização contínua com novos dados</div>
+            <div>• <span className="text-blue-400">Tipo de aprendizado:</span> Aprendizado online incremental</div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

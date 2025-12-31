@@ -21,10 +21,25 @@ export class MLAnalysisEngine {
     ml_accuracy: 0,
     ml_precision: 0,
     ml_recall: 0,
-    model_versions: {} as Record<string, number>,
+    model_versions: {
+      current: 'v1.0.0',
+      probability_predictor: 0,
+      pattern_detector: 0
+    } as Record<string, number | string>,
     training_samples: 0,
     prediction_latency: 0,
-    last_trained: new Date().toISOString()
+    last_trained: new Date().toISOString(),
+    data_collection_active: true,
+    is_training: false,
+    training_queue_size: 0,
+    current_batch_size: 120,
+    learning_rate: 0.001,
+    features_count: 30,
+    model_architecture: 'Dense Neural Network',
+    models_trained: {
+      probability_predictor: false,
+      pattern_detector: false
+    }
   };
 
   constructor(config: MLAnalysisConfig) {
@@ -61,6 +76,12 @@ export class MLAnalysisEngine {
           this.compileModel(modelName, storedModel);
           this.models.set(modelName, storedModel);
           this.mlStats.model_versions[modelName] = 1;
+          // Update the models_trained status
+          if (modelName === 'probability_predictor') {
+            this.mlStats.models_trained.probability_predictor = true;
+          } else if (modelName === 'pattern_detector') {
+            this.mlStats.models_trained.pattern_detector = true;
+          }
           console.log(`✅ Modelo ${modelName} carregado do IndexedDB`);
         } else {
           console.log(`🆕 Criando novo modelo: ${modelName}`);
@@ -121,6 +142,9 @@ export class MLAnalysisEngine {
     this.models.set('probability_predictor', this.createModel('probability_predictor'));
     this.models.set('pattern_detector', this.createModel('pattern_detector'));
     this.isInitialized = true;
+    // Mark models as not trained initially
+    this.mlStats.models_trained.probability_predictor = false;
+    this.mlStats.models_trained.pattern_detector = false;
   }
 
   public addTick(symbol: string, digit: number, price: number, time: number): SymbolAnalysis {
@@ -283,6 +307,8 @@ export class MLAnalysisEngine {
           const patternPred = patternModel.predict(featuresTensor) as tf.Tensor;
           patternScore = Array.from(patternPred.dataSync());
           tf.dispose(patternPred);
+          // Mark pattern detector as trained if successful prediction
+          this.mlStats.models_trained.pattern_detector = true;
         } catch (patternError) {
           console.error('❌ Erro na detecção de padrões:', patternError);
         }
@@ -292,6 +318,9 @@ export class MLAnalysisEngine {
 
       const latency = performance.now() - startTime;
       this.mlStats.prediction_latency = latency;
+
+      // Update data collection status to indicate active data processing
+      this.mlStats.data_collection_active = true;
 
       const confidence = this.calculateMLConfidence(probabilities, patternScore);
       const predictedDigit = probabilities.length > 0 ? 
@@ -382,6 +411,9 @@ export class MLAnalysisEngine {
       label: actualDigit
     });
 
+    // Update training queue size in stats
+    this.mlStats.training_queue_size = this.trainingQueue.length;
+
     if (this.trainingQueue.length >= 100 && this.config.mlConfig.trainingEnabled) {
       this.scheduleTraining();
     }
@@ -395,10 +427,20 @@ export class MLAnalysisEngine {
   }
 
   private async drainTrainingQueue() {
-    while (this.trainingQueue.length >= 20 && this.config.mlConfig.trainingEnabled) {
-      const batch = this.trainingQueue.splice(0, 120);
-      await this.trainIncremental(batch);
-      await tf.nextFrame();
+    // Set training status to true
+    this.mlStats.is_training = true;
+    
+    try {
+      while (this.trainingQueue.length >= 20 && this.config.mlConfig.trainingEnabled) {
+        const batch = this.trainingQueue.splice(0, 120);
+        // Update queue size after splicing
+        this.mlStats.training_queue_size = this.trainingQueue.length;
+        await this.trainIncremental(batch);
+        await tf.nextFrame();
+      }
+    } finally {
+      // Set training status to false after completion
+      this.mlStats.is_training = false;
     }
   }
 
@@ -448,6 +490,8 @@ export class MLAnalysisEngine {
       this.mlStats.last_trained = new Date().toISOString();
       this.mlStats.model_versions['probability_predictor'] = 
         (this.mlStats.model_versions['probability_predictor'] || 0) + 1;
+      // Mark the model as trained
+      this.mlStats.models_trained.probability_predictor = true;
 
       // Salvar modelo atualizado
       try {

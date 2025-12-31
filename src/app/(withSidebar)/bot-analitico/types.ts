@@ -117,6 +117,17 @@ export interface MLPerformanceStats {
   training_samples: number;
   prediction_latency: number;
   last_trained: string;
+  data_collection_active: boolean;
+  is_training: boolean;
+  training_queue_size: number;
+  current_batch_size: number;
+  learning_rate: number;
+  features_count: number;
+  model_architecture: string;
+  models_trained: {
+    probability_predictor: boolean;
+    pattern_detector: boolean;
+  };
 }
 
 export const VOLATILITIES: Volatility[] = [
