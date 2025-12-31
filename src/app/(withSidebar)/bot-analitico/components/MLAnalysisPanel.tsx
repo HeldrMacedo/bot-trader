@@ -23,6 +23,10 @@ export const MLAnalysisPanel: React.FC<MLAnalysisPanelProps> = ({
   };
 
   const mlPredictions = getMLPredictions();
+  const modelsTrained = mlStats.models_trained || {
+    probability_predictor: false,
+    pattern_detector: false,
+  };
 
   return (
     <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl border border-gray-700 p-6">
@@ -273,14 +277,14 @@ export const MLAnalysisPanel: React.FC<MLAnalysisPanelProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-300">Probabilidade Predictor:</span>
-              <span className={`font-medium ${mlStats.models_trained.probability_predictor ? 'text-green-400' : 'text-yellow-400'}`}>
-                {mlStats.models_trained.probability_predictor ? 'TREINADO' : 'AGUARDANDO'}
+              <span className={`font-medium ${modelsTrained.probability_predictor ? 'text-green-400' : 'text-yellow-400'}`}>
+                {modelsTrained.probability_predictor ? 'TREINADO' : 'AGUARDANDO'}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-300">Pattern Detector:</span>
-              <span className={`font-medium ${mlStats.models_trained.pattern_detector ? 'text-green-400' : 'text-yellow-400'}`}>
-                {mlStats.models_trained.pattern_detector ? 'TREINADO' : 'AGUARDANDO'}
+              <span className={`font-medium ${modelsTrained.pattern_detector ? 'text-green-400' : 'text-yellow-400'}`}>
+                {modelsTrained.pattern_detector ? 'TREINADO' : 'AGUARDANDO'}
               </span>
             </div>
             <div className="flex justify-between text-sm">
