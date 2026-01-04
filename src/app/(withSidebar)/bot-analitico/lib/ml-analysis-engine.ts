@@ -186,40 +186,58 @@ export class MLAnalysisEngine {
     
     const recentDigits = history.digits.slice(0, Math.min(50, history.digits.length));
     const recentPrices = history.prices.slice(0, Math.min(50, history.prices.length));
-
+    console.log("RECENT DIGITS: ", recentDigits);
+    console.log("RECENT PRICES: ", recentPrices);
     // 🔥 CORREÇÃO: Garantir que sempre retorne 30 features
     const features = [
       // 1-5: Features estatísticas básicas (5)
+      //média dos dígitos. Com seus dados, fica “no miolo” (entre 0 e 9), refletindo a distribuição geral.
       this.calculateMean(recentDigits),
+      //desvio-padrão dos dígitos (o quanto eles variam em torno da média).
       this.calculateStdDev(recentDigits),
+      //entropia (Shannon) da distribuição 0–9. Mais alta = dígitos mais “uniformes”; mais baixa = alguns dígitos dominando.
       this.calculateEntropy(recentDigits),
+      //variância (stdDev²).
       this.calculateVariance(recentDigits),
+      //assimetria. >0 puxa para dígitos altos, <0 para dígitos baixos.
       this.calculateSkewness(recentDigits),
       
       // 6-8: Features temporais (3)
+      //mede dependência entre dígitos separados por 1/2/3 passos. Se houver padrão repetitivo, tende a subir; se for bem aleatório, tende a ficar perto de 0.
       this.calculateAutocorrelation(recentDigits, 1),
       this.calculateAutocorrelation(recentDigits, 2),
       this.calculateAutocorrelation(recentDigits, 3),
       
       // 9: Tendência (1)
+      //numbers[0] - numbers[last] . No seu recentDigits , começa em 9 e termina em 9 , então a tendência fica ~0 (neste recorte específico).
       this.calculateTrend(recentDigits),
       
       // 10-19: Distribuição de dígitos (10) - TOTAL: 19
+      //retorna 10 valores, cada um = frequência relativa do dígito 0..9 no recorte. Pelos seus dados, dá para ver muitos 2/3/5/9 , então essas posições ficam maiores.
       ...this.calculateDigitDistribution(recentDigits),
       
       // 20-22: Features de mercado (3) - TOTAL: 22
+      //calcula “retornos” (p[i]-p[i-1])/p[i-1] , mede o desvio-padrão desses retornos e multiplica por sqrt(252) (annualização típica de finanças). Nos seus preços (em torno de 780 com variações pequenas), a volatilidade tende a ser baixa.
       this.calculateVolatility(recentPrices),
+      //(prices[0] - prices[9]) / prices[9] = variação relativa do preço mais recente vs o de 10 ticks atrás.
       this.calculateMomentum(recentPrices),
+      //RSI simplificado: soma ganhos/perdas nos primeiros 14 “deltas”. Observação: como o array está “mais recente primeiro”, o delta prices[i] - prices[i-1] fica no sentido do passado para o presente invertido , então o sinal de ganhos/perdas pode ficar invertido em relação ao RSI tradicional (ainda assim vira uma feature consistente se sempre calculada assim).
       this.calculateRSI(recentPrices, 14),
       
       // 23-25: Features de padrão (3) - TOTAL: 25
+      //conta quantas vezes aparecem “triplas” iguais (AAA) e divide pelo tamanho. No seu recentDigits há uma sequência 9,9,9,9 , que gera pelo menos 2 triplas sobrepostas, então essa feature fica >0.
       this.detectStreaks(recentDigits),
+      //conta reversões locais (padrão “sobe e depois desce” ou “desce e depois sobe”) e normaliza.
       this.detectReversals(recentDigits),
+      //fração de passos onde a diferença absoluta entre dígitos consecutivos é exatamente 1 (ex.: 4→5, 8→7).
       this.calculateConsecutiveCount(recentDigits),
       
       // 26-28: Features derivadas (3) - TOTAL: 28
+      //pega o dígito mais recente ( numbers[0] ) e retorna há quantos ticks ele tinha aparecido antes. No seu caso numbers[0]=9 e logo no começo aparece outro 9 , então tende a retornar algo como 1–2.
       this.calculateAbsencePattern(recentDigits),
+      //olha só os 20 mais recentes, conta ocorrências de cada dígito e calcula quantos dígitos têm contagem ≥ 5. Retorna exhausted/10 (0 a 1). Se só o dígito 2 estiver ≥5, dá 0.1; se dois dígitos estiverem, 0.2, etc.
       this.calculateExhaustionScore(recentDigits, 5),
+      //calcula a matriz de transição “from→to” (100 pares possíveis), pega a transição mais frequente e divide pelo total de transições. Quanto maior, mais “viciado” em um salto específico (ex.: 2→3 repetindo muito).
       this.calculateTransitionProbability(recentDigits),
       
       // 29-30: Features de tempo (2) - TOTAL: 30
@@ -486,8 +504,9 @@ export class MLAnalysisEngine {
       const effectiveMinConfidence = mlConfig.useML ? 
         Math.max(minConfidence, mlConfig.confidenceThreshold) : 
         minConfidence;
-
+      //console.log(`Combined Confidence: ${combinedConfidence}, Effective Min Confidence: ${effectiveMinConfidence}`);
       if (combinedConfidence < effectiveMinConfidence) continue;
+      //hjconsole.log("PASSOU");
 
       // Adicionar ML boost às confianças existentes
       const mlBoost = analysis.ml_predictions ? 
@@ -895,7 +914,8 @@ export class MLAnalysisEngine {
 
   private combineConfidences(heuristicConfidence: number, mlConfidence: number): number {
     if (!this.config.mlConfig.useML) return heuristicConfidence;
-    
+    // console.log('combineConfidences', heuristicConfidence, mlConfidence);
+    // console.log('combineConfidences', (mlConfidence * 0.6) + (heuristicConfidence * 0.4));
     return (mlConfidence * 0.6) + (heuristicConfidence * 0.4);
   }
 

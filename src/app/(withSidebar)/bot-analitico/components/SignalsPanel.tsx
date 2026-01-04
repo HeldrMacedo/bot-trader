@@ -1,7 +1,6 @@
-import { TradingSignal } from '@/lib/deriv-api-client';
 import { BarChart3 } from 'lucide-react';
 import React from 'react';
-import { AnalysisData } from '../types';
+import { AnalysisData, TradingSignal } from '../types';
 
 interface SignalsPanelProps {
 	bestSignal: TradingSignal | null;
@@ -37,6 +36,41 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 				return 'bg-gray-500/20 border-gray-500/30';
 		}
 	};
+
+	const [signalsHistory, setSignalsHistory] = React.useState<TradingSignal[]>([]);
+
+	const getSignalKey = (signal: TradingSignal) => {
+		const reasons = (signal.reasons || []).filter(Boolean).join('|');
+		const confidence = Number.isFinite(signal.confidence)
+			? (Math.round(signal.confidence * 10) / 10).toFixed(1)
+			: 'NaN';
+		return `${signal.strategy}|${signal.type}|${signal.symbol}|${signal.barrier ?? ''}|${confidence}|${reasons}`;
+	};
+
+	React.useEffect(() => {
+		const incoming: TradingSignal[] = [
+			...(analysisData?.signals || []),
+			...(bestSignal ? [bestSignal] : []),
+		];
+		if (incoming.length === 0) return;
+
+		setSignalsHistory((prev) => {
+			const seen = new Set(prev.map(getSignalKey));
+			const uniqueToAdd: TradingSignal[] = [];
+
+			for (const s of incoming) {
+				const key = getSignalKey(s);
+				if (seen.has(key)) continue;
+				seen.add(key);
+				uniqueToAdd.push(s);
+			}
+
+			if (uniqueToAdd.length === 0) return prev;
+			return [...uniqueToAdd, ...prev];
+		});
+	}, [analysisData?.signals, bestSignal]);
+
+	const tableSignals = signalsHistory;
 
 	return (
 		<>
@@ -116,55 +150,59 @@ export const SignalsPanel: React.FC<SignalsPanelProps> = ({
 						📊 Todas as Sugestões
 					</h3>
 					<span className='text-sm'>
-						{analysisData?.signals.length || 0} sinais encontrados
+						{tableSignals.length} sinais encontrados
 					</span>
 				</div>
 
-				<div className='space-y-3 max-h-96 overflow-y-auto'>
-					{(analysisData?.signals || []).map((signal, index) => (
-						<div
-							key={index}
-							className={`p-4 rounded-lg border ${getSignalBg(signal.assertiveness)}`}
-						>
-							<div className='flex justify-between items-start mb-2'>
-								<div>
-									<h4 className='font-medium'>
-										{signal.type}
-									</h4>
-									<p className='text-sm'>{signal.symbol}</p>
-								</div>
-								<div className='text-right'>
-									<div
-										className={`px-2 py-1 rounded-full text-xs font-medium ${getSignalColor(signal.assertiveness)}`}
-									>
-										{signal.confidence.toFixed(1)}%
-									</div>
-									<div className='text-xs mt-1'>
-										{signal.assertiveness}
-									</div>
-								</div>
-							</div>
-
-							<div className='text-sm'>
-								{signal.reasons.slice(0, 2).map((reason, i) => (
-									<div
-										key={i}
-										className='flex items-start gap-2 mt-1'
-									>
-										<div className='w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0'></div>
-										{reason}
-									</div>
-								))}
-								{signal.reasons.length > 2 && (
-									<div className='text-xs mt-1'>
-										+{signal.reasons.length - 2} more triggers...
-									</div>
-								)}
-							</div>
+				<div className='overflow-x-auto rounded-lg mt-4'>
+					{tableSignals.length > 0 && (
+						<div className='rounded-lg max-h-96 overflow-y-auto'>
+							<table className='min-w-full'>
+								<thead className='bg-gray-50'>
+									<tr>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Estratégia</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Tipo</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Ativo</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Barreira</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Confiança</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>ML</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Comb.</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Assert.</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Lucro</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Motivos</th>
+										<th className='px-4 py-2 text-left text-sm font-medium text-gray-500'>Hora</th>
+									</tr>
+								</thead>
+								<tbody>
+									{tableSignals.map((signal, index) => (
+										<tr key={index} className={`border-b ${getSignalBg(signal.assertiveness)}`}>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>{signal.strategy}</td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap font-medium'>{signal.type}</td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>{signal.symbol}</td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>{signal.barrier ?? '-'}</td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>
+												<span className={`px-2 py-1 rounded-full text-xs font-medium ${getSignalColor(signal.assertiveness)}`}>
+													{Number.isFinite(signal.confidence) ? signal.confidence.toFixed(1) : '-'}%
+												</span>
+											</td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>
+												{Number.isFinite(signal.ml_confidence) ? `${signal.ml_confidence.toFixed(1)}%` : '-'}
+											</td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>
+												{Number.isFinite(signal.combined_confidence) ? `${signal.combined_confidence.toFixed(1)}%` : '-'}
+											</td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>{signal.assertiveness}</td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>{Number.isFinite(signal.expected_profit) ? signal.expected_profit.toFixed(4) : '-'}</td>
+											<td className='px-4 py-2 text-sm'><div className='min-w-[420px]'>{(signal.reasons || []).filter(Boolean).join(' | ')}</div></td>
+											<td className='px-4 py-2 text-sm whitespace-nowrap'>{signal.timestamp ? new Date(signal.timestamp).toLocaleTimeString() : '-'}</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
 						</div>
-					))}
+					)}
 
-					{(!analysisData || analysisData.signals.length === 0) && (
+					{tableSignals.length === 0 && (
 						<div className='text-center py-8'>
 							<BarChart3
 								size={48}
