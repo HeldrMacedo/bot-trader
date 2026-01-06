@@ -186,8 +186,6 @@ export class MLAnalysisEngine {
     
     const recentDigits = history.digits.slice(0, Math.min(50, history.digits.length));
     const recentPrices = history.prices.slice(0, Math.min(50, history.prices.length));
-    console.log("RECENT DIGITS: ", recentDigits);
-    console.log("RECENT PRICES: ", recentPrices);
     // 🔥 CORREÇÃO: Garantir que sempre retorne 30 features
     const features = [
       // 1-5: Features estatísticas básicas (5)
@@ -331,7 +329,7 @@ export class MLAnalysisEngine {
   private analyzeSymbol(symbol: string): SymbolAnalysis {
     const history = this.history[symbol];
     const recentHistory = history.digits.slice(0, 20);
-    const lastDigit = history.digits[0] || null;
+    const lastDigit = history.digits[0];
 
     // Distribuição
     const distribution: Record<number, number> = {};
@@ -898,11 +896,30 @@ export class MLAnalysisEngine {
     ];
   }
 
-  private calculateMLConfidence(probabilities: number[], patternScore: number[]): number {
+  // Adicionar este método novo
+private calculateProbabilityEntropy(probabilities: number[]): number {
+    const sum = probabilities.reduce((a, b) => a + b, 0);
+    if (sum === 0 || probabilities.length === 0) return 0;
+    
+    const normalizedProbs = probabilities.map(p => p / sum);
+    
+    let entropy = 0;
+    for (const p of normalizedProbs) {
+      if (p > 0) {
+        entropy -= p * Math.log2(p);
+      }
+    }
+    
+    // Normalizar para 0-1 (entropia máxima = log2(N))
+    return entropy / Math.log2(probabilities.length);
+}
+
+// Corrigir calculateMLConfidence
+private calculateMLConfidence(probabilities: number[], patternScore: number[]): number {
     if (probabilities.length === 0) return 0;
     
     const maxProb = Math.max(...probabilities);
-    const entropy = this.calculateEntropy(probabilities.map((p, i) => i));
+    const entropy = this.calculateProbabilityEntropy(probabilities); // ✅ NOVO MÉTODO
     const patternStrength = patternScore.reduce((a, b) => a + b, 0) / patternScore.length;
     
     return Math.min(100, 
@@ -910,7 +927,7 @@ export class MLAnalysisEngine {
       (patternStrength * 30) + 
       ((1 - entropy) * 10)
     );
-  }
+}
 
   private combineConfidences(heuristicConfidence: number, mlConfidence: number): number {
     if (!this.config.mlConfig.useML) return heuristicConfidence;

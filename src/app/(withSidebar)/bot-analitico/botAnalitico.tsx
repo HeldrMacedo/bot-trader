@@ -341,16 +341,9 @@ const handleClearModels = async () => {
             const symbol = data.echo_req.ticks_history;
             const prices = data.history.prices;
             const times = data.history.times;
-
             prices.forEach((price: number, index: number) => {
-              console.log("price:", price);
-              const strPrice = price.toString();
-              console.log('strPrice:', strPrice);
-              const lastChar = strPrice.charAt(strPrice.length - 1);
-              console.log('lastChar:', lastChar);
-              const digitVal = parseInt(lastChar, 10);
-              console.log("digit Val:", typeof(digitVal));
-              
+              const digitVal = getDigitForPrice(symbol, price);
+  
               if (!isNaN(digitVal) && analysisEngineRef.current) {
                 const analysis = analysisEngineRef.current.addTick(symbol, digitVal, price, times[index]);
                 updateAnalysisData(symbol, analysis);
@@ -359,16 +352,9 @@ const handleClearModels = async () => {
           } else if (data.msg_type === 'tick') {
             const tick = data.tick;
             const digit = getQuotePrecision(tick);
-            const price = getDigit(tick);
-            // console.log("digitAll string: ", digitAll);
-            // console.log("digitAll number: ", Number(digitAll));
-            // console.log("precision:", precision);
+            const price = tick.quote;
             const symbol = tick.symbol;
-            // const price = tick.quote;
-            // const strPrice = price.toString();
-            // const lastChar = strPrice.charAt(strPrice.length - 1);
-            // const digit = parseInt(lastChar, 10);
-
+            
             if (!isNaN(digit) && analysisEngineRef.current) {
               const analysis = analysisEngineRef.current.addTick(symbol, digit, price, tick.epoch);
               updateAnalysisData(symbol, analysis);
@@ -451,6 +437,26 @@ const handleClearModels = async () => {
     }
   };
 
+  const getDigitForPrice = (symbol, tick) => {
+    return parseInt(
+      tick.toFixed(
+        symbol == "R_100"
+          ? 2
+          : symbol == "R_25" || symbol == "R_10"
+          ? 3
+          : symbol == "RDBEAR" || symbol == "RDBULL"
+          ? 4
+          : symbol.startsWith("JD")
+          ? 2
+          : symbol.includes("1HZ")
+          ? 2
+          : 4
+      ).toString()
+      .slice(-1)
+    );
+  }
+
+
   const getDigit = (tick) => {
     return tick.quote.toFixed(
         tick.symbol == "R_100" 
@@ -460,6 +466,8 @@ const handleClearModels = async () => {
           : tick.symbol == "RDBEAR" || tick.symbol == "RDBULL"
           ? 4
           : tick.symbol.startsWith("JD")
+          ? 2
+          : tick.symbol.includes("1HZ")
           ? 2
           : 4
       )
@@ -478,6 +486,8 @@ const handleClearModels = async () => {
           : tick.symbol == "RDBEAR" || tick.symbol == "RDBULL"
           ? 4
           : tick.symbol.startsWith("JD")
+          ? 2
+          : tick.symbol.includes("1HZ")
           ? 2
           : 4
       )
