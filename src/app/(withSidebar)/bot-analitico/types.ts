@@ -107,6 +107,9 @@ export interface MLConfig {
   confidenceThreshold: number;
   featureWindow: number;
   trainingEnabled: boolean;
+  // Pesos para combinar ML e Heurística (devem somar 100)
+  mlWeight: number;
+  heuristicWeight: number;
 }
 
 export interface MLPerformanceStats {
@@ -143,15 +146,17 @@ export interface AnalysisData {
 }
 
 export interface AnalysisConfig {
-    minConfidence: number;
-    exhaustionThreshold: number;
-    absenceThreshold: number;
-    ticksToAnalyze: number;
-    specificOperations: SpecificOperations;
+  minConfidence: number;
+  exhaustionThreshold: number;
+  absenceThreshold: number;
+  ticksToAnalyze: number;
+  specificOperations: SpecificOperations;
+  // Janela para verificar exaustão de dígitos (padrão: 20)
+  exhaustionWindow: number;
 }
 
 export interface MLAnalysisConfig extends AnalysisConfig {
-    mlConfig: MLConfig;
+  mlConfig: MLConfig;
 }
 
 export interface CompatibilityCheck {

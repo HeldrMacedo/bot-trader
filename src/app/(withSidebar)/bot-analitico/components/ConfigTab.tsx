@@ -1,196 +1,309 @@
 import React from 'react';
-import { Target, TrendingUp, AlertTriangle, Brain } from 'lucide-react';
+import { Target, TrendingUp, AlertTriangle, Brain, Info } from 'lucide-react';
 import {
-  VOLATILITIES,
-  VolatilityData,
-  SpecificOperations,
-  MartingaleConfig,
-  MLConfig,
+	VOLATILITIES,
+	VolatilityData,
+	SpecificOperations,
+	MartingaleConfig,
+	MLConfig,
 } from '../types';
 
 interface ConfigTabProps {
-  selectedVolatilities: string[];
-  toggleVolatility: (symbol: string) => void;
-  volatilityData: Record<string, VolatilityData>;
-  specificOperations: SpecificOperations;
-  setSpecificOperations: React.Dispatch<
-    React.SetStateAction<SpecificOperations>
-  >;
-  stake: number;
-  setStake: (value: number) => void;
-  stopLoss: number;
-  setStopLoss: (value: number) => void;
-  stopWin: number;
-  setStopWin: (value: number) => void;
-  ticksQuantity: number;
-  setTicksQuantity: (value: number) => void;
-  minConfidence: number;
-  setMinConfidence: (value: number) => void;
-  exhaustionThreshold: number;
-  setExhaustionThreshold: (value: number) => void;
-  absenceThreshold: number;
-  setAbsenceThreshold: (value: number) => void;
-  martingaleConfig: MartingaleConfig;
-  setMartingaleConfig: React.Dispatch<React.SetStateAction<MartingaleConfig>>;
-  mlConfig: MLConfig;
-  setMlConfig: React.Dispatch<React.SetStateAction<MLConfig>>;
+	selectedVolatilities: string[];
+	toggleVolatility: (symbol: string) => void;
+	volatilityData: Record<string, VolatilityData>;
+	specificOperations: SpecificOperations;
+	setSpecificOperations: React.Dispatch<
+		React.SetStateAction<SpecificOperations>
+	>;
+	stake: number;
+	setStake: (value: number) => void;
+	stopLoss: number;
+	setStopLoss: (value: number) => void;
+	stopWin: number;
+	setStopWin: (value: number) => void;
+	ticksQuantity: number;
+	setTicksQuantity: (value: number) => void;
+	minConfidence: number;
+	setMinConfidence: (value: number) => void;
+	exhaustionThreshold: number;
+	setExhaustionThreshold: (value: number) => void;
+	absenceThreshold: number;
+	setAbsenceThreshold: (value: number) => void;
+	martingaleConfig: MartingaleConfig;
+	setMartingaleConfig: React.Dispatch<React.SetStateAction<MartingaleConfig>>;
+	mlConfig: MLConfig;
+	setMlConfig: React.Dispatch<React.SetStateAction<MLConfig>>;
+	exhaustionWindow: number;
+	setExhaustionWindow: (value: number) => void;
 }
 
 export const ConfigTab: React.FC<ConfigTabProps> = ({
 	selectedVolatilities,
-  toggleVolatility,
-  volatilityData,
-  specificOperations,
-  setSpecificOperations,
-  stake,
-  setStake,
-  stopLoss,
-  setStopLoss,
-  stopWin,
-  setStopWin,
-  ticksQuantity,
-  setTicksQuantity,
-  minConfidence,
-  setMinConfidence,
-  exhaustionThreshold,
-  setExhaustionThreshold,
-  absenceThreshold,
-  setAbsenceThreshold,
-  martingaleConfig,
-  setMartingaleConfig,
-  mlConfig,
-  setMlConfig,
+	toggleVolatility,
+	volatilityData,
+	specificOperations,
+	setSpecificOperations,
+	stake,
+	setStake,
+	stopLoss,
+	setStopLoss,
+	stopWin,
+	setStopWin,
+	ticksQuantity,
+	setTicksQuantity,
+	minConfidence,
+	setMinConfidence,
+	exhaustionThreshold,
+	setExhaustionThreshold,
+	absenceThreshold,
+	setAbsenceThreshold,
+	martingaleConfig,
+	setMartingaleConfig,
+	mlConfig,
+	setMlConfig,
+	exhaustionWindow,
+	setExhaustionWindow,
 }) => {
+	// Funções para sincronizar pesos ML/Heurística (sempre somam 100%)
+	const handleMLWeightChange = (newMLWeight: number) => {
+		const newHeuristicWeight = 100 - newMLWeight;
+		setMlConfig({
+			...mlConfig,
+			mlWeight: newMLWeight,
+			heuristicWeight: newHeuristicWeight,
+		});
+	};
+
+	const handleHeuristicWeightChange = (newHeuristicWeight: number) => {
+		const newMLWeight = 100 - newHeuristicWeight;
+		setMlConfig({
+			...mlConfig,
+			mlWeight: newMLWeight,
+			heuristicWeight: newHeuristicWeight,
+		});
+	};
+
+	// Avisos contextuais
+	const getMLWeightWarning = () => {
+		if (mlConfig.mlWeight > 70) {
+			return '⚠️ Peso do ML alto - garanta dados suficientes!';
+		}
+		return null;
+	};
+
+	const getTicksWarning = () => {
+		if (ticksQuantity < 50) {
+			return '⚠️ Janela pequena pode reduzir precisão do ML';
+		}
+		if (ticksQuantity > 150) {
+			return '⚠️ Janela muito grande pode afetar performance';
+		}
+		return null;
+	};
 	return (
 		<div>
 
 			<div className='mb-8 p-6 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-xl border border-purple-500/30'>
-        <h2 className='text-2xl font-bold mb-4 flex items-center gap-3'>
-          <Brain className='text-purple-400' size={28} />
-          <span className='bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent'>
-            Machine Learning
-          </span>
-        </h2>
-        
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-6'>
-          <div className='bg-gray-900/50 p-4 rounded-lg'>
-            <label className='flex items-center gap-3 cursor-pointer mb-3'>
-              <input
-                type='checkbox'
-                checked={mlConfig.useML}
-                onChange={(e) => setMlConfig({...mlConfig, useML: e.target.checked})}
-                className='w-5 h-5 rounded bg-gray-700'
-              />
-              <span className='font-bold text-lg text-white'>
-                Ativar Machine Learning
-              </span>
-            </label>
-            <p className='text-sm text-gray-400'>
-              Use redes neurais para prever padrões e melhorar sinais
-            </p>
-          </div>
+				<h2 className='text-2xl font-bold mb-4 flex items-center gap-3'>
+					<Brain className='text-purple-400' size={28} />
+					<span className='bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent'>
+						Machine Learning
+					</span>
+				</h2>
 
-          <div className='bg-gray-900/50 p-4 rounded-lg'>
-            <label className='flex items-center gap-3 cursor-pointer mb-3'>
-              <input
-                type='checkbox'
-                checked={mlConfig.onlineLearning}
-                onChange={(e) => setMlConfig({...mlConfig, onlineLearning: e.target.checked})}
-                className='w-5 h-5 rounded bg-gray-700'
-              />
-              <span className='font-bold text-lg text-white'>
-                Aprendizado Online
-              </span>
-            </label>
-            <p className='text-sm text-gray-400'>
-              Melhora continuamente com novos dados
-            </p>
-          </div>
+				<div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-6'>
+					<div className='bg-gray-900/50 p-4 rounded-lg'>
+						<label className='flex items-center gap-3 cursor-pointer mb-3'>
+							<input
+								type='checkbox'
+								checked={mlConfig.useML}
+								onChange={(e) => setMlConfig({ ...mlConfig, useML: e.target.checked })}
+								className='w-5 h-5 rounded bg-gray-700'
+							/>
+							<span className='font-bold text-lg text-white'>
+								Ativar Machine Learning
+							</span>
+						</label>
+						<p className='text-sm text-gray-400'>
+							Use redes neurais para prever padrões e melhorar sinais
+						</p>
+					</div>
 
-          <div className='bg-gray-900/50 p-4 rounded-lg'>
-            <label className='flex items-center gap-3 cursor-pointer mb-3'>
-              <input
-                type='checkbox'
-                checked={mlConfig.trainingEnabled}
-                onChange={(e) => setMlConfig({...mlConfig, trainingEnabled: e.target.checked})}
-                className='w-5 h-5 rounded bg-gray-700'
-              />
-              <span className='font-bold text-lg text-white'>
-                Treinamento Automático
-              </span>
-            </label>
-            <p className='text-sm text-gray-400'>
-              Treina modelos periodicamente
-            </p>
-          </div>
-        </div>
+					<div className='bg-gray-900/50 p-4 rounded-lg'>
+						<label className='flex items-center gap-3 cursor-pointer mb-3'>
+							<input
+								type='checkbox'
+								checked={mlConfig.onlineLearning}
+								onChange={(e) => setMlConfig({ ...mlConfig, onlineLearning: e.target.checked })}
+								className='w-5 h-5 rounded bg-gray-700'
+							/>
+							<span className='font-bold text-lg text-white'>
+								Aprendizado Online
+							</span>
+						</label>
+						<p className='text-sm text-gray-400'>
+							Melhora continuamente com novos dados
+						</p>
+					</div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          <div>
-            <label className='block text-sm font-medium mb-2'>
-              Limite de Confiança ML: <strong>{mlConfig.confidenceThreshold}%</strong>
-            </label>
-            <input
-              type='range'
-              min='50'
-              max='95'
-              value={mlConfig.confidenceThreshold}
-              onChange={(e) => setMlConfig({...mlConfig, confidenceThreshold: parseInt(e.target.value)})}
-              className='w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500'
-            />
-            <p className='text-xs text-gray-400 mt-1'>
-              Só aceita sinais com confiança ML ≥ {mlConfig.confidenceThreshold}%
-            </p>
-          </div>
+					<div className='bg-gray-900/50 p-4 rounded-lg'>
+						<label className='flex items-center gap-3 cursor-pointer mb-3'>
+							<input
+								type='checkbox'
+								checked={mlConfig.trainingEnabled}
+								onChange={(e) => setMlConfig({ ...mlConfig, trainingEnabled: e.target.checked })}
+								className='w-5 h-5 rounded bg-gray-700'
+							/>
+							<span className='font-bold text-lg text-white'>
+								Treinamento Automático
+							</span>
+						</label>
+						<p className='text-sm text-gray-400'>
+							Treina modelos periodicamente
+						</p>
+					</div>
+				</div>
 
-          <div>
-            <label className='block text-sm font-medium mb-2'>
-              Janela de Features: <strong>{mlConfig.featureWindow} ticks</strong>
-            </label>
-            <input
-              type='range'
-              min='20'
-              max='100'
-              step='10'
-              value={mlConfig.featureWindow}
-              onChange={(e) => setMlConfig({...mlConfig, featureWindow: parseInt(e.target.value)})}
-              className='w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500'
-            />
-            <p className='text-xs text-gray-400 mt-1'>
-              Quantidade de ticks usados para análise ML
-            </p>
-          </div>
-        </div>
-      </div>
+				{/* NOVO: Pesos ML vs Heurística */}
+				<div className='bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg p-6 mb-6 border border-purple-500/20'>
+					<div className='flex items-center gap-2 mb-4'>
+						<h3 className='text-lg font-bold text-white'>⚖️ Balanceamento de Confiança</h3>
+						<div className='group relative'>
+							<Info size={16} className='text-gray-400 cursor-help' />
+							<div className='hidden group-hover:block absolute left-0 top-6 bg-gray-800 text-xs p-3 rounded-lg w-64 z-10 border border-gray-700'>
+								<p className='mb-2'><strong>ML:</strong> Aprende padrões complexos, mas precisa de dados</p>
+								<p><strong>Heurística:</strong> Regras simples, funciona desde o início</p>
+							</div>
+						</div>
+					</div>
+
+					<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+						{/* Peso ML */}
+						<div>
+							<div className='flex justify-between items-center mb-2'>
+								<label className='text-sm font-medium text-purple-300'>
+									Peso do ML: <strong>{mlConfig.mlWeight || 60}%</strong>
+								</label>
+								{getMLWeightWarning() && (
+									<span className='text-xs text-yellow-400 flex items-center gap-1'>
+										<AlertTriangle size={12} />
+										{getMLWeightWarning()}
+									</span>
+								)}
+							</div>
+							<input
+								type='range'
+								min='0'
+								max='100'
+								value={mlConfig.mlWeight || 60}
+								onChange={(e) => handleMLWeightChange(parseInt(e.target.value))}
+								disabled={!mlConfig.useML}
+								className='w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500'
+							/>
+							<p className='text-xs text-gray-400 mt-1'>Quanto o ML influencia na decisão final</p>
+						</div>
+
+						{/* Peso Heurística */}
+						<div>
+							<label className='block text-sm font-medium mb-2 text-blue-300'>
+								Peso da Heurística: <strong>{mlConfig.heuristicWeight || 40}%</strong>
+							</label>
+							<input
+								type='range'
+								min='0'
+								max='100'
+								value={mlConfig.heuristicWeight || 40}
+								onChange={(e) => handleHeuristicWeightChange(parseInt(e.target.value))}
+								disabled={!mlConfig.useML}
+								className='w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500'
+							/>
+							<p className='text-xs text-gray-400 mt-1'>Quanto as regras heurísticas influenciam</p>
+						</div>
+					</div>
+
+					{/* Indicador Visual */}
+					<div className='mt-4 h-8 bg-gray-800 rounded-full overflow-hidden flex'>
+						<div
+							className='bg-gradient-to-r from-purple-600 to-purple-500 flex items-center justify-center text-xs font-bold'
+							style={{ width: `${mlConfig.mlWeight || 60}%` }}
+						>
+							{(mlConfig.mlWeight || 60) > 15 && `ML ${mlConfig.mlWeight || 60}%`}
+						</div>
+						<div
+							className='bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-center text-xs font-bold'
+							style={{ width: `${mlConfig.heuristicWeight || 40}%` }}
+						>
+							{(mlConfig.heuristicWeight || 40) > 15 && `Heurística ${mlConfig.heuristicWeight || 40}%`}
+						</div>
+					</div>
+				</div>
+
+				<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+					<div>
+						<label className='block text-sm font-medium mb-2'>
+							Limite de Confiança ML: <strong>{mlConfig.confidenceThreshold}%</strong>
+						</label>
+						<input
+							type='range'
+							min='50'
+							max='95'
+							value={mlConfig.confidenceThreshold}
+							onChange={(e) => setMlConfig({ ...mlConfig, confidenceThreshold: parseInt(e.target.value) })}
+							className='w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500'
+						/>
+						<p className='text-xs text-gray-400 mt-1'>
+							Só aceita sinais com confiança ML ≥ {mlConfig.confidenceThreshold}%
+						</p>
+					</div>
+
+					<div>
+						<label className='block text-sm font-medium mb-2'>
+							Janela de Features: <strong>{mlConfig.featureWindow} ticks</strong>
+						</label>
+						<input
+							type='range'
+							min='20'
+							max='100'
+							step='10'
+							value={mlConfig.featureWindow}
+							onChange={(e) => setMlConfig({ ...mlConfig, featureWindow: parseInt(e.target.value) })}
+							className='w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500'
+						/>
+						<p className='text-xs text-gray-400 mt-1'>
+							Quantidade de ticks usados para análise ML
+						</p>
+					</div>
+				</div>
+			</div>
 
 
 
 			{/* Seleção de Volatilidades */}
 
-				<h2 className='text-xl font-bold mb-4 flex items-center gap-2'>
-					<Target className='text-yellow-400' />
-					Volatilidades Monitoradas
-				</h2>
+			<h2 className='text-xl font-bold mb-4 flex items-center gap-2'>
+				<Target className='text-yellow-400' />
+				Volatilidades Monitoradas
+			</h2>
 
-				<div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6'>
-					{VOLATILITIES.map((vol) => (
-						<button
-							key={vol.symbol}
-							onClick={() => toggleVolatility(vol.symbol)}
-							className={`p-3 rounded-lg font-medium transition-all ${
-								selectedVolatilities.includes(vol.symbol)
-									? `bg-${vol.color}-600 text-white shadow-lg scale-105`
-									: 'bg-white/10 hover:bg-white/20'
+			<div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6'>
+				{VOLATILITIES.map((vol) => (
+					<button
+						key={vol.symbol}
+						onClick={() => toggleVolatility(vol.symbol)}
+						className={`p-3 rounded-lg font-medium transition-all ${selectedVolatilities.includes(vol.symbol)
+							? `bg-${vol.color}-600 text-white shadow-lg scale-105`
+							: 'bg-white/10 hover:bg-white/20'
 							}`}
-						>
-							<div className='text-xs opacity-80'>{vol.name}</div>
-							<div className='text-lg font-bold mt-1'>
-								{volatilityData[vol.symbol]?.currentTick?.digit ?? '-'}
-							</div>
-						</button>
-					))}
-				</div>
-			
+					>
+						<div className='text-xs opacity-80'>{vol.name}</div>
+						<div className='text-lg font-bold mt-1'>
+							{volatilityData[vol.symbol]?.currentTick?.digit ?? '-'}
+						</div>
+					</button>
+				))}
+			</div>
+
 
 			<h2 className='text-xl font-bold mb-4 flex items-center gap-2'>
 				<Target className='text-purple-400' />
@@ -234,11 +347,11 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 												digit,
 											)
 												? prev.over.digits.filter(
-														(d) => d !== digit,
-													)
+													(d) => d !== digit,
+												)
 												: [...prev.over.digits, digit].sort(
-														(a, b) => a - b,
-													);
+													(a, b) => a - b,
+												);
 											return {
 												...prev,
 												over: { ...prev.over, digits: newDigits },
@@ -246,11 +359,10 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 										});
 									}}
 									disabled={!specificOperations.over.enabled}
-									className={`py-2 px-3 rounded-lg font-bold transition-all ${
-										specificOperations.over.digits.includes(digit)
-											? 'bg-emerald-600 text-white scale-110'
-											: 'bg-white/10 hover:bg-white/20'
-									} ${!specificOperations.over.enabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+									className={`py-2 px-3 rounded-lg font-bold transition-all ${specificOperations.over.digits.includes(digit)
+										? 'bg-emerald-600 text-white scale-110'
+										: 'bg-white/10 hover:bg-white/20'
+										} ${!specificOperations.over.enabled ? 'opacity-30 cursor-not-allowed' : ''}`}
 								>
 									{digit}
 								</button>
@@ -304,11 +416,11 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 												digit,
 											)
 												? prev.under.digits.filter(
-														(d) => d !== digit,
-													)
+													(d) => d !== digit,
+												)
 												: [...prev.under.digits, digit].sort(
-														(a, b) => a - b,
-													);
+													(a, b) => a - b,
+												);
 											return {
 												...prev,
 												under: {
@@ -319,13 +431,12 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 										});
 									}}
 									disabled={!specificOperations.under.enabled}
-									className={`py-2 px-3 rounded-lg font-bold transition-all ${
-										specificOperations.under.digits.includes(
-											digit,
-										)
-											? 'bg-sky-600 text-white scale-110'
-											: 'bg-white/10 hover:bg-white/20'
-									} ${!specificOperations.under.enabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+									className={`py-2 px-3 rounded-lg font-bold transition-all ${specificOperations.under.digits.includes(
+										digit,
+									)
+										? 'bg-sky-600 text-white scale-110'
+										: 'bg-white/10 hover:bg-white/20'
+										} ${!specificOperations.under.enabled ? 'opacity-30 cursor-not-allowed' : ''}`}
 								>
 									{digit}
 								</button>
@@ -381,11 +492,10 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 										}));
 									}}
 									disabled={!specificOperations.matches.enabled}
-									className={`py-2 px-3 rounded-lg font-bold transition-all ${
-										specificOperations.matches.digit === digit
-											? 'bg-pink-600 text-white scale-110'
-											: 'bg-white/10 hover:bg-white/20'
-									} ${!specificOperations.matches.enabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+									className={`py-2 px-3 rounded-lg font-bold transition-all ${specificOperations.matches.digit === digit
+										? 'bg-pink-600 text-white scale-110'
+										: 'bg-white/10 hover:bg-white/20'
+										} ${!specificOperations.matches.enabled ? 'opacity-30 cursor-not-allowed' : ''}`}
 								>
 									{digit}
 								</button>
@@ -437,11 +547,11 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 											const newDigits =
 												prev.differs.digits.includes(digit)
 													? prev.differs.digits.filter(
-															(d) => d !== digit,
-														)
+														(d) => d !== digit,
+													)
 													: [...prev.differs.digits, digit].sort(
-															(a, b) => a - b,
-														);
+														(a, b) => a - b,
+													);
 											return {
 												...prev,
 												differs: {
@@ -452,13 +562,12 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 										});
 									}}
 									disabled={!specificOperations.differs.enabled}
-									className={`py-2 px-3 rounded-lg font-bold transition-all ${
-										specificOperations.differs.digits.includes(
-											digit,
-										)
-											? 'bg-violet-600 text-white scale-110'
-											: 'bg-white/10 hover:bg-white/20'
-									} ${!specificOperations.differs.enabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+									className={`py-2 px-3 rounded-lg font-bold transition-all ${specificOperations.differs.digits.includes(
+										digit,
+									)
+										? 'bg-violet-600 text-white scale-110'
+										: 'bg-white/10 hover:bg-white/20'
+										} ${!specificOperations.differs.enabled ? 'opacity-30 cursor-not-allowed' : ''}`}
 								>
 									{digit}
 								</button>
@@ -517,18 +626,36 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 							/>
 						</div>
 
+						{/* UNIFICADO: Janela de Análise */}
 						<div className='mb-2'>
-							<label className='block text-sm mb-2'>
-								Ticks Quantity
-							</label>
+							<div className='flex items-center gap-2 mb-2'>
+								<label className='block text-sm'>Janela de Análise</label>
+								<div className='group relative'>
+									<Info size={14} className='text-gray-400 cursor-help' />
+									<div className='hidden group-hover:block absolute left-0 top-6 bg-gray-800 text-xs p-2 rounded-lg w-48 z-10 border border-gray-700'>
+										Usado tanto para ML quanto para Heurística. Recomendado: 50-100 ticks.
+									</div>
+								</div>
+							</div>
 							<input
 								type='number'
 								value={ticksQuantity}
-								onChange={(e) =>
-									setTicksQuantity(parseInt(e.target.value))
-								}
+								onChange={(e) => {
+									const value = parseInt(e.target.value);
+									if (value >= 20 && value <= 200) {
+										setTicksQuantity(value);
+									}
+								}}
 								className='w-full p-2 rounded-lg bg-white/10 border border-white/20 text-white'
+								min='20'
+								max='200'
 							/>
+							{getTicksWarning() && (
+								<p className='text-xs text-yellow-400 mt-1 flex items-center gap-1'>
+									<AlertTriangle size={12} />
+									{getTicksWarning()}
+								</p>
+							)}
 						</div>
 					</div>
 
@@ -575,7 +702,33 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 								/>
 								<p className='text-xs text-gray-400 mt-1'>
 									Dígito exausto após aparecer {exhaustionThreshold}+
-									vezes em 20 ticks
+									vezes
+								</p>
+							</div>
+
+							{/* NOVO: Janela de Exaustão */}
+							<div>
+								<div className='flex items-center gap-2 mb-1'>
+									<label className='block text-xs'>
+										Janela Exaustão: <strong>{exhaustionWindow} ticks</strong>
+									</label>
+									<div className='group relative'>
+										<Info size={12} className='text-gray-400 cursor-help' />
+										<div className='hidden group-hover:block absolute left-0 top-4 bg-gray-800 text-xs p-2 rounded-lg w-48 z-10 border border-gray-700'>
+											Quantos ticks usar para verificar exaustão. Ex: dígito apareceu 5x nos últimos 20 ticks.
+										</div>
+									</div>
+								</div>
+								<input
+									type='range'
+									min='15'
+									max='50'
+									value={exhaustionWindow}
+									onChange={(e) => setExhaustionWindow(parseInt(e.target.value))}
+									className='w-full'
+								/>
+								<p className='text-xs text-gray-400 mt-1'>
+									Verifica exaustão nos últimos {exhaustionWindow} ticks
 								</p>
 							</div>
 
@@ -738,12 +891,11 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 											return (
 												<div
 													key={level}
-													className={`flex justify-between py-1 ${
-														level ===
+													className={`flex justify-between py-1 ${level ===
 														martingaleConfig.currentLevel
-															? 'bg-orange-600/30 px-2 rounded'
-															: ''
-													}`}
+														? 'bg-orange-600/30 px-2 rounded'
+														: ''
+														}`}
 												>
 													<span className='text-xs'>
 														{level === 0

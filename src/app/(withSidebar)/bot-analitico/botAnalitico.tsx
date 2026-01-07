@@ -84,7 +84,9 @@ export default function DerivAnalyzerDashboard() {
     modelRefreshInterval: 10000,
     confidenceThreshold: 70,
     featureWindow: 50,
-    trainingEnabled: true
+    trainingEnabled: true,
+    mlWeight: 60, // NOVO: Peso do ML
+    heuristicWeight: 40, // NOVO: Peso da Heurística
   });
 
   // UI State
@@ -104,6 +106,7 @@ export default function DerivAnalyzerDashboard() {
   const [ticksQuantity, setTicksQuantity] = useState<number>(50);
   const [exhaustionThreshold, setExhaustionThreshold] = useState<number>(5);
   const [absenceThreshold, setAbsenceThreshold] = useState<number>(15);
+  const [exhaustionWindow, setExhaustionWindow] = useState<number>(20); // NOVO
   const [mode, setMode] = useState<'manual' | 'auto'>('manual');
   const [account, setAccount] = useState<Account>({
     balance: 0,
@@ -132,49 +135,50 @@ export default function DerivAnalyzerDashboard() {
 
 
   useEffect(() => {
-  const initML = async () => {
-    try {
-      // 1. Inicializar TensorFlow.js
-      const tfReady = await MLInitializer.initialize();
-      if (!tfReady) {
-        console.warn('⚠️ TensorFlow.js não pôde ser inicializado. ML desativado.');
-        setMlConfig(prev => ({ ...prev, useML: false }));
-        return;
-      }
-      
-      // 2. Verificar compatibilidade
-      const compatibility = await MLInitializer.checkCompatibility();
-if (!compatibility.backendAvailable) {
-  console.warn('⚠️ Backend não compatível. Usando modo fallback.');
-}
-      
-      // 3. Criar engine ML
-      analysisEngineRef.current = new MLAnalysisEngine({
-        minConfidence,
-        exhaustionThreshold,
-        absenceThreshold,
-        ticksToAnalyze: ticksQuantity,
-        specificOperations,
-        mlConfig
-      });
-      
-      // 4. Verificar e corrigir modelos
-      setTimeout(async () => {
-        if (analysisEngineRef.current) {
-          await analysisEngineRef.current.verifyAndFixModels();
+    const initML = async () => {
+      try {
+        // 1. Inicializar TensorFlow.js
+        const tfReady = await MLInitializer.initialize();
+        if (!tfReady) {
+          console.warn('⚠️ TensorFlow.js não pôde ser inicializado. ML desativado.');
+          setMlConfig(prev => ({ ...prev, useML: false }));
+          return;
         }
-      }, 2000);
-      
-    } catch (error) {
-      console.error('❌ Erro na inicialização do ML:', error);
-      setMlConfig(prev => ({ ...prev, useML: false }));
+
+        // 2. Verificar compatibilidade
+        const compatibility = await MLInitializer.checkCompatibility();
+        if (!compatibility.backendAvailable) {
+          console.warn('⚠️ Backend não compatível. Usando modo fallback.');
+        }
+
+        // 3. Criar engine ML
+        analysisEngineRef.current = new MLAnalysisEngine({
+          minConfidence,
+          exhaustionThreshold,
+          absenceThreshold,
+          ticksToAnalyze: ticksQuantity,
+          specificOperations,
+          mlConfig,
+          exhaustionWindow, // ADICIONADO
+        });
+
+        // 4. Verificar e corrigir modelos
+        setTimeout(async () => {
+          if (analysisEngineRef.current) {
+            await analysisEngineRef.current.verifyAndFixModels();
+          }
+        }, 2000);
+
+      } catch (error) {
+        console.error('❌ Erro na inicialização do ML:', error);
+        setMlConfig(prev => ({ ...prev, useML: false }));
+      }
+    };
+
+    if (mlConfig.useML) {
+      initML();
     }
-  };
-  
-  if (mlConfig.useML) {
-    initML();
-  }
-}, [mlConfig.useML]); // Apenas quando mlConfig.useML mudar
+  }, [mlConfig.useML]); // Apenas quando mlConfig.useML mudar
 
   useEffect(() => {
     if (analysisEngineRef.current) {
@@ -184,7 +188,8 @@ if (!compatibility.backendAvailable) {
         absenceThreshold,
         ticksToAnalyze: ticksQuantity,
         specificOperations,
-        mlConfig
+        mlConfig,
+        exhaustionWindow, // NOVO
       });
     }
   }, [
@@ -193,27 +198,28 @@ if (!compatibility.backendAvailable) {
     absenceThreshold,
     ticksQuantity,
     specificOperations,
-    mlConfig
+    mlConfig,
+    exhaustionWindow, // NOVO
   ]);
 
   // No useEffect principal
-useEffect(() => {
-  // Backup automático a cada 24 horas
-  const backupInterval = setInterval(async () => {
-    if (analysisEngineRef.current && mlConfig.useML) {
-      const lastBackup = localStorage.getItem('last_model_backup');
-      const now = Date.now();
-      
-      if (!lastBackup || (now - parseInt(lastBackup)) > 24 * 60 * 60 * 1000) {
-        console.log('🔄 Backup automático de modelos...');
-        await analysisEngineRef.current.saveAllModels();
-        localStorage.setItem('last_model_backup', now.toString());
-      }
-    }
-  }, 60 * 60 * 1000); // Verifica a cada hora
+  useEffect(() => {
+    // Backup automático a cada 24 horas
+    const backupInterval = setInterval(async () => {
+      if (analysisEngineRef.current && mlConfig.useML) {
+        const lastBackup = localStorage.getItem('last_model_backup');
+        const now = Date.now();
 
-  return () => clearInterval(backupInterval);
-}, [mlConfig.useML]);
+        if (!lastBackup || (now - parseInt(lastBackup)) > 24 * 60 * 60 * 1000) {
+          console.log('🔄 Backup automático de modelos...');
+          await analysisEngineRef.current.saveAllModels();
+          localStorage.setItem('last_model_backup', now.toString());
+        }
+      }
+    }, 60 * 60 * 1000); // Verifica a cada hora
+
+    return () => clearInterval(backupInterval);
+  }, [mlConfig.useML]);
 
   // Atualizar estatísticas ML periodicamente
   useEffect(() => {
@@ -221,7 +227,7 @@ useEffect(() => {
       if (analysisEngineRef.current) {
         const stats = analysisEngineRef.current.getMLStats();
         setMlStats(stats);
-        
+
         // Atualizar analysisData com stats ML
         setAnalysisData(prev => prev ? {
           ...prev,
@@ -266,16 +272,16 @@ useEffect(() => {
   }, []);
 
   // Adicione um botão para limpar modelos no UI:
-const handleClearModels = async () => {
-  if (analysisEngineRef.current) {
-    const confirmed = confirm('⚠️ Isso irá apagar todos os modelos ML treinados. Continuar?');
-    if (confirmed) {
-      await analysisEngineRef.current.clearOldModels();
-      alert('✅ Modelos ML limpos com sucesso! Reinicie o bot.');
-      window.location.reload();
+  const handleClearModels = async () => {
+    if (analysisEngineRef.current) {
+      const confirmed = confirm('⚠️ Isso irá apagar todos os modelos ML treinados. Continuar?');
+      if (confirmed) {
+        await analysisEngineRef.current.clearOldModels();
+        alert('✅ Modelos ML limpos com sucesso! Reinicie o bot.');
+        window.location.reload();
+      }
     }
-  }
-};
+  };
 
   // --- Methods ---
   const sendRequest = (msg: any) => {
@@ -283,7 +289,7 @@ const handleClearModels = async () => {
       const reqId = Date.now() + Math.floor(Math.random() * 1000);
       msg.req_id = reqId;
       pendingRequests.current[reqId] = resolve;
-      
+
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify(msg));
       } else {
@@ -314,11 +320,11 @@ const handleClearModels = async () => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
+
           if (data.req_id && pendingRequests.current[data.req_id]) {
             pendingRequests.current[data.req_id](data);
             delete pendingRequests.current[data.req_id];
-            return; 
+            return;
           }
 
           if (data.msg_type === 'authorize') {
@@ -343,7 +349,7 @@ const handleClearModels = async () => {
             const times = data.history.times;
             prices.forEach((price: number, index: number) => {
               const digitVal = getDigitForPrice(symbol, price);
-  
+
               if (!isNaN(digitVal) && analysisEngineRef.current) {
                 const analysis = analysisEngineRef.current.addTick(symbol, digitVal, price, times[index]);
                 updateAnalysisData(symbol, analysis);
@@ -354,7 +360,7 @@ const handleClearModels = async () => {
             const digit = getQuotePrecision(tick);
             const price = tick.quote;
             const symbol = tick.symbol;
-            
+
             if (!isNaN(digit) && analysisEngineRef.current) {
               const analysis = analysisEngineRef.current.addTick(symbol, digit, price, tick.epoch);
               updateAnalysisData(symbol, analysis);
@@ -364,7 +370,7 @@ const handleClearModels = async () => {
             if (contract.is_sold) {
               const profit = contract.profit;
               const isWin = profit > 0;
-              
+
               // Update Martingale
               setMartingaleConfig(prev => {
                 if (!prev.enabled) {
@@ -377,7 +383,7 @@ const handleClearModels = async () => {
                 if (isWin) {
                   if (prev.resetOnWin) {
                     newLevel = 0;
-                    newStake = stakeRef.current; 
+                    newStake = stakeRef.current;
                   }
                 } else {
                   if (prev.currentLevel < prev.maxLevels) {
@@ -443,73 +449,73 @@ const handleClearModels = async () => {
         symbol == "R_100"
           ? 2
           : symbol == "R_25" || symbol == "R_10"
-          ? 3
-          : symbol == "RDBEAR" || symbol == "RDBULL"
-          ? 4
-          : symbol.startsWith("JD")
-          ? 2
-          : symbol.includes("1HZ")
-          ? 2
-          : 4
+            ? 3
+            : symbol == "RDBEAR" || symbol == "RDBULL"
+              ? 4
+              : symbol.startsWith("JD")
+                ? 2
+                : symbol.includes("1HZ")
+                  ? 2
+                  : 4
       ).toString()
-      .slice(-1)
+        .slice(-1)
     );
   }
 
 
   const getDigit = (tick) => {
     return tick.quote.toFixed(
-        tick.symbol == "R_100" 
-          ? 2
-          : tick.symbol == "R_25" || tick.symbol == "R_10"
+      tick.symbol == "R_100"
+        ? 2
+        : tick.symbol == "R_25" || tick.symbol == "R_10"
           ? 3
           : tick.symbol == "RDBEAR" || tick.symbol == "RDBULL"
-          ? 4
-          : tick.symbol.startsWith("JD")
-          ? 2
-          : tick.symbol.includes("1HZ")
-          ? 2
-          : 4
-      )
+            ? 4
+            : tick.symbol.startsWith("JD")
+              ? 2
+              : tick.symbol.includes("1HZ")
+                ? 2
+                : 4
+    )
       .toString()
-      
-  
+
+
   }
 
   const getQuotePrecision = (tick) => {
     return parseInt(
       tick.quote.toFixed(
-        tick.symbol == "R_100" 
+        tick.symbol == "R_100"
           ? 2
           : tick.symbol == "R_25" || tick.symbol == "R_10"
-          ? 3
-          : tick.symbol == "RDBEAR" || tick.symbol == "RDBULL"
-          ? 4
-          : tick.symbol.startsWith("JD")
-          ? 2
-          : tick.symbol.includes("1HZ")
-          ? 2
-          : 4
+            ? 3
+            : tick.symbol == "RDBEAR" || tick.symbol == "RDBULL"
+              ? 4
+              : tick.symbol.startsWith("JD")
+                ? 2
+                : tick.symbol.includes("1HZ")
+                  ? 2
+                  : 4
       )
-      .toString()
-      .slice(-1)
+        .toString()
+        .slice(-1)
     );
   }
 
   const updateAnalysisData = (symbol: string, analysis: any) => {
     setAnalysisData(prev => {
       const newAnalyses = { ...prev?.analyses, [symbol]: analysis };
-      
+
       // Generate signals with ML
       const signals = analysisEngineRef.current?.generateSignals(newAnalyses) || [];
-      
+
       // Update Performance Stats
       setPerformance(prevPerf => ({
         ...prevPerf,
         total_signals: prevPerf.total_signals + signals.length,
-        high_confidence_signals: prevPerf.high_confidence_signals + 
+        high_confidence_signals: prevPerf.high_confidence_signals +
           signals.filter(s => s.assertiveness === 'HIGH' || s.assertiveness === 'VERY HIGH').length,
-        medium_confidence_signals: prevPerf.medium_confidence_signals + 
+        medium_confidence_signals: prevPerf.medium_confidence_signals +
           signals.filter(s => s.assertiveness === 'MEDIUM').length,
         symbols_monitored: Object.keys(newAnalyses).length,
         total_digits_analyzed: prevPerf.total_digits_analyzed + 1,
@@ -609,7 +615,7 @@ const handleClearModels = async () => {
       wsRef.current = null;
     }
     setIsConnected(false);
-    
+
     // Salvar modelos ML ao desconectar
     if (analysisEngineRef.current) {
       await analysisEngineRef.current.saveAllModels();
@@ -662,7 +668,7 @@ const handleClearModels = async () => {
 
   const toggleML = (useML: boolean) => {
     setMlConfig(prev => ({ ...prev, useML }));
-    
+
     if (!useML) {
       alert('ML desativado. Usando apenas análise heurística.');
     } else {
@@ -741,11 +747,10 @@ const handleClearModels = async () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                        activeTab === tab.id
-                          ? 'border-white text-white'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${activeTab === tab.id
+                        ? 'border-white text-white'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
                     >
                       <tab.icon size={16} />
                       {tab.label}
@@ -865,6 +870,8 @@ const handleClearModels = async () => {
                     setMartingaleConfig={setMartingaleConfig}
                     mlConfig={mlConfig}
                     setMlConfig={setMlConfig}
+                    exhaustionWindow={exhaustionWindow}
+                    setExhaustionWindow={setExhaustionWindow}
                   />
                 )}
                 {activeTab === 'results' && (
@@ -882,8 +889,8 @@ const handleClearModels = async () => {
               onToggleML={toggleML}
               mlEnabled={mlConfig.useML}
             />
-            <PerformanceStats 
-              performance={performance} 
+            <PerformanceStats
+              performance={performance}
               mlStats={mlStats}
             />
             <GlobalConfigPanel

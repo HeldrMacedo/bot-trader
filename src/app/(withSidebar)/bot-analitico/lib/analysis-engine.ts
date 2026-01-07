@@ -26,10 +26,10 @@ export class AnalysisEngine {
         if (!this.history[symbol]) {
             this.history[symbol] = [];
         }
-        
+
         // Add new digit
         this.history[symbol].unshift(digit);
-        
+
         // Keep only required history (e.g., last 1000)
         if (this.history[symbol].length > 1000) {
             this.history[symbol].pop();
@@ -52,7 +52,7 @@ export class AnalysisEngine {
         const exhaustion: number[] = [];
         const recentCounts: Record<number, number> = {};
         recentHistory.forEach(d => recentCounts[d] = (recentCounts[d] || 0) + 1);
-        
+
         for (let i = 0; i <= 9; i++) {
             if ((recentCounts[i] || 0) >= this.config.exhaustionThreshold) {
                 exhaustion.push(i);
@@ -117,12 +117,12 @@ export class AnalysisEngine {
                     // Or if digits > targetDigit are absent?
                     // GUIA.MD says: "Se você selecionar 2 -> o bot vai operar quando detectar que o próximo dígito será > 3"
                     // Case Real: "Dígitos 0, 1, 2 estão exaustos (apareceram muito) -> Sugestão: Over 2"
-                    
-                    const lowerDigits = Array.from({length: targetDigit + 1}, (_, i) => i);
+
+                    const lowerDigits = Array.from({ length: targetDigit + 1 }, (_, i) => i);
                     const exhaustedLowers = lowerDigits.filter(d => analysis.exhaustion.includes(d));
-                    
+
                     if (exhaustedLowers.length >= 2) { // Heuristic: at least 2 lower digits are exhausted
-                         signals.push({
+                        signals.push({
                             strategy: 'OVER_SPECIFIC',
                             type: 'DIGITOVER', // Over
                             confidence: 80, // Dynamic
@@ -132,16 +132,16 @@ export class AnalysisEngine {
                             symbol,
                             timestamp: new Date().toISOString(),
                             barrier: targetDigit
-                         });
+                        });
                     }
                 });
             }
 
             // UNDER Specific
             if (specificOperations.under.enabled) {
-                 specificOperations.under.digits.forEach(targetDigit => {
+                specificOperations.under.digits.forEach(targetDigit => {
                     // Case Real: "Dígitos 7, 8, 9 estão exaustos -> Sugestão: Under 7"
-                    const upperDigits = Array.from({length: 10 - targetDigit}, (_, i) => i + targetDigit);
+                    const upperDigits = Array.from({ length: 10 - targetDigit }, (_, i) => i + targetDigit);
                     const exhaustedUppers = upperDigits.filter(d => analysis.exhaustion.includes(d));
 
                     if (exhaustedUppers.length >= 2) {
@@ -157,7 +157,7 @@ export class AnalysisEngine {
                             barrier: targetDigit
                         });
                     }
-                 });
+                });
             }
 
             // MATCHES Specific
