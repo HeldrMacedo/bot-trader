@@ -108,9 +108,9 @@ const Sidebar = ({
       role: ["admin", "user"],
     },
     {
-      name: "Bot Advanced",
+      name: "Bot Strategy",
       icon: CpuChipIcon,
-      href: "/advanced-bot",
+      href: "/bot-strategy",
       role: ["admin", "user"],
     },
     {

@@ -35,4 +35,27 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-.
+## Migração Bot Strategy (2025)
+
+O módulo `bot-ia` foi migrado para `src/app/(withSidebar)/bot-strategy` com as seguintes alterações arquiteturais:
+
+### 1. Arquitetura
+- Migração de Vanilla JS para **Next.js/React com TypeScript**.
+- Estrutura baseada em componentes reutilizáveis (`components/`).
+
+### 2. Funcionalidades
+- **Remoção de Créditos**: Acesso irrestrito a todas as funcionalidades.
+- **Seletor de Volatilidade**: Integrado à sidebar esquerda, com carregamento dinâmico via `DerivService`.
+- **Autenticação Simplificada**: Utiliza o token global da aplicação (`deriv_accounts` / `activeToken`), sem login separado.
+- **Configuração Modular**: Abas separadas para Trade, Gestão e Controller.
+
+### 3. Inicialização
+- Verificação automática de tokens ao carregar.
+- Redirecionamento/Alerta caso nenhuma conta esteja configurada.
+- Indicador visual de carregamento.
+
+### 4. Componentes Chave
+- `BotStrategyPage`: Container principal e gerenciamento de estado.
+- `VolatilitySelector`: Busca e seleção de ativos.
+- `TradeConfig`, `ManagementConfig`, `ControllerConfig`: Painéis de configuração.
+- `BotDashboard`: Visualização de logs e status (preparado para expansão com gráficos).
