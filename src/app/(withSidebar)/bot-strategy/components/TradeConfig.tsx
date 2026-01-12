@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface TradeConfigProps {
   config: any;
@@ -47,14 +46,14 @@ export default function TradeConfig({ config, onChange }: TradeConfigProps) {
             onChange={(e) => onChange('tradeType', e.target.value)}
             className="w-full bg-[#1e1b2e] border border-gray-700 rounded p-2 text-white text-sm focus:border-blue-500 outline-none"
         >
-            <option value="CALL">Sobe (Call)</option>
-            <option value="PUT">Desce (Put)</option>
-            <option value="DIGITOVER">Dígito Acima</option>
-            <option value="DIGITUNDER">Dígito Abaixo</option>
-            <option value="DIGITMATCH">Dígito Combina</option>
-            <option value="DIGITDIFF">Dígito Difere</option>
-            <option value="EVEN">Par</option>
-            <option value="ODD">Ímpar</option>
+            <option value="CALL">Call</option>
+            <option value="PUT">Put</option>
+            <option value="DIGITOVER">Over</option>
+            <option value="DIGITUNDER">Under</option>
+            <option value="DIGITMATCH">Match</option>
+            <option value="DIGITDIFF">Differ</option>
+            <option value="DIGITEVEN">Par</option>
+            <option value="DIGITODD">Ímpar</option>
         </select>
       </div>
 
