@@ -1,0 +1,405 @@
+/* ========================================
+   ESTILOS PARA SISTEMA DE PREVISÃƒO ESTATÃSTICA
+   ======================================== */
+
+.stat-summary {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-item.highlight {
+    background: rgba(255, 215, 0, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.stat-value {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.digit-probabilities {
+    margin: 20px 0;
+}
+
+.digit-probabilities h5 {
+    color: #ffd700;
+    margin-bottom: 15px;
+}
+
+.prob-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.prob-item {
+    display: grid;
+    grid-template-columns: 30px 1fr 60px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.prob-item.highest {
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4CAF50;
+}
+
+.prob-item.lowest {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid #f44336;
+}
+
+.digit-label {
+    font-weight: bold;
+    color: #ffd700;
+    text-align: center;
+}
+
+.prob-bar-container {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    height: 20px;
+}
+
+.prob-bar {
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+.prob-value {
+    text-align: right;
+    font-weight: bold;
+    color: white;
+}
+
+.stat-insights {
+    background: rgba(33, 150, 243, 0.1);
+    border-left: 4px solid #2196F3;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.stat-insights h5 {
+    color: #2196F3;
+    margin-bottom: 10px;
+}
+
+.stat-insights ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.stat-insights li {
+    padding: 5px 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* ========================================
+   ESTILOS PARA DETECTOR DE ANOMALIAS
+   ======================================== */
+
+.anomaly-summary {
+    background: rgba(255, 152, 0, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.summary-label {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.summary-value {
+    color: #ff9800;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.severity-breakdown {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.severity {
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.severity.high {
+    background: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+    border: 1px solid #f44336;
+}
+
+.severity.medium {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+    border: 1px solid #ffc107;
+}
+
+.severity.low {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+}
+
+.anomaly-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.anomaly-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    border-left: 4px solid;
+}
+
+.anomaly-item.severity-high {
+    border-left-color: #f44336;
+}
+
+.anomaly-item.severity-medium {
+    border-left-color: #ffc107;
+}
+
+.anomaly-item.severity-low {
+    border-left-color: #4CAF50;
+}
+
+.anomaly-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.anomaly-number {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.anomaly-type {
+    font-size: 1.5rem;
+}
+
+.anomaly-description {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 10px 0;
+    line-height: 1.5;
+}
+
+.anomaly-sequence {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+}
+
+.anomaly-sequence code {
+    color: #ffd700;
+    font-size: 1.1rem;
+}
+
+.no-anomalies {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.no-anomalies p {
+    color: #4CAF50;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.no-anomalies .subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+}
+
+/* ========================================
+   RESPONSIVIDADE PARA TABLETS
+   ======================================== */
+
+@media (max-width: 1000px) {
+    .launch-main-section {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+}
+
+
+/* ========================================
+   SISTEMA DE FORÃ‡A DA ANÃLISE MULTI-PERÃODO
+   ======================================== */
+
+.prob-card {
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+    cursor: help !important;
+}
+
+.prob-card:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.02) !important;
+}
+
+.strength-bar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 4px !important;
+    border-radius: 0 0 4px 4px !important;
+    transition: all 0.5s ease !important;
+    z-index: 15 !important;
+    opacity: 0.9 !important;
+}
+
+.strength-bar.strength-alta {
+    background: linear-gradient(90deg, #28a745, #34ce57) !important;
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.6) !important;
+}
+
+.strength-bar.strength-media {
+    background: linear-gradient(90deg, #ffc107, #ffcd39) !important;
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.6) !important;
+}
+
+.strength-bar.strength-baixa {
+    background: linear-gradient(90deg, #dc3545, #e4606d) !important;
+    box-shadow: 0 0 4px rgba(220, 53, 69, 0.6) !important;
+}
+
+.prob-card .strength-indicator {
+    font-size: 0.6rem !important;
+    margin-top: 4px !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    line-height: 1.1 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+    opacity: 0.85 !important;
+}
+
+/* AnimaÃ§Ãµes para diferentes nÃ­veis de forÃ§a */
+.strength-alta {
+    animation: pulse-high 2s ease-in-out infinite !important;
+}
+
+.strength-media {
+    animation: pulse-medium 2.5s ease-in-out infinite !important;
+}
+
+.strength-baixa {
+    animation: pulse-low 3s ease-in-out infinite !important;
+}
+
+@keyframes pulse-high {
+    0%, 100% { 
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.3) !important;
+    }
+    50% { 
+        box-shadow: 0 0 20px rgba(40, 167, 69, 0.6) !important;
+    }
+}
+
+@keyframes pulse-medium {
+    0%, 100% { 
+        box-shadow: 0 0 8px rgba(255, 193, 7, 0.3) !important;
+    }
+    50% { 
+        box-shadow: 0 0 16px rgba(255, 193, 7, 0.5) !important;
+    }
+}
+
+@keyframes pulse-low {
+    0%, 100% { 
+        box-shadow: 0 0 5px rgba(220, 53, 69, 0.2) !important;
+    }
+    50% { 
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.4) !important;
+    }
+}
+
+/* Indicador de consenso visual */
+.consensus-indicator {
+    position: absolute !important;
+    top: 2px !important;
+    right: 2px !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    opacity: 0.8 !important;
+}
+
+.consensus-3 {
+    background: #28a745 !important;
+    box-shadow: 0 0 6px rgba(40, 167, 69, 0.6) !important;
+}
+
+.consensus-2 {
+    background: #ffc107 !important;
+    box-shadow: 0 0 4px rgba(255, 193, 7, 0.6) !important;
+}
+
+.consensus-1 {
+    background: #dc3545 !important;
+    box-shadow: 0 0 2px rgba(220, 53, 69, 0.6) !important;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+    .strength-bar {
+        height: 2px !important;
+    }
+    
+    .prob-card .strength-indicator {
+        font-size: 0.6rem !important;
+    }
+    
+    .consensus-indicator {
+        width: 6px !important;
+        height: 6px !important;
+    }
+}
