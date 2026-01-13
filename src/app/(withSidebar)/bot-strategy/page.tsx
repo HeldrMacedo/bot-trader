@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { PlayIcon, StopIcon, ChatBubbleLeftIcon, ChartBarIcon } from '@heroicons/react/24/solid';
+import { PlayIcon, StopIcon, ChatBubbleLeftIcon, ChartBarIcon, CodeBracketIcon } from '@heroicons/react/24/solid';
 
 import VolatilitySelector from './components/VolatilitySelector';
 import TradeConfig from './components/TradeConfig';
@@ -12,9 +12,11 @@ import ControllerConfig from './components/ControllerConfig';
 import BotDashboard from './components/BotDashboard';
 import AiChatPanel from './components/AiChatPanel';
 import AccountSelector from './components/AccountSelector';
+import BlocklyEditor from './components/BlocklyEditor';
 import { DerivService } from '@/app/services/DerivService';
 import { GeminiAIService } from './services/GeminiAIService';
 import { BotExecutionEngine } from './services/BotExecutionEngine';
+import { initBlocklyJavaScriptGenerator } from './services/BlocklyJavaScriptGenerator';
 import MarketAnalysisPanel from './components/MarketAnalysisPanel';
 import { MarketDataService } from './services/MarketDataService';
 import AiSuggestionsModal, { AiSuggestionsPayload, AiSuggestionStrategy } from './components/AiSuggestionsModal';
@@ -22,7 +24,7 @@ import AiSuggestionsModal, { AiSuggestionsPayload, AiSuggestionStrategy } from '
 export default function BotStrategyPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'trade' | 'management' | 'controller'>('trade');
-  const [mainView, setMainView] = useState<'dashboard' | 'chat'>('chat');
+  const [mainView, setMainView] = useState<'dashboard' | 'chat' | 'blockly'>('chat');
   
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
@@ -106,6 +108,9 @@ export default function BotStrategyPage() {
         
         // Initialize MarketDataService
         MarketDataService.getInstance();
+        
+        // Initialize Blockly JavaScript generator
+        initBlocklyJavaScriptGenerator();
 
       } catch (error) {
         console.error("Initialization error:", error);
@@ -303,48 +308,59 @@ export default function BotStrategyPage() {
 
   const toggleBot = () => {
     if (isRunning) {
-        if (botEngine.current) {
-            botEngine.current.stop();
-        }
-        setIsRunning(false);
-        addLog("Bot parado pelo usuário.");
+      // Stop both engines if they're running
+      if (botEngine.current) {
+        botEngine.current.stop();
+      }
+      if (typeof window !== 'undefined' && window.BlocklyBot) {
+        window.BlocklyBot.stop();
+      }
+      setIsRunning(false);
+      addLog("Bot parado pelo usuário.");
     } else {
-        if (!selectedSymbol) {
-            toast.warning("Selecione um ativo antes de iniciar.");
-            return;
-        }
-        
-        // Start Engine
-        const botConf = {
-            symbol: selectedSymbol,
-            ...config
-        };
-        
-        // Use generated strategy or create a default one based on manual inputs
-        const strategyToUse = generatedStrategy || {
-            name: "Manual Strategy",
-            conditions: [], // If manual, maybe we don't have conditions yet or need a manual builder
-            action: config.tradeType
-        };
-        
-        if (!generatedStrategy) {
-             addLog("⚠️ Iniciando sem estratégia de IA definida. Apenas gestão de risco será aplicada (execução manual não implementada nesta versão).");
-             // For migration completeness, we should allow manual execution or basic strategy
-        }
+      if (!selectedSymbol) {
+        toast.warning("Selecione um ativo antes de iniciar.");
+        return;
+      }
+      
+      // Check which view we're in to determine which engine to start
+      if (mainView === 'blockly') {
+        // For Blockly view, we need to start the BlocklyBot engine from within the editor
+        toast.info("Inicie o bot diretamente no Editor Visual.");
+        return;
+      }
+      
+      // Start the traditional engine for other views
+      const botConf = {
+        symbol: selectedSymbol,
+        ...config
+      };
+      
+      // Use generated strategy or create a default one based on manual inputs
+      const strategyToUse = generatedStrategy || {
+        name: "Manual Strategy",
+        conditions: [], // If manual, maybe we don't have conditions yet or need a manual builder
+        action: config.tradeType
+      };
+      
+      if (!generatedStrategy) {
+        addLog("⚠️ Iniciando sem estratégia de IA definida. Apenas gestão de risco será aplicada (execução manual não implementada nesta versão).");
+        // For migration completeness, we should allow manual execution or basic strategy
+      }
 
-        botEngine.current = new BotExecutionEngine(
-            botConf, 
-            strategyToUse,
-            addLog,
-            (trade) => {
-                toast.info(`Trade ${trade.status}: $${trade.profit}`);
-                setResultsList(prev => [trade, ...prev]);
-            }
-        );
-        
-        botEngine.current.start();
-        setIsRunning(true);
-        setMainView('dashboard'); // Switch to dashboard to see logs
+      botEngine.current = new BotExecutionEngine(
+        botConf, 
+        strategyToUse,
+        addLog,
+        (trade) => {
+          toast.info(`Trade ${trade.status}: $${trade.profit}`);
+          setResultsList(prev => [trade, ...prev]);
+        }
+      );
+      
+      botEngine.current.start();
+      setIsRunning(true);
+      setMainView('dashboard'); // Switch to dashboard to see logs
     }
   };
 
@@ -456,6 +472,13 @@ export default function BotStrategyPage() {
                     <ChartBarIcon className="w-5 h-5" />
                     Dashboard
                 </button>
+                <button 
+                    onClick={() => setMainView('blockly')}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors ${mainView === 'blockly' ? 'bg-blue-600 text-white' : 'bg-[#13111c] text-gray-400 hover:text-white'}`}
+                >
+                    <CodeBracketIcon className="w-5 h-5" />
+                    Editor Visual
+                </button>
             </div>
 
             {/* Content */}
@@ -476,23 +499,43 @@ export default function BotStrategyPage() {
                         </div>
                        
                     </div>
+                ) : mainView === 'blockly' ? (
+                    <BlocklyEditor 
+                        onRun={(code) => {
+                            // Execute the generated code in the context of the BlocklyBot engine
+                            try {
+                                eval(code);
+                            } catch (error) {
+                                toast.error(`Erro ao executar código: ${(error as Error).message}`);
+                            }
+                        }}
+                        onStop={() => {
+                            // Stop the BlocklyBot engine
+                            if (typeof window !== 'undefined' && window.BlocklyBot) {
+                                window.BlocklyBot.stop();
+                            }
+                        }}
+                    />
                 ) : (
                     <BotDashboard logs={logs} running={isRunning} resultsList={resultsList} />
                 )}
             </div>
              
        </div>
-       {selectedSymbol && (
-                            <div className="flex-1 flex flex-col min-w-0">
-                                <MarketAnalysisPanel symbol={selectedSymbol} />
-                            </div>
-                        )}
-      <AiSuggestionsModal
-        isOpen={suggestionsOpen}
-        payload={suggestionsPayload}
-        onClose={() => setSuggestionsOpen(false)}
-        onApply={applySuggestion}
-      />
+       
+       {/* Market Analysis Panel - Only show when symbol is selected and not in Blockly editor */}
+       {selectedSymbol && mainView !== 'blockly' && (
+           <div className="flex-1 flex flex-col min-w-0">
+               <MarketAnalysisPanel symbol={selectedSymbol} />
+           </div>
+       )}
+       
+       <AiSuggestionsModal
+         isOpen={suggestionsOpen}
+         payload={suggestionsPayload}
+         onClose={() => setSuggestionsOpen(false)}
+         onApply={applySuggestion}
+       />
     </div>
   );
 }
