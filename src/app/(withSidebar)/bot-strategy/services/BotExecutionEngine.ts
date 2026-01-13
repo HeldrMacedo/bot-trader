@@ -35,6 +35,7 @@ export interface BotConfig {
     martingaleLevels: number;
     // New fields for robust management
     prediction?: number; // Default prediction
+    tradeType?: string; // Default trade type for basic trading
 }
 
 export class BotExecutionEngine {
@@ -158,22 +159,26 @@ export class BotExecutionEngine {
     }
 
     private checkStrategy() {
-        if (!this.strategy || !this.strategy.conditions) return;
+        // Check if we have a strategy with conditions
+        if (this.strategy && this.strategy.conditions && this.strategy.conditions.length > 0) {
+            let allConditionsMet = true;
+            
+            // Reset dynamic target
+            this.dynamicTarget = null;
 
-        let allConditionsMet = true;
-        
-        // Reset dynamic target
-        this.dynamicTarget = null;
-
-        for (const cond of this.strategy.conditions) {
-            if (!this.evaluateCondition(cond)) {
-                allConditionsMet = false;
-                break;
+            for (const cond of this.strategy.conditions) {
+                if (!this.evaluateCondition(cond)) {
+                    allConditionsMet = false;
+                    break;
+                }
             }
-        }
 
-        if (allConditionsMet) {
-            this.executeTrade();
+            if (allConditionsMet) {
+                this.executeTrade();
+            }
+        } else {
+            // No strategy conditions - execute based on basic config (manual trading)
+            this.executeBasicTrade();
         }
     }
 
@@ -237,6 +242,93 @@ export class BotExecutionEngine {
             case 'IS_EVEN': return valueToCheck % 2 === 0;
             case 'IS_ODD': return valueToCheck % 2 !== 0;
             default: return false;
+        }
+    }
+
+    private executeBasicTrade() {
+        // Execute trade based on basic configuration without complex strategy conditions
+        // This enables manual trading when no AI strategy is provided
+        
+        // For basic trading, we can use a simple approach based on config
+        // For example, trade every N ticks or based on simple conditions
+        
+        // Simple approach: trade based on tick changes or time intervals
+        // We'll implement a basic timer-based approach for now
+        if (this.tradeContext.ticks.length > 1) {
+            // Simple condition: trade every 10 ticks to avoid spam
+            if (this.tradeContext.ticks.length % 10 === 0) {
+                // Determine contract type from config if available, otherwise default to CALL
+                const contractType = this.config.tradeType || 'CALL';
+                this.executeTradeWithContractType(contractType);
+            }
+        }
+    }
+
+    private executeTradeWithContractType(contractType: string) {
+        if (this.isTrading) return;
+        
+        // Check Global Limits
+        if (this.totalProfit <= -Math.abs(this.config.stopLoss)) {
+            this.onLog("⛔ Stop Loss atingido! Parando bot.");
+            this.stop();
+            return;
+        }
+        if (this.totalProfit >= this.config.takeProfit) {
+            this.onLog("🎉 Take Profit atingido! Parando bot.");
+            this.stop();
+            return;
+        }
+
+        this.isTrading = true;
+        this.onLog(`⚡ Executando ordem: ${contractType} | Stake: ${this.currentStake}`);
+
+        try {
+            // Resolve Prediction
+            let prediction = this.config.prediction;
+            
+            const buyParams: any = {
+                buy: 1,
+                price: this.currentStake,
+                parameters: {
+                    amount: this.currentStake,
+                    basis: 'stake',
+                    contract_type: contractType,
+                    currency: 'USD',
+                    duration: this.config.duration,
+                    duration_unit: this.config.durationUnit,
+                    symbol: this.config.symbol,
+                }
+            };
+
+            // Add barrier if needed
+            if (['DIGITMATCH', 'DIGITDIFF', 'DIGITOVER', 'DIGITUNDER'].includes(contractType)) {
+                if (prediction === undefined) prediction = 0; // Safety
+                buyParams.parameters.barrier = prediction;
+            }
+
+            // Execute via Proposal -> Buy for robustness
+            const proposalReq = { ...buyParams.parameters, proposal: 1 };
+            this.deriv.send(proposalReq)
+                .then(proposal => {
+                    if (proposal.error) throw new Error(proposal.error.message);
+
+                    const buyReq = { buy: proposal.proposal.id, price: proposal.proposal.ask_price };
+                    return this.deriv.send(buyReq);
+                })
+                .then(buyResponse => {
+                    if (buyResponse.error) throw new Error(buyResponse.error.message);
+
+                    this.onLog(`✅ Ordem enviada! ID: ${buyResponse.buy.contract_id}`);
+                    this.monitorContract(buyResponse.buy.contract_id);
+                })
+                .catch(error => {
+                    this.onLog(`❌ Erro na compra: ${error.message}`);
+                    this.isTrading = false;
+                });
+
+        } catch (error: any) {
+            this.onLog(`❌ Erro na compra: ${error.message}`);
+            this.isTrading = false;
         }
     }
 
