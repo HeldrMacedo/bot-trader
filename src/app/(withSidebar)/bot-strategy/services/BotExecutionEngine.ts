@@ -1,20 +1,27 @@
 import { DerivService } from "@/app/services/DerivService";
+import { Indicators } from "./Indicators";
+import { PatternRecognizer } from "./PatternRecognizer";
+import { MarketDataService } from "./MarketDataService";
 
 export interface TradeContext {
     ticks: number[];
-    lastDigit: number;
+    prices: number[];
+    digits: number[];
     indicators: {
         rsi?: number;
         sma?: number;
+        ema?: number;
+        bollinger?: { upper: number, middle: number, lower: number };
     };
 }
 
 export interface StrategyRule {
-    indicator: string;
+    indicator: string; // RSI, SMA, PRICE, DIGIT, PATTERN
     period?: number;
-    operator: string;
-    value: number | string;
+    operator: string; // >, <, >=, <=, ==, !=, CROSS_UP, CROSS_DOWN, IS_EVEN, IS_ODD, MATCHES
+    value: number | string; // 70, "SMA", "dynamic_repeated_digit"
     compare_period?: number;
+    parameters?: any; // For patterns or complex rules
 }
 
 export interface BotConfig {
@@ -26,15 +33,20 @@ export interface BotConfig {
     takeProfit: number;
     martingaleFactor: number;
     martingaleLevels: number;
+    // New fields for robust management
+    prediction?: number; // Default prediction
 }
 
 export class BotExecutionEngine {
     private deriv: DerivService;
+    private marketData: MarketDataService;
+    private patternRecognizer: PatternRecognizer;
+    
     private config: BotConfig;
     private strategy: any;
+    
     private isRunning: boolean = false;
-    private ticks: number[] = [];
-    private tradeContext: TradeContext = { ticks: [], lastDigit: -1, indicators: {} };
+    private tradeContext: TradeContext = { ticks: [], prices: [], digits: [], indicators: {} };
     
     // Callbacks
     private onLog: (msg: string) => void;
@@ -45,9 +57,17 @@ export class BotExecutionEngine {
     private totalProfit: number = 0;
     private martingaleLevel: number = 0;
     private isTrading: boolean = false;
+    private lastTradeResult: 'WIN' | 'LOSS' | null = null;
+    
+    // Dynamic State
+    private dynamicTarget: number | null = null;
+    private tickListenerId: string | null = null;
 
     constructor(config: BotConfig, strategy: any, onLog: (msg: string) => void, onTrade: (trade: any) => void) {
         this.deriv = DerivService.getInstance();
+        this.marketData = MarketDataService.getInstance();
+        this.patternRecognizer = new PatternRecognizer();
+        
         this.config = config;
         this.strategy = strategy;
         this.onLog = onLog;
@@ -58,6 +78,11 @@ export class BotExecutionEngine {
     public start() {
         if (this.isRunning) return;
         this.isRunning = true;
+        this.totalProfit = 0;
+        this.martingaleLevel = 0;
+        this.currentStake = this.config.stake;
+        this.isTrading = false;
+        
         this.onLog(`🚀 Motor de execução iniciado para ${this.config.symbol}`);
         this.subscribeToTicks();
     }
@@ -65,43 +90,45 @@ export class BotExecutionEngine {
     public stop() {
         this.isRunning = false;
         this.onLog("🛑 Motor de execução parado");
-        // Unsubscribe logic
-        this.deriv.observerInstance.off('deriv.tick', this.handleTick);
+        if (this.tickListenerId) {
+            this.deriv.observerInstance.removeById(this.tickListenerId);
+            this.tickListenerId = null;
+        }
+    }
+
+    public updateConfig(newConfig: BotConfig) {
+        this.config = { ...this.config, ...newConfig };
+        this.onLog("⚙️ Configurações atualizadas em tempo real");
     }
 
     private subscribeToTicks() {
-        // We rely on the global tick stream or a specific subscription
-        // For this migration, we'll assume we hook into the existing DerivService tick event
-        
-        // Note: In a real implementation, we might need to explicitly subscribe if not already.
+        // Ensure subscription
         this.deriv.send({ ticks: this.config.symbol, subscribe: 1 }).catch(e => {
             if (!e.message.includes('already subscribed')) {
                 this.onLog(`Erro ao subscrever: ${e.message}`);
             }
         });
 
-        // Listen for ticks using DerivService observer
-        this.deriv.observerInstance.on('deriv.tick', this.handleTick);
+        // Listen for ticks
+        this.tickListenerId = this.deriv.observerInstance.on('deriv.tick', this.handleTick);
     }
 
     private handleTick = (data: any) => {
         if (!this.isRunning) return;
         
         if (data.tick && data.tick.symbol === this.config.symbol) {
-            const price = data.tick.quote;
-            this.processTick(price);
+            this.processTick(data.tick);
         }
     }
 
-    private processTick(price: number) {
-        this.ticks.push(price);
-        if (this.ticks.length > 1000) this.ticks.shift();
+    private processTick(tick: any) {
+        const price = tick.quote;
+        // Use MarketDataService to ensure consistent history
+        this.tradeContext.prices = this.marketData.getLastNPrices(this.config.symbol, 1000);
+        this.tradeContext.digits = this.marketData.getLastNDigits(this.config.symbol, 1000);
+        this.tradeContext.ticks = this.tradeContext.prices; // Alias
 
-        // Update Context
-        this.tradeContext.ticks = this.ticks;
-        this.tradeContext.lastDigit = parseInt(price.toString().slice(-1));
-        
-        // Calculate Indicators if needed
+        // Calculate Indicators
         this.calculateIndicators();
 
         // Check Logic
@@ -111,23 +138,32 @@ export class BotExecutionEngine {
     }
 
     private calculateIndicators() {
-        // Simple implementation of indicators needed by the strategy
-        if (this.strategy && this.strategy.conditions) {
-            for (const cond of this.strategy.conditions) {
-                if (cond.indicator === 'RSI') {
-                    this.tradeContext.indicators.rsi = this.calculateRSI(this.ticks, cond.period || 14);
-                }
-                if (cond.indicator === 'SMA') {
-                    this.tradeContext.indicators.sma = this.calculateSMA(this.ticks, cond.period || 14);
-                }
-            }
+        if (!this.strategy || !this.strategy.conditions) return;
+        
+        // Optimize: Only calculate what's needed
+        const neededIndicators = new Set(this.strategy.conditions.map((c: any) => c.indicator));
+        const prices = this.tradeContext.prices;
+
+        if (neededIndicators.has('RSI')) {
+             // Find max period needed
+             const rsiConditions = this.strategy.conditions.filter((c: any) => c.indicator === 'RSI');
+             for(const cond of rsiConditions) {
+                 this.tradeContext.indicators.rsi = Indicators.calculateRSI(prices, cond.period || 14) || 0;
+             }
         }
+        if (neededIndicators.has('SMA')) {
+            this.tradeContext.indicators.sma = Indicators.calculateSMA(prices, 14) || 0; // Simplification, ideally dynamic
+        }
+        // Add EMA, Bollinger as needed
     }
 
     private checkStrategy() {
         if (!this.strategy || !this.strategy.conditions) return;
 
         let allConditionsMet = true;
+        
+        // Reset dynamic target
+        this.dynamicTarget = null;
 
         for (const cond of this.strategy.conditions) {
             if (!this.evaluateCondition(cond)) {
@@ -142,27 +178,55 @@ export class BotExecutionEngine {
     }
 
     private evaluateCondition(cond: StrategyRule): boolean {
+        // Handle Pattern Rules separately
+        if (cond.indicator === 'PATTERN' || (cond.parameters && cond.parameters.pattern)) {
+             const result = this.patternRecognizer.processDigitPatternRule(cond, this.config.symbol);
+             return result.matches;
+        }
+
         let valueToCheck: number | undefined;
         let referenceValue: number;
 
         // Determine Value to Check
-        if (cond.indicator === 'RSI') valueToCheck = this.tradeContext.indicators.rsi;
-        else if (cond.indicator === 'SMA') valueToCheck = this.tradeContext.indicators.sma;
-        else if (cond.indicator === 'DIGIT') valueToCheck = this.tradeContext.lastDigit;
-        else if (cond.indicator === 'PRICE') valueToCheck = this.ticks[this.ticks.length - 1];
+        if (cond.indicator === 'RSI') {
+            valueToCheck = Indicators.calculateRSI(this.tradeContext.prices, cond.period || 14) || undefined;
+        }
+        else if (cond.indicator === 'SMA') {
+            valueToCheck = Indicators.calculateSMA(this.tradeContext.prices, cond.period || 14) || undefined;
+        }
+        else if (cond.indicator === 'DIGIT') {
+            valueToCheck = this.tradeContext.digits[this.tradeContext.digits.length - 1];
+        }
+        else if (cond.indicator === 'PRICE') {
+            valueToCheck = this.tradeContext.prices[this.tradeContext.prices.length - 1];
+        }
 
         if (valueToCheck === undefined) return false;
 
         // Determine Reference Value
         if (typeof cond.value === 'number') {
             referenceValue = cond.value;
+        } else if (cond.value === 'SMA') {
+             referenceValue = Indicators.calculateSMA(this.tradeContext.prices, cond.compare_period || 20) || 0;
         } else {
-            // Handle dynamic references like "SMA"
-            // For simplicity, we'll assume simple numeric values for now in this migration
-            referenceValue = 0; 
+             referenceValue = 0; // Default
         }
 
-        // Compare
+        // Logic for Dynamic Prediction extraction
+        // Example: "differ do dígito que se repetir" -> We need to find the repeated digit
+        if (this.strategy.prediction === 'dynamic_repeated_digit' || cond.value === 'dynamic_repeated_digit') {
+            // Find repeated digit logic
+            const lastDigit = this.tradeContext.digits[this.tradeContext.digits.length - 1];
+            const prevDigit = this.tradeContext.digits[this.tradeContext.digits.length - 2];
+            if (lastDigit === prevDigit) {
+                this.dynamicTarget = lastDigit;
+            } else {
+                // If the condition implies "repeating", and it's not repeating, condition fails?
+                // Or maybe the condition IS checking for repetition.
+            }
+        }
+
+        // Standard Comparison
         switch (cond.operator) {
             case '>': return valueToCheck > referenceValue;
             case '<': return valueToCheck < referenceValue;
@@ -179,14 +243,14 @@ export class BotExecutionEngine {
     private async executeTrade() {
         if (this.isTrading) return;
         
-        // Check Limits
-        if (this.totalProfit <= -this.config.stopLoss) {
-            this.onLog("⛔ Stop Loss atingido!");
+        // Check Global Limits
+        if (this.totalProfit <= -Math.abs(this.config.stopLoss)) {
+            this.onLog("⛔ Stop Loss atingido! Parando bot.");
             this.stop();
             return;
         }
         if (this.totalProfit >= this.config.takeProfit) {
-            this.onLog("🎉 Take Profit atingido!");
+            this.onLog("🎉 Take Profit atingido! Parando bot.");
             this.stop();
             return;
         }
@@ -195,10 +259,26 @@ export class BotExecutionEngine {
         this.onLog(`⚡ Executando ordem: ${this.strategy.action} | Stake: ${this.currentStake}`);
 
         try {
-            // Construct Buy Request
-            const contractType = this.strategy.action === 'CALL' ? 'CALL' : 
-                                 this.strategy.action === 'PUT' ? 'PUT' : 
-                                 this.strategy.action; // DIGITOVER, etc.
+            // Determine Contract Type and Prediction
+            const contractType = this.strategy.action;
+            
+            // Resolve Prediction
+            let prediction = this.config.prediction;
+            
+            // 1. Strategy Explicit Prediction
+            if (this.strategy.prediction !== undefined && this.strategy.prediction !== null) {
+                if (this.strategy.prediction === 'dynamic_repeated_digit') {
+                    if (this.dynamicTarget !== null) {
+                        prediction = this.dynamicTarget;
+                    } else {
+                        // Fallback or skip
+                        this.onLog("⚠️ Previsão dinâmica não resolvida. Usando padrão.");
+                        prediction = 0; 
+                    }
+                } else {
+                    prediction = Number(this.strategy.prediction);
+                }
+            }
 
             const buyParams: any = {
                 buy: 1,
@@ -214,47 +294,24 @@ export class BotExecutionEngine {
                 }
             };
 
-            // Add barriers for Digit trades if needed
-            if (contractType.includes('DIGIT')) {
-                 // Logic to determine barrier from strategy would go here
-                 // For now, default or extracted from strategy
-                 if (this.strategy.prediction !== undefined) {
-                     buyParams.parameters.barrier = this.strategy.prediction;
-                 }
+            // Add barrier if needed
+            if (['DIGITMATCH', 'DIGITDIFF', 'DIGITOVER', 'DIGITUNDER'].includes(contractType)) {
+                if (prediction === undefined) prediction = 0; // Safety
+                buyParams.parameters.barrier = prediction;
             }
 
-            // Note: In real app, we usually get a Proposal first, then Buy. 
-            // DerivService might handle this or we send 'buy' directly if we know parameters.
-            // A safer way is 'proposal' -> 'buy'.
-            // For migration speed, assuming we use the `buy` shortcut or implement proposal flow.
-            
-            // Let's assume we send a proposal first
-            const proposalReq = {
-                proposal: 1,
-                ...buyParams.parameters
-            };
-            delete proposalReq.buy; // Proposal doesn't have 'buy' field
-            delete proposalReq.price;
-
+            // Execute via Proposal -> Buy for robustness
+            const proposalReq = { ...buyParams.parameters, proposal: 1 };
             const proposal = await this.deriv.send(proposalReq);
-            if (proposal.error) {
-                throw new Error(proposal.error.message);
-            }
+            
+            if (proposal.error) throw new Error(proposal.error.message);
 
-            const buyReq = {
-                buy: proposal.proposal.id,
-                price: proposal.proposal.ask_price
-            };
-
+            const buyReq = { buy: proposal.proposal.id, price: proposal.proposal.ask_price };
             const buyResponse = await this.deriv.send(buyReq);
             
-            if (buyResponse.error) {
-                throw new Error(buyResponse.error.message);
-            }
+            if (buyResponse.error) throw new Error(buyResponse.error.message);
 
             this.onLog(`✅ Ordem enviada! ID: ${buyResponse.buy.contract_id}`);
-            
-            // Monitor Contract
             this.monitorContract(buyResponse.buy.contract_id);
 
         } catch (error: any) {
@@ -264,10 +321,6 @@ export class BotExecutionEngine {
     }
 
     private monitorContract(contractId: string) {
-        // Subscribe to contract updates
-        // For this migration, we'll poll or use the stream if available
-        // We'll simulate a wait for result for now or hook into proposals_open_contract
-        
         const checkInterval = setInterval(async () => {
             if (!this.isRunning) {
                 clearInterval(checkInterval);
@@ -275,7 +328,6 @@ export class BotExecutionEngine {
             }
 
             try {
-                // We use send instead of subscribe for simplicity in this migration class
                 const data = await this.deriv.send({ proposal_open_contract: 1, contract_id: contractId });
                 const contract = data.proposal_open_contract;
 
@@ -295,64 +347,34 @@ export class BotExecutionEngine {
         this.totalProfit += profit;
         
         const isWin = profit > 0;
+        this.lastTradeResult = isWin ? 'WIN' : 'LOSS';
         const resultEmoji = isWin ? '✅' : '❌';
         
         this.onLog(`${resultEmoji} Trade finalizado. Lucro: ${profit} | Total: ${this.totalProfit.toFixed(2)}`);
         
-        const tradeResult = {
+        // Notify Trade
+        this.onTrade({
             id: contract.contract_id,
-            time: new Date(contract.purchase_time * 1000).toLocaleTimeString(),
-            symbol: contract.underlying_symbol,
-            type: contract.contract_type,
-            target: contract.barrier || '-',
-            exit: contract.exit_tick || contract.sell_spot || '-',
-            stake: contract.buy_price,
-            status: isWin ? 'Won' : 'Lost',
-            profit: profit.toFixed(2)
-        };
-
-        this.onTrade(tradeResult);
+            profit: profit,
+            status: isWin ? 'WIN' : 'LOSS',
+            timestamp: new Date()
+        });
 
         // Martingale Logic
-        if (!isWin) {
+        if (isWin) {
+            this.martingaleLevel = 0;
+            this.currentStake = this.config.stake; // Reset stake
+            this.onLog("🔄 Martingale resetado.");
+        } else {
             this.martingaleLevel++;
             if (this.martingaleLevel <= this.config.martingaleLevels) {
                 this.currentStake = this.currentStake * this.config.martingaleFactor;
-                this.onLog(`🔄 Martingale Nível ${this.martingaleLevel}: Nova stake ${this.currentStake.toFixed(2)}`);
+                this.onLog(`📈 Martingale Nível ${this.martingaleLevel}: Próxima stake ${this.currentStake.toFixed(2)}`);
             } else {
-                this.onLog("⚠️ Limite de Martingale atingido. Resetando stake.");
-                this.currentStake = this.config.stake;
                 this.martingaleLevel = 0;
+                this.currentStake = this.config.stake; // Reset if max level reached
+                this.onLog("⚠️ Limite de Martingale atingido. Resetando stake.");
             }
-        } else {
-            this.currentStake = this.config.stake;
-            this.martingaleLevel = 0;
         }
-    }
-
-    // --- Helpers ---
-    private calculateSMA(data: number[], period: number): number {
-        if (data.length < period) return 0;
-        const slice = data.slice(-period);
-        const sum = slice.reduce((a, b) => a + b, 0);
-        return sum / period;
-    }
-
-    private calculateRSI(data: number[], period: number): number {
-        if (data.length < period + 1) return 50;
-        
-        let gains = 0;
-        let losses = 0;
-
-        for (let i = data.length - period; i < data.length; i++) {
-            const diff = data[i] - data[i - 1];
-            if (diff >= 0) gains += diff;
-            else losses -= diff;
-        }
-
-        if (losses === 0) return 100;
-        
-        const rs = gains / losses;
-        return 100 - (100 / (1 + rs));
     }
 }

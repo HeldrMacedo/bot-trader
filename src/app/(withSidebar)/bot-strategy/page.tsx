@@ -11,11 +11,13 @@ import ManagementConfig from './components/ManagementConfig';
 import ControllerConfig from './components/ControllerConfig';
 import BotDashboard from './components/BotDashboard';
 import AiChatPanel from './components/AiChatPanel';
-import AccountSelector from './components/AccountSelector'; // ✅ Import AccountSelector
+import AccountSelector from './components/AccountSelector';
 import { DerivService } from '@/app/services/DerivService';
 import { GeminiAIService } from './services/GeminiAIService';
 import { BotExecutionEngine } from './services/BotExecutionEngine';
 import MarketAnalysisPanel from './components/MarketAnalysisPanel';
+import { MarketDataService } from './services/MarketDataService';
+import AiSuggestionsModal, { AiSuggestionsPayload, AiSuggestionStrategy } from './components/AiSuggestionsModal';
 
 export default function BotStrategyPage() {
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,10 @@ export default function BotStrategyPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [generatedStrategy, setGeneratedStrategy] = useState<any>(null);
+  const [aiMode, setAiMode] = useState<'strategy' | 'chat'>('strategy');
+  const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [suggestionsPayload, setSuggestionsPayload] = useState<AiSuggestionsPayload | null>(null);
 
   // Configuration State (Expanded with new fields)
   const [selectedSymbol, setSelectedSymbol] = useState('');
@@ -46,19 +52,19 @@ export default function BotStrategyPage() {
     takeProfit: 10,
     martingaleFactor: 2,
     martingaleLevels: 5,
-    galeSplitThreshold: 0, // ✅ New
-    galeSplitCount: 1,     // ✅ New
-    sorosLimit: 0,         // ✅ New
-    sorosProfitPercentage: 100, // ✅ New
-    galeRemovesSoros: false, // ✅ New
+    galeSplitThreshold: 0,
+    galeSplitCount: 1,
+    sorosLimit: 0,
+    sorosProfitPercentage: 100,
+    galeRemovesSoros: false,
 
     // Controller
-    winReal: 5,            // ✅ New
-    lossReal: 1,           // ✅ New
-    winSimulated: 0,       // ✅ New
-    lossSimulated: 1,      // ✅ New
-    tradeLimit: 0,         // ✅ New
-    cooldown: 3,           // ✅ New
+    winReal: 5,
+    lossReal: 1,
+    winSimulated: 0,
+    lossSimulated: 1,
+    tradeLimit: 0,
+    cooldown: 3,
     pauseOnLoss: false,
     pauseOnWin: false,
     pauseTime: 5
@@ -91,12 +97,16 @@ export default function BotStrategyPage() {
         const deriv = DerivService.getInstance();
         if (!deriv.isConnected) {
              if (activeToken) {
-                 await deriv.connect(activeToken);
+                 deriv.setToken(activeToken);
+                 deriv.connect();
              } else {
-                 await deriv.connect();
+                 deriv.connect();
              }
         }
         
+        // Initialize MarketDataService
+        MarketDataService.getInstance();
+
       } catch (error) {
         console.error("Initialization error:", error);
         toast.error("Erro na inicialização do sistema.");
@@ -115,6 +125,13 @@ export default function BotStrategyPage() {
     };
   }, []);
 
+  // Update Market Data Service when symbol changes
+  useEffect(() => {
+      if (selectedSymbol) {
+          MarketDataService.getInstance().setActiveSymbol(selectedSymbol);
+      }
+  }, [selectedSymbol]);
+
   const handleConfigChange = (key: string, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
@@ -123,31 +140,64 @@ export default function BotStrategyPage() {
       setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
   };
 
-  const handleAiMessage = async (text: string) => {
+  const handleAiMessage = async (text: string, imageData?: { data: string, mimeType: string, url?: string }) => {
       // Add user message
-      const userMsg = { id: Date.now().toString(), role: 'user', content: text, timestamp: new Date() };
+      const userMsg = { 
+          id: Date.now().toString(), 
+          role: 'user', 
+          content: text, 
+          image: imageData,
+          timestamp: new Date() 
+      };
       setMessages(prev => [...prev, userMsg]);
       setIsAiProcessing(true);
+      setAiProgressMessage(null);
 
       try {
-          // Call Gemini
-          const response = await geminiService.current.translateStrategy(text, (progressMsg) => {
-              // Optional: show progress toast or update UI
-          });
+          if (aiMode === 'chat') {
+              const response = await geminiService.current.chatWithAI(
+                  text,
+                  (progressMsg) => setAiProgressMessage(progressMsg),
+                  imageData
+              );
+
+              if (response.success) {
+                  const aiMsg = {
+                      id: (Date.now() + 1).toString(),
+                      role: 'ai',
+                      content: response.rawText || "Entendido.",
+                      timestamp: new Date()
+                  };
+                  setMessages(prev => [...prev, aiMsg]);
+              } else {
+                  const errorMsg = {
+                      id: (Date.now() + 1).toString(),
+                      role: 'ai',
+                      content: `❌ ${response.error || 'Erro desconhecido'}`,
+                      timestamp: new Date()
+                  };
+                  setMessages(prev => [...prev, errorMsg]);
+              }
+              return;
+          }
+
+          const response = await geminiService.current.translateStrategy(
+              text,
+              (progressMsg) => setAiProgressMessage(progressMsg),
+              imageData
+          );
 
           if (response.success && response.strategy) {
-              const aiMsg = { 
-                  id: (Date.now() + 1).toString(), 
-                  role: 'ai', 
-                  content: `Estratégia "${response.strategy.name}" gerada com sucesso! Configurei os parâmetros para você.`, 
-                  timestamp: new Date() 
+              const aiMsg = {
+                  id: (Date.now() + 1).toString(),
+                  role: 'ai',
+                  content: `Estratégia "${response.strategy.name || 'Sem nome'}" gerada com sucesso!`,
+                  timestamp: new Date()
               };
               setMessages(prev => [...prev, aiMsg]);
-              
-              // Update Config from Strategy
+
               setGeneratedStrategy(response.strategy);
-              
-              // Map AI strategy to our config if possible
+
               if (response.strategy.money_management) {
                   setConfig(prev => ({
                       ...prev,
@@ -156,21 +206,36 @@ export default function BotStrategyPage() {
                       takeProfit: response.strategy.money_management.take_profit || prev.takeProfit
                   }));
               }
-              
+
               if (response.strategy.action) {
                   setConfig(prev => ({
                       ...prev,
                       tradeType: response.strategy.action
                   }));
               }
-              
+
+              if (typeof response.strategy.prediction === 'number') {
+                  setConfig(prev => ({
+                      ...prev,
+                      prediction: response.strategy.prediction
+                  }));
+              }
+
               toast.success("Estratégia configurada pela IA!");
+          } else if (response.success && !response.strategy) {
+              const aiMsg = {
+                  id: (Date.now() + 1).toString(),
+                  role: 'ai',
+                  content: response.rawText || "Entendido.",
+                  timestamp: new Date()
+              };
+              setMessages(prev => [...prev, aiMsg]);
           } else {
-              const errorMsg = { 
-                  id: (Date.now() + 1).toString(), 
-                  role: 'ai', 
-                  content: `Desculpe, não consegui entender a estratégia. Erro: ${response.error || 'Desconhecido'}`, 
-                  timestamp: new Date() 
+              const errorMsg = {
+                  id: (Date.now() + 1).toString(),
+                  role: 'ai',
+                  content: `Desculpe, não consegui entender a estratégia. Erro: ${response.error || 'Desconhecido'}`,
+                  timestamp: new Date()
               };
               setMessages(prev => [...prev, errorMsg]);
           }
@@ -180,7 +245,60 @@ export default function BotStrategyPage() {
           toast.error("Erro ao comunicar com a IA");
       } finally {
           setIsAiProcessing(false);
+          setAiProgressMessage(null);
       }
+  };
+
+  const requestSuggestions = async () => {
+      if (!selectedSymbol) {
+          toast.warning("Selecione um ativo para gerar sugestões.");
+          return;
+      }
+
+      setIsAiProcessing(true);
+      setAiProgressMessage(null);
+      try {
+          const res = await geminiService.current.generateSuggestions(
+              {
+                  symbol: selectedSymbol,
+                  tradeType: config.tradeType,
+                  prediction: config.prediction,
+                  duration: config.duration,
+                  durationUnit: config.durationUnit
+              },
+              (msg) => setAiProgressMessage(msg)
+          );
+
+          if (!res.success || !res.suggestions) {
+              toast.error(res.error || "Não foi possível gerar sugestões.");
+              return;
+          }
+
+          setSuggestionsPayload(res.suggestions as AiSuggestionsPayload);
+          setSuggestionsOpen(true);
+      } finally {
+          setIsAiProcessing(false);
+          setAiProgressMessage(null);
+      }
+  };
+
+  const applySuggestion = async (strategy: AiSuggestionStrategy) => {
+      setSuggestionsOpen(false);
+      if (strategy.json_logic) {
+          setGeneratedStrategy(strategy.json_logic);
+          toast.success("Estratégia aplicada (JSON).");
+          return;
+      }
+
+      const text = strategy.rules_text || '';
+      if (!text.trim()) {
+          toast.error("Estratégia inválida.");
+          return;
+      }
+
+      setMainView('chat');
+      setAiMode('strategy');
+      await handleAiMessage(text);
   };
 
   const toggleBot = () => {
@@ -350,19 +468,31 @@ export default function BotStrategyPage() {
                                 isProcessing={isAiProcessing}
                                 onSendMessage={handleAiMessage}
                                 onStrategyGenerated={() => {}}
+                                mode={aiMode}
+                                onModeChange={setAiMode}
+                                progressMessage={aiProgressMessage}
+                                onRequestSuggestions={requestSuggestions}
                             />
                         </div>
-                        {selectedSymbol && (
-                            <div className="w-96 flex-shrink-0">
-                                <MarketAnalysisPanel symbol={selectedSymbol} />
-                            </div>
-                        )}
+                       
                     </div>
                 ) : (
                     <BotDashboard logs={logs} running={isRunning} resultsList={resultsList} />
                 )}
             </div>
+             
        </div>
+       {selectedSymbol && (
+                            <div className="flex-1 flex flex-col min-w-0">
+                                <MarketAnalysisPanel symbol={selectedSymbol} />
+                            </div>
+                        )}
+      <AiSuggestionsModal
+        isOpen={suggestionsOpen}
+        payload={suggestionsPayload}
+        onClose={() => setSuggestionsOpen(false)}
+        onApply={applySuggestion}
+      />
     </div>
   );
 }

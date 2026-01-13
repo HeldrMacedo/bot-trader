@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
-    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack",
     "start": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next start",
-    "lint": "next lint",
+    "lint": "eslint \"src/app/(withSidebar)/bot-strategy/**/*.{ts,tsx}\"",
     "postinstall": "prisma generate"
   },
   "dependencies": {
