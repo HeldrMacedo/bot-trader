@@ -1,25 +1,29 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { ChartBarIcon, ChatBubbleLeftIcon, CodeBracketIcon, PlayIcon, StopIcon } from '@heroicons/react/24/solid';
+import { useEffect, useRef, useState } from 'react';
+import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { PlayIcon, StopIcon, ChatBubbleLeftIcon, ChartBarIcon, CodeBracketIcon } from '@heroicons/react/24/solid';
 
-import VolatilitySelector from './components/VolatilitySelector';
-import TradeConfig from './components/TradeConfig';
-import ManagementConfig from './components/ManagementConfig';
-import ControllerConfig from './components/ControllerConfig';
-import BotDashboard from './components/BotDashboard';
-import AiChatPanel from './components/AiChatPanel';
-import AccountSelector from './components/AccountSelector';
-import BlocklyEditor from './components/BlocklyEditor';
 import { DerivService } from '@/app/services/DerivService';
-import { GeminiAIService } from './services/GeminiAIService';
-import { BotExecutionEngine } from './services/BotExecutionEngine';
-import { initBlocklyJavaScriptGenerator } from './services/BlocklyJavaScriptGenerator';
-import MarketAnalysisPanel from './components/MarketAnalysisPanel';
-import { MarketDataService } from './services/MarketDataService';
+import AccountSelector from './components/AccountSelector';
+import AiChatPanel from './components/AiChatPanel';
 import AiSuggestionsModal, { AiSuggestionsPayload, AiSuggestionStrategy } from './components/AiSuggestionsModal';
+import BlocklyEditor from './components/BlocklyEditor';
+import BotDashboard from './components/BotDashboard';
+import ControllerConfig from './components/ControllerConfig';
+import ManagementConfig from './components/ManagementConfig';
+import MarketAnalysisPanel from './components/MarketAnalysisPanel';
+import TradeConfig from './components/TradeConfig';
+import VolatilitySelector from './components/VolatilitySelector';
+import { initBlocklyJavaScriptGenerator } from './services/BlocklyJavaScriptGenerator';
+import { BotExecutionEngine, TradeRecord } from './services/BotExecutionEngine';
+import { GeminiAIService } from './services/GeminiAIService';
+import { MarketDataService } from './services/MarketDataService';
+import { TradeMode } from './services/TradeModeRiskController';
+import { div } from '@tensorflow/tfjs';
+import { Bot } from 'lucide-react';
+import { config } from 'process';
 
 export default function BotStrategyPage() {
   const [loading, setLoading] = useState(true);
@@ -39,11 +43,11 @@ export default function BotStrategyPage() {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestionsPayload, setSuggestionsPayload] = useState<AiSuggestionsPayload | null>(null);
 
-  // Configuration State (Expanded with new fields)
+  // Configuration State (Complete with all fields from legacy system)
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [config, setConfig] = useState({
     // Trade
-    stake: 1,
+    stake: 0.35,
     duration: 5,
     durationUnit: 't',
     tradeType: 'CALL',
@@ -52,21 +56,28 @@ export default function BotStrategyPage() {
     // Management
     stopLoss: 10,
     takeProfit: 10,
-    martingaleFactor: 2,
+    
+    // Gale settings (migrated from bot-ia)
+    galeActive: true,
+    martingaleFactor: 1,  // Gale adjustment multiplier
     martingaleLevels: 5,
     galeSplitThreshold: 0,
     galeSplitCount: 1,
+    
+    // Soros settings (migrated from bot-ia)
     sorosLimit: 0,
     sorosProfitPercentage: 100,
     galeRemovesSoros: false,
 
-    // Controller
+    // Controller (mode limits from bot-ia)
     winReal: 5,
     lossReal: 1,
     winSimulated: 0,
     lossSimulated: 1,
     tradeLimit: 0,
     cooldown: 3,
+    
+    // Pause settings
     pauseOnLoss: false,
     pauseOnWin: false,
     pauseTime: 5
@@ -82,8 +93,9 @@ export default function BotStrategyPage() {
       setLoading(true);
       try {
         const accountsStr = localStorage.getItem('deriv_accounts');
-        const activeToken = localStorage.getItem('activeToken') || localStorage.getItem('token'); 
-
+        console.log('Accounts from localStorage:', JSON.stringify(accountsStr));
+        const activeToken = JSON.parse(accountsStr)?.activeToken || []; 
+        console.log('Accounts', activeToken);
         if (!accountsStr) {
            toast.error("Nenhuma conta encontrada. Por favor, adicione uma conta no Dashboard.", {
                autoClose: 5000,
@@ -330,32 +342,91 @@ export default function BotStrategyPage() {
         return;
       }
       
-      // Start the traditional engine for other views
+      // Detect if virtual account from localStorage
+      const activeToken = localStorage.getItem('activeToken') || localStorage.getItem('token');
+      const accountsStr = localStorage.getItem('deriv_accounts');
+      let isVirtualAccount = true;
+      
+      if (accountsStr && activeToken) {
+        try {
+          const accounts = JSON.parse(accountsStr);
+          const activeAccount = accounts.find((a: any) => a.token === activeToken);
+          if (activeAccount) {
+            isVirtualAccount = activeAccount.is_virtual === true || activeAccount.is_virtual === 1;
+          }
+        } catch (e) {
+          console.error('Error parsing accounts:', e);
+        }
+      }
+      
+      // Build complete bot configuration with all legacy fields
       const botConf = {
         symbol: selectedSymbol,
-        ...config
+        stake: config.stake,
+        duration: config.duration,
+        durationUnit: config.durationUnit,
+        tradeType: config.tradeType,
+        prediction: config.prediction,
+        stopLoss: config.stopLoss,
+        takeProfit: config.takeProfit,
+        
+        // Gale settings
+        galeActive: config.galeActive,
+        martingaleFactor: config.martingaleFactor,
+        martingaleLevels: config.martingaleLevels,
+        galeSplitThreshold: config.galeSplitThreshold,
+        galeSplitCount: config.galeSplitCount,
+        
+        // Soros settings
+        sorosLimit: config.sorosLimit,
+        sorosProfitPercentage: config.sorosProfitPercentage,
+        galeRemovesSoros: config.galeRemovesSoros,
+        
+        // Controller limits
+        winReal: config.winReal,
+        lossReal: config.lossReal,
+        winSimulated: config.winSimulated,
+        lossSimulated: config.lossSimulated,
+        tradeLimit: config.tradeLimit,
+        cooldown: config.cooldown,
+        
+        // Pause settings
+        pauseOnWin: config.pauseOnWin,
+        pauseOnLoss: config.pauseOnLoss,
+        pauseTime: config.pauseTime
       };
       
       // Use generated strategy or create a default one based on manual inputs
       const strategyToUse = generatedStrategy || {
         name: "Manual Strategy",
-        conditions: [], // If manual, maybe we don't have conditions yet or need a manual builder
+        conditions: [],
         action: config.tradeType
       };
       
       if (!generatedStrategy) {
-        addLog("⚠️ Iniciando sem estratégia de IA definida. Apenas gestão de risco será aplicada (execução manual não implementada nesta versão).");
-        // For migration completeness, we should allow manual execution or basic strategy
+        addLog("⚠️ Iniciando sem estratégia de IA definida. Gestão de risco será aplicada.");
       }
 
+      // Create engine with all callbacks
       botEngine.current = new BotExecutionEngine(
         botConf, 
         strategyToUse,
         addLog,
-        (trade) => {
-          toast.info(`Trade ${trade.status}: $${trade.profit}`);
+        (trade: TradeRecord) => {
+          const emoji = trade.status === 'WIN' ? '✅' : '❌';
+          toast.info(`${emoji} ${trade.mode} Trade ${trade.status}: $${trade.profit.toFixed(2)}`);
           setResultsList(prev => [trade, ...prev]);
-        }
+        },
+        (mode: TradeMode, reason: string) => {
+          // Mode change callback
+          toast.info(`🔄 Modo: ${mode} - ${reason}`);
+        },
+        (reason: string) => {
+          // Stop callback
+          setIsRunning(false);
+          toast.warning(reason);
+        },
+        isVirtualAccount
       );
       
       botEngine.current.start();
