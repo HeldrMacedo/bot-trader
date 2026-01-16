@@ -38,6 +38,7 @@ export default function BotStrategyPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [generatedStrategy, setGeneratedStrategy] = useState<any>(null);
+  const [strategyText, setStrategyText] = useState<string>(''); // Store the raw strategy text
   const [aiMode, setAiMode] = useState<'strategy' | 'chat'>('strategy');
   const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -213,6 +214,8 @@ export default function BotStrategyPage() {
               };
               setMessages(prev => [...prev, aiMsg]);
 
+              // Store the original strategy text that was sent to the AI
+              setStrategyText(text);
               setGeneratedStrategy(response.strategy);
 
               if (response.strategy.money_management) {
@@ -597,7 +600,7 @@ export default function BotStrategyPage() {
        {/* Market Analysis Panel - Only show when symbol is selected and not in Blockly editor */}
        {selectedSymbol && mainView !== 'blockly' && (
            <div className="flex-1 flex flex-col min-w-0">
-               <MarketAnalysisPanel symbol={selectedSymbol} />
+               <MarketAnalysisPanel symbol={selectedSymbol} strategyText={strategyText} />
            </div>
        )}
        

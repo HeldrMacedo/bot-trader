@@ -1,6 +1,7 @@
 import { StrategyPreprocessor } from './StrategyPreprocessor';
 import { GeminiStrategyValidator } from './GeminiStrategyValidator';
 import { AIChatContextProcessor } from './AIChatContextProcessor';
+import { StrategyGroupProcessor } from './StrategyGroupProcessor';
 
 export interface GeminiResponse {
     success: boolean;
@@ -253,6 +254,10 @@ export class GeminiAIService {
     private buildPrompt(userMessage: string, marketContext: string, needsSystemContext: boolean): string {
         // Use the robust system instruction from the original system (gemini-ai.js)
         // to ensure complex strategies like "dynamic_prediction" are handled correctly.
+
+        // Parse the strategy text to identify groups and structure
+        const parsedStrategy = StrategyGroupProcessor.parseStrategyText(userMessage);
+
         const systemContext = `
 SISTEMA DE TRADUÇÃO E VALIDAÇÃO DE ESTRATÉGIAS DE TRADING
 
@@ -260,11 +265,25 @@ Você deve traduzir estratégias de trading escritas em linguagem natural para u
 IMPORTANTE: Siga uma HIERARQUIA DE DECISÕES EM ETAPAS para processar cada regra com precisão.
 
 ═══════════════════════════════════════════════════════════════════
+📋 ANÁLISE ESTRUTURAL DA ESTRATÉGIA RECEBIDA:
+═══════════════════════════════════════════════════════════════════
+A estratégia contém:
+- ${parsedStrategy.totalGroups} grupo(s) total(is)
+- ${parsedStrategy.totalRules} regra(s) distribuída(s) entre os grupos
+- Cada linha que começa com "*" representa UM GRUPO distinto
+- Regras dentro de um grupo são separadas por vírgulas e conectadas por lógica AND
+- Grupos diferentes são conectados por lógica OR (qualquer grupo pode acionar o trade)
+
+${parsedStrategy.groups.map((group, index) =>
+  `- Grupo ${index + 1}: ${group.rules.length} regra(s) conectadas por AND: [${group.rules.join(', ')}]`
+).join('\n')}
+
+═══════════════════════════════════════════════════════════════════
 📋 HIERARQUIA DE PROCESSAMENTO (SIGA ESSA ORDEM):
 ═══════════════════════════════════════════════════════════════════
 
 🔹 ETAPA 1: ANÁLISE ESTRUTURAL
-├─ Quantas linhas começam com "*"? → Cada linha = 1 GRUPO
+├─ Quantas linhas começam com "*"? → Cada linha = 1 GRUPO (JÁ IDENTIFICADO: ${parsedStrategy.totalGroups})
 ├─ Dentro de cada linha, regras separadas por vírgula = REGRAS DIFERENTES (AND)
 │  └─ **DICA**: Se o usuário escreve "Ação, Condição", crie UMA regra para a Ação e OUTRA para a Condição no mesmo grupo.
 └─ Grupos diferentes (linhas diferentes) = OR

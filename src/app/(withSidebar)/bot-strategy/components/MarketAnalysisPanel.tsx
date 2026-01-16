@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { DerivService } from '@/app/services/DerivService';
+import { StrategyGroupProcessor, ParsedStrategy } from '../services/StrategyGroupProcessor';
 
 interface MarketStats {
   digits: number[];
@@ -11,9 +12,10 @@ interface MarketStats {
 
 interface MarketAnalysisPanelProps {
   symbol: string;
+  strategyText?: string; // Optional strategy text to display groups
 }
 
-export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps) {
+export default function MarketAnalysisPanel({ symbol, strategyText }: MarketAnalysisPanelProps) {
   const [stats, setStats] = useState<MarketStats>({
     digits: [],
     prices: [],
@@ -21,9 +23,20 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
     lastDigit: null,
     direction: 'equal'
   });
-  
+
+  const [parsedStrategy, setParsedStrategy] = useState<ParsedStrategy | null>(null);
   const [loading, setLoading] = useState(false);
   const deriv = DerivService.getInstance();
+
+  // Parse strategy when it changes
+  useEffect(() => {
+    if (strategyText) {
+      const parsed = StrategyGroupProcessor.parseStrategyText(strategyText);
+      setParsedStrategy(parsed);
+    } else {
+      setParsedStrategy(null);
+    }
+  }, [strategyText]);
 
   useEffect(() => {
     if (!symbol) return;
@@ -40,21 +53,21 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
 
     // Helper to extract digit based on symbol type (logic from TicksTest.tsx)
     const getLastDigit = (price: number, symbol: string): number => {
-        const precision = 
+        const precision =
             symbol === "R_100" ? 2 :
             symbol === "R_25" || symbol === "R_10" ? 3 :
             symbol === "RDBEAR" || symbol === "RDBULL" ? 4 :
             symbol.startsWith("JD") ? 2 : symbol.includes("1HZ")
                   ? 2
                   : 4; // Default to 4 for others like R_50, R_75 which usually have 4 decimals or check logic
-            
+
         // Refined logic from TicksTest.tsx:
         // symbol == "R_100" ? 2
         // : symbol == "R_25" || symbol == "R_10" ? 3
         // : symbol == "RDBEAR" || symbol == "RDBULL" ? 4
         // : symbol.startsWith("JD") ? 2
         // : 4
-        
+
         return parseInt(price.toFixed(precision).slice(-1));
     };
 
@@ -62,14 +75,14 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
         if (data.tick && data.tick.symbol === symbol) {
             const price = data.tick.quote;
             const digit = getLastDigit(price, symbol);
-            
+
             setStats(prev => {
                 const newDigits = [...prev.digits, digit].slice(-1000); // Keep last 1000
                 const newPrices = [...prev.prices, price].slice(-1000);
-                
+
                 // Update counts (recalculate for last 100 for better accuracy on window sliding)
                 const counts = Array(10).fill(0);
-                const recentDigits = newDigits.slice(-100); 
+                const recentDigits = newDigits.slice(-100);
                 recentDigits.forEach(d => counts[d]++);
 
                 const prevPrice = prev.prices[prev.prices.length - 1] || price;
@@ -89,7 +102,7 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
 
     // Subscribe
     deriv.send({ ticks: symbol, subscribe: 1 }).catch(console.error);
-    
+
     // Listen using DerivService observer
     const listenerId = deriv.observerInstance.on('deriv.tick', handleTick);
 
@@ -97,7 +110,7 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
         // Unsubscribe from observer
         deriv.observerInstance.removeById(listenerId);
         // Optional: Send forget request if we want to stop stream strictly
-        // deriv.send({ forget_all: 'ticks' }); 
+        // deriv.send({ forget_all: 'ticks' });
     };
   }, [symbol]);
 
@@ -143,7 +156,7 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
 
   return (
     <div className="w-full flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar bg-[#13111c] border-l border-gray-800 p-4">
-        
+
         {/* Header */}
         <div className="flex justify-between items-center mb-2">
             <h3 className="font-bold text-white flex items-center gap-2">
@@ -153,10 +166,59 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
             {loading && <span className="text-xs text-yellow-500 animate-pulse">Sincronizando...</span>}
         </div>
 
+        {/* Strategy Groups Display */}
+        {parsedStrategy && (
+          <div className="bg-[#0d0a18] border border-gray-700 rounded-lg p-3 mb-4">
+            <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider text-center">Grupos de Estratégia</div>
+            
+            <div className="space-y-2">
+              {parsedStrategy.groups.map((group, index) => (
+                <div key={group.id} className="border border-gray-600 rounded p-2 bg-[#1a1726]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-blue-400">GRUPO {index + 1}</span>
+                    <span className="text-xs text-gray-500">(AND logic)</span>
+                  </div>
+                  <div className="text-sm text-gray-300">
+                    {group.rules.map((rule, ruleIdx) => (
+                      <div key={ruleIdx} className="ml-4 flex items-center">
+                        <span className="text-gray-500 mr-2">•</span>
+                        <span className="text-cyan-300">{rule.trim()}</span>
+                        {ruleIdx < group.rules.length - 1 && (
+                          <span className="text-blue-500 mx-1">&amp;&amp;</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              {parsedStrategy.errors.length > 0 && (
+                <div className="mt-3 p-2 bg-red-900/30 border border-red-700 rounded">
+                  <div className="text-xs text-red-400 font-bold mb-1">Erros:</div>
+                  <ul className="text-xs text-red-300">
+                    {parsedStrategy.errors.map((error, idx) => (
+                      <li key={idx} className="ml-4">• {error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-2 text-xs text-gray-500">
+              Total: {parsedStrategy.totalGroups} grupo(s), {parsedStrategy.totalRules} regra(s)
+              {parsedStrategy.isValid ? (
+                <span className="text-green-500 ml-2">✓ Válido</span>
+              ) : (
+                <span className="text-red-500 ml-2">✗ Inválido</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 🎲 Probability Monitor (Block 3 Logic) */}
         <div className="bg-[#0d0a18] border border-gray-700 rounded-lg p-3">
             <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider text-center">Probabilidade (100 Ticks)</div>
-            
+
             <div className="flex justify-between items-center gap-2">
                 {/* Highest */}
                 <div className="flex flex-col items-center bg-green-900/20 border border-green-900/50 rounded p-2 flex-1">
@@ -223,13 +285,13 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
             <div className="flex justify-between items-center mb-2">
                 <span className="text-xs text-gray-400">Direção Preço (100)</span>
             </div>
-            
+
             <div className="flex justify-between items-end mb-2">
                 <div className="text-center">
                     <div className="text-green-400 font-bold text-lg">{upPct}%</div>
                     <div className="text-[10px] text-gray-500">SOBE</div>
                 </div>
-                
+
                 {/* Visual Arrow */}
                 <div className={`text-2xl transition-transform duration-300 ${stats.direction === 'up' ? 'text-green-500 -rotate-45' : stats.direction === 'down' ? 'text-red-500 rotate-45' : 'text-gray-500'}`}>
                     ➔

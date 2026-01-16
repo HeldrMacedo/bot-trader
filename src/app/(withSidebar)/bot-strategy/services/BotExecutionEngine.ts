@@ -30,6 +30,21 @@ export interface StrategyRule {
     parameters?: any;
 }
 
+export interface StrategyGroup {
+    id: number;
+    rules: StrategyRule[];
+    logic: 'and'; // Within group, rules are connected by AND
+}
+
+export interface StrategyWithGroups {
+    name?: string;
+    description?: string;
+    groups: StrategyGroup[];
+    action?: string;
+    prediction?: number | string;
+    money_management?: any;
+}
+
 export interface BotConfig {
     symbol: string;
     stake: number;
@@ -87,8 +102,8 @@ export class BotExecutionEngine {
     private contractSelector: TradeContractSelector;
     
     private config: BotConfig;
-    private strategy: any;
-    
+    private strategy: StrategyWithGroups | any;
+
     private isRunning: boolean = false;
     private tradeContext: TradeContext = { ticks: [], prices: [], digits: [], indicators: {} };
     
@@ -199,6 +214,9 @@ export class BotExecutionEngine {
             this.onLog(`📈 Soros: ${this.config.sorosLimit} wins (${this.config.sorosProfitPercentage || 100}%)`);
         }
         
+        // Set up market data subscription
+        this.setupMarketDataSubscription();
+
         this.subscribeToTicks();
     }
 
@@ -301,7 +319,7 @@ export class BotExecutionEngine {
 
     private calculateIndicators(): void {
         if (!this.strategy || !this.strategy.conditions) return;
-        
+
         const neededIndicators = new Set(this.strategy.conditions.map((c: any) => c.indicator));
         const prices = this.tradeContext.prices;
 
@@ -311,13 +329,71 @@ export class BotExecutionEngine {
                 this.tradeContext.indicators.rsi = Indicators.calculateRSI(prices, cond.period || 14) || 0;
             }
         }
-        
+
         if (neededIndicators.has('SMA')) {
             this.tradeContext.indicators.sma = Indicators.calculateSMA(prices, 14) || 0;
         }
     }
 
+    private async setupMarketDataSubscription(): Promise<void> {
+        // Subscribe to market data updates
+        const marketData = MarketDataService.getInstance();
+        marketData.setActiveSymbol(this.config.symbol);
+
+        // Listen for tick updates
+        this.tickListenerId = this.deriv.observerInstance.on('deriv.tick', (data: any) => {
+            if (data.tick && data.tick.symbol === this.config.symbol) {
+                const price = data.tick.quote;
+
+                // Update trade context with new data
+                this.tradeContext.prices.push(price);
+                this.tradeContext.ticks.push(data.tick);
+
+                // Extract digit and add to digits array
+                const digit = this.extractDigit(price, this.config.symbol);
+                this.tradeContext.digits.push(digit);
+
+                // Keep only the last 1000 data points to prevent memory issues
+                if (this.tradeContext.prices.length > 1000) {
+                    this.tradeContext.prices.shift();
+                    this.tradeContext.ticks.shift();
+                    this.tradeContext.digits.shift();
+                }
+
+                // Check strategy when new data arrives
+                if (this.isRunning) {
+                    this.checkStrategy();
+                }
+            }
+        });
+    }
+
+    private extractDigit(price: number, symbol: string): number {
+        const precision = this.getPrecision(symbol);
+        const priceStr = price.toFixed(precision);
+        return parseInt(priceStr.slice(-1));
+    }
+
+    private getPrecision(symbol: string): number {
+        // Volatility Indices
+        if (symbol === "R_100" || symbol === "1HZ100V") return 2;
+        if (symbol === "R_10" || symbol === "1HZ10V") return 3;
+        if (symbol === "R_25" || symbol === "1HZ25V") return 3;
+        if (symbol === "R_50" || symbol === "1HZ50V") return 4;
+        if (symbol === "R_75" || symbol === "1HZ75V") return 4;
+
+        // Bear/Bull
+        if (symbol === "RDBEAR" || symbol === "RDBULL") return 4;
+
+        // Jump Indices
+        if (symbol.startsWith("JD")) return 2;
+
+        // Default fallback
+        return 4;
+    }
+
     private checkStrategy(): void {
+        // Handle legacy strategy format (flat conditions)
         if (this.strategy && this.strategy.conditions && this.strategy.conditions.length > 0) {
             let allConditionsMet = true;
             this.dynamicTarget = null;
@@ -333,6 +409,28 @@ export class BotExecutionEngine {
                 this.executeTrade();
             }
         }
+        // Handle new strategy format with groups
+        else if (this.strategy && this.strategy.groups && this.strategy.groups.length > 0) {
+            this.dynamicTarget = null;
+
+            // Check each group - if ANY group has ALL its conditions met, execute trade (OR logic between groups)
+            for (const group of this.strategy.groups) {
+                if (this.checkGroupConditions(group)) {
+                    this.executeTrade();
+                    break; // Execute trade once any group is satisfied
+                }
+            }
+        }
+    }
+
+    private checkGroupConditions(group: StrategyGroup): boolean {
+        // Within a group, all conditions must be met (AND logic)
+        for (const rule of group.rules) {
+            if (!this.evaluateCondition(rule)) {
+                return false; // If any condition in the group fails, the whole group fails
+            }
+        }
+        return true; // All conditions in the group passed
     }
 
     private evaluateCondition(cond: StrategyRule): boolean {
@@ -340,6 +438,11 @@ export class BotExecutionEngine {
         if (cond.indicator === 'PATTERN' || (cond.parameters && cond.parameters.pattern)) {
             const result = this.patternRecognizer.processDigitPatternRule(cond, this.config.symbol);
             return result.matches;
+        }
+
+        // Handle last digits condition (checking multiple consecutive digits)
+        if (cond.indicator === 'LAST_DIGITS' || cond.type === 'last_digits') {
+            return this.evaluateLastDigitsCondition(cond);
         }
 
         let valueToCheck: number | undefined;
@@ -388,6 +491,55 @@ export class BotExecutionEngine {
             case 'IS_ODD': return valueToCheck % 2 !== 0;
             default: return false;
         }
+    }
+
+    private evaluateLastDigitsCondition(cond: StrategyRule): boolean {
+        const count = cond.count || cond.parameters?.count || 1;
+        const operator = cond.operator || cond.parameters?.operator || '>';
+        const value = cond.value !== undefined ? cond.value : cond.parameters?.value;
+
+        if (value === undefined || value === null) {
+            console.warn('⚠️ Value not specified for last digits rule');
+            return false;
+        }
+
+        // Get the last N digits from the trade context
+        const recentDigits = this.tradeContext.digits.slice(-count);
+
+        if (recentDigits.length < count) {
+            console.warn(`⚠️ Not enough digits available. Need ${count}, have ${recentDigits.length}`);
+            return false;
+        }
+
+        // Evaluate the condition for each digit
+        const satisfiedCount = recentDigits.filter(digit => {
+            let d = digit;
+            let v = value;
+            if (!isNaN(parseFloat(d.toString()))) d = parseFloat(d.toString());
+            if (!isNaN(parseFloat(v.toString()))) v = parseFloat(v.toString());
+
+            switch (operator) {
+                case '<': return d < v;
+                case '>': return d > v;
+                case '=':
+                case '==':
+                case '===':
+                case 'match':
+                case 'matches':
+                case 'equal':
+                case 'equals':
+                    return d === v;
+                case '<=': return d <= v;
+                case '>=': return d >= v;
+                case '!=':
+                case '!==':
+                    return d !== v;
+                default: return false;
+            }
+        }).length;
+
+        // The rule is satisfied if ALL digits meet the condition
+        return satisfiedCount === count && count > 0;
     }
 
     private async executeTrade(): Promise<void> {
