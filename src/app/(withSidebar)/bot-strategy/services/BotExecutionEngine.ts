@@ -28,6 +28,8 @@ export interface StrategyRule {
     value: number | string;
     compare_period?: number;
     parameters?: any;
+    type?: string;
+    count?: number;
 }
 
 export interface StrategyGroup {
@@ -54,6 +56,10 @@ export interface BotConfig {
     takeProfit: number;
     prediction?: number;
     tradeType?: string;
+    contractType?: string;
+    barrier?: string;
+    barrierHigh?: string;
+    barrierLow?: string;
     
     // Gale settings
     galeActive?: boolean;
@@ -172,17 +178,17 @@ export class BotExecutionEngine {
     private mapToRiskConfig(config: BotConfig): RiskControllerConfig {
         return {
             galeActive: config.galeActive ?? true,
-            galeAdjustment: config.martingaleFactor || 1,
-            galeSplit: config.galeSplitCount || 1,
-            galeSplitThreshold: config.galeSplitThreshold || 0,
+            galeAdjustment: config.martingaleFactor ?? 1,
+            galeSplit: config.galeSplitCount ?? 1,
+            galeSplitThreshold: config.galeSplitThreshold ?? 0,
             stake: config.stake,
-            sorosLimit: config.sorosLimit || 0,
-            sorosPercentage: config.sorosProfitPercentage || 100,
-            galeRemovesSoros: config.galeRemovesSoros || false,
-            realWinsLimit: config.winReal || 5,
-            realLossesLimit: config.lossReal || 1,
-            simulatedWinsLimit: config.winSimulated || 0,
-            simulatedLossesLimit: config.lossSimulated || 1,
+            sorosLimit: config.sorosLimit ?? 0,
+            sorosPercentage: config.sorosProfitPercentage ?? 100,
+            galeRemovesSoros: config.galeRemovesSoros ?? false,
+            realWinsLimit: config.winReal ?? 5,
+            realLossesLimit: config.lossReal ?? 1,
+            simulatedWinsLimit: config.winSimulated ?? 0,
+            simulatedLossesLimit: config.lossSimulated ?? 1,
             goal: config.takeProfit,
             stopLoss: config.stopLoss
         };
@@ -602,7 +608,7 @@ export class BotExecutionEngine {
 
     private async executeBothModeTrade(): Promise<void> {
         const currentMode = this.riskController.getCurrentMode();
-        const baseContract = this.config.tradeType || 'DIGITOVER';
+        const baseContract = this.config.contractType || this.config.tradeType || 'DIGITOVER';
         
         const bothContracts = this.contractSelector.getBothContracts(baseContract);
         
@@ -668,9 +674,45 @@ export class BotExecutionEngine {
             symbol: this.config.symbol
         };
 
+        const singleBarrierContracts = new Set([
+            'CALLE',
+            'PUTE',
+            'TOUCH',
+            'NOTOUCH',
+            'ONETOUCH',
+            'RUNHIGH',
+            'RUNLOW'
+        ]);
+
+        const doubleBarrierContracts = new Set([
+            'EXPIRYRANGE',
+            'EXPIRYMISS',
+            'RANGE',
+            'UPORDOWN'
+        ]);
+
+        const predictionRangeContracts = new Set(['TICKHIGH', 'TICKLOW']);
+
         // Add barrier for digit contracts
         if (['DIGITMATCH', 'DIGITDIFF', 'DIGITOVER', 'DIGITUNDER'].includes(contractType)) {
             params.barrier = prediction ?? 0;
+        }
+
+        if (predictionRangeContracts.has(contractType) && prediction !== undefined && prediction !== null) {
+            params.barrier = prediction;
+        }
+
+        if (singleBarrierContracts.has(contractType) && this.config.barrier !== undefined && this.config.barrier !== null && this.config.barrier !== '') {
+            params.barrier = this.config.barrier;
+        }
+
+        if (doubleBarrierContracts.has(contractType)) {
+            const low = this.config.barrierLow;
+            const high = this.config.barrierHigh;
+            if (low !== undefined && low !== null && low !== '' && high !== undefined && high !== null && high !== '') {
+                params.barrier = low;
+                params.barrier2 = high;
+            }
         }
 
         return params;

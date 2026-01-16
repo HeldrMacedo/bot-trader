@@ -33,6 +33,7 @@ class BlocklyExecutionEngine {
   
   private ws: WebSocket | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private tickListenerId: string | null = null;
   
   constructor() {
     this.api = DerivService.getInstance();
@@ -73,6 +74,10 @@ class BlocklyExecutionEngine {
     if (!this.isRunning) return;
     this.isRunning = false;
     this.contractId = null;
+    if (this.tickListenerId) {
+      this.api?.observerInstance.removeById(this.tickListenerId);
+      this.tickListenerId = null;
+    }
     this.log("Bot parado pelo usuário.", "warn");
     if (this.callbacks.onUpdate) this.callbacks.onUpdate(false);
   }
@@ -83,16 +88,19 @@ class BlocklyExecutionEngine {
     const symbol = this.tradeOptions?.symbol || 'R_100';
     this.log(`Monitorando mercado: ${symbol}`);
 
-    // Subscribe to ticks via Deriv API
     try {
-      await this.api?.subscribeToTicks(symbol, (tick) => {
-        if (this.isRunning) {
-          this.processTick(tick);
-        }
-      });
+      await this.api?.subscribe({ ticks: symbol });
+      this.tickListenerId = this.api?.observerInstance.on('deriv.tick', (data: any) => {
+        if (!this.isRunning) return;
+        if (data?.tick?.symbol !== symbol) return;
+        this.processTick(data.tick);
+      }) || null;
     } catch (error) {
       this.log(`Erro na subscrição de ticks: ${(error as Error).message}`, "error");
     }
+  }
+
+  private tradingLoop() {
   }
 
   private processTick(tick: any) {
@@ -165,7 +173,7 @@ class BlocklyExecutionEngine {
 
     try {
       // Get proposal
-      const proposal = await this.api.sendRequest(req);
+      const proposal = await this.api.send(req);
       if (proposal.error) {
         this.notify(`Erro Proposta: ${proposal.error.message}`, "error");
         return;
@@ -174,7 +182,7 @@ class BlocklyExecutionEngine {
       this.currentProposal = proposal;
 
       // Execute purchase
-      const buy = await this.api.sendRequest({ 
+      const buy = await this.api.send({ 
         buy: proposal.proposal.id, 
         price: proposal.proposal.ask_price 
       });
@@ -198,7 +206,7 @@ class BlocklyExecutionEngine {
       if (!this.isRunning || !this.contractId) return;
       
       try {
-        const data = await this.api?.sendRequest({ 
+        const data = await this.api?.send({ 
           proposal_open_contract: 1, 
           contract_id: id 
         });

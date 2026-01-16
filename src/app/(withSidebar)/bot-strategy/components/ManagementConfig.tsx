@@ -61,7 +61,7 @@ export default function ManagementConfig({ config, onChange }: ManagementConfigP
             <div className="flex-1 flex relative">
                  <input
                     type="number"
-                    value={config.galeSplitThreshold || ''}
+                    value={config.galeSplitThreshold ?? ''}
                     onChange={(e) => onChange('galeSplitThreshold', parseFloat(e.target.value))}
                     placeholder="$0.00"
                     title="Gatilho de Perda para Split"
@@ -72,7 +72,7 @@ export default function ManagementConfig({ config, onChange }: ManagementConfigP
                     className="w-1/3 bg-gray-700 border border-gray-600 rounded-r flex items-center justify-center text-white hover:bg-gray-600"
                     title="Parcelas da Divisão"
                  >
-                     <span className="mr-1">{config.galeSplitCount || 1}</span>
+                     <span className="mr-1">{config.galeSplitCount ?? 1}</span>
                      <ChevronDownIcon className="w-3 h-3" />
                  </button>
 
@@ -102,7 +102,7 @@ export default function ManagementConfig({ config, onChange }: ManagementConfigP
         <div className="flex gap-2 items-center">
              <input
                 type="number"
-                value={config.sorosLimit || 0}
+                value={config.sorosLimit ?? 0}
                 onChange={(e) => onChange('sorosLimit', parseInt(e.target.value))}
                 min="0"
                 step="1"
@@ -111,7 +111,7 @@ export default function ManagementConfig({ config, onChange }: ManagementConfigP
             />
             <input
                 type="number"
-                value={config.sorosProfitPercentage || 100}
+                value={config.sorosProfitPercentage ?? 100}
                 onChange={(e) => onChange('sorosProfitPercentage', parseInt(e.target.value))}
                 min="0"
                 max="100"
@@ -122,7 +122,7 @@ export default function ManagementConfig({ config, onChange }: ManagementConfigP
              <div className="flex items-center" title="Proteger Soros no Gale">
                 <input
                     type="checkbox"
-                    checked={config.galeRemovesSoros || false}
+                    checked={config.galeRemovesSoros ?? false}
                     onChange={(e) => onChange('galeRemovesSoros', e.target.checked)}
                     className="w-4 h-4 rounded border-gray-700 bg-[#1e1b2e] text-blue-600 focus:ring-blue-500"
                 />

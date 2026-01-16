@@ -21,9 +21,6 @@ import { BotExecutionEngine, TradeRecord } from './services/BotExecutionEngine';
 import { GeminiAIService } from './services/GeminiAIService';
 import { MarketDataService } from './services/MarketDataService';
 import { TradeMode } from './services/TradeModeRiskController';
-import { div } from '@tensorflow/tfjs';
-import { Bot } from 'lucide-react';
-import { config } from 'process';
 
 export default function BotStrategyPage() {
   const [loading, setLoading] = useState(true);
@@ -46,13 +43,18 @@ export default function BotStrategyPage() {
 
   // Configuration State (Complete with all fields from legacy system)
   const [selectedSymbol, setSelectedSymbol] = useState('');
+  const [availableContractTypes, setAvailableContractTypes] = useState<string[]>([]);
   const [config, setConfig] = useState({
     // Trade
     stake: 0.35,
     duration: 1,
     durationUnit: 't',
+    contractType: '',
     tradeType: 'CALL',
     prediction: 0,
+    barrier: '',
+    barrierHigh: '',
+    barrierLow: '',
     
     // Management
     stopLoss: 10,
@@ -88,15 +90,153 @@ export default function BotStrategyPage() {
   const geminiService = useRef(new GeminiAIService());
   const botEngine = useRef<BotExecutionEngine | null>(null);
 
+  const getLoginIdFromStorage = (): string | null => {
+    try {
+      const accountsStr = localStorage.getItem('deriv_accounts');
+      if (!accountsStr) return null;
+      const accounts = JSON.parse(accountsStr);
+      const a = Array.isArray(accounts) ? accounts[0] : null;
+      return a?.selectedLoginId || a?.loginId || a?.tokens?.[0]?.loginid || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveCurrentConfiguration = (nextConfig: any, nextSymbol: string) => {
+    try {
+      const loginid = getLoginIdFromStorage();
+      if (!loginid) return;
+
+      const configToSave: any = {
+        symbol: nextSymbol,
+        contractType: nextConfig.contractType || '',
+        tradeType: nextConfig.tradeType || '',
+        duration: Number.isFinite(nextConfig.duration) ? nextConfig.duration : parseInt(nextConfig.duration) || 1,
+        durationUnit: nextConfig.durationUnit || 't',
+        stake: Number.isFinite(nextConfig.stake) ? nextConfig.stake : parseFloat(nextConfig.stake) || 0.35,
+        goal: nextConfig.takeProfit ?? 1,
+        stopLoss: nextConfig.stopLoss ?? 100,
+        galeMultiplier: nextConfig.martingaleFactor ?? 1.0,
+        galeSplit: nextConfig.galeSplitCount ?? 1,
+        galeSplitThreshold: nextConfig.galeSplitThreshold ?? 0,
+        winReal: nextConfig.winReal ?? 5,
+        lossReal: nextConfig.lossReal ?? 1,
+        winSimulated: nextConfig.winSimulated ?? 0,
+        lossSimulated: nextConfig.lossSimulated ?? 1,
+        tradeLimit: nextConfig.tradeLimit ?? 0,
+        cooldownPeriod: nextConfig.cooldown ?? 3,
+      };
+
+      if (nextConfig.prediction !== undefined && nextConfig.prediction !== null && nextConfig.prediction !== '') {
+        configToSave.prediction = nextConfig.prediction;
+      }
+      if (nextConfig.barrier !== undefined && nextConfig.barrier !== null && nextConfig.barrier !== '') {
+        configToSave.barrier = nextConfig.barrier;
+      }
+      if (nextConfig.barrierHigh !== undefined && nextConfig.barrierHigh !== null && nextConfig.barrierHigh !== '') {
+        configToSave.barrierHigh = nextConfig.barrierHigh;
+      }
+      if (nextConfig.barrierLow !== undefined && nextConfig.barrierLow !== null && nextConfig.barrierLow !== '') {
+        configToSave.barrierLow = nextConfig.barrierLow;
+      }
+
+      const userConfigKey = `trade_config_user_${loginid}`;
+      localStorage.setItem(
+        userConfigKey,
+        JSON.stringify({
+          config: configToSave,
+          _timestamp: Date.now(),
+          _autoSaved: true,
+          _userId: loginid,
+        })
+      );
+
+      if (botEngine.current) {
+        botEngine.current.updateConfig({
+          stake: nextConfig.stake,
+          duration: nextConfig.duration,
+          durationUnit: nextConfig.durationUnit,
+          tradeType: nextConfig.tradeType,
+          prediction: nextConfig.prediction,
+          stopLoss: nextConfig.stopLoss,
+          takeProfit: nextConfig.takeProfit,
+          galeActive: nextConfig.galeActive,
+          martingaleFactor: nextConfig.martingaleFactor,
+          martingaleLevels: nextConfig.martingaleLevels,
+          galeSplitThreshold: nextConfig.galeSplitThreshold,
+          galeSplitCount: nextConfig.galeSplitCount,
+          sorosLimit: nextConfig.sorosLimit,
+          sorosProfitPercentage: nextConfig.sorosProfitPercentage,
+          galeRemovesSoros: nextConfig.galeRemovesSoros,
+          winReal: nextConfig.winReal,
+          lossReal: nextConfig.lossReal,
+          winSimulated: nextConfig.winSimulated,
+          lossSimulated: nextConfig.lossSimulated,
+          tradeLimit: nextConfig.tradeLimit,
+          cooldown: nextConfig.cooldown,
+          pauseOnWin: nextConfig.pauseOnWin,
+          pauseOnLoss: nextConfig.pauseOnLoss,
+          pauseTime: nextConfig.pauseTime,
+          symbol: nextSymbol,
+          contractType: nextConfig.contractType,
+          barrier: nextConfig.barrier,
+          barrierHigh: nextConfig.barrierHigh,
+          barrierLow: nextConfig.barrierLow,
+        });
+      }
+    } catch {
+    }
+  };
+
+  const normalizeSavedConfig = (raw: any) => {
+    const saved = raw?.config || raw;
+    if (!saved) return null;
+
+    return {
+      symbol: saved.symbol ?? '',
+      contractType: saved.contractType ?? '',
+      tradeType: saved.tradeType ?? 'CALL',
+      duration: parseInt(saved.duration) || 1,
+      durationUnit: saved.durationUnit ?? 't',
+      stake: typeof saved.stake === 'number' ? saved.stake : parseFloat(saved.stake) || 0.35,
+      prediction: saved.prediction !== undefined ? parseInt(saved.prediction) : 0,
+      barrier: saved.barrier ?? '',
+      barrierHigh: saved.barrierHigh ?? '',
+      barrierLow: saved.barrierLow ?? '',
+      stopLoss: typeof saved.stopLoss === 'number' ? saved.stopLoss : parseFloat(saved.stopLoss) || 100,
+      takeProfit: saved.takeProfit !== undefined
+        ? (typeof saved.takeProfit === 'number' ? saved.takeProfit : parseFloat(saved.takeProfit) || 1)
+        : (typeof saved.goal === 'number' ? saved.goal : parseFloat(saved.goal) || 1),
+      galeActive: saved.galeActive ?? true,
+      martingaleFactor: saved.martingaleFactor !== undefined
+        ? (typeof saved.martingaleFactor === 'number' ? saved.martingaleFactor : parseFloat(saved.martingaleFactor) || 1)
+        : (typeof saved.galeMultiplier === 'number' ? saved.galeMultiplier : parseFloat(saved.galeMultiplier) || 1),
+      martingaleLevels: typeof saved.martingaleLevels === 'number' ? saved.martingaleLevels : parseInt(saved.martingaleLevels) || 5,
+      galeSplitThreshold: saved.galeSplitThreshold !== undefined ? (typeof saved.galeSplitThreshold === 'number' ? saved.galeSplitThreshold : parseFloat(saved.galeSplitThreshold) || 0) : 0,
+      galeSplitCount: saved.galeSplitCount !== undefined
+        ? (typeof saved.galeSplitCount === 'number' ? saved.galeSplitCount : parseInt(saved.galeSplitCount) || 1)
+        : (typeof saved.galeSplit === 'number' ? saved.galeSplit : parseInt(saved.galeSplit) || 1),
+      sorosLimit: typeof saved.sorosLimit === 'number' ? saved.sorosLimit : parseInt(saved.sorosLimit) || 0,
+      sorosProfitPercentage: typeof saved.sorosProfitPercentage === 'number' ? saved.sorosProfitPercentage : parseInt(saved.sorosProfitPercentage) || 100,
+      galeRemovesSoros: saved.galeRemovesSoros ?? false,
+      winReal: saved.winReal !== undefined ? parseInt(saved.winReal) : (saved.realWinsLimit !== undefined ? parseInt(saved.realWinsLimit) : 0),
+      lossReal: saved.lossReal !== undefined ? parseInt(saved.lossReal) : (saved.realLossesLimit !== undefined ? parseInt(saved.realLossesLimit) : 0),
+      winSimulated: saved.winSimulated !== undefined ? parseInt(saved.winSimulated) : (saved.simulatedWinsLimit !== undefined ? parseInt(saved.simulatedWinsLimit) : 0),
+      lossSimulated: saved.lossSimulated !== undefined ? parseInt(saved.lossSimulated) : (saved.simulatedLossesLimit !== undefined ? parseInt(saved.simulatedLossesLimit) : 0),
+      tradeLimit: saved.tradeLimit !== undefined ? parseInt(saved.tradeLimit) : 0,
+      cooldown: saved.cooldown !== undefined ? parseInt(saved.cooldown) : (saved.cooldownPeriod !== undefined ? parseInt(saved.cooldownPeriod) : 3),
+      pauseOnLoss: saved.pauseOnLoss ?? false,
+      pauseOnWin: saved.pauseOnWin ?? false,
+      pauseTime: saved.pauseTime !== undefined ? parseInt(saved.pauseTime) : 5,
+    };
+  };
+
   // Initialization Flow
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       try {
         const accountsStr = localStorage.getItem('deriv_accounts');
-
-        const activeToken = JSON.parse(accountsStr)[0]?.activeToken || []; 
-              
         if (!accountsStr) {
            toast.error("Nenhuma conta encontrada. Por favor, adicione uma conta no Dashboard.", {
                autoClose: 5000,
@@ -104,6 +244,9 @@ export default function BotStrategyPage() {
            });
            return; 
         }
+
+        const parsedAccounts = accountsStr ? JSON.parse(accountsStr) : [];
+        const activeToken = parsedAccounts?.[0]?.activeToken || null;
 
         if (!activeToken) {
             toast.warn("Nenhuma conta ativa selecionada.");
@@ -125,6 +268,48 @@ export default function BotStrategyPage() {
         // Initialize Blockly JavaScript generator
         initBlocklyJavaScriptGenerator();
 
+        const loginid = getLoginIdFromStorage();
+        if (loginid) {
+          const key = `trade_config_user_${loginid}`;
+          const savedStr = localStorage.getItem(key);
+          if (savedStr) {
+            const saved = normalizeSavedConfig(JSON.parse(savedStr));
+            if (saved) {
+              if (saved.symbol) setSelectedSymbol(saved.symbol);
+              setConfig(prev => ({
+                ...prev,
+                stake: saved.stake,
+                duration: saved.duration,
+                durationUnit: saved.durationUnit,
+                contractType: saved.contractType,
+                tradeType: saved.tradeType,
+                prediction: saved.prediction,
+                barrier: saved.barrier,
+                barrierHigh: saved.barrierHigh,
+                barrierLow: saved.barrierLow,
+                stopLoss: saved.stopLoss,
+                takeProfit: saved.takeProfit,
+                galeActive: saved.galeActive,
+                martingaleFactor: saved.martingaleFactor,
+                martingaleLevels: saved.martingaleLevels,
+                galeSplitThreshold: saved.galeSplitThreshold,
+                galeSplitCount: saved.galeSplitCount,
+                sorosLimit: saved.sorosLimit,
+                sorosProfitPercentage: saved.sorosProfitPercentage,
+                galeRemovesSoros: saved.galeRemovesSoros,
+                winReal: saved.winReal,
+                lossReal: saved.lossReal,
+                winSimulated: saved.winSimulated,
+                lossSimulated: saved.lossSimulated,
+                tradeLimit: saved.tradeLimit,
+                cooldown: saved.cooldown,
+                pauseOnLoss: saved.pauseOnLoss,
+                pauseOnWin: saved.pauseOnWin,
+                pauseTime: saved.pauseTime,
+              }));
+            }
+          }
+        }
       } catch (error) {
         console.error("Initialization error:", error);
         toast.error("Erro na inicialização do sistema.");
@@ -150,8 +335,70 @@ export default function BotStrategyPage() {
       }
   }, [selectedSymbol]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadContracts = async () => {
+      if (!selectedSymbol) {
+        setAvailableContractTypes([]);
+        return;
+      }
+
+      try {
+        const marketData = MarketDataService.getInstance();
+        const contractsData = await marketData.getContractsFor(selectedSymbol);
+        const available = contractsData?.contracts_for?.available || contractsData?.available || [];
+        const types = Array.from(
+          new Set(
+            (available as any[])
+              .map((c) => c?.contract_type)
+              .filter((t) => typeof t === 'string' && t.trim() !== '')
+          )
+        );
+
+        const withGroups = [...types];
+        if (withGroups.includes('CALLE') && withGroups.includes('PUTE') && !withGroups.includes('HIGHER_LOWER_GROUP')) {
+          withGroups.unshift('HIGHER_LOWER_GROUP');
+        }
+
+        if (cancelled) return;
+        setAvailableContractTypes(withGroups);
+
+        setConfig((prev) => {
+          const nextContractType =
+            prev.contractType && withGroups.includes(prev.contractType)
+              ? prev.contractType
+              : (withGroups.includes('DIGITDIFF') ? 'DIGITDIFF' : (withGroups[0] || ''));
+
+          const nextTradeType = nextContractType === 'HIGHER_LOWER_GROUP'
+            ? (prev.tradeType === 'BOTH' || prev.tradeType === 'CALLE' || prev.tradeType === 'PUTE' ? prev.tradeType : 'CALLE')
+            : (prev.tradeType && withGroups.includes(prev.tradeType) ? prev.tradeType : (nextContractType || prev.tradeType));
+
+          const next = {
+            ...prev,
+            contractType: nextContractType,
+            tradeType: nextTradeType,
+          };
+
+          saveCurrentConfiguration(next, selectedSymbol);
+          return next;
+        });
+      } catch {
+        if (!cancelled) setAvailableContractTypes([]);
+      }
+    };
+
+    loadContracts();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSymbol]);
+
   const handleConfigChange = (key: string, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
+    setConfig(prev => {
+      const updated = { ...prev, [key]: value };
+      saveCurrentConfiguration(updated, selectedSymbol);
+      return updated;
+    });
   };
 
   const addLog = (msg: string) => {
@@ -221,9 +468,9 @@ export default function BotStrategyPage() {
               if (response.strategy.money_management) {
                   setConfig(prev => ({
                       ...prev,
-                      stake: response.strategy.money_management.stake || prev.stake,
-                      stopLoss: response.strategy.money_management.stop_loss || prev.stopLoss,
-                      takeProfit: response.strategy.money_management.take_profit || prev.takeProfit
+                      stake: response.strategy.money_management.stake ?? prev.stake,
+                      stopLoss: response.strategy.money_management.stop_loss ?? prev.stopLoss,
+                      takeProfit: response.strategy.money_management.take_profit ?? prev.takeProfit
                   }));
               }
 
@@ -368,8 +615,12 @@ export default function BotStrategyPage() {
         stake: config.stake,
         duration: config.duration,
         durationUnit: config.durationUnit,
+        contractType: config.contractType,
         tradeType: config.tradeType,
         prediction: config.prediction,
+        barrier: config.barrier,
+        barrierHigh: config.barrierHigh,
+        barrierLow: config.barrierLow,
         stopLoss: config.stopLoss,
         takeProfit: config.takeProfit,
         
@@ -468,7 +719,10 @@ export default function BotStrategyPage() {
              {/* Volatility Selector */}
              <VolatilitySelector 
                 selectedSymbol={selectedSymbol} 
-                onSelectSymbol={setSelectedSymbol} 
+                onSelectSymbol={(s) => {
+                  setSelectedSymbol(s);
+                  saveCurrentConfiguration(config, s);
+                }} 
              />
 
              {/* Tabs */}
@@ -496,7 +750,7 @@ export default function BotStrategyPage() {
              {/* Tab Content */}
              <div className="mt-2">
                 {activeTab === 'trade' && (
-                    <TradeConfig config={config} onChange={handleConfigChange} />
+                    <TradeConfig config={config} availableContractTypes={availableContractTypes} onChange={handleConfigChange} />
                 )}
                 {activeTab === 'management' && (
                     <ManagementConfig config={config} onChange={handleConfigChange} />

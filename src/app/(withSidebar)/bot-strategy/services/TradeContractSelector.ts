@@ -76,6 +76,13 @@ export class TradeContractSelector {
 
     // Get the contract group for a given contract type
     getContractGroup(contractType: string): ContractGroup | null {
+        if (contractType === 'HIGHER_LOWER_GROUP') {
+            return {
+                groupName: 'Higher/Lower',
+                contracts: CONTRACT_GROUPS['Higher/Lower']
+            };
+        }
+
         for (const [groupName, contracts] of Object.entries(CONTRACT_GROUPS)) {
             if (contracts.includes(contractType)) {
                 return {

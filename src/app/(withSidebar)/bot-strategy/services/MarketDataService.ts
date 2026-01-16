@@ -11,6 +11,8 @@ export class MarketDataService {
         digits: number[];
     }> = new Map();
 
+    private contractsCache: Map<string, any> = new Map();
+
     private activeSymbol: string | null = null;
     private listenerId: string | null = null;
 
@@ -104,5 +106,16 @@ export class MarketDataService {
         const history = this.history.get(symbol);
         if (!history) return [];
         return history.ticks.slice(-count);
+    }
+
+    public async getContractsFor(symbol: string): Promise<any> {
+        if (!symbol) return null;
+
+        const cached = this.contractsCache.get(symbol);
+        if (cached) return cached;
+
+        const response = await this.deriv.send({ contracts_for: symbol });
+        this.contractsCache.set(symbol, response);
+        return response;
     }
 }
