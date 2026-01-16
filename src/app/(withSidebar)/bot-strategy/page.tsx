@@ -49,7 +49,7 @@ export default function BotStrategyPage() {
   const [config, setConfig] = useState({
     // Trade
     stake: 0.35,
-    duration: 5,
+    duration: 1,
     durationUnit: 't',
     tradeType: 'CALL',
     prediction: 0,

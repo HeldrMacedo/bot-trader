@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
 import { DerivService } from '@/app/services/DerivService';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { useEffect, useState } from 'react';
 
 interface VolatilitySelectorProps {
   selectedSymbol: string;
@@ -17,7 +17,7 @@ export default function VolatilitySelector({ selectedSymbol, onSelectSymbol }: V
   const [symbols, setSymbols] = useState<SymbolData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
-
+  
   useEffect(() => {
     const fetchSymbols = async () => {
       try {
@@ -38,11 +38,12 @@ export default function VolatilitySelector({ selectedSymbol, onSelectSymbol }: V
             const volatilitySymbols = response.active_symbols.filter((s: any) => 
                 s.market === 'synthetic_index' && s.submarket === 'random_index'
             );
+            console.log('volatilitySymbols', volatilitySymbols);
             setSymbols(volatilitySymbols);
             
             // Set default if none selected
             if (!selectedSymbol && volatilitySymbols.length > 0) {
-                onSelectSymbol(volatilitySymbols[0].symbol);
+                onSelectSymbol(volatilitySymbols[1].symbol);
             }
         }
       } catch (error) {
