@@ -79,6 +79,7 @@ export class DerivService {
   private pendingResubscribes = new Map<string, any>();
   private currentAccount: AccountInfo | null = null;
   private balanceSubscriptionId: string | null = null;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
 
   private needAuthorize = [
     "get_settings",
@@ -349,27 +350,40 @@ export class DerivService {
   }
 
   public connect(): void {
-    // const DAYS = 10;
-    // const installDate = moment("2025-07-11", "YYYY-MM-DD").add(DAYS, "days");
-    // const dataAtual = moment();
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
 
-    // if (dataAtual.isAfter(installDate)) {
-    //   return;
-    // }
+    this.manualClose = false;
 
-     this.ws = new WebSocket(
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.OPEN ||
+        this.ws.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
+
+    const ws = new WebSocket(
       `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`
     );
 
-    this.ws.addEventListener("open", () => this.handleOpen());
-    this.ws.addEventListener("message", (event) => this.handleMessage(event));
-    this.ws.addEventListener("error", () => this.handleError());
-    this.ws.addEventListener("close", (event) => this.handleClose(event));
-   
+    this.ws = ws;
+
+    ws.addEventListener("open", () => this.handleOpen(ws));
+    ws.addEventListener("message", (event) => this.handleMessage(ws, event));
+    ws.addEventListener("error", (event) => this.handleError(ws, event));
+    ws.addEventListener("close", (event) => this.handleClose(ws, event));
   }
 
-  public handleOpen() {
+  public handleOpen(ws: WebSocket) {
+    if (this.ws !== ws || ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
     this.observer.emit("open", undefined);
+
     if (this.authorizeToken) {
       this.send({ authorize: this.authorizeToken });
     }
@@ -377,17 +391,25 @@ export class DerivService {
     this.dispatchPendingRequests();
     this.dispatchPendingResubscribes();
 
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+    }
+
     this.pingInterval = setInterval(() => {
-      this.ws?.send('{ "ping": 1 }');
+      if (this.ws === ws && ws.readyState === WebSocket.OPEN) {
+        ws.send('{ "ping": 1 }');
+      }
     }, 25000);
   }
-  
-  public handleMessage(event: MessageEvent) {
-    try {
 
+  public handleMessage(ws: WebSocket, event: MessageEvent) {
+    if (this.ws !== ws) {
+      return;
+    }
+
+    try {
       const data = JSON.parse(event.data);
       this.observer.emit("message", data);
-      
 
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
@@ -410,11 +432,23 @@ export class DerivService {
     }
   }
 
-  private handleError() {
-    this.reconnect();
+  private handleError(ws: WebSocket, event: Event) {
+    if (this.ws !== ws) {
+      return;
+    }
+
+    this.observer.emit("error", event);
+
+    if (!this.manualClose) {
+      this.reconnect();
+    }
   }
 
-  private handleClose(event: CloseEvent) {
+  private handleClose(ws: WebSocket, event: CloseEvent) {
+    if (this.ws !== ws) {
+      return;
+    }
+
     this.observer.emit("close", event);
     this.cleanup();
     if (!this.manualClose) this.reconnect();
@@ -567,14 +601,16 @@ export class DerivService {
   }
 
   private dispatchPendingRequests() {
+    const ws = this.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
     const pending = [...this.pendingRequests];
     this.pendingRequests = [];
 
     pending.forEach((request) => {
-      if (
-        (request.needAuthorize && this.isAuthorized) ||
-        !request.needAuthorize
-      ) {
+      if ((request.needAuthorize && this.isAuthorized) || !request.needAuthorize) {
         request.send();
       } else {
         this.pendingRequests.push(request);
@@ -591,13 +627,30 @@ export class DerivService {
   }
 
   public reconnect() {
+    if (this.manualClose) {
+      return;
+    }
+
+    if (this.reconnectTimeout) {
+      return;
+    }
+
     this.subscribes.forEach((payload, id) => {
       this.pendingResubscribes.set(id, payload);
     });
     this.subscribes.clear();
+
     this.manualClose = true;
-    this.ws?.close();
-    setTimeout(() => this.connect(), 1000);
+
+    try {
+      this.ws?.close();
+    } catch {
+    }
+
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
+      this.connect();
+    }, 1000);
   }
 
   public destroy() {

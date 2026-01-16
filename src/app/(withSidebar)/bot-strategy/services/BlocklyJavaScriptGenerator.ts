@@ -4,12 +4,19 @@ declare global {
   }
 }
 
+let blocklyGeneratorInitWarned = false;
+
 export const initBlocklyJavaScriptGenerator = () => {
   if (!window.Blockly || !window.Blockly.JavaScript) {
-    console.warn("Blockly ou Blockly.JavaScript não estão disponíveis ainda. Aguardando...");
+    if (!blocklyGeneratorInitWarned) {
+      blocklyGeneratorInitWarned = true;
+      console.warn("Blockly ou Blockly.JavaScript não estão disponíveis ainda. Aguardando...");
+    }
     setTimeout(initBlocklyJavaScriptGenerator, 100);
     return;
   }
+
+  blocklyGeneratorInitWarned = false;
 
   // Helper para registrar geradores corretamente para versões antigas e novas do Blockly
   const register = (blockType: string, generatorFunction: (block: any) => any) => {

@@ -70,10 +70,10 @@ export default function BotStrategyPage() {
     galeRemovesSoros: false,
 
     // Controller (mode limits from bot-ia)
-    winReal: 5,
-    lossReal: 1,
+    winReal: 0,
+    lossReal: 0,
     winSimulated: 0,
-    lossSimulated: 1,
+    lossSimulated: 0,
     tradeLimit: 0,
     cooldown: 3,
     
@@ -93,9 +93,9 @@ export default function BotStrategyPage() {
       setLoading(true);
       try {
         const accountsStr = localStorage.getItem('deriv_accounts');
-        console.log('Accounts from localStorage:', JSON.stringify(accountsStr));
-        const activeToken = JSON.parse(accountsStr)?.activeToken || []; 
-        console.log('Accounts', activeToken);
+
+        const activeToken = JSON.parse(accountsStr)[0]?.activeToken || []; 
+              
         if (!accountsStr) {
            toast.error("Nenhuma conta encontrada. Por favor, adicione uma conta no Dashboard.", {
                autoClose: 5000,
@@ -343,8 +343,8 @@ export default function BotStrategyPage() {
       }
       
       // Detect if virtual account from localStorage
-      const activeToken = localStorage.getItem('activeToken') || localStorage.getItem('token');
-      const accountsStr = localStorage.getItem('deriv_accounts');
+       const accountsStr = localStorage.getItem('deriv_accounts');
+      const activeToken = JSON.parse(accountsStr)[0]?.activeToken || [];
       let isVirtualAccount = true;
       
       if (accountsStr && activeToken) {

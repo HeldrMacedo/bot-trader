@@ -14,7 +14,7 @@ export default function ControllerConfig({ config, onChange }: ControllerConfigP
             <label className="block text-xs font-medium text-gray-400 mb-1">Vitórias Reais</label>
             <input
                 type="number"
-                value={config.winReal || 5}
+                value={config.winReal || 0}
                 onChange={(e) => onChange('winReal', parseInt(e.target.value))}
                 min="0"
                 className="w-full bg-[#1e1b2e] border border-gray-700 rounded p-2 text-white text-sm focus:border-blue-500 outline-none"
@@ -24,7 +24,7 @@ export default function ControllerConfig({ config, onChange }: ControllerConfigP
             <label className="block text-xs font-medium text-gray-400 mb-1">Perdas Reais</label>
             <input
                 type="number"
-                value={config.lossReal || 1}
+                value={config.lossReal || 0}
                 onChange={(e) => onChange('lossReal', parseInt(e.target.value))}
                 min="0"
                 className="w-full bg-[#1e1b2e] border border-gray-700 rounded p-2 text-white text-sm focus:border-blue-500 outline-none"
