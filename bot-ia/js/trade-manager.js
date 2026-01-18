@@ -6781,7 +6781,7 @@ class TradeManager {
                 buy: priceResponse.proposal.id,
                 price: params.stake
             };
-
+            
             const buyResponse = await this.tradingAPI.sendRequest(buyRequest);
 
             if (buyResponse.error) {

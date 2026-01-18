@@ -136,12 +136,27 @@ function normalizeUnits(units: string[]): string[] {
   return units.filter((u) => allowed.has(u));
 }
 
-function extractEffectiveContractType(config: any): string {
-  return config?.contractType || '';
+function getContractSelectValue(config: any): string {
+  const contractType = typeof config?.contractType === 'string' ? config.contractType : '';
+  const tradeType = typeof config?.tradeType === 'string' ? config.tradeType : '';
+
+  const raw = contractType || (tradeType !== 'BOTH' ? tradeType : '');
+  if (!raw) return '';
+
+  const group = findGroupByContract(raw);
+  if (!group || !group.contracts.length) return contractType || '';
+
+  const representative = group.contracts[0] || '';
+
+  const supportedContractGroups = new Set(['DIGITOVER', 'CALL', 'DIGITDIFF', 'DIGITEVEN', 'HIGHER_LOWER_GROUP']);
+  if (supportedContractGroups.has(raw)) return raw;
+  if (supportedContractGroups.has(representative)) return representative;
+
+  return contractType || '';
 }
 
 export default function TradeConfig({ config, availableContractTypes, onChange }: TradeConfigProps) {
-  const selectedContractType = extractEffectiveContractType(config);
+  const selectedContractType = getContractSelectValue(config);
   const group = findGroupByContract(selectedContractType);
   const normalizedAvailableContracts = Array.from(new Set(availableContractTypes.filter(Boolean)));
 
@@ -164,8 +179,8 @@ export default function TradeConfig({ config, availableContractTypes, onChange }
         CALLPUT: 'Higher/Lower',
         CALLE: 'Higher',
         PUTE: 'Lower',
-        CALL: 'Call',
-        PUT: 'Put',
+        CALL: 'Rise',
+        PUT: 'Fall',
         DIGITOVER: 'Over',
         DIGITUNDER: 'Under',
         DIGITDIFF: 'Differ',
@@ -222,7 +237,6 @@ export default function TradeConfig({ config, availableContractTypes, onChange }
       { value: 'CALL', label: 'Rise/Fall', anyOf: CONTRACT_GROUPS['Rise/Fall']?.contracts },
       { value: 'DIGITDIFF', label: 'Differ/Match', anyOf: CONTRACT_GROUPS['Differ/Match']?.contracts },
       { value: 'DIGITEVEN', label: 'Even/Odd', anyOf: CONTRACT_GROUPS['Even/Odd']?.contracts },
-      { value: 'HIGHER_LOWER_GROUP', label: 'Higher/Lower', requires: ['CALLE', 'PUTE'] },
     ];
 
     return options.filter((opt) => {

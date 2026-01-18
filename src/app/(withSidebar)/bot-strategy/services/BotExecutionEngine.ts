@@ -127,6 +127,7 @@ export class BotExecutionEngine {
     private isPaused: boolean = false;
     private pauseEndTime: number = 0;
     private lastTradeResult: 'WIN' | 'LOSS' | null = null;
+    private lastTradeOutcomeForGroups: { result: 'WIN' | 'LOSS'; simulated: boolean } | null = null;
     
     // Dynamic State
     private dynamicTarget: number | null = null;
@@ -138,6 +139,13 @@ export class BotExecutionEngine {
     private pendingBothResults: Map<string, { contractType: string, result?: 'WIN' | 'LOSS', profit?: number }> = new Map();
     private bothModeGroupId: number = 0;
 
+    private userKey: string | null = null;
+    private groupConfigStorageKey: string = "monitoring_group_activation_config_global";
+    private groupActivationConfig: Record<string, any> | null = null;
+    private handleGroupConfigUpdated = (): void => {
+        this.loadGroupActivationConfig();
+    };
+
     constructor(
         config: BotConfig, 
         strategy: any, 
@@ -145,7 +153,8 @@ export class BotExecutionEngine {
         onTrade: (trade: TradeRecord) => void,
         onModeChange?: (mode: TradeMode, reason: string) => void,
         onStop?: (reason: string) => void,
-        isVirtualAccount: boolean = true
+        isVirtualAccount: boolean = true,
+        userKey: string | null = null
     ) {
         this.deriv = DerivService.getInstance();
         this.marketData = MarketDataService.getInstance();
@@ -159,6 +168,12 @@ export class BotExecutionEngine {
         this.onModeChange = onModeChange;
         this.onStop = onStop;
         this.currentStake = config.stake;
+        this.userKey = userKey;
+        this.groupConfigStorageKey = userKey ? `monitoring_group_activation_config_${userKey}` : "monitoring_group_activation_config_global";
+        this.loadGroupActivationConfig();
+        if (typeof window !== "undefined") {
+            window.addEventListener("groupConfigUpdated", this.handleGroupConfigUpdated as EventListener);
+        }
 
         // Initialize risk controller with mapped config
         const riskConfig = this.mapToRiskConfig(config);
@@ -173,6 +188,44 @@ export class BotExecutionEngine {
         this.riskController.onStopRequired = (type, value, limit) => {
             this.handleStopRequired(type, value, limit);
         };
+    }
+
+    private loadGroupActivationConfig(): void {
+        if (typeof window === "undefined") return;
+        try {
+            const raw = localStorage.getItem(this.groupConfigStorageKey);
+            this.groupActivationConfig = raw ? JSON.parse(raw) : null;
+        } catch {
+            this.groupActivationConfig = null;
+        }
+    }
+
+    private getActiveGroupIds(): number[] | null {
+        const cfg = this.groupActivationConfig;
+        if (!cfg) return null;
+
+        const keys = Object.keys(cfg).filter(k => k !== "_meta");
+        if (keys.length === 0) return null;
+
+        if (!this.lastTradeOutcomeForGroups) {
+            const active: number[] = [];
+            keys.forEach(k => {
+                const c = cfg[k];
+                if (!c || c.initial !== false) active.push(parseInt(k, 10));
+            });
+            return active;
+        }
+
+        const conditionKey = this.lastTradeOutcomeForGroups.result === "WIN"
+            ? (this.lastTradeOutcomeForGroups.simulated ? "winSimulated" : "winReal")
+            : (this.lastTradeOutcomeForGroups.simulated ? "lossSimulated" : "lossReal");
+
+        const active: number[] = [];
+        keys.forEach(k => {
+            const c = cfg[k];
+            if (!c || c[conditionKey] !== false) active.push(parseInt(k, 10));
+        });
+        return active;
     }
 
     private mapToRiskConfig(config: BotConfig): RiskControllerConfig {
@@ -196,7 +249,6 @@ export class BotExecutionEngine {
 
     public start(): void {
         if (this.isRunning) return;
-        
         this.isRunning = true;
         this.totalProfit = 0;
         this.tradesExecuted = 0;
@@ -204,6 +256,8 @@ export class BotExecutionEngine {
         this.isTrading = false;
         this.isPaused = false;
         this.cooldownTicks = 0;
+        this.lastTradeResult = null;
+        this.lastTradeOutcomeForGroups = null;
         
         // Reset risk controller for new session
         this.riskController.resetCountersForMonitoring();
@@ -233,6 +287,9 @@ export class BotExecutionEngine {
         if (this.tickListenerId) {
             this.deriv.observerInstance.removeById(this.tickListenerId);
             this.tickListenerId = null;
+        }
+        if (typeof window !== "undefined") {
+            window.removeEventListener("groupConfigUpdated", this.handleGroupConfigUpdated as EventListener);
         }
     }
 
@@ -345,12 +402,11 @@ export class BotExecutionEngine {
         // Subscribe to market data updates
         const marketData = MarketDataService.getInstance();
         marketData.setActiveSymbol(this.config.symbol);
-
+        
         // Listen for tick updates
         this.tickListenerId = this.deriv.observerInstance.on('deriv.tick', (data: any) => {
             if (data.tick && data.tick.symbol === this.config.symbol) {
                 const price = data.tick.quote;
-
                 // Update trade context with new data
                 this.tradeContext.prices.push(price);
                 this.tradeContext.ticks.push(data.tick);
@@ -399,6 +455,15 @@ export class BotExecutionEngine {
     }
 
     private checkStrategy(): void {
+        // Handle "Manual Strategy" or empty conditions (Execute immediately/always if no rules)
+        const isManualStrategy = this.strategy?.name === "Manual Strategy" || (!this.strategy?.conditions?.length && !this.strategy?.groups?.length);
+        
+        if (isManualStrategy) {
+             // For manual strategy without rules, we execute immediately (controlled by cooldown/risk in executeTrade)
+             this.executeTrade();
+             return;
+        }
+
         // Handle legacy strategy format (flat conditions)
         if (this.strategy && this.strategy.conditions && this.strategy.conditions.length > 0) {
             let allConditionsMet = true;
@@ -410,7 +475,7 @@ export class BotExecutionEngine {
                     break;
                 }
             }
-
+            
             if (allConditionsMet) {
                 this.executeTrade();
             }
@@ -418,9 +483,12 @@ export class BotExecutionEngine {
         // Handle new strategy format with groups
         else if (this.strategy && this.strategy.groups && this.strategy.groups.length > 0) {
             this.dynamicTarget = null;
-
+            const activeGroupIds = this.getActiveGroupIds();
             // Check each group - if ANY group has ALL its conditions met, execute trade (OR logic between groups)
-            for (const group of this.strategy.groups) {
+            for (let groupIndex = 0; groupIndex < this.strategy.groups.length; groupIndex++) {
+                const group = this.strategy.groups[groupIndex];
+                const groupId = Number.isFinite(Number(group?.id)) ? Number(group.id) : groupIndex + 1;
+                if (activeGroupIds !== null && !activeGroupIds.includes(groupId)) continue;
                 if (this.checkGroupConditions(group)) {
                     this.executeTrade();
                     break; // Execute trade once any group is satisfied
@@ -440,6 +508,7 @@ export class BotExecutionEngine {
     }
 
     private evaluateCondition(cond: StrategyRule): boolean {
+        console.log("cond ", cond);
         // Handle pattern rules
         if (cond.indicator === 'PATTERN' || (cond.parameters && cond.parameters.pattern)) {
             const result = this.patternRecognizer.processDigitPatternRule(cond, this.config.symbol);
@@ -465,6 +534,25 @@ export class BotExecutionEngine {
             valueToCheck = this.tradeContext.prices[this.tradeContext.prices.length - 1];
         }
 
+        // Handle dynamic_prediction type correctly - it doesn't need valueToCheck from above
+        if (cond.type === 'dynamic_prediction' || this.strategy.prediction === 'dynamic_repeated_digit' || cond.value === 'dynamic_repeated_digit' || (cond as any).targetValue === 'dynamic_repeated_digit') {
+            const patternRule = (cond as any).combinedRule?.patternRule;
+            const count = patternRule?.count || cond.parameters?.count || cond.count || 2;
+
+            const recentDigits = this.tradeContext.digits.slice(-count);
+            
+            if (recentDigits.length < count) return false;
+            
+            const lastDigit = recentDigits[recentDigits.length - 1];
+            const allEqual = recentDigits.every(d => d === lastDigit);
+            
+            if (allEqual) {
+                this.dynamicTarget = lastDigit;
+                return true;
+            }
+            return false;
+        }
+
         if (valueToCheck === undefined) return false;
 
         // Determine reference value
@@ -476,15 +564,8 @@ export class BotExecutionEngine {
             referenceValue = 0;
         }
 
-        // Dynamic prediction handling
-        if (this.strategy.prediction === 'dynamic_repeated_digit' || cond.value === 'dynamic_repeated_digit') {
-            const lastDigit = this.tradeContext.digits[this.tradeContext.digits.length - 1];
-            const prevDigit = this.tradeContext.digits[this.tradeContext.digits.length - 2];
-            if (lastDigit === prevDigit) {
-                this.dynamicTarget = lastDigit;
-            }
-        }
-
+        // Dynamic prediction handling (Legacy block - removed as it's handled above)
+        
         // Standard comparison
         switch (cond.operator) {
             case '>': return valueToCheck > referenceValue;
@@ -572,10 +653,11 @@ export class BotExecutionEngine {
         try {
             // Get proposal first to capture payout
             const prediction = this.resolvePrediction();
+            console.log("prediction ", prediction);
             const proposalReq = this.buildProposalRequest(contractType, stakeToUse, prediction);
-            
+            console.log("proposalReq ", proposalReq);
             const proposal = await this.deriv.send(proposalReq);
-            
+            console.log("proposal ", proposal);
             if (proposal.error) {
                 throw new Error(proposal.error.message);
             }
@@ -590,8 +672,9 @@ export class BotExecutionEngine {
             } else {
                 // Real trade execution
                 const buyReq = { buy: proposal.proposal.id, price: proposal.proposal.ask_price };
+                console.log("buyReq ", buyReq);
                 const buyResponse = await this.deriv.send(buyReq);
-                
+                console.log("buy Response ", buyResponse);
                 if (buyResponse.error) {
                     throw new Error(buyResponse.error.message);
                 }
@@ -863,27 +946,44 @@ export class BotExecutionEngine {
         const totalProfit = results.reduce((sum, r) => sum + (r.profit || 0), 0);
         
         const bothResult = this.contractSelector.calculateBothTradeResult(wins, results.length);
+        const normalizedResult: 'WIN' | 'LOSS' = bothResult.type === 'WIN'
+            ? 'WIN'
+            : (bothResult.type === 'LOSS' ? 'LOSS' : (totalProfit >= 0 ? 'WIN' : 'LOSS'));
         
         this.onLog(`⚖️ BOTH Result: ${bothResult.type} (${wins}/${results.length}) | Net: $${totalProfit.toFixed(2)}`);
 
         // Update total profit
         this.totalProfit += totalProfit;
         this.tradesExecuted++;
+        this.lastTradeResult = normalizedResult;
+        const currentMode = this.riskController.getCurrentMode();
+        this.lastTradeOutcomeForGroups = { result: normalizedResult, simulated: currentMode === "SIMULACAO" };
 
         // Process through risk controller
         const totalStake = results.length * (this.riskController.getCurrentMode() === 'SIMULACAO' 
             ? this.config.stake 
             : this.riskController.getCurrentStake(null));
         
+        this.onTrade({
+            id: `both_${Date.now()}`,
+            contractType: "BOTH",
+            stake: totalStake,
+            profit: totalProfit,
+            status: normalizedResult,
+            mode: currentMode,
+            timestamp: new Date(),
+            payout: this.currentProposalPayout
+        });
+
         this.riskController.handleTradeResult(
-            bothResult.type,
+            normalizedResult,
             `both_${this.bothModeGroupId}`,
             totalStake,
             totalProfit
         );
 
         // Apply pause if configured
-        this.handlePauseLogic(bothResult.type === 'WIN');
+        this.handlePauseLogic(normalizedResult === 'WIN');
 
         // Apply cooldown
         this.cooldownTicks = this.config.cooldown || 3;
@@ -905,6 +1005,7 @@ export class BotExecutionEngine {
         
         const currentMode = this.riskController.getCurrentMode();
         this.lastTradeResult = isWin ? 'WIN' : 'LOSS';
+        this.lastTradeOutcomeForGroups = { result: isWin ? "WIN" : "LOSS", simulated: currentMode === "SIMULACAO" };
         const resultEmoji = isWin ? '✅' : '❌';
         
         this.onLog(`${resultEmoji} ${currentMode} Trade done. Profit: $${profit.toFixed(2)} | Total: $${this.totalProfit.toFixed(2)}`);
@@ -961,6 +1062,8 @@ export class BotExecutionEngine {
             isRunning: this.isRunning,
             isTrading: this.isTrading,
             isPaused: this.isPaused,
+            cooldownTicks: this.cooldownTicks,
+            cooldownTicksTotal: this.config.cooldown || 3,
             currentStake: this.riskController.getCurrentStake(null)
         };
     }

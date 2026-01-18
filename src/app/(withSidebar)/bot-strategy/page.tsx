@@ -20,6 +20,7 @@ import { initBlocklyJavaScriptGenerator } from './services/BlocklyJavaScriptGene
 import { BotExecutionEngine, TradeRecord } from './services/BotExecutionEngine';
 import { GeminiAIService } from './services/GeminiAIService';
 import { MarketDataService } from './services/MarketDataService';
+import { TradeContractSelector } from './services/TradeContractSelector';
 import { TradeMode } from './services/TradeModeRiskController';
 
 export default function BotStrategyPage() {
@@ -28,8 +29,10 @@ export default function BotStrategyPage() {
   const [mainView, setMainView] = useState<'dashboard' | 'chat' | 'blockly'>('chat');
   
   const [isRunning, setIsRunning] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [resultsList, setResultsList] = useState<any[]>([]);
+  const [engineState, setEngineState] = useState<any | null>(null);
   
   // AI Chat State
   const [messages, setMessages] = useState<any[]>([]);
@@ -40,6 +43,7 @@ export default function BotStrategyPage() {
   const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestionsPayload, setSuggestionsPayload] = useState<AiSuggestionsPayload | null>(null);
+  const [lastTradeOutcome, setLastTradeOutcome] = useState<{ result: 'WIN' | 'LOSS'; simulated: boolean } | null>(null);
 
   // Configuration State (Complete with all fields from legacy system)
   const [selectedSymbol, setSelectedSymbol] = useState('');
@@ -328,6 +332,21 @@ export default function BotStrategyPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isRunning) {
+      setEngineState(null);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const state = botEngine.current?.getState?.();
+      if (!state) return;
+      setEngineState(state);
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
   // Update Market Data Service when symbol changes
   useEffect(() => {
       if (selectedSymbol) {
@@ -568,6 +587,54 @@ export default function BotStrategyPage() {
       await handleAiMessage(text);
   };
 
+  const validateBeforeStart = () => {
+    if (!selectedSymbol) {
+      return { ok: false as const, message: 'Selecione um ativo antes de iniciar.' };
+    }
+
+    if (!config.contractType) {
+      return { ok: false as const, message: 'Selecione um tipo de contrato antes de iniciar.' };
+    }
+
+    if (!config.tradeType) {
+      return { ok: false as const, message: 'Selecione um tipo de trade antes de iniciar.' };
+    }
+
+    const stakeValue = Number(config.stake);
+    if (!Number.isFinite(stakeValue) || stakeValue < 0.35) {
+      return { ok: false as const, message: 'Entrada inicial mínima é $0.35.' };
+    }
+
+    const durationValue = Number(config.duration);
+    if (!Number.isFinite(durationValue) || durationValue <= 0) {
+      return { ok: false as const, message: 'Duração inválida.' };
+    }
+
+    if (!config.durationUnit) {
+      return { ok: false as const, message: 'Selecione a unidade de duração.' };
+    }
+
+    const selector = new TradeContractSelector(availableContractTypes);
+    if (config.tradeType === 'BOTH') {
+      const both = selector.getBothContracts(config.contractType || config.tradeType);
+      if (!both || both.contracts.length < 2) {
+        return { ok: false as const, message: 'Modo Ambos indisponível para o contrato selecionado.' };
+      }
+
+      const invalid = both.contracts.find((ct) => !selector.validateContract(ct, config.prediction ?? null).isValid);
+      if (invalid) {
+        return { ok: false as const, message: 'Configuração inválida para modo Ambos (previsão/barreira).' };
+      }
+    } else {
+      const validation = selector.validateContract(config.tradeType, config.prediction ?? null);
+      if (!validation.isValid) {
+        return { ok: false as const, message: 'Configuração inválida para o contrato selecionado (previsão/barreira).' };
+      }
+    }
+
+    return { ok: true as const };
+  };
+
   const toggleBot = () => {
     if (isRunning) {
       // Stop both engines if they're running
@@ -580,11 +647,17 @@ export default function BotStrategyPage() {
       setIsRunning(false);
       addLog("Bot parado pelo usuário.");
     } else {
-      if (!selectedSymbol) {
-        toast.warning("Selecione um ativo antes de iniciar.");
+      if (isAiProcessing) {
+        toast.warning('Aguarde a IA finalizar antes de iniciar.');
         return;
       }
       
+      const validation = validateBeforeStart();
+      if (!validation.ok) {
+        toast.warning(validation.message);
+        return;
+      }
+
       // Check which view we're in to determine which engine to start
       if (mainView === 'blockly') {
         // For Blockly view, we need to start the BlocklyBot engine from within the editor
@@ -661,6 +734,8 @@ export default function BotStrategyPage() {
         addLog("⚠️ Iniciando sem estratégia de IA definida. Gestão de risco será aplicada.");
       }
 
+      setIsStarting(true);
+
       // Create engine with all callbacks
       botEngine.current = new BotExecutionEngine(
         botConf, 
@@ -670,6 +745,7 @@ export default function BotStrategyPage() {
           const emoji = trade.status === 'WIN' ? '✅' : '❌';
           toast.info(`${emoji} ${trade.mode} Trade ${trade.status}: $${trade.profit.toFixed(2)}`);
           setResultsList(prev => [trade, ...prev]);
+          setLastTradeOutcome({ result: trade.status, simulated: trade.mode === 'SIMULACAO' });
         },
         (mode: TradeMode, reason: string) => {
           // Mode change callback
@@ -680,12 +756,14 @@ export default function BotStrategyPage() {
           setIsRunning(false);
           toast.warning(reason);
         },
-        isVirtualAccount
+        isVirtualAccount,
+        getLoginIdFromStorage()
       );
       
       botEngine.current.start();
       setIsRunning(true);
       setMainView('dashboard'); // Switch to dashboard to see logs
+      setIsStarting(false);
     }
   };
 
@@ -765,7 +843,8 @@ export default function BotStrategyPage() {
           <div className="p-4 border-t border-gray-800">
             <button
                 onClick={toggleBot}
-                className={`w-full py-3 rounded-lg font-bold text-white shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 ${isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                disabled={isStarting}
+                className={`w-full py-3 rounded-lg font-bold text-white shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
             >
                 {isRunning ? (
                     <>
@@ -775,7 +854,7 @@ export default function BotStrategyPage() {
                 ) : (
                     <>
                         <PlayIcon className="w-5 h-5" />
-                        INICIAR
+                        {isStarting ? 'INICIANDO...' : 'INICIAR'}
                     </>
                 )}
             </button>
@@ -823,6 +902,10 @@ export default function BotStrategyPage() {
                                 onModeChange={setAiMode}
                                 progressMessage={aiProgressMessage}
                                 onRequestSuggestions={requestSuggestions}
+                                draftStorageKey={(() => {
+                                  const loginid = getLoginIdFromStorage();
+                                  return loginid ? `monitoring_strategy_${loginid}` : null;
+                                })()}
                             />
                         </div>
                        
@@ -854,7 +937,16 @@ export default function BotStrategyPage() {
        {/* Market Analysis Panel - Only show when symbol is selected and not in Blockly editor */}
        {selectedSymbol && mainView !== 'blockly' && (
            <div className="flex-1 flex flex-col min-w-0">
-               <MarketAnalysisPanel symbol={selectedSymbol} strategyText={strategyText} />
+               <MarketAnalysisPanel
+                 symbol={selectedSymbol}
+                 strategyText={strategyText}
+                 generatedStrategy={generatedStrategy}
+                 userKey={getLoginIdFromStorage()}
+                 lastTradeOutcome={lastTradeOutcome}
+                 cooldownTicksRemaining={engineState?.cooldownTicks}
+                 cooldownTicksTotal={engineState?.cooldownTicksTotal}
+                 isTrading={engineState?.isTrading}
+               />
            </div>
        )}
        

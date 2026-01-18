@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PaperAirplaneIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/solid';
 
 interface ImageData {
@@ -24,13 +24,15 @@ interface AiChatPanelProps {
   onModeChange: (mode: 'strategy' | 'chat') => void;
   progressMessage?: string | null;
   onRequestSuggestions?: () => void;
+  draftStorageKey?: string | null;
 }
 
-export default function AiChatPanel({ onStrategyGenerated, isProcessing, onSendMessage, messages, mode, onModeChange, progressMessage, onRequestSuggestions }: AiChatPanelProps) {
+export default function AiChatPanel({ onStrategyGenerated, isProcessing, onSendMessage, messages, mode, onModeChange, progressMessage, onRequestSuggestions, draftStorageKey }: AiChatPanelProps) {
   const [input, setInput] = useState('');
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,12 +42,42 @@ export default function AiChatPanel({ onStrategyGenerated, isProcessing, onSendM
     scrollToBottom();
   }, [messages, selectedImage]);
 
+  const autoResize = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.max(el.scrollHeight, 100)}px`;
+  };
+
+  useEffect(() => {
+    autoResize();
+  }, [input, mode]);
+
+  useEffect(() => {
+    if (!draftStorageKey) return;
+    try {
+      const saved = localStorage.getItem(draftStorageKey);
+      if (saved !== null) {
+        setInput(saved);
+      }
+    } catch {
+    }
+  }, [draftStorageKey]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if ((!input.trim() && !selectedImage) || isProcessing) return;
     
     onSendMessage(input, selectedImage || undefined);
-    setInput('');
+    if (mode === 'chat') {
+      setInput('');
+      if (draftStorageKey) {
+        try {
+          localStorage.setItem(draftStorageKey, '');
+        } catch {
+        }
+      }
+    }
     setSelectedImage(null);
   };
 
@@ -81,6 +113,19 @@ export default function AiChatPanel({ onStrategyGenerated, isProcessing, onSendM
   const removeImage = () => {
       setSelectedImage(null);
   };
+
+  const placeholder = useMemo(() => {
+    if (mode === 'strategy') {
+      return (
+        'Digite aqui sua estratégia de monitoramento...\n\n' +
+        'Exemplo:\n' +
+        '- Monitorar quando o preço subir 3 pontos consecutivos\n' +
+        '- Alertar quando atingir resistência de 1.2500\n' +
+        '- Acompanhar padrão de reversão...'
+      );
+    }
+    return 'Digite sua pergunta...';
+  }, [mode]);
 
   return (
     <div className="flex flex-col h-full bg-[#13111c] border border-gray-800 rounded-lg">
@@ -210,13 +255,36 @@ export default function AiChatPanel({ onStrategyGenerated, isProcessing, onSendM
         >
             <PhotoIcon className="w-6 h-6" />
         </button>
-        <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={mode === 'strategy' ? 'Descreva sua estratégia...' : 'Digite sua pergunta...'}
-            className="flex-1 bg-[#0d0a18] border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-blue-500 outline-none"
-            disabled={isProcessing}
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => {
+            const next = e.target.value;
+            setInput(next);
+            if (draftStorageKey) {
+              try {
+                localStorage.setItem(draftStorageKey, next);
+              } catch {
+              }
+            }
+          }}
+          onKeyDown={(e) => {
+            if (mode === 'chat') {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit();
+              }
+              return;
+            }
+
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit();
+            }
+          }}
+          placeholder={placeholder}
+          className="flex-1 bg-[#0d0a18] border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-blue-500 outline-none min-h-[100px] overflow-y-hidden resize-none"
+          disabled={isProcessing}
         />
         <button 
             type="submit"
