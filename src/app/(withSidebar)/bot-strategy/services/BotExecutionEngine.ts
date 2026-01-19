@@ -508,7 +508,6 @@ export class BotExecutionEngine {
     }
 
     private evaluateCondition(cond: StrategyRule): boolean {
-        console.log("cond ", cond);
         // Handle pattern rules
         if (cond.indicator === 'PATTERN' || (cond.parameters && cond.parameters.pattern)) {
             const result = this.patternRecognizer.processDigitPatternRule(cond, this.config.symbol);
@@ -633,7 +632,13 @@ export class BotExecutionEngine {
         if (this.isTrading) return;
 
         const currentMode = this.riskController.getCurrentMode();
-        const contractType = this.strategy?.action || this.config.tradeType || 'CALL';
+        // 🎯 FIX: Prioritize captured dynamic prediction if available (from strategy rules)
+        // If not, fall back to static config prediction
+        let prediction = this.resolvePrediction();
+        
+        // 🎯 FIX: Determine contract type from strategy action or config
+        // Some strategy rules might override the action (e.g. "Enter DIFFER" in a MATCH strategy)
+        let contractType = this.strategy?.action || this.config.tradeType || 'CALL';
         
         // Check if BOTH mode
         if (contractType === 'BOTH') {
@@ -652,12 +657,8 @@ export class BotExecutionEngine {
 
         try {
             // Get proposal first to capture payout
-            const prediction = this.resolvePrediction();
-            console.log("prediction ", prediction);
             const proposalReq = this.buildProposalRequest(contractType, stakeToUse, prediction);
-            console.log("proposalReq ", proposalReq);
             const proposal = await this.deriv.send(proposalReq);
-            console.log("proposal ", proposal);
             if (proposal.error) {
                 throw new Error(proposal.error.message);
             }
@@ -671,10 +672,20 @@ export class BotExecutionEngine {
                 this.simulateTrade(contractType, stakeToUse, prediction);
             } else {
                 // Real trade execution
-                const buyReq = { buy: proposal.proposal.id, price: proposal.proposal.ask_price };
-                console.log("buyReq ", buyReq);
+            const buyReq: any = { buy: proposal.proposal.id, price: parseFloat(proposal.proposal.ask_price || stakeToUse) };
+            
+            // Check if proposal is expired/valid
+            if (!proposal.proposal.id) {
+                 // If proposal ID is missing, try to get a new one
+                 const freshProposal = await this.deriv.send(proposalReq);
+                 if (freshProposal.error || !freshProposal.proposal) {
+                     throw new Error(freshProposal.error?.message || "Failed to get fresh proposal for buy");
+                 }
+                 buyReq.buy = freshProposal.proposal.id;
+                 buyReq.price = parseFloat(freshProposal.proposal.ask_price);
+            }
+
                 const buyResponse = await this.deriv.send(buyReq);
-                console.log("buy Response ", buyResponse);
                 if (buyResponse.error) {
                     throw new Error(buyResponse.error.message);
                 }
@@ -691,12 +702,14 @@ export class BotExecutionEngine {
 
     private async executeBothModeTrade(): Promise<void> {
         const currentMode = this.riskController.getCurrentMode();
+        // 🎯 FIX: Use base contract from config if available
         const baseContract = this.config.contractType || this.config.tradeType || 'DIGITOVER';
         
         const bothContracts = this.contractSelector.getBothContracts(baseContract);
         
         if (!bothContracts || bothContracts.contracts.length < 2) {
             this.onLog(`❌ BOTH mode: Could not find contract pair for ${baseContract}`);
+            this.isTrading = false;
             return;
         }
 
@@ -705,15 +718,16 @@ export class BotExecutionEngine {
         
         const stakeToUse = currentMode === 'SIMULACAO' 
             ? this.config.stake 
-            : this.riskController.getCurrentStake(null);
+            : this.riskController.getCurrentStake(null); // Get base stake for BOTH
 
-        this.onLog(`⚡ ${currentMode} BOTH Trade: ${bothContracts.contracts.join(' + ')} | Stake: $${stakeToUse.toFixed(2)} each`);
+        this.onLog(`⚡ ${currentMode} BOTH Trade: ${bothContracts.contracts.join(' & ')} | Total Stake: $${(stakeToUse * 2).toFixed(2)}`);
 
         // Clear pending results
         this.pendingBothResults.clear();
 
         try {
             for (const contractType of bothContracts.contracts) {
+                // 🎯 FIX: Resolve prediction for each contract if needed
                 const prediction = this.resolvePrediction();
                 
                 if (currentMode === 'SIMULACAO') {
@@ -727,7 +741,18 @@ export class BotExecutionEngine {
                         continue;
                     }
 
-                    const buyReq = { buy: proposal.proposal.id, price: proposal.proposal.ask_price };
+                    const buyReq: any = { buy: proposal.proposal.id, price: parseFloat(proposal.proposal.ask_price || stakeToUse) };
+                    
+                    if (!proposal.proposal.id) {
+                         const freshProposal = await this.deriv.send(proposalReq);
+                         if (freshProposal.error || !freshProposal.proposal) {
+                             this.onLog(`⚠️ BOTH: ${contractType} fresh proposal failed`);
+                             continue;
+                         }
+                         buyReq.buy = freshProposal.proposal.id;
+                         buyReq.price = parseFloat(freshProposal.proposal.ask_price);
+                    }
+                    console.log("buyReq ", buyReq);
                     const buyResponse = await this.deriv.send(buyReq);
                     
                     if (buyResponse.error) {
@@ -746,6 +771,20 @@ export class BotExecutionEngine {
     }
 
     private buildProposalRequest(contractType: string, stake: number, prediction: number | undefined): any {
+        // 🎯 FIX: Determine barrier value based on contract type requirements
+        let barrierValue: number | string | undefined = prediction;
+        
+        // Handle digit contracts specifically (Deriv API expects barrier as integer digit)
+        if (['DIGITMATCH', 'DIGITDIFF', 'DIGITOVER', 'DIGITUNDER', 'DIGITEVEN', 'DIGITODD'].includes(contractType)) {
+             // For Even/Odd, barrier is not used but some wrappers might pass it. 
+             // For others, use prediction or 0.
+             if (['DIGITEVEN', 'DIGITODD'].includes(contractType)) {
+                 barrierValue = undefined;
+             } else {
+                 barrierValue = prediction !== undefined ? Math.floor(prediction) : 0;
+             }
+        }
+
         const params: any = {
             proposal: 1,
             amount: stake,
@@ -757,6 +796,11 @@ export class BotExecutionEngine {
             symbol: this.config.symbol
         };
 
+        // Add barrier if applicable
+        if (barrierValue !== undefined) {
+            params.barrier = String(barrierValue);
+        }
+
         const singleBarrierContracts = new Set([
             'CALLE',
             'PUTE',
@@ -766,7 +810,12 @@ export class BotExecutionEngine {
             'RUNHIGH',
             'RUNLOW'
         ]);
-
+        
+        // ... rest of the barrier logic ...
+        
+        // Remove redundant logic below as barrier is handled above for digits
+        // But keep specialized barrier logic for other contracts
+        
         const doubleBarrierContracts = new Set([
             'EXPIRYRANGE',
             'EXPIRYMISS',
@@ -775,11 +824,6 @@ export class BotExecutionEngine {
         ]);
 
         const predictionRangeContracts = new Set(['TICKHIGH', 'TICKLOW']);
-
-        // Add barrier for digit contracts
-        if (['DIGITMATCH', 'DIGITDIFF', 'DIGITOVER', 'DIGITUNDER'].includes(contractType)) {
-            params.barrier = prediction ?? 0;
-        }
 
         if (predictionRangeContracts.has(contractType) && prediction !== undefined && prediction !== null) {
             params.barrier = prediction;
@@ -807,15 +851,27 @@ export class BotExecutionEngine {
             return this.dynamicTarget;
         }
         
-        // Priority 2: Strategy prediction
+        // Priority 2: Strategy prediction (handle object or number)
         if (this.strategy?.prediction !== undefined && this.strategy.prediction !== null) {
             if (typeof this.strategy.prediction === 'number') {
                 return this.strategy.prediction;
             }
+            if (typeof this.strategy.prediction === 'object' && this.strategy.prediction.value !== undefined) {
+                return Number(this.strategy.prediction.value);
+            }
         }
         
-        // Priority 3: Config prediction
-        return this.config.prediction;
+        // Priority 3: Config prediction (handle object or number)
+        if (this.config.prediction !== undefined && this.config.prediction !== null) {
+             if (typeof this.config.prediction === 'number') {
+                 return this.config.prediction;
+             }
+             if (typeof this.config.prediction === 'object' && (this.config.prediction as any).value !== undefined) {
+                 return Number((this.config.prediction as any).value);
+             }
+        }
+
+        return undefined;
     }
 
     private simulateTrade(contractType: string, stake: number, prediction: number | undefined): void {

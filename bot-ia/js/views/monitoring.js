@@ -7938,47 +7938,47 @@ class MonitoringView {
     }
 
     // 🔧 NOVO: Iniciar subscription unificada de ticks
-    static async startUnifiedTickSubscription() {
-        try {
+    // static async startUnifiedTickSubscription() {
+    //     try {
 
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            const tradeManager = getTradeManagerInstance();
-            const config = tradeManager.getConfiguration();
-            const symbol = config.symbol;
-
-
-            if (!symbol) {
-                CommonHelpers.showError('❌ [UNIFIED TICK] Nenhum ativo selecionado!');
-                throw new Error('ERRO: Nenhum ativo selecionado. Recarregue a página.');
-            }
-
-            // Ensure market data is ready
-            if (!marketData.isReady()) {
-
-                await marketData.connect();
-                // Wait a bit for connection and authorization
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-            }
-
-            // Stop previous subscription if exists
-            if (MonitoringView.mainTickUnsubscribe) {
-
-                MonitoringView.mainTickUnsubscribe();
-                MonitoringView.mainTickUnsubscribe = null;
-            }
-
-            // Subscribe to ticks
-
-            MonitoringView.mainTickUnsubscribe = await marketData.subscribeToTicks(symbol, (tick) => {
-                MonitoringView.handleUnifiedTick(tick);
-            });
+    //         const marketData = getMarketDataInstance(SessionManager.getLocalToken());
+    //         const tradeManager = getTradeManagerInstance();
+    //         const config = tradeManager.getConfiguration();
+    //         const symbol = config.symbol;
 
 
-        } catch (error) {
-            CommonHelpers.showWarning('⚠️ [UNIFIED TICK] Erro ao iniciar subscription:', error);
-        }
-    }
+    //         if (!symbol) {
+    //             CommonHelpers.showError('❌ [UNIFIED TICK] Nenhum ativo selecionado!');
+    //             throw new Error('ERRO: Nenhum ativo selecionado. Recarregue a página.');
+    //         }
+
+    //         // Ensure market data is ready
+    //         if (!marketData.isReady()) {
+
+    //             await marketData.connect();
+    //             // Wait a bit for connection and authorization
+    //             await new Promise(resolve => setTimeout(resolve, 1000));
+
+    //         }
+
+    //         // Stop previous subscription if exists
+    //         if (MonitoringView.mainTickUnsubscribe) {
+
+    //             MonitoringView.mainTickUnsubscribe();
+    //             MonitoringView.mainTickUnsubscribe = null;
+    //         }
+
+    //         // Subscribe to ticks
+
+    //         MonitoringView.mainTickUnsubscribe = await marketData.subscribeToTicks(symbol, (tick) => {
+    //             MonitoringView.handleUnifiedTick(tick);
+    //         });
+
+
+    //     } catch (error) {
+    //         CommonHelpers.showWarning('⚠️ [UNIFIED TICK] Erro ao iniciar subscription:', error);
+    //     }
+    // }
 
     // 🔧 NOVO: Handler unificado de ticks com FSM completo
     static handleUnifiedTick(tick) {

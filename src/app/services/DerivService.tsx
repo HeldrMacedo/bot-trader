@@ -91,6 +91,7 @@ export class DerivService {
     "transaction",
     "statement",
     "buy",
+    "proposal",
     "profit_table",
     "portfolio",
     "proposal_open_contract",
@@ -495,7 +496,6 @@ export class DerivService {
 }
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
-    //console.log("Sending payload:", payload);
     return new Promise((resolve, reject) => {
       const reqId = this.reqId++;
       payload.req_id = reqId;
@@ -508,7 +508,11 @@ export class DerivService {
           data.error ? reject(data.error) : resolve(data);
         }
       });
-
+      console.log("Sending payload:", payload);
+      console.log("this.isConnected ", this.isConnected)
+      console.log("!needAuthorize || this.isAuthorized ", !needAuthorize || this.isAuthorized);
+      console.log("this.isAuthorized ", this.isAuthorized);
+      console.log("needAuthorize ", needAuthorize);
       if (this.isConnected && (!needAuthorize || this.isAuthorized)) {
         this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
       } else {

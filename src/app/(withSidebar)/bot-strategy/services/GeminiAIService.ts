@@ -2,6 +2,7 @@ import { StrategyPreprocessor } from './StrategyPreprocessor';
 import { GeminiStrategyValidator } from './GeminiStrategyValidator';
 import { AIChatContextProcessor } from './AIChatContextProcessor';
 import { StrategyGroupProcessor } from './StrategyGroupProcessor';
+import { FormatGenerator } from './FormatGenerator';
 
 export interface GeminiResponse {
     success: boolean;
@@ -22,6 +23,7 @@ export class GeminiAIService {
     private preprocessor: StrategyPreprocessor;
     private validator: GeminiStrategyValidator;
     private contextProcessor: AIChatContextProcessor;
+    private formatGenerator: FormatGenerator;
     private isProcessing: boolean = false;
 
     private modelVersions: ModelVersion[] = [
@@ -55,6 +57,7 @@ export class GeminiAIService {
         this.preprocessor = new StrategyPreprocessor();
         this.validator = new GeminiStrategyValidator();
         this.contextProcessor = new AIChatContextProcessor();
+        this.formatGenerator = FormatGenerator.getInstance();
     }
 
     async translateStrategy(strategyText: string, onProgress: (msg: string) => void, imageData?: { data: string, mimeType: string }): Promise<GeminiResponse> {
@@ -82,7 +85,7 @@ export class GeminiAIService {
 
             // 2. Pré-processamento
             onProgress('Pré-processando texto...');
-            const processed = await this.preprocessor.processStrategy(strategyText);
+            const processed = await this.preprocessor.processStrategy(strategyText, (p, m) => onProgress(m));
             const finalText = processed.processedText;
 
             // 3. Análise de Contexto e Dados de Mercado
@@ -99,8 +102,8 @@ export class GeminiAIService {
             const fullPrompt = this.buildPrompt(finalText, marketContext, analysis.needsSystemContext);
 
             // 5. Seleção de Modelo
-            // Lógica alinhada com o sistema original (gemini-ai.js) baseada em grupos
             const estimatedTokens = this.estimateTokenCount(fullPrompt);
+            // 🎯 OTIMIZAÇÃO: Seleção inteligente baseada na quantidade de GRUPOS
             const totalGroups = (finalText.match(/^\s*\*/gm) || []).length || 1;
             let startModelIndex = 0;
 
