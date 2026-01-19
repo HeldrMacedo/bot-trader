@@ -96,7 +96,12 @@ export interface TradeRecord {
     profit: number;
     status: 'WIN' | 'LOSS';
     mode: TradeMode;
+    symbol: string;
+    type: string;
+    target: string;
+    exit: string;
     timestamp: Date;
+    isSimulation: boolean;
     payout?: number;
 }
 
@@ -659,6 +664,8 @@ export class BotExecutionEngine {
             // Get proposal first to capture payout
             const proposalReq = this.buildProposalRequest(contractType, stakeToUse, prediction);
             const proposal = await this.deriv.send(proposalReq);
+            console.log("PROPOSAÇ REQ ", proposalReq);
+            console.log("PROPOSAL ", proposal);
             if (proposal.error) {
                 throw new Error(proposal.error.message);
             }
@@ -731,7 +738,7 @@ export class BotExecutionEngine {
                 const prediction = this.resolvePrediction();
                 
                 if (currentMode === 'SIMULACAO') {
-                    this.simulateBothTrade(contractType, stakeToUse, prediction, bothContracts);
+                    await this.simulateBothTrade(contractType, stakeToUse, prediction, bothContracts);
                 } else {
                     const proposalReq = this.buildProposalRequest(contractType, stakeToUse, prediction);
                     const proposal = await this.deriv.send(proposalReq);
@@ -752,7 +759,7 @@ export class BotExecutionEngine {
                          buyReq.buy = freshProposal.proposal.id;
                          buyReq.price = parseFloat(freshProposal.proposal.ask_price);
                     }
-                    console.log("buyReq ", buyReq);
+
                     const buyResponse = await this.deriv.send(buyReq);
                     
                     if (buyResponse.error) {
@@ -874,27 +881,194 @@ export class BotExecutionEngine {
         return undefined;
     }
 
-    private simulateTrade(contractType: string, stake: number, prediction: number | undefined): void {
-        // Simple simulation based on probability
-        const winProbability = this.getWinProbability(contractType, prediction);
-        const isWin = Math.random() < winProbability;
+    private async waitForContractExpiration(): Promise<any> {
+        const duration = this.config.duration;
+        const unit = this.config.durationUnit;
+
+        if (unit === 't') {
+            return await this.waitForTicks(duration);
+        } else {
+            const seconds = this.convertDurationToSeconds(duration, unit);
+            return await this.waitForSeconds(seconds);
+        }
+    }
+
+    private convertDurationToSeconds(duration: number, unit: string): number {
+        switch (unit) {
+            case 's': return duration;
+            case 'm': return duration * 60;
+            case 'h': return duration * 60 * 60;
+            default: return duration;
+        }
+    }
+
+    private async waitForTicks(tickCount: number): Promise<any> {
+        return new Promise((resolve) => {
+            let ticksReceived = 0;
+            let listenerId: string | null = null;
+            let firstTickDiscarded = false;
+
+            // Safety timeout (5 min)
+            const timeoutId = setTimeout(() => {
+                if (listenerId) this.deriv.observerInstance.removeById(listenerId);
+                const currentPrice = this.tradeContext.ticks[this.tradeContext.ticks.length - 1];
+                resolve(currentPrice);
+            }, 300000);
+
+            listenerId = this.deriv.observerInstance.on('deriv.tick', (data: any) => {
+                if (data.tick && data.tick.symbol === this.config.symbol) {
+                    if (!firstTickDiscarded) {
+                        firstTickDiscarded = true;
+                        return;
+                    }
+
+                    ticksReceived++;
+                    if (ticksReceived >= tickCount) {
+                        clearTimeout(timeoutId);
+                        if (listenerId) this.deriv.observerInstance.removeById(listenerId);
+                        resolve(data.tick);
+                    }
+                }
+            });
+        });
+    }
+
+    private async waitForSeconds(seconds: number): Promise<any> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                // Return latest tick available after wait
+                const currentPrice = this.tradeContext.ticks[this.tradeContext.ticks.length - 1];
+                resolve(currentPrice);
+            }, seconds * 1000);
+        });
+    }
+
+    private determineTradeResult(contractType: string, entryPrice: number, exitPrice: number, prediction?: number): boolean {
+        // Validate prices
+        if (entryPrice === undefined || exitPrice === undefined || isNaN(entryPrice) || isNaN(exitPrice)) {
+            return false;
+        }
+
+        switch (contractType) {
+            case 'DIGITDIFF':
+                return this.determineDigitDiffResult(exitPrice, prediction);
+            case 'DIGITEVEN':
+                return this.determineDigitEvenResult(exitPrice);
+            case 'DIGITODD':
+                return this.determineDigitOddResult(exitPrice);
+            case 'DIGITOVER':
+                return this.determineDigitOverResult(exitPrice, prediction);
+            case 'DIGITUNDER':
+                return this.determineDigitUnderResult(exitPrice, prediction);
+            case 'DIGITMATCH':
+                return this.determineDigitMatchResult(exitPrice, prediction);
+            case 'CALL':
+                return exitPrice > entryPrice;
+            case 'PUT':
+                return exitPrice < entryPrice;
+            case 'CALLE':
+                // Logic for CALLE (Barrier) - Simplified for now as barriers need parsing
+                return exitPrice > entryPrice; 
+            case 'PUTE':
+                return exitPrice < entryPrice;
+            default:
+                return false;
+        }
+    }
+
+    private extractLastDigit(price: number): number {
+        const precision = this.getPrecision(this.config.symbol);
+        const priceStr = price.toFixed(precision);
+        return parseInt(priceStr.slice(-1));
+    }
+
+    private determineDigitDiffResult(exitPrice: number, prediction?: number): boolean {
+        if (prediction === undefined) return false;
+        const exitDigit = this.extractLastDigit(exitPrice);
+        return exitDigit !== prediction;
+    }
+
+    private determineDigitEvenResult(exitPrice: number): boolean {
+        const digit = this.extractLastDigit(exitPrice);
+        return digit % 2 === 0;
+    }
+
+    private determineDigitOddResult(exitPrice: number): boolean {
+        const digit = this.extractLastDigit(exitPrice);
+        return digit % 2 !== 0;
+    }
+
+    private determineDigitOverResult(exitPrice: number, prediction?: number): boolean {
+        if (prediction === undefined) return false;
+        const digit = this.extractLastDigit(exitPrice);
+        return digit > prediction;
+    }
+
+    private determineDigitUnderResult(exitPrice: number, prediction?: number): boolean {
+        if (prediction === undefined) return false;
+        const digit = this.extractLastDigit(exitPrice);
+        return digit < prediction;
+    }
+
+    private determineDigitMatchResult(exitPrice: number, prediction?: number): boolean {
+        if (prediction === undefined) return false;
+        const digit = this.extractLastDigit(exitPrice);
+        return digit === prediction;
+    }
+
+    private async simulateTrade(contractType: string, stake: number, prediction: number | undefined): Promise<void> {
+        // 1. Get Entry Price
+        const entryTick = this.tradeContext.ticks[this.tradeContext.ticks.length - 1];
+        if (!entryTick) {
+            this.onLog(`⚠️ Simulation failed: No market data`);
+            return;
+        }
+        const entryPrice = entryTick.quote;
+        
+        this.onLog(`⏳ Simulating ${contractType} (${this.config.duration}${this.config.durationUnit})... Entry: ${entryPrice}`);
+
+        // 2. Wait for Expiration (Real Market Data)
+        const exitTick = await this.waitForContractExpiration();
+        if (!exitTick) {
+            this.onLog(`⚠️ Simulation failed: Could not get exit price`);
+            return;
+        }
+        const exitPrice = exitTick.quote;
+
+        // 3. Determine Result (Local Judge)
+        const isWin = this.determineTradeResult(contractType, entryPrice, exitPrice, prediction);
         
         const payout = this.currentProposalPayout || 1.95;
         const profit = isWin ? stake * (payout - 1) : -stake;
         
-        this.onLog(`🎮 Simulated: ${isWin ? 'WIN' : 'LOSS'} | ${contractType} | Profit: $${profit.toFixed(2)}`);
+        const resultEmoji = isWin ? '✅' : '❌';
+        this.onLog(`${resultEmoji} Simulated: ${isWin ? 'WIN' : 'LOSS'} | ${contractType} | Entry: ${entryPrice} | Exit: ${exitPrice}`);
         
-        this.processTradeResult(isWin, profit, contractType, stake, 'simulated_' + Date.now());
+        this.processTradeResult(isWin, profit, contractType, stake, 'simulated_' + Date.now(), this.config.symbol, 'simulation', '0', '0', true);
     }
 
-    private simulateBothTrade(
+    private async simulateBothTrade(
         contractType: string, 
         stake: number, 
         prediction: number | undefined,
         bothContracts: ContractGroup
-    ): void {
-        const winProbability = this.getWinProbability(contractType, prediction);
-        const isWin = Math.random() < winProbability;
+    ): Promise<void> {
+        // 1. Get Entry Price (Shared for BOTH trades)
+        const entryTick = this.tradeContext.ticks[this.tradeContext.ticks.length - 1];
+        if (!entryTick) return;
+        const entryPrice = entryTick.quote;
+
+        // 2. Wait for Expiration (Shared)
+        // Note: In BOTH mode, we should ideally wait once for the pair, but calling simulateBothTrade twice 
+        // in parallel (as implemented in executeBothModeTrade loop) might cause double waiting if not careful.
+        // However, since they are independent promises, they will both wait for the SAME N ticks independently.
+        // This is acceptable behavior.
+        const exitTick = await this.waitForContractExpiration();
+        if (!exitTick) return;
+        const exitPrice = exitTick.quote;
+
+        // 3. Determine Result
+        const isWin = this.determineTradeResult(contractType, entryPrice, exitPrice, prediction);
         
         const payout = this.currentProposalPayout || 1.95;
         const profit = isWin ? stake * (payout - 1) : -stake;
@@ -947,8 +1121,9 @@ export class BotExecutionEngine {
                     clearInterval(checkInterval);
                     const profit = Number(contract.profit);
                     const isWin = profit > 0;
-                    
-                    this.processTradeResult(isWin, profit, contractType, stake, contractId);
+                    console.log(contract);
+                    this.processTradeResult(isWin, profit, contractType, stake, contractId, contract.underlying, contract.contract_type, contract.barrier ?? '', contract.
+entry_tick_display_value, false);
                 }
             } catch (e) {
                 console.error("Error monitoring contract", e);
@@ -1027,6 +1202,10 @@ export class BotExecutionEngine {
             profit: totalProfit,
             status: normalizedResult,
             mode: currentMode,
+            symbol: '',
+            type: '',
+            target: '0',
+            exit: '0',
             timestamp: new Date(),
             payout: this.currentProposalPayout
         });
@@ -1053,7 +1232,12 @@ export class BotExecutionEngine {
         profit: number, 
         contractType: string, 
         stake: number,
-        contractId: string
+        contractId: string,
+        symbol: string,
+        type: string,
+        target: string,
+        exit: string,
+        isSimulation: boolean
     ): void {
         this.isTrading = false;
         this.totalProfit += profit;
@@ -1074,6 +1258,11 @@ export class BotExecutionEngine {
             profit,
             status: isWin ? 'WIN' : 'LOSS',
             mode: currentMode,
+            symbol: symbol,
+            type: type,
+            target: target,
+            exit: exit,
+            isSimulation: isSimulation ? 'SIMULACAO' : 'REAL',
             timestamp: new Date(),
             payout: this.currentProposalPayout
         });

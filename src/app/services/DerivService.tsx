@@ -1,6 +1,5 @@
 import { toast } from "react-toastify";
 import { Observer } from "./simpleObserver";
-import moment from "moment";
 
 type DerivEventMap = {
   open: void;
@@ -410,6 +409,7 @@ export class DerivService {
 
     try {
       const data = JSON.parse(event.data);
+
       this.observer.emit("message", data);
 
       if (data.msg_type === "forget") {
@@ -508,11 +508,7 @@ export class DerivService {
           data.error ? reject(data.error) : resolve(data);
         }
       });
-      console.log("Sending payload:", payload);
-      console.log("this.isConnected ", this.isConnected)
-      console.log("!needAuthorize || this.isAuthorized ", !needAuthorize || this.isAuthorized);
-      console.log("this.isAuthorized ", this.isAuthorized);
-      console.log("needAuthorize ", needAuthorize);
+
       if (this.isConnected && (!needAuthorize || this.isAuthorized)) {
         this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
       } else {

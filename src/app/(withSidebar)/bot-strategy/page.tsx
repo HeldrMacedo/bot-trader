@@ -260,9 +260,15 @@ export default function BotStrategyPage() {
         if (!deriv.isConnected) {
              if (activeToken) {
                  deriv.setToken(activeToken);
-                 deriv.connect();
+                 deriv.connect(); 
+                 setTimeout(() => {
+                  deriv.authenticate(activeToken);
+                 },100);
+                 
              } else {
                  deriv.connect();
+                 setTimeout(() => {deriv.authenticate(activeToken);}, 100);
+                 
              }
         }
         

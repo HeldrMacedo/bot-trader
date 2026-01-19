@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 export default function BotDashboard({ logs, running, resultsList = [] }: { logs: string[], running: boolean, resultsList?: any[] }) {
     
@@ -14,7 +14,7 @@ export default function BotDashboard({ logs, running, resultsList = [] }: { logs
 			(acc, result) => acc + Number(result.profit),
 			0,
 		);
-
+        console.log(resultsList);
 		return { totalTrader, totalWin, totalLoss, lucro };
 	}, [resultsList]);
 
