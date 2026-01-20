@@ -101,7 +101,7 @@ export interface TradeRecord {
     target: string;
     exit: string;
     timestamp: Date;
-    isSimulation: boolean;
+    isSimulation: string;
     payout?: number;
 }
 
@@ -1023,7 +1023,8 @@ export class BotExecutionEngine {
             this.onLog(`⚠️ Simulation failed: No market data`);
             return;
         }
-        const entryPrice = entryTick.quote;
+        console.log('entryTick', entryTick);
+        const entryPrice = entryTick;
         
         this.onLog(`⏳ Simulating ${contractType} (${this.config.duration}${this.config.durationUnit})... Entry: ${entryPrice}`);
 
@@ -1039,12 +1040,13 @@ export class BotExecutionEngine {
         const isWin = this.determineTradeResult(contractType, entryPrice, exitPrice, prediction);
         
         const payout = this.currentProposalPayout || 1.95;
-        const profit = isWin ? stake * (payout - 1) : -stake;
+        const rawProfit = isWin ? stake * (payout - 1) : -stake;
+        const profit = Math.round(rawProfit * 100) / 100;
         
         const resultEmoji = isWin ? '✅' : '❌';
         this.onLog(`${resultEmoji} Simulated: ${isWin ? 'WIN' : 'LOSS'} | ${contractType} | Entry: ${entryPrice} | Exit: ${exitPrice}`);
         
-        this.processTradeResult(isWin, profit, contractType, stake, 'simulated_' + Date.now(), this.config.symbol, 'simulation', '0', '0', true);
+        this.processTradeResult(isWin, profit, contractType, stake, 'simulated_' + Date.now(), this.config.symbol, contractType, entryPrice.toString(), exitPrice, true);
     }
 
     private async simulateBothTrade(
@@ -1056,7 +1058,7 @@ export class BotExecutionEngine {
         // 1. Get Entry Price (Shared for BOTH trades)
         const entryTick = this.tradeContext.ticks[this.tradeContext.ticks.length - 1];
         if (!entryTick) return;
-        const entryPrice = entryTick.quote;
+        const entryPrice = entryTick;
 
         // 2. Wait for Expiration (Shared)
         // Note: In BOTH mode, we should ideally wait once for the pair, but calling simulateBothTrade twice 
@@ -1207,6 +1209,7 @@ entry_tick_display_value, false);
             target: '0',
             exit: '0',
             timestamp: new Date(),
+            isSimulation: currentMode === 'SIMULACAO' ? 'SIMULACAO' : 'REAL',
             payout: this.currentProposalPayout
         });
 
