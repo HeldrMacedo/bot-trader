@@ -3,17 +3,19 @@ import { useMemo } from 'react';
 export default function BotDashboard({ logs, running, resultsList = [] }: { logs: string[], running: boolean, resultsList?: any[] }) {
     
     const totals = useMemo(() => {
-		const totalTrader = resultsList.length;
+		const totalTrader = resultsList.filter((result) => result.isSimulation === 'REAL').length;
 		const totalWin = resultsList
-			.filter((result) => result.status === 'Won')
+			.filter((result) => result.status === 'Won' && result.isSimulation === 'REAL')
 			.reduce((acc, result) => acc + Number(result.profit), 0);
 		const totalLoss = resultsList
-			.filter((result) => result.status === 'Lost')
+			.filter((result) => result.status === 'Lost' && result.isSimulation === 'REAL')
 			.reduce((acc, result) => acc + Number(result.profit), 0);
-		const lucro = resultsList.reduce(
-			(acc, result) => acc + Number(result.profit),
-			0,
-		);
+		const lucro = resultsList
+			.filter((result) => result.isSimulation === 'REAL')
+			.reduce(
+				(acc, result) => acc + Number(result.profit),
+				0,
+			);
         console.log(resultsList);
 		return { totalTrader, totalWin, totalLoss, lucro };
 	}, [resultsList]);
@@ -94,6 +96,7 @@ export default function BotDashboard({ logs, running, resultsList = [] }: { logs
                             <th className='px-4 py-3 font-medium'>Stake</th>
                             <th className='px-4 py-3 font-medium'>Status</th>
                             <th className='px-4 py-3 font-medium'>Profit/Loss</th>
+                            <th className='px-4 py-3 font-medium'>Mode</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
@@ -106,7 +109,7 @@ export default function BotDashboard({ logs, running, resultsList = [] }: { logs
                         ) : (
                             resultsList.map((result, index) => (
                                 <tr key={index} className="hover:bg-gray-800/30 transition-colors">
-                                    <td className='px-4 py-2 whitespace-nowrap font-mono text-xs'>{result.time}</td>
+                                    <td className='px-4 py-2 whitespace-nowrap font-mono text-xs'>{result.timestamp.toLocaleString()}</td>
                                     <td className='px-4 py-2 whitespace-nowrap'>{result.symbol}</td>
                                     <td className='px-4 py-2 whitespace-nowrap font-bold'>{result.type}</td>
                                     <td className='px-4 py-2 whitespace-nowrap font-mono'>{result.target}</td>
@@ -120,6 +123,7 @@ export default function BotDashboard({ logs, running, resultsList = [] }: { logs
                                     <td className={`px-4 py-2 font-mono font-bold ${result.status === 'Won' ? 'text-green-400' : 'text-red-400'}`}>
                                         {result.status === 'Won' ? '+' : ''}{result.profit}
                                     </td>
+                                    <td className='px-4 py-2 whitespace-nowrap font-mono'>{result.isSimulation}</td>
                                 </tr>
                             ))
                         )}
