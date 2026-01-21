@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { DerivService, AccountInfo } from '@/app/services/DerivService';
+import { AccountInfo, DerivService } from '@/app/services/DerivService';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
+import { useEffect, useState } from 'react';
 
 export default function AccountSelector() {
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
@@ -100,7 +100,7 @@ export default function AccountSelector() {
   if (!selectedAccount) return null;
 
   return (
-    <div className="mb-4 relative z-50">
+    <div className="mb-4 relative z-20">
       <div className="bg-[#1e1b2e] border border-gray-700 rounded-lg p-3">
          {/* Dropdown Trigger */}
          <button 

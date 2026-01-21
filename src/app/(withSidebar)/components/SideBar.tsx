@@ -1,28 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAuth } from "@/app/hooks/useAuth";
 import {
+  TokenData
+} from "@/app/services/DerivService";
+import { updateUserProfile } from "@/app/services/profileService";
+import { getUser } from "@/app/services/userService";
+import {
+  ArrowLeftStartOnRectangleIcon,
   Bars3Icon,
-  XMarkIcon,
-  UserCircleIcon,
   ChevronDownIcon,
   CpuChipIcon,
-} from "@heroicons/react/24/outline";
-import {
+  DocumentChartBarIcon,
   HomeIcon,
+  UserCircleIcon,
   UserGroupIcon,
   UserIcon,
-  ArrowLeftStartOnRectangleIcon,
-  DocumentChartBarIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
-import {
-  AccountInfo,
-  DerivService,
-  TokenData,
-} from "@/app/services/DerivService";
-import { getUser } from "@/app/services/userService";
-import { updateUserProfile } from "@/app/services/profileService";
+import { useState } from "react";
 
 import ProfileModal from "@/app/(withSidebar)/profile/ProfileModal";
 import { toast } from "react-toastify";
@@ -105,16 +100,16 @@ const Sidebar = ({
       name: "Bot Analitico",
       icon: CpuChipIcon,
       href: "/bot-analitico",
-      role: ["admin", "user"],
+      role: ["admin"],
     },
     {
       name: "Bot Strategy",
       icon: CpuChipIcon,
       href: "/bot-strategy",
-      role: ["admin", "user"],
+      role: ["admin"],
     },
     {
-      name: "BotTrader",
+      name: "Bot Copy Trader",
       icon: CpuChipIcon,
       href: "/bottrader",
       role: ["admin", "user"],
