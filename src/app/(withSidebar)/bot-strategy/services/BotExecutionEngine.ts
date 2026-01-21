@@ -679,7 +679,7 @@ export class BotExecutionEngine {
                 this.simulateTrade(contractType, stakeToUse, prediction);
             } else {
                 // Real trade execution
-            const buyReq: any = { buy: proposal.proposal.id, price: parseFloat(proposal.proposal.ask_price || stakeToUse) };
+            const buyReq: any = { buy: proposal.proposal.id, price: parseFloat(stakeToUse.toString()) };
             
             // Check if proposal is expired/valid
             if (!proposal.proposal.id) {
@@ -689,7 +689,7 @@ export class BotExecutionEngine {
                      throw new Error(freshProposal.error?.message || "Failed to get fresh proposal for buy");
                  }
                  buyReq.buy = freshProposal.proposal.id;
-                 buyReq.price = parseFloat(freshProposal.proposal.ask_price);
+                 buyReq.price = parseFloat(stakeToUse.toString());
             }
 
                 const buyResponse = await this.deriv.send(buyReq);

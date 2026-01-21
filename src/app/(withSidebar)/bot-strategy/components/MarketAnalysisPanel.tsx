@@ -349,7 +349,7 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
             </div>
         </div>
 
-        {showCooldownOverlay && !jsonModalOpen && (
+        {/* {showCooldownOverlay && !jsonModalOpen && (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-yellow-200/80 backdrop-blur-md rounded-lg">
             <div className="bg-gradient-to-br from-yellow-200 to-yellow-300 border border-white/70 rounded-2xl px-6 py-5 w-[85%] max-w-[320px] text-center shadow-2xl">
               <div className="text-pink-700 font-bold text-lg mb-3">📊 Contrato Aberto</div>
@@ -380,7 +380,7 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
               )}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Strategy Groups Display */}
         {(groupsFromStrategy.length > 0 || (parsedStrategy && parsedStrategy.groups.length > 0)) && (

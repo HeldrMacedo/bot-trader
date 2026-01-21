@@ -13,7 +13,22 @@ export default function AccountSelector() {
     loadAccounts();
     // Listen for storage changes in case other tabs update it
     window.addEventListener('storage', loadAccounts);
-    return () => window.removeEventListener('storage', loadAccounts);
+
+    // Subscribe to DerivService account updates
+    const deriv = DerivService.getInstance();
+    const handleAccountUpdate = (updatedAccount: AccountInfo | null) => {
+        if (updatedAccount) {
+             // Reload accounts from storage or update state directly
+             loadAccounts(); 
+        }
+    };
+    
+    const listenerId = deriv.observerInstance.on('account.update', handleAccountUpdate);
+
+    return () => {
+        window.removeEventListener('storage', loadAccounts);
+        deriv.observerInstance.removeById(listenerId);
+    };
   }, []);
 
   const loadAccounts = () => {
@@ -44,7 +59,7 @@ export default function AccountSelector() {
     try {
         const deriv = DerivService.getInstance();
         const authResponse = await deriv.send({ authorize: token });
-        
+        console.log("Auth Response:", authResponse);
         // Update local state and storage
         const updatedAccounts = accounts.map(acc => {
             const hasToken = acc.tokens.some(t => t.token === token);
@@ -63,7 +78,7 @@ export default function AccountSelector() {
         });
 
         localStorage.setItem("deriv_accounts", JSON.stringify(updatedAccounts));
-        localStorage.setItem("activeToken", token); // Compatibility
+        //localStorage.setItem("activeToken", token); // Compatibility
         
         deriv.setAccountData(updatedAccounts.find(acc => acc.tokens.some(t => t.token === token))!);
         

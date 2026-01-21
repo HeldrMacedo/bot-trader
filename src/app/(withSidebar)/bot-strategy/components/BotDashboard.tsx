@@ -5,10 +5,10 @@ export default function BotDashboard({ logs, running, resultsList = [] }: { logs
     const totals = useMemo(() => {
 		const totalTrader = resultsList.filter((result) => result.isSimulation === 'REAL').length;
 		const totalWin = resultsList
-			.filter((result) => result.status === 'Won' && result.isSimulation === 'REAL')
+			.filter((result) => result.status === 'WIN' && result.isSimulation === 'REAL')
 			.reduce((acc, result) => acc + Number(result.profit), 0);
 		const totalLoss = resultsList
-			.filter((result) => result.status === 'Lost' && result.isSimulation === 'REAL')
+			.filter((result) => result.status === 'LOSS' && result.isSimulation === 'REAL')
 			.reduce((acc, result) => acc + Number(result.profit), 0);
 		const lucro = resultsList
 			.filter((result) => result.isSimulation === 'REAL')
@@ -117,13 +117,15 @@ export default function BotDashboard({ logs, running, resultsList = [] }: { logs
                                     <td className='px-4 py-2 font-mono'>{result.stake}</td>
                                     <td className='px-4 py-2'>
                                         <span
-                                            className={`px-2 py-1 rounded-full text-xs font-bold ${result.status === 'Won' ? 'bg-green-900/30 text-green-400 border border-green-900/50' : 'bg-red-900/30 text-red-400 border border-red-900/50'}`}
+                                            className={`px-2 py-1 rounded-full text-xs font-bold ${result.status === 'WIN' ? 'bg-green-900/30 text-green-400 border border-green-900/50' : 'bg-red-900/30 text-red-400 border border-red-900/50'}`}
                                         >{result.status}</span>
                                     </td>
-                                    <td className={`px-4 py-2 font-mono font-bold ${result.status === 'Won' ? 'text-green-400' : 'text-red-400'}`}>
-                                        {result.status === 'Won' ? '+' : ''}{result.profit}
+                                    <td className={`px-4 py-2 font-mono font-bold ${result.status === 'WIN' ? 'text-green-400' : 'text-red-400'}`}>
+                                        {result.status === 'WIN' ? '+' : ''}{result.profit}
                                     </td>
-                                    <td className='px-4 py-2 whitespace-nowrap font-mono'>{result.isSimulation}</td>
+                                    <td className={`px-4 py-2 whitespace-nowrap font-mono ${result.isSimulation === 'SIMULACAO' ? 'text-yellow-400' : ''}`}>
+                                        {result.isSimulation === 'SIMULACAO' ? 'SIMULAÇÃO' : 'REAL'}
+                                    </td>
                                 </tr>
                             ))
                         )}
