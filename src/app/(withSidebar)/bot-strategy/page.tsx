@@ -259,7 +259,6 @@ export default function BotStrategyPage() {
         const deriv = DerivService.getInstance();
         if (!deriv.isConnected) {
              if (activeToken) {
-                 deriv.setToken(activeToken);
                  deriv.connect(); 
                  setTimeout(() => {
                   deriv.authenticate(activeToken);
