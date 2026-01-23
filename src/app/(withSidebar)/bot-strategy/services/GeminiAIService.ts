@@ -25,6 +25,7 @@ export class GeminiAIService {
     private contextProcessor: AIChatContextProcessor;
     private formatGenerator: FormatGenerator;
     private isProcessing: boolean = false;
+    private cachedGeminiJson: any | null = null;
 
     private modelVersions: ModelVersion[] = [
         {
@@ -71,6 +72,7 @@ export class GeminiAIService {
             const cached = this.getCachedTranslation(strategyText, imageData);
             if (cached) {
                 onProgress('Usando tradução em cache...');
+                this.setCachedGeminiJson(cached);
                 return { success: true, strategy: cached, rawText: JSON.stringify(cached) };
             }
 
@@ -99,7 +101,15 @@ export class GeminiAIService {
 
             // 4. Construção do Prompt
             onProgress('Construindo prompt...');
-            const fullPrompt = this.buildPrompt(finalText, marketContext, analysis.needsSystemContext);
+            const basePrompt = this.buildPrompt(finalText, marketContext, analysis.needsSystemContext);
+            let fullPrompt = basePrompt;
+            try {
+                if (typeof (this.preprocessor as any).enrichPrompt === 'function') {
+                    fullPrompt = this.preprocessor.enrichPrompt(basePrompt, processed as any);
+                }
+            } catch {
+                fullPrompt = basePrompt;
+            }
 
             // 5. Seleção de Modelo
             const estimatedTokens = this.estimateTokenCount(fullPrompt);
@@ -151,7 +161,13 @@ export class GeminiAIService {
             }
 
             if (response.strategy) {
-                this.saveCachedTranslation(strategyText, response.strategy, imageData);
+                const formattedRules = this.formatGenerator.formatGeminiResponse(response.strategy);
+                if (formattedRules) {
+                    formattedRules._gemini_prompt = fullPrompt;
+                    this.setCachedGeminiJson(formattedRules);
+                    this.saveCachedTranslation(strategyText, formattedRules, imageData);
+                }
+                return { success: true, strategy: formattedRules, rawText: response.rawText };
             }
 
             return response;
@@ -757,6 +773,11 @@ NUNCA criar mais grupos do que linhas com "*"!
             const maxAge = 7 * 24 * 60 * 60 * 1000;
             const isExpired = (Date.now() - (entry.timestamp || 0)) > maxAge;
             if (isExpired) return null;
+            if (!entry.translation.parameters) {
+                delete cache[hash];
+                localStorage.setItem(cacheKey, JSON.stringify(cache));
+                return null;
+            }
             return entry.translation;
         } catch {
             return null;
@@ -795,6 +816,22 @@ NUNCA criar mais grupos do que linhas com "*"!
             localStorage.setItem(cacheKey, JSON.stringify(cache));
         } catch {
         }
+    }
+
+    public setCachedGeminiJson(geminiJson: any): void {
+        this.cachedGeminiJson = geminiJson;
+    }
+
+    public getCachedGeminiJson(): any | null {
+        return this.cachedGeminiJson;
+    }
+
+    public clearCachedGeminiJson(): void {
+        this.cachedGeminiJson = null;
+    }
+
+    public checkCachedTranslation(strategyText: string, imageData?: { data: string, mimeType: string }): any | null {
+        return this.getCachedTranslation(strategyText, imageData);
     }
 
     private buildHistoricalData(symbol: string, tradeType: string): { type: 'digits' | 'prices'; analysis: any } | null {

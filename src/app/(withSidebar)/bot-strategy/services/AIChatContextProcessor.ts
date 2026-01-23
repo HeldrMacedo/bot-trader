@@ -57,45 +57,108 @@ Você é um assistente especializado no DerivBot, um sistema de trading automati
 As regras são criadas em formato JSON com a seguinte estrutura:
 
 {
-  "name": "Nome da Estratégia",
-  "description": "Breve descrição",
-  "conditions": [
+  "groups": [
     {
-        "indicator": "RSI" | "SMA" | "PRICE" | "DIGIT",
-        "period": number (para indicadores),
-        "operator": ">" | "<" | ">=" | "<=" | "==" | "!=" | "CROSS_UP" | "CROSS_DOWN" | "IS_EVEN" | "IS_ODD",
-        "value": number | "SMA" | "EMA",
-        "compare_period": number (opcional, se comparar com outra média)
+      "id": 1,
+      "rules": [
+        {
+          "id": 1,
+          "type": "tipo_da_regra",
+          "description": "Descrição em português",
+          "parameters": { /* parâmetros específicos */ }
+        }
+      ]
     }
-  ],
-  "action": "CALL" | "PUT" | "DIGITOVER" | "DIGITUNDER" | "DIGITMATCH" | "DIGITDIFF" | "DIGITEVEN" | "DIGITODD",
-  "prediction": number (para DIGITOVER/UNDER/MATCH/DIFF),
-  "money_management": {
-    "stake": number,
-    "stop_loss": number,
-    "take_profit": number
-  }
+  ]
 }
 
-## EXEMPLOS DE CONDIÇÕES
+## TIPOS DE REGRAS SUPORTADOS
 
-1. **RSI**: "Se RSI(14) > 70"
-   {"indicator": "RSI", "period": 14, "operator": ">", "value": 70}
+1. **dynamic_prediction** - Previsões dinâmicas (over, under, match, differ)
+   - Exemplo: "Entrar over 2 se últimos 3 dígitos = (0,1,2,7,8,9)"
+   - Parâmetros: predictionAction, targetValue, predictionType, explicitPrediction
 
-2. **SMA**: "Se SMA(10) > SMA(20)"
-   {"indicator": "SMA", "period": 10, "operator": ">", "value": "SMA", "compare_period": 20}
+2. **last_digits** - Condições baseadas em últimos dígitos
+   - Exemplo: "Se últimos 5 dígitos = (1,3,5,7,9)"
+   - Parâmetros: count, allowedDigits, operator
 
-3. **Dígito**: "Se último dígito for par"
-   {"indicator": "DIGIT", "operator": "IS_EVEN"}
+3. **rsi** - Indicador RSI
+   - Exemplo: "Se RSI(14) > 70"
+   - Parâmetros: period, value, operator
 
-4. **Preço**: "Se preço > 1000"
-   {"indicator": "PRICE", "operator": ">", "value": 1000}
+4. **sma** - Média Móvel Simples
+   - Exemplo: "Se SMA(10) > SMA(20)"
+   - Parâmetros: period1, period2, operator
+
+5. **sma_crossover** - Cruzamento de médias móveis
+   - Exemplo: "Quando SMA(10) cruza acima de SMA(20)"
+   - Parâmetros: period1, period2, direction
+
+6. **digit_pattern** - Padrões de dígitos (X=repetido, O=diferente)
+   - Exemplo: "Se padrão = XXOX"
+   - Parâmetros: pattern
+
+7. **percentage** - Percentual de ocorrência de dígitos
+   - Exemplo: "Se dígito 7 aparece > 30% nos últimos 50"
+   - Parâmetros: digit, percentage, operator, period
+
+## EXEMPLO COMPLETO
+
+Regra: "Entrar over 2 e under 7 se os ultimos 3 digitos =(0,1,2,7,8,9)"
+
+JSON:
+{
+  "groups": [
+    {
+      "id": 1,
+      "rules": [
+        {
+          "id": 1,
+          "type": "dynamic_prediction",
+          "description": "Entrar over 2 se os ultimos 3 digitos =(0,1,2,7,8,9)",
+          "parameters": {
+            "predictionAction": "over",
+            "targetValue": 2,
+            "predictionType": "conditional_value",
+            "explicitPrediction": true,
+            "count": 3,
+            "allowedDigits": [0,1,2,7,8,9]
+          }
+        },
+        {
+          "id": 2,
+          "type": "dynamic_prediction",
+          "description": "Entrar under 7 se os ultimos 3 digitos =(0,1,2,7,8,9)",
+          "parameters": {
+            "predictionAction": "under",
+            "targetValue": 7,
+            "predictionType": "conditional_value",
+            "explicitPrediction": true,
+            "count": 3,
+            "allowedDigits": [0,1,2,7,8,9]
+          }
+        }
+      ]
+    }
+  ]
+}
 
 ## FUNCIONALIDADES DO APP
 
 - **Processamento de Regras**: Digite regras em português e o sistema converte para JSON
-- **Indicadores**: Suporta RSI, SMA, Padrões de Dígitos
-- **Gestão**: Martingale configurável, Stop Loss, Take Profit
+- **Múltiplas Previsões**: Pode executar vários contratos simultaneamente (ex: over 2 E under 7)
+- **Indicadores**: Suporta RSI, SMA, padrões de dígitos, percentuais
+- **Modo BOTH**: Executa contratos opostos automaticamente
+- **Gale**: Sistema de martingale configurável
+- **Simulação**: Testa estratégias sem risco antes de usar dinheiro real
+
+## DICAS IMPORTANTES
+
+1. Use "explicitPrediction: true" quando especificar valores como "over 2", "under 7"
+2. Para múltiplas previsões no mesmo grupo, crie múltiplas regras dynamic_prediction
+3. allowedDigits deve ser array de números: [0,1,2,7,8,9]
+4. Operadores válidos: ">", "<", "=", ">=", "<=", "!="
+5. predictionAction válidos: "over", "under", "match", "differ", "even", "odd"
 
 SEMPRE forneça exemplos de JSON quando o usuário pedir ajuda para criar regras.
 `;
@@ -219,7 +282,9 @@ SEMPRE forneça exemplos de JSON quando o usuário pedir ajuda para criar regras
             return 'Dados de dígitos não disponíveis ainda. Aguarde alguns ticks.';
         }
 
-        return `Ativo: ${symbol}\nÚltimos ${digits.length} dígitos: [${digits.join(', ')}]`;
+        const validDigits = digits.filter(d => d !== null && d !== undefined);
+
+        return `Ativo: ${symbol}\nÚltimos ${validDigits.length} dígitos: [${validDigits.join(', ')}]`;
     }
 
     private _getPricesContext(symbol: string, count: number): string {
@@ -259,11 +324,6 @@ SEMPRE forneça exemplos de JSON quando o usuário pedir ajuda para criar regras
             context += `SMA(25): ${sma25.toFixed(4)}\n`;
         }
         
-        if (prices.length >= 100) {
-             const sma100 = this.calculateSMA(prices, 100);
-            context += `SMA(100): ${sma100.toFixed(4)}\n`;
-        }
-
         // Preço atual
         const currentPrice = prices[prices.length - 1];
         context += `Preço atual: ${currentPrice.toFixed(4)}`;

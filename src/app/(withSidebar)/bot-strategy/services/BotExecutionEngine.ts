@@ -680,7 +680,7 @@ export class BotExecutionEngine {
             } else {
                 // Real trade execution
             const buyReq: any = { buy: proposal.proposal.id, price: parseFloat(stakeToUse.toString()) };
-            
+            console.log("BUY REQ: ", buyReq);
             // Check if proposal is expired/valid
             if (!proposal.proposal.id) {
                  // If proposal ID is missing, try to get a new one

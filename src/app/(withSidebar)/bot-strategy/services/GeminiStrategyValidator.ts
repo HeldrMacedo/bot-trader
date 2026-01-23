@@ -183,9 +183,8 @@ export class GeminiStrategyValidator {
 
         // Verificar se há pelo menos um grupo ou regra (se não tiver palavras chave)
         if (groups.length === 0 && !text.includes('último') && !text.includes('digito') && !text.includes('rsi')) {
-            // Relaxing this a bit for natural language queries without *
-            // issues.push('Nenhuma regra clara identificada');
-            // suggestions.add('Use * para definir grupos de regras ou descreva condições claras');
+            issues.push('Nenhuma regra clara identificada');
+            suggestions.add('Use * para definir grupos de regras ou descreva condições claras (ex: "últimos 3 dígitos > 5")');
         }
 
         // Verificar valores de dígitos

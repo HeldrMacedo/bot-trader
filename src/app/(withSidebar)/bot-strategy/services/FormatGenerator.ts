@@ -63,11 +63,60 @@ export class FormatGenerator {
 
     private normalizePatternRuleType(patternRule: any): any {
         if (!patternRule) return null;
-        if (patternRule.pattern) {
-             // Ensure type is digit_pattern if pattern is present
-             return { ...patternRule, type: 'digit_pattern' };
+        const normalized = { ...patternRule };
+        if (normalized.type === 'pattern') {
+            normalized.type = 'digit_pattern';
         }
-        return patternRule;
+        if (normalized.pattern && !normalized.type) {
+            normalized.type = 'digit_pattern';
+        }
+        return normalized;
+    }
+
+    private canonizePercentageRule(rawRule: any, options: { allowMissingConditionType?: boolean } = {}): any | null {
+        const allowMissingConditionType = options.allowMissingConditionType || false;
+        if (!rawRule) return null;
+
+        let params = rawRule.parameters || rawRule;
+        if (params.combinedRule?.percentageRule) {
+            params = params.combinedRule.percentageRule;
+        }
+
+        const validOperators = ['>', '<', '=', '>=', '<='];
+        if (!params.operator || !validOperators.includes(params.operator)) {
+            return null;
+        }
+
+        if (params.targetPercentage === undefined || params.targetPercentage < 0 || params.targetPercentage > 100) {
+            return null;
+        }
+
+        let conditionType = params.conditionType || null;
+        let value = params.value !== undefined ? params.value : null;
+
+        if (conditionType) {
+            const validConditionTypes = ['below', 'above', 'equal', 'even', 'odd', 'single_digit', 'individual_digits'];
+            if (!validConditionTypes.includes(conditionType)) {
+                return null;
+            }
+
+            if (['below', 'above', 'equal'].includes(conditionType)) {
+                if (value === undefined || value === null || value < 0 || value > 9) {
+                    return null;
+                }
+            }
+        } else if (!allowMissingConditionType) {
+            return null;
+        }
+
+        return {
+            operator: params.operator,
+            targetPercentage: params.targetPercentage,
+            conditionType,
+            value,
+            period: params.period || 25,
+            allowedDigits: params.allowedDigits !== undefined ? params.allowedDigits : null
+        };
     }
 
     private interpretPatternRule(rule: any): string {
@@ -168,15 +217,22 @@ export class FormatGenerator {
 
             case 'percentage': {
                 const params = rule.parameters || rule;
-                const percentage = params.targetPercentage || rule.targetPercentage || 0;
-                const operator = this.normalizeOperator(params.operator || rule.operator || '>=');
-                
+                const canonical = this.canonizePercentageRule(params, { allowMissingConditionType: true }) || params;
+                const percentage = canonical.targetPercentage ?? params.targetPercentage ?? rule.targetPercentage ?? 0;
+                const operator = this.normalizeOperator(canonical.operator || params.operator || rule.operator || '>=');
+                const conditionType = canonical.conditionType || params.conditionType || rule.conditionType;
+                const value = canonical.value ?? params.value ?? rule.value;
+                const allowedDigits = canonical.allowedDigits ?? params.allowedDigits ?? rule.allowedDigits;
+
                 let conditionText = 'dígitos';
-                if (params.conditionType === 'above' || rule.conditionType === 'above') conditionText = `dígitos > ${params.value || rule.value}`;
-                else if (params.conditionType === 'below' || rule.conditionType === 'below') conditionText = `dígitos < ${params.value || rule.value}`;
-                else if (params.conditionType === 'even' || rule.conditionType === 'even') conditionText = 'pares';
-                else if (params.conditionType === 'odd' || rule.conditionType === 'odd') conditionText = 'ímpares';
-                else if (params.allowedDigits || rule.allowedDigits) conditionText = `dígitos (${(params.allowedDigits || rule.allowedDigits).join(',')})`;
+                if (conditionType === 'above') conditionText = `dígitos > ${value}`;
+                else if (conditionType === 'below') conditionText = `dígitos < ${value}`;
+                else if (conditionType === 'equal') conditionText = `dígitos = ${value}`;
+                else if (conditionType === 'even') conditionText = 'pares';
+                else if (conditionType === 'odd') conditionText = 'ímpares';
+                else if (conditionType === 'single_digit') conditionText = 'último dígito';
+                else if (conditionType === 'individual_digits') conditionText = 'qualquer dígito';
+                else if (Array.isArray(allowedDigits) && allowedDigits.length > 0) conditionText = `dígitos (${allowedDigits.join(',')})`;
 
                 return `Percentual ${conditionText} ${operator} ${percentage}%`;
             }
@@ -223,10 +279,12 @@ export class FormatGenerator {
                     const combinedRule = params.combinedRule;
                     if (combinedRule && combinedRule.percentageRule) {
                         const percentageRule = combinedRule.percentageRule;
-                        const percentage = percentageRule.targetPercentage || 55;
-                        const operator = this.normalizeOperator(percentageRule.operator || '>=');
-                        const condType = percentageRule.conditionType;
-                        const value = percentageRule.value;
+                        const canonical = this.canonizePercentageRule(percentageRule, { allowMissingConditionType: true }) || percentageRule;
+                        const percentage = canonical.targetPercentage || 55;
+                        const operator = this.normalizeOperator(canonical.operator || '>=');
+                        const condType = canonical.conditionType;
+                        const value = canonical.value;
+                        const allowedDigits = canonical.allowedDigits;
 
                         let conditionText = '';
                         if (condType === 'above') conditionText = `dígitos superiores ${value}`;
@@ -234,6 +292,10 @@ export class FormatGenerator {
                         else if (condType === 'even') conditionText = 'pares';
                         else if (condType === 'odd') conditionText = 'ímpares';
                         else if (condType === 'equal') conditionText = `dígitos = ${value}`;
+                        else if (condType === 'single_digit') conditionText = 'último dígito';
+                        else if (condType === 'individual_digits') conditionText = 'qualquer dígito';
+                        else if (Array.isArray(allowedDigits) && allowedDigits.length > 0) conditionText = `dígitos (${allowedDigits.join(',')})`;
+                        else conditionText = 'dígitos';
 
                         return `Entrar ${target} se percentual dos ${conditionText} ${operator} ${percentage}%`;
                     }
@@ -264,6 +326,17 @@ export class FormatGenerator {
                     return `Entrar ${target} com condição de precisão`;
                 } else if (predType === 'last_digit_value' && target !== undefined) {
                     return `Entrar ${target} quando último dígito = ${cond.value}`;
+                } else if (predType === 'percentage_digit_inverse' || predType === 'percentage_digit_match') {
+                    const operation = predType === 'percentage_digit_inverse' ? 'differ' : 'match';
+                    const combinedRule = params.combinedRule;
+                    if (combinedRule && combinedRule.percentageRule) {
+                        const percentageRule = combinedRule.percentageRule;
+                        const canonical = this.canonizePercentageRule(percentageRule, { allowMissingConditionType: true }) || percentageRule;
+                        const percentage = canonical.targetPercentage || 32;
+                        const operator = this.normalizeOperator(canonical.operator || '>');
+                        return `Entrar ${operation} do dígito quando percentual ${operator} ${percentage}%`;
+                    }
+                    return `Entrar ${operation} do dígito com percentual`;
                 } else if (predType === 'last_digit_probability_match') {
                     const condition = params.condition || {};
                     const probVar = condition.probabilityVariable;
