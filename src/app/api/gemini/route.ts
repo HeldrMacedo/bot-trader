@@ -39,8 +39,30 @@ export async function POST(req: Request) {
       })
     });
 
-    const data = await response.json().catch(() => null);
+    let data = await response.json().catch(() => null);
     if (!response.ok) {
+      const message = data?.error?.message || data?.message || response.statusText;
+      if (response.status === 404 && typeof message === 'string' && message.includes('v1beta')) {
+        const v1Url = MODEL_URLS[modelId].replace('/v1beta/', '/v1/');
+        const retry = await fetch(v1Url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          body: JSON.stringify({
+            contents,
+            generationConfig
+          })
+        });
+
+        const retryData = await retry.json().catch(() => null);
+        if (retry.ok) {
+          return NextResponse.json(retryData, { status: 200 });
+        }
+        return NextResponse.json(retryData || { message: retry.statusText }, { status: retry.status });
+      }
+
       return NextResponse.json(data || { message: response.statusText }, { status: response.status });
     }
 

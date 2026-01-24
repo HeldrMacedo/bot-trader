@@ -1,6 +1,4 @@
 
-import { StrategyPreprocessor } from './StrategyPreprocessor';
-
 export interface StrategyRule {
     id?: number | string;
     type: string;
@@ -28,6 +26,8 @@ export interface FormattedStrategy {
     parameters: any[];
     totalRules: number;
     logic: string;
+    // Debug/export helper: keeps the exact prompt sent to Gemini for reproducing results.
+    _gemini_prompt?: string;
 }
 
 export class FormatGenerator {
@@ -120,13 +120,36 @@ export class FormatGenerator {
     }
 
     private interpretPatternRule(rule: any): string {
+        if (!rule || !rule.type) return 'Padrao desconhecido';
+
         if (rule.type === 'digit_pattern' && rule.pattern) {
-            return `Padrão ${rule.pattern}`;
+            return `Padrao ${rule.pattern}`;
         }
         if (rule.type === 'digit_repetition') {
-            return `Repetição de ${rule.count || 2} dígitos`;
+            return `Repeticao de ${rule.count || 2} digitos`;
         }
-        return 'Padrão desconhecido';
+        if (rule.type === 'digit_sequence') {
+            const seq = Array.isArray(rule.sequence) ? rule.sequence.join(', ') : '';
+            return seq ? `Sequencia: ${seq}` : 'Sequencia de digitos';
+        }
+        if (rule.type === 'consecutive_digits') {
+            return `${rule.count || 2} digitos consecutivos`;
+        }
+        if (rule.type === 'parity_pattern') {
+            const parity = rule.parity || 'par';
+            const parityText = parity === 'par' || parity === 'even' ? 'pares' : 'impares';
+            return `${rule.count || 2} digitos ${parityText}`;
+        }
+        if (rule.type === 'range_pattern') {
+            const min = rule.min ?? 0;
+            const max = rule.max ?? 9;
+            return `Digitos entre ${min} e ${max}`;
+        }
+        if (rule.type === 'explicit_pattern') {
+            const pattern = rule.pattern || '';
+            return pattern ? `Padrao: ${pattern}` : 'Padrao explicito';
+        }
+        return 'Padrao desconhecido';
     }
 
     public generateDisplayFormat(rule: StrategyRule): string {
@@ -224,19 +247,40 @@ export class FormatGenerator {
                 const value = canonical.value ?? params.value ?? rule.value;
                 const allowedDigits = canonical.allowedDigits ?? params.allowedDigits ?? rule.allowedDigits;
 
-                let conditionText = 'dígitos';
-                if (conditionType === 'above') conditionText = `dígitos > ${value}`;
-                else if (conditionType === 'below') conditionText = `dígitos < ${value}`;
-                else if (conditionType === 'equal') conditionText = `dígitos = ${value}`;
+                let conditionText = 'digitos';
+                if (conditionType === 'above') conditionText = `digitos > ${value}`;
+                else if (conditionType === 'below') conditionText = `digitos < ${value}`;
+                else if (conditionType === 'equal') conditionText = `digitos = ${value}`;
                 else if (conditionType === 'even') conditionText = 'pares';
-                else if (conditionType === 'odd') conditionText = 'ímpares';
-                else if (conditionType === 'single_digit') conditionText = 'último dígito';
-                else if (conditionType === 'individual_digits') conditionText = 'qualquer dígito';
-                else if (Array.isArray(allowedDigits) && allowedDigits.length > 0) conditionText = `dígitos (${allowedDigits.join(',')})`;
+                else if (conditionType === 'odd') conditionText = 'impares';
+                else if (conditionType === 'single_digit') conditionText = 'ultimo digito';
+                else if (conditionType === 'individual_digits') conditionText = 'qualquer digito';
+                else if (Array.isArray(allowedDigits) && allowedDigits.length > 0) conditionText = `digitos (${allowedDigits.join(',')})`;
 
                 return `Percentual ${conditionText} ${operator} ${percentage}%`;
             }
 
+            case 'conditional_percentage': {
+                const params = rule.parameters || rule;
+                const canonical = this.canonizePercentageRule(params, { allowMissingConditionType: true }) || params;
+                const percentage = canonical.targetPercentage ?? params.targetPercentage ?? rule.targetPercentage ?? 0;
+                const operator = this.normalizeOperator(canonical.operator || params.operator || rule.operator || '>=');
+                const conditionType = canonical.conditionType || params.conditionType || rule.conditionType;
+                const value = canonical.value ?? params.value ?? rule.value;
+                const allowedDigits = canonical.allowedDigits ?? params.allowedDigits ?? rule.allowedDigits;
+
+                let conditionText = 'digitos';
+                if (conditionType === 'above') conditionText = `digitos > ${value}`;
+                else if (conditionType === 'below') conditionText = `digitos < ${value}`;
+                else if (conditionType === 'equal') conditionText = `digitos = ${value}`;
+                else if (conditionType === 'even') conditionText = 'pares';
+                else if (conditionType === 'odd') conditionText = 'impares';
+                else if (conditionType === 'single_digit') conditionText = 'ultimo digito';
+                else if (conditionType === 'individual_digits') conditionText = 'qualquer digito';
+                else if (Array.isArray(allowedDigits) && allowedDigits.length > 0) conditionText = `digitos (${allowedDigits.join(',')})`;
+
+                return `Percentual ${conditionText} ${operator} ${percentage}%`;
+            }
             case 'digit_repetition': {
                 const params = rule.parameters || rule;
                 const repetitionCount = params.count || rule.count || 2;
@@ -264,6 +308,49 @@ export class FormatGenerator {
                 return `Últimos ${allowedCount} dígito${allowedCount > 1 ? 's' : ''} = (${allowedList.join(',')})`;
             }
 
+            case 'digit_sequence':
+            case 'consecutive_digits':
+            case 'parity_pattern':
+            case 'range_pattern':
+            case 'explicit_pattern': {
+                return this.interpretPatternRule(rule);
+            }
+
+            case 'digit_comparison': {
+                const params = rule.parameters || rule;
+                const target = params.target || rule.target;
+                const operator = this.normalizeOperator(params.operator || rule.operator);
+                const value = params.value ?? rule.value;
+
+                let targetText = target;
+                if (target === 'last_digit') targetText = 'Ultimo digito';
+                if (target === '$HIGHER_PROB') targetText = 'Maior Chance';
+                if (target === '$LOWER_PROB') targetText = 'Menor Chance';
+
+                return `Comparacao: ${targetText} ${operator} ${value}`;
+            }
+
+            case 'probability_check': {
+                const params = rule.parameters || rule;
+                const target = params.target || rule.target;
+                const operator = this.normalizeOperator(params.operator || rule.operator);
+                const value = params.value ?? rule.value;
+
+                let targetText = target;
+                if (target === '$HIGHER_PROB') targetText = 'Maior Chance';
+                if (target === '$LOWER_PROB') targetText = 'Menor Chance';
+
+                return `Probabilidade ${targetText} ${operator} ${value}`;
+            }
+
+            case 'sma_crossover': {
+                const params = rule.parameters || rule;
+                const period1 = params.period1 || rule.period1;
+                const period2 = params.period2 || rule.period2;
+                const direction = params.direction || rule.direction;
+                const directionText = direction === 'down' ? 'cruza abaixo de' : 'cruza acima de';
+                return `SMA(${period1 || 14}) ${directionText} SMA(${period2 || 14})`;
+            }
             case 'dynamic_prediction': {
                 const params = rule.parameters || rule;
                 const predType = params.predictionType || 'conditional_value';
@@ -369,12 +456,43 @@ export class FormatGenerator {
     }
 
     private normalizeRuleStructure(rawRule: any): StrategyRule {
-        // Simple normalization, can be expanded
         return { ...rawRule, parameters: rawRule.parameters || rawRule };
     }
 
+    private static validateParameters(params: any): void {
+        switch (params.type) {
+            case 'last_digits': {
+                const validOperators = ['>', '<', '=', '>=', '<=', '!='];
+                if (!params.operator || !validOperators.includes(params.operator)) {
+                    throw new Error(`Operador inválido: ${params.operator}`);
+                }
+                break;
+            }
+            case 'digit_pattern': {
+                if (!params.pattern || typeof params.pattern !== 'string' || params.pattern.length === 0) {
+                    throw new Error(`Padrão inválido: ${params.pattern}`);
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
     public static extractParameters(rule: StrategyRule): any {
-        return rule.parameters || {};
+        const params: any = {
+            type: rule.type
+        };
+
+        Object.keys(rule).forEach(key => {
+            if (key !== 'id' && key !== 'type' && key !== 'description' && key !== 'display_format' && key !== 'displayFormat') {
+                params[key] = (rule as any)[key];
+            }
+        });
+
+        this.validateParameters(params);
+
+        return params;
     }
 
     private generateEditableParameters(rule: StrategyRule, groupIndex: number, ruleIndex: number): any[] {
@@ -490,3 +608,6 @@ export class FormatGenerator {
         }
     }
 }
+
+
+

@@ -61,6 +61,17 @@ export class GeminiAIService {
         this.formatGenerator = FormatGenerator.getInstance();
     }
 
+    private buildModelFallbackOrder(startIndex: number): number[] {
+        const total = this.modelVersions.length;
+        if (total === 0) return [];
+        const clampedStart = Math.max(0, Math.min(startIndex, total - 1));
+
+        const order: number[] = [];
+        for (let i = clampedStart; i < total; i++) order.push(i);
+        for (let i = clampedStart - 1; i >= 0; i--) order.push(i);
+        return Array.from(new Set(order));
+    }
+
     async translateStrategy(strategyText: string, onProgress: (msg: string) => void, imageData?: { data: string, mimeType: string }): Promise<GeminiResponse> {
         if (this.isProcessing) {
             return { success: false, error: 'Outra solicitação já está em andamento.' };
@@ -113,8 +124,7 @@ export class GeminiAIService {
 
             // 5. Seleção de Modelo
             const estimatedTokens = this.estimateTokenCount(fullPrompt);
-            // 🎯 OTIMIZAÇÃO: Seleção inteligente baseada na quantidade de GRUPOS
-            const totalGroups = (finalText.match(/^\s*\*/gm) || []).length || 1;
+            const totalGroups = processed.structure?.totalGroups || (finalText.match(/^\s*\*/gm) || []).length || 1;
             let startModelIndex = 0;
 
             if (totalGroups === 1) {
@@ -132,7 +142,8 @@ export class GeminiAIService {
             let lastError = 'Falha em todos os modelos';
             let response: GeminiResponse = { success: false, error: lastError };
             
-            for (let i = startModelIndex; i < this.modelVersions.length; i++) {
+            const modelOrder = this.buildModelFallbackOrder(startModelIndex);
+            for (const i of modelOrder) {
                 const model = this.modelVersions[i];
 
                 // Verificar limite de tokens
@@ -150,7 +161,7 @@ export class GeminiAIService {
                     console.warn(`Falha no modelo ${model.name}:`, e.message);
                     lastError = `Erro no modelo ${model.name}: ${e.message}`;
                     // Pequeno delay antes de tentar o próximo para evitar rate limit em cascata
-                    if (i < this.modelVersions.length - 1) {
+                    if (i !== modelOrder[modelOrder.length - 1]) {
                         await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                 }
@@ -170,7 +181,7 @@ export class GeminiAIService {
                 return { success: true, strategy: formattedRules, rawText: response.rawText };
             }
 
-            return response;
+            return { success: false, error: 'Resposta da IA não contém JSON válido.', rawText: response.rawText };
 
         } catch (error: any) {
             console.error('Gemini Service Error:', error);
@@ -668,8 +679,8 @@ NUNCA criar mais grupos do que linhas com "*"!
         const parts: any[] = [{ text: prompt.trim() }];
         if (imageData) {
             parts.push({
-                inline_data: {
-                    mime_type: imageData.mimeType,
+                inlineData: {
+                    mimeType: imageData.mimeType,
                     data: imageData.data
                 }
             });

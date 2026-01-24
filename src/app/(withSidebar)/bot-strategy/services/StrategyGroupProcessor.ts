@@ -57,9 +57,8 @@ export class StrategyGroupProcessor {
           continue;
         }
         
-        // Split by comma to get individual rules within the group
         const rules = rulesText
-          .split(',')
+          .split(/,(?![^(]*\))/)
           .map(rule => rule.trim())
           .filter(rule => rule !== '');
         
