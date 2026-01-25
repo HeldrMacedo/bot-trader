@@ -32,6 +32,12 @@ export interface StrategyRule {
     count?: number;
 }
 
+export interface CapturedPrediction {
+    contractType: string | null;
+    predictionValue: number | null;
+    ruleId?: number | string;
+}
+
 export interface StrategyGroup {
     id: number;
     rules: StrategyRule[];
@@ -139,6 +145,7 @@ export class BotExecutionEngine {
     private tickListenerId: string | null = null;
     private cooldownTicks: number = 0;
     private currentProposalPayout: number = 0;
+    private capturedPredictionsForTrade: CapturedPrediction[] | null = null;
     
     // BOTH mode state
     private pendingBothResults: Map<string, { contractType: string, result?: 'WIN' | 'LOSS', profit?: number }> = new Map();
@@ -473,6 +480,7 @@ export class BotExecutionEngine {
         if (this.strategy && this.strategy.conditions && this.strategy.conditions.length > 0) {
             let allConditionsMet = true;
             this.dynamicTarget = null;
+            this.capturedPredictionsForTrade = null;
 
             for (const cond of this.strategy.conditions) {
                 if (!this.evaluateCondition(cond)) {
@@ -488,6 +496,7 @@ export class BotExecutionEngine {
         // Handle new strategy format with groups
         else if (this.strategy && this.strategy.groups && this.strategy.groups.length > 0) {
             this.dynamicTarget = null;
+            this.capturedPredictionsForTrade = null;
             const activeGroupIds = this.getActiveGroupIds();
             // Check each group - if ANY group has ALL its conditions met, execute trade (OR logic between groups)
             for (let groupIndex = 0; groupIndex < this.strategy.groups.length; groupIndex++) {
@@ -509,6 +518,8 @@ export class BotExecutionEngine {
                 return false; // If any condition in the group fails, the whole group fails
             }
         }
+        const captured = this.capturePredictionsFromGroup(group);
+        this.capturedPredictionsForTrade = captured && captured.length > 0 ? captured : null;
         return true; // All conditions in the group passed
     }
 
@@ -522,6 +533,16 @@ export class BotExecutionEngine {
         // Handle last digits condition (checking multiple consecutive digits)
         if (cond.indicator === 'LAST_DIGITS' || cond.type === 'last_digits') {
             return this.evaluateLastDigitsCondition(cond);
+        }
+
+        const params = (cond as any).parameters || cond;
+        const combinedRule = params.combinedRule || (cond as any).combinedRule;
+        const percentageRule = combinedRule?.percentageRule;
+        if (percentageRule) {
+            return this.evaluatePercentageRule(percentageRule);
+        }
+        if (cond.type === 'conditional_percentage') {
+            return this.evaluatePercentageRule(params);
         }
 
         let valueToCheck: number | undefined;
@@ -633,17 +654,194 @@ export class BotExecutionEngine {
         return satisfiedCount === count && count > 0;
     }
 
+    private evaluatePercentageRule(rawRule: any): boolean {
+        const params = rawRule?.parameters || rawRule;
+        if (!params) return false;
+
+        const operator = params.operator || '>';
+        const targetPercentage = params.targetPercentage;
+        if (targetPercentage === undefined || targetPercentage === null) {
+            return false;
+        }
+
+        const period = params.period || 25;
+        const digits = this.tradeContext.digits.slice(-period).filter(d => d !== null && d !== undefined);
+        if (digits.length === 0) return false;
+
+        const allowedDigits = Array.isArray(params.allowedDigits) ? params.allowedDigits : null;
+        const conditionType = params.conditionType || null;
+        const value = params.value !== undefined ? params.value : null;
+
+        const matches = digits.filter((digit) => {
+            if (allowedDigits && allowedDigits.length > 0) {
+                return allowedDigits.includes(digit);
+            }
+
+            switch (conditionType) {
+                case 'below':
+                    return value !== null ? digit < value : false;
+                case 'above':
+                    return value !== null ? digit > value : false;
+                case 'equal':
+                    return value !== null ? digit === value : false;
+                case 'even':
+                    return digit % 2 === 0;
+                case 'odd':
+                    return digit % 2 !== 0;
+                default:
+                    return false;
+            }
+        }).length;
+
+        const percentage = (matches / digits.length) * 100;
+
+        switch (operator) {
+            case '>': return percentage > targetPercentage;
+            case '<': return percentage < targetPercentage;
+            case '>=': return percentage >= targetPercentage;
+            case '<=': return percentage <= targetPercentage;
+            case '=':
+            case '==':
+            case '===':
+                return percentage === targetPercentage;
+            case '!=':
+            case '!==':
+                return percentage !== targetPercentage;
+            default:
+                return false;
+        }
+    }
+
+    private mapPredictionActionToContract(action: string | null): string | null {
+        if (!action) return null;
+        switch (action) {
+            case 'over':
+                return 'DIGITOVER';
+            case 'under':
+                return 'DIGITUNDER';
+            case 'match':
+            case 'matches':
+                return 'DIGITMATCH';
+            case 'differ':
+            case 'diff':
+            case 'differs':
+                return 'DIGITDIFF';
+            case 'even':
+            case 'par':
+                return 'DIGITEVEN';
+            case 'odd':
+            case 'impar':
+            case 'ímpar':
+                return 'DIGITODD';
+            case 'call':
+            case 'rise':
+                return 'CALL';
+            case 'put':
+            case 'fall':
+                return 'PUT';
+            case 'higher':
+            case 'calle':
+                return 'CALLE';
+            case 'lower':
+            case 'pute':
+                return 'PUTE';
+            default:
+                return null;
+        }
+    }
+
+    private capturePredictionsFromGroup(group: StrategyGroup): CapturedPrediction[] {
+        const predictions: CapturedPrediction[] = [];
+
+        for (const rule of group.rules) {
+            const params = (rule as any).parameters || rule;
+            const actionRaw = (params.predictionAction || (rule as any).predictionAction || '').toString().toLowerCase();
+            const predictionType = params.predictionType || (rule as any).predictionType;
+            const contractType = this.mapPredictionActionToContract(actionRaw);
+
+            let predictionValue: number | null = null;
+            const targetVal = params.targetValue ?? params.value ?? (rule as any).targetValue;
+            if (typeof targetVal === 'number' && targetVal >= 0 && targetVal <= 9) {
+                predictionValue = targetVal;
+            } else if (typeof targetVal === 'string') {
+                if (targetVal === 'dynamic_repeated_digit' && this.dynamicTarget !== null) {
+                    predictionValue = this.dynamicTarget;
+                }
+            }
+
+            const isExplicitPrediction = rule.type === 'dynamic_prediction' || actionRaw !== '' || !!predictionType;
+            if (isExplicitPrediction && (contractType || predictionValue !== null)) {
+                predictions.push({
+                    contractType: contractType || null,
+                    predictionValue,
+                    ruleId: (rule as any).id
+                });
+            }
+        }
+
+        return predictions;
+    }
+
+    private resolvePredictionForContract(contractType: string | null = null): number | undefined {
+        if (this.capturedPredictionsForTrade && this.capturedPredictionsForTrade.length > 0) {
+            if (contractType) {
+                const match = this.capturedPredictionsForTrade.find(p => p.contractType === contractType);
+                if (match && match.predictionValue !== null && match.predictionValue !== undefined) {
+                    return match.predictionValue;
+                }
+            }
+
+            if (this.capturedPredictionsForTrade.length === 1) {
+                const single = this.capturedPredictionsForTrade[0];
+                if (single.predictionValue !== null && single.predictionValue !== undefined) {
+                    return single.predictionValue;
+                }
+            }
+        }
+
+        if (this.dynamicTarget !== null) {
+            return this.dynamicTarget;
+        }
+
+        if (this.strategy?.prediction !== undefined && this.strategy.prediction !== null) {
+            if (typeof this.strategy.prediction === 'number') {
+                return this.strategy.prediction;
+            }
+            if (typeof this.strategy.prediction === 'object' && this.strategy.prediction.value !== undefined) {
+                return Number(this.strategy.prediction.value);
+            }
+        }
+
+        if (this.config.prediction !== undefined && this.config.prediction !== null) {
+            if (typeof this.config.prediction === 'number') {
+                return this.config.prediction;
+            }
+            if (typeof this.config.prediction === 'object' && (this.config.prediction as any).value !== undefined) {
+                return Number((this.config.prediction as any).value);
+            }
+        }
+
+        return undefined;
+    }
+
     private async executeTrade(): Promise<void> {
         if (this.isTrading) return;
 
         const currentMode = this.riskController.getCurrentMode();
-        // 🎯 FIX: Prioritize captured dynamic prediction if available (from strategy rules)
-        // If not, fall back to static config prediction
-        let prediction = this.resolvePrediction();
-        
-        // 🎯 FIX: Determine contract type from strategy action or config
+        // Determine contract type from strategy action or config
         // Some strategy rules might override the action (e.g. "Enter DIFFER" in a MATCH strategy)
-        let contractType = this.strategy?.action || this.config.tradeType || 'CALL';
+        let contractType = this.strategy?.action || this.config.tradeType || this.config.contractType || 'CALL';
+
+        const capturedContracts = this.capturedPredictionsForTrade
+            ? Array.from(new Set(this.capturedPredictionsForTrade.map(p => p.contractType).filter((c): c is string => !!c)))
+            : [];
+        if (capturedContracts.length > 1) {
+            contractType = 'BOTH';
+        } else if (capturedContracts.length === 1) {
+            contractType = capturedContracts[0];
+        }
+
+        const prediction = this.resolvePredictionForContract(contractType === 'BOTH' ? null : contractType);
         
         // Check if BOTH mode
         if (contractType === 'BOTH') {
@@ -704,6 +902,8 @@ export class BotExecutionEngine {
         } catch (error: any) {
             this.onLog(`❌ Trade error: ${error.message}`);
             this.isTrading = false;
+        } finally {
+            this.capturedPredictionsForTrade = null;
         }
     }
 
@@ -714,7 +914,15 @@ export class BotExecutionEngine {
         
         const bothContracts = this.contractSelector.getBothContracts(baseContract);
         
-        if (!bothContracts || bothContracts.contracts.length < 2) {
+        const capturedContracts = this.capturedPredictionsForTrade
+            ? Array.from(new Set(this.capturedPredictionsForTrade.map(p => p.contractType).filter((c): c is string => !!c)))
+            : [];
+
+        const contractsToExecute = capturedContracts.length > 0
+            ? capturedContracts
+            : (bothContracts?.contracts || []);
+
+        if (contractsToExecute.length < 2) {
             this.onLog(`❌ BOTH mode: Could not find contract pair for ${baseContract}`);
             this.isTrading = false;
             return;
@@ -727,18 +935,17 @@ export class BotExecutionEngine {
             ? this.config.stake 
             : this.riskController.getCurrentStake(null); // Get base stake for BOTH
 
-        this.onLog(`⚡ ${currentMode} BOTH Trade: ${bothContracts.contracts.join(' & ')} | Total Stake: $${(stakeToUse * 2).toFixed(2)}`);
+        this.onLog(`⚡ ${currentMode} BOTH Trade: ${contractsToExecute.join(' & ')} | Total Stake: $${(stakeToUse * 2).toFixed(2)}`);
 
         // Clear pending results
         this.pendingBothResults.clear();
 
         try {
-            for (const contractType of bothContracts.contracts) {
-                // 🎯 FIX: Resolve prediction for each contract if needed
-                const prediction = this.resolvePrediction();
+            for (const contractType of contractsToExecute) {
+                const prediction = this.resolvePredictionForContract(contractType);
                 
                 if (currentMode === 'SIMULACAO') {
-                    await this.simulateBothTrade(contractType, stakeToUse, prediction, bothContracts);
+                    await this.simulateBothTrade(contractType, stakeToUse, prediction, bothContracts || { groupName: 'Over/Under', contracts: contractsToExecute });
                 } else {
                     const proposalReq = this.buildProposalRequest(contractType, stakeToUse, prediction);
                     const proposal = await this.deriv.send(proposalReq);
@@ -768,12 +975,14 @@ export class BotExecutionEngine {
                     }
 
                     this.pendingBothResults.set(buyResponse.buy.contract_id, { contractType });
-                    this.monitorBothContract(buyResponse.buy.contract_id, contractType, stakeToUse, bothContracts);
+                    this.monitorBothContract(buyResponse.buy.contract_id, contractType, stakeToUse, bothContracts || { groupName: 'Over/Under', contracts: contractsToExecute });
                 }
             }
         } catch (error: any) {
             this.onLog(`❌ BOTH trade error: ${error.message}`);
             this.isTrading = false;
+        } finally {
+            this.capturedPredictionsForTrade = null;
         }
     }
 
@@ -853,32 +1062,7 @@ export class BotExecutionEngine {
     }
 
     private resolvePrediction(): number | undefined {
-        // Priority 1: Dynamic target from conditions
-        if (this.dynamicTarget !== null) {
-            return this.dynamicTarget;
-        }
-        
-        // Priority 2: Strategy prediction (handle object or number)
-        if (this.strategy?.prediction !== undefined && this.strategy.prediction !== null) {
-            if (typeof this.strategy.prediction === 'number') {
-                return this.strategy.prediction;
-            }
-            if (typeof this.strategy.prediction === 'object' && this.strategy.prediction.value !== undefined) {
-                return Number(this.strategy.prediction.value);
-            }
-        }
-        
-        // Priority 3: Config prediction (handle object or number)
-        if (this.config.prediction !== undefined && this.config.prediction !== null) {
-             if (typeof this.config.prediction === 'number') {
-                 return this.config.prediction;
-             }
-             if (typeof this.config.prediction === 'object' && (this.config.prediction as any).value !== undefined) {
-                 return Number((this.config.prediction as any).value);
-             }
-        }
-
-        return undefined;
+        return this.resolvePredictionForContract(null);
     }
 
     private async waitForContractExpiration(): Promise<any> {
