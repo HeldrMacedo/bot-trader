@@ -581,7 +581,7 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
                 </div>
 
                 {/* Middle Grid */}
-                <div className="grid grid-cols-5 gap-1 flex-[2]">
+                <div className="grid grid-cols-4 gap-1 flex-[2]">
                     {digitProbs.slice(1, 9).map((d) => (
                         <div key={d.digit} className="flex flex-col items-center justify-center bg-gray-800/50 rounded p-1" title={`${d.prob.toFixed(1)}%`}>
                             <span className="text-[10px] text-gray-300">{d.digit}</span>

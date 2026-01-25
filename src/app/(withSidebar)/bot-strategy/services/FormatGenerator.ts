@@ -456,7 +456,50 @@ export class FormatGenerator {
     }
 
     private normalizeRuleStructure(rawRule: any): StrategyRule {
-        return { ...rawRule, parameters: rawRule.parameters || rawRule };
+        const normalized: any = { ...rawRule, parameters: rawRule.parameters || rawRule };
+
+        const ruleParams = normalized.parameters || {};
+        const condition = ruleParams.condition || normalized.condition;
+        if (normalized.type === 'conditional_value' && condition?.type === 'last_digits_comparison') {
+            const count = ruleParams.count ?? normalized.count ?? 1;
+            const operator = condition.operator;
+            const value = condition.value;
+            normalized.type = 'last_digits';
+            normalized.count = count;
+            normalized.operator = operator;
+            normalized.value = value;
+            normalized.parameters = {
+                type: 'last_digits',
+                count,
+                operator,
+                value
+            };
+        }
+
+        const percentageRule = ruleParams?.combinedRule?.percentageRule || normalized?.combinedRule?.percentageRule;
+        if (percentageRule?.digits && !percentageRule.allowedDigits) {
+            percentageRule.allowedDigits = percentageRule.digits;
+            delete percentageRule.digits;
+        }
+        if (percentageRule?.digits_parameter_key && !percentageRule.allowedDigits_parameter_key) {
+            percentageRule.allowedDigits_parameter_key = percentageRule.digits_parameter_key;
+            delete percentageRule.digits_parameter_key;
+        }
+
+        if (normalized.type === 'dynamic_prediction' && ruleParams?.predictionType === 'conditional_percentage') {
+            if (ruleParams.count === undefined && normalized.count === undefined) {
+                ruleParams.count = 1;
+                normalized.count = 1;
+            }
+            if (percentageRule?.targetPercentage !== undefined && normalized.targetPercentage === undefined) {
+                normalized.targetPercentage = percentageRule.targetPercentage;
+            }
+            if (percentageRule?.period !== undefined && normalized.period === undefined) {
+                normalized.period = percentageRule.period;
+            }
+        }
+
+        return normalized;
     }
 
     private static validateParameters(params: any): void {
@@ -531,6 +574,27 @@ export class FormatGenerator {
                 });
             }
         });
+
+        if (ruleParams.combinedRule && ruleParams.combinedRule.percentageRule) {
+            const percentageRule = ruleParams.combinedRule.percentageRule;
+            const nestedMappings: Record<string, any> = {
+                'targetPercentage': { label: 'Percentual Alvo', pathSuffix: 'targetPercentage' },
+                'value': { label: 'Dígito Referência', pathSuffix: 'value' },
+                'period': { label: 'Período Percentual', pathSuffix: 'period' }
+            };
+
+            Object.keys(nestedMappings).forEach(field => {
+                if (percentageRule[field] !== undefined) {
+                    params.push({
+                        key: `param_${ruleId}_nested_${field}`,
+                        label: `${nestedMappings[field].label} (G${groupIndex + 1}R${ruleIndex + 1})`,
+                        value: percentageRule[field],
+                        type: 'number',
+                        path: `groups[${groupIndex}].rules[${ruleIndex}].parameters.combinedRule.percentageRule.${nestedMappings[field].pathSuffix}`
+                    });
+                }
+            });
+        }
         
         return params;
     }
