@@ -21,6 +21,107 @@ interface MarketAnalysisPanelProps {
   isTrading?: boolean;
 }
 
+type RulePercentageMeta = {
+  kind: 'percentage';
+  allowedDigits: number[];
+  targetPercentage: number;
+  operator: '>' | '>=' | '<' | '<=' | '=';
+  period: number;
+  entryDigit?: number;
+};
+
+type RuleLastDigitsMeta = {
+  kind: 'last_digits';
+  count: number;
+  operator?: '>' | '>=' | '<' | '<=' | '=';
+  value?: number;
+};
+
+const extractRuleText = (rule: any): string => {
+  if (typeof rule === 'string') return rule;
+  return (rule?.description || rule?.label || rule?.type || rule?.indicator || '').toString().trim();
+};
+
+const parseDigitsList = (digitsRaw: string): number[] => {
+  return digitsRaw
+    .split(',')
+    .map(item => Number.parseInt(item.trim(), 10))
+    .filter(value => Number.isFinite(value));
+};
+
+const parsePercentageRule = (text: string): RulePercentageMeta | null => {
+  const normalized = text.toLowerCase();
+  if (!normalized.includes('percentual')) return null;
+
+  const digitsMatch = text.match(/\(([\d\s,]+)\)/);
+  if (!digitsMatch) return null;
+
+  const allowedDigits = parseDigitsList(digitsMatch[1]);
+  if (allowedDigits.length === 0) return null;
+
+  const percentageMatch = text.match(/([<>]=?|=)\s*(\d+)\s*%/i);
+  if (!percentageMatch) return null;
+
+  const operator = percentageMatch[1] as RulePercentageMeta['operator'];
+  const targetPercentage = Number(percentageMatch[2]);
+  if (!Number.isFinite(targetPercentage)) return null;
+
+  const periodMatch = text.match(/per[ií]odo\s*(?:de\s*)?(\d+)/i);
+  const period = periodMatch ? Number(periodMatch[1]) : 25;
+
+  const entryMatch = text.match(/entrar\s+(?:over|under)\s+(\d+)/i);
+  const entryDigit = entryMatch ? Number(entryMatch[1]) : undefined;
+
+  return {
+    kind: 'percentage',
+    allowedDigits,
+    targetPercentage,
+    operator,
+    period: Number.isFinite(period) && period > 0 ? period : 25,
+    entryDigit: Number.isFinite(entryDigit) ? entryDigit : undefined
+  };
+};
+
+const parseLastDigitsRule = (text: string): RuleLastDigitsMeta | null => {
+  const normalized = text.toLowerCase();
+  if (!normalized.includes('dígitos') && !normalized.includes('digitos')) return null;
+  if (!normalized.includes('último') && !normalized.includes('ultimo') && !normalized.includes('últimos') && !normalized.includes('ultimos')) {
+    return null;
+  }
+
+  const countMatch = text.match(/(?:últimos?|ultimos?)\s+(\d+)\s+d[ií]gitos/i);
+  const count = countMatch ? Number(countMatch[1]) : 1;
+  if (!Number.isFinite(count) || count <= 0) return null;
+
+  const opMatch = text.match(/([<>]=?|=)\s*(\d+)/);
+  const operator = opMatch ? (opMatch[1] as RuleLastDigitsMeta['operator']) : undefined;
+  const value = opMatch ? Number(opMatch[2]) : undefined;
+
+  return {
+    kind: 'last_digits',
+    count,
+    operator,
+    value: Number.isFinite(value) ? value : undefined
+  };
+};
+
+const compareWithOperator = (value: number, operator: RulePercentageMeta['operator'], target: number): boolean => {
+  switch (operator) {
+    case '>':
+      return value > target;
+    case '>=':
+      return value >= target;
+    case '<':
+      return value < target;
+    case '<=':
+      return value <= target;
+    case '=':
+      return value === target;
+    default:
+      return false;
+  }
+};
+
 export default function MarketAnalysisPanel({ symbol, strategyText, generatedStrategy, userKey, lastTradeOutcome, cooldownTicksRemaining, cooldownTicksTotal, isTrading }: MarketAnalysisPanelProps) {
   const [stats, setStats] = useState<MarketStats>({
     digits: [],
@@ -36,6 +137,7 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
   const [jsonModalOpen, setJsonModalOpen] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rulesData, setRulesData] = useState<any | null>(null);
   const deriv = DerivService.getInstance();
 
   const groupConfigStorageKey = useRef<string>('');
@@ -66,6 +168,36 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
     }
     return [];
   }, [generatedStrategy, parsedStrategy]);
+
+  const displayGroups = useMemo(() => {
+    const groupsFromRulesData = rulesData?.groups;
+    if (Array.isArray(groupsFromRulesData) && groupsFromRulesData.length > 0) {
+      return groupsFromRulesData.map((group: any, index: number) => {
+        const groupId = Number.isFinite(Number(group?.id)) ? Number(group.id) : index + 1;
+        const rules = (group.rules || []).map((rule: any, ruleIdx: number) => ({
+          id: rule?.id || `${groupId}-${ruleIdx}`,
+          text: (rule?.displayText || rule?.text || '').toString(),
+          meta: null,
+          isRulesData: true
+        }));
+        return { groupId, rules };
+      });
+    }
+
+    return (groupsFromStrategy || []).map((group: any, index: number) => {
+      const groupId = Number.isFinite(Number(group?.id)) ? Number(group.id) : index + 1;
+      const rules = (group.rules || []).map((rule: any, ruleIdx: number) => {
+        const text = extractRuleText(rule);
+        return {
+          id: rule?.id || `${groupId}-${ruleIdx}`,
+          text,
+          meta: parsePercentageRule(text) || parseLastDigitsRule(text),
+          isRulesData: false
+        };
+      });
+      return { groupId, rules };
+    });
+  }, [groupsFromStrategy, rulesData]);
 
   const groupsSignature = useMemo(() => {
     try {
@@ -123,6 +255,16 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
     };
     document.addEventListener('click', onDocClick);
     return () => document.removeEventListener('click', onDocClick);
+  }, []);
+
+  useEffect(() => {
+    const onRulesUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (!customEvent?.detail) return;
+      setRulesData(customEvent.detail);
+    };
+    window.addEventListener('rulesUpdated', onRulesUpdated);
+    return () => window.removeEventListener('rulesUpdated', onRulesUpdated);
   }, []);
 
   const saveGroupActivation = (groupId: number, type: string, value: boolean) => {
@@ -383,13 +525,14 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
         )} */}
 
         {/* Strategy Groups Display */}
-        {(groupsFromStrategy.length > 0 || (parsedStrategy && parsedStrategy.groups.length > 0)) && (
+        {(displayGroups.length > 0 || (parsedStrategy && parsedStrategy.groups.length > 0)) && (
           <div className="bg-[#0d0a18] border border-gray-700 rounded-lg p-3 mb-4">
             <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider text-center">Grupos de Estratégia</div>
 
             <div className="space-y-2">
-              {groupsFromStrategy.map((group: any, index: number) => {
-                const groupId = Number.isFinite(Number(group?.id)) ? Number(group.id) : index + 1;
+              {displayGroups.map((group, index) => {
+                console.group(group);
+                const groupId = group.groupId;
                 const isActive = activeGroupIds === null || activeGroupIds.includes(groupId);
                 const showDropdown = openGroupDropdownId === groupId;
 
@@ -477,18 +620,96 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
                     </div>
 
                     <div style={!isActive ? { opacity: 0.12, filter: 'grayscale(100%) blur(1px)' } : undefined}>
-                      <div className="text-sm text-gray-300">
-                        {(group.rules || []).map((rule: any, ruleIdx: number) => {
-                          const text = (typeof rule === 'string'
-                            ? rule
-                            : (rule?.description || rule?.label || rule?.type || rule?.indicator || '')).toString().trim();
+                      <div className="text-sm text-gray-300 space-y-2">
+                        {group.rules.map((rule, ruleIdx) => {
+                          const meta = rule.meta;
+                          const text = rule.text || 'Regra Indefinida';
+
+                          if (meta?.kind === 'percentage') {
+                            const periodDigits = stats.digits.slice(-meta.period);
+                            const minRequired = Math.min(meta.period, 10);
+                            const hasData = periodDigits.length >= minRequired;
+                            const matching = periodDigits.filter(d => meta.allowedDigits.includes(d)).length;
+                            const percentage = hasData && periodDigits.length > 0
+                              ? Math.round((matching / periodDigits.length) * 100)
+                              : 0;
+                            const conditionMet = hasData
+                              ? compareWithOperator(percentage, meta.operator, meta.targetPercentage)
+                              : false;
+                            const statusIcon = hasData ? (conditionMet ? '🟢' : '🔴') : '⚪';
+                            const digitsDisplay = meta.allowedDigits.length > 2
+                              ? `(${meta.allowedDigits.join(',')})`
+                              : meta.allowedDigits.join(', ');
+
+                            return (
+                              <div key={rule.id} className="ml-4 flex flex-col gap-1">
+                                <div className="text-sm text-gray-400">{text}</div>
+                                <div className="flex items-center gap-2">
+                                  <span>{statusIcon}</span>
+                                  <span className="text-cyan-300">
+                                    {digitsDisplay} = {hasData ? `${percentage}%` : '--%'}
+                                  </span>
+                                  {meta.entryDigit !== undefined && (
+                                    <span className="text-purple-400">(→{meta.entryDigit})</span>
+                                  )}
+                                  {!hasData && (
+                                    <span className="text-[10px] text-gray-500">
+                                      {periodDigits.length}/{minRequired}
+                                    </span>
+                                  )}
+                                </div>
+                                {ruleIdx < group.rules.length - 1 && (
+                                  <div className="text-blue-500 mx-1 text-xs">E</div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          if (meta?.kind === 'last_digits') {
+                            const lastDigits = stats.digits.slice(-meta.count);
+                            const placeholders = Array(Math.max(0, meta.count - lastDigits.length)).fill('X');
+                            const lastDigitsDisplay = [...placeholders, ...lastDigits].join(',');
+                            const hasData = lastDigits.length >= meta.count;
+                            const compareValue = meta.value;
+                            const conditionMet = hasData && meta.operator && Number.isFinite(compareValue)
+                              ? lastDigits.every(d => compareWithOperator(d, meta.operator as RulePercentageMeta['operator'], Number(compareValue)))
+                              : hasData && !meta.operator;
+                            const statusIcon = hasData ? (conditionMet ? '🟢' : '🔴') : '⚪';
+
+                            return (
+                              
+                              <div key={rule.id} className="ml-4 flex flex-col gap-1">
+                                <div className="text-sm text-gray-400">{rule.text}</div>
+                                <div className="flex items-center gap-2">
+                                <span>{statusIcon}</span>
+                                <span className="text-cyan-300">{lastDigitsDisplay}</span>
+                                {ruleIdx < group.rules.length - 1 && (
+                                  <span className="text-blue-500 mx-1 text-xs">E</span>
+                                )}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          if (rule.isRulesData) {
+                            return (
+                              <div key={rule.id} className="ml-4 flex items-center">
+                                <span className="text-cyan-300">{text}</span>
+                                {ruleIdx < group.rules.length - 1 && (
+                                  <span className="text-blue-500 mx-1 text-xs">E</span>
+                                )}
+                              </div>
+                            );
+                          }
 
                           return (
-                            <div key={rule?.id || ruleIdx} className="ml-4 flex items-center">
-                              <span className="text-gray-500 mr-2">•</span>
-                              <span className="text-cyan-300">{text}</span>
-                              {ruleIdx < (group.rules?.length || 0) - 1 && (
-                                <span className="text-blue-500 mx-1">E</span>
+                            <div key={rule.id} className="ml-4">
+                              <div className="flex items-center">
+                                <span className="text-gray-500 mr-2">•</span>
+                                <span className="text-cyan-300">{text}</span>
+                              </div>
+                              {ruleIdx < group.rules.length - 1 && (
+                                <div className="text-blue-500 mx-1 text-xs">E</div>
                               )}
                             </div>
                           );
@@ -496,7 +717,7 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
                       </div>
                     </div>
 
-                    {index < groupsFromStrategy.length - 1 && (
+                    {index < displayGroups.length - 1 && (
                       <div className="text-center text-xs text-purple-400 mt-2">OU</div>
                     )}
                   </div>
