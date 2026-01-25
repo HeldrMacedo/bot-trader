@@ -460,7 +460,7 @@ export class FormatGenerator {
 
         const ruleParams = normalized.parameters || {};
         const condition = ruleParams.condition || normalized.condition;
-        if (normalized.type === 'conditional_value' && condition?.type === 'last_digits_comparison') {
+        if (normalized.type === 'conditional_value' && (condition?.type === 'last_digits_comparison' || condition?.type === 'value_comparison')) {
             const count = ruleParams.count ?? normalized.count ?? 1;
             const operator = condition.operator;
             const value = condition.value;
@@ -485,6 +485,10 @@ export class FormatGenerator {
             percentageRule.allowedDigits_parameter_key = percentageRule.digits_parameter_key;
             delete percentageRule.digits_parameter_key;
         }
+        if (percentageRule?.allowedDigits && (percentageRule.value === undefined || percentageRule.value === null)) {
+            percentageRule.conditionType = null;
+            delete percentageRule.value;
+        }
 
         if (normalized.type === 'dynamic_prediction' && ruleParams?.predictionType === 'conditional_percentage') {
             if (ruleParams.count === undefined && normalized.count === undefined) {
@@ -497,6 +501,12 @@ export class FormatGenerator {
             if (percentageRule?.period !== undefined && normalized.period === undefined) {
                 normalized.period = percentageRule.period;
             }
+        }
+
+        if (ruleParams.parameter_key_targetValue && !ruleParams.parameter_key) {
+            ruleParams.parameter_key = ruleParams.parameter_key_targetValue;
+            normalized.parameter_key = ruleParams.parameter_key_targetValue;
+            delete ruleParams.parameter_key_targetValue;
         }
 
         return normalized;
@@ -553,6 +563,9 @@ export class FormatGenerator {
         };
 
         Object.keys(parameterMappings).forEach(field => {
+            if ((field === 'targetPercentage' || field === 'period') && ruleParams.combinedRule?.percentageRule) {
+                return;
+            }
             const val = ruleParams[field] !== undefined ? ruleParams[field] : rule[field];
             if (val !== undefined) {
                 const isDynamic = typeof val === 'string' && val.startsWith('$');

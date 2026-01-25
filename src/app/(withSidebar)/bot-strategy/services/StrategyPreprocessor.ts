@@ -357,7 +357,7 @@ export class StrategyPreprocessor {
                 ruleType,
                 predictionType,
                 entities,
-                suggestedStructure: this.buildSuggestedStructure(ruleType, predictionType, entities)
+                suggestedStructure: this.buildSuggestedStructure(ruleType, predictionType, entities, line)
             };
         });
 
@@ -368,7 +368,7 @@ export class StrategyPreprocessor {
         };
     }
 
-    private buildSuggestedStructure(ruleType: string, predictionType: string | null, entities: ExtractedEntities): Record<string, any> {
+    private buildSuggestedStructure(ruleType: string, predictionType: string | null, entities: ExtractedEntities, line: string): Record<string, any> {
         const structure: Record<string, any> = {
             type: ruleType
         };
@@ -411,18 +411,21 @@ export class StrategyPreprocessor {
                 if (entities.indicators.includes('PERCENTAGE')) {
                     const percentageOperator = entities.operators[entities.operators.length - 1] || '>';
                     const targetPercentage = entities.values[entities.values.length - 1] || 50;
+                    const hasExplicitDigitComparison = /d[ií]gitos?\s*(?:abaixo|acima|menor|maior|<=|>=|<|>|=)\s*\d+/i.test(line);
                     const conditionOperator = entities.operators[0] || '<';
                     let conditionType: string | null = null;
-                    if (conditionOperator === '<') conditionType = 'below';
-                    if (conditionOperator === '>') conditionType = 'above';
-                    if (conditionOperator === '=') conditionType = 'equal';
+                    if (hasExplicitDigitComparison) {
+                        if (conditionOperator === '<') conditionType = 'below';
+                        if (conditionOperator === '>') conditionType = 'above';
+                        if (conditionOperator === '=') conditionType = 'equal';
+                    }
 
                     structure.combinedRule.percentageRule = {
                         type: 'percentage',
                         operator: percentageOperator,
                         targetPercentage,
                         conditionType,
-                        value: entities.values[0] || 5,
+                        value: hasExplicitDigitComparison ? (entities.values[0] || 5) : undefined,
                         period: 25
                     };
                 }
