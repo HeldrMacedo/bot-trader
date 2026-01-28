@@ -139,6 +139,13 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
   const [loading, setLoading] = useState(false);
   const [rulesData, setRulesData] = useState<any | null>(null);
   const deriv = DerivService.getInstance();
+  const [topN, setTopN] = useState<number>(() => {
+    const v = parseInt(localStorage.getItem('prob_accuracy_topN') || '5', 10);
+    return Number.isFinite(v) && v >= 1 && v <= 10 ? v : 5;
+  });
+  const [accuracy, setAccuracy] = useState<number>(100);
+  const accuracyHistoryRef = useRef<boolean[]>([]);
+  const predictedTopRef = useRef<Set<number> | null>(null);
 
   const groupConfigStorageKey = useRef<string>('');
   const groupSignatureRef = useRef<string>('');
@@ -381,6 +388,13 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
             const price = data.tick.quote;
             const digit = getLastDigit(price, symbol);
 
+            const hit = predictedTopRef.current ? predictedTopRef.current.has(digit) : false;
+            accuracyHistoryRef.current.push(hit);
+            if (accuracyHistoryRef.current.length > 10) accuracyHistoryRef.current.shift();
+            const hits = accuracyHistoryRef.current.filter(Boolean).length;
+            const acc = (hits / accuracyHistoryRef.current.length) * 100;
+            setAccuracy(accuracyHistoryRef.current.length ? acc : 100);
+
             setStats(prev => {
                 const newDigits = [...prev.digits, digit].slice(-1000); // Keep last 1000
                 const newPrices = [...prev.prices, price].slice(-1000);
@@ -419,6 +433,171 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
     };
   }, [symbol]);
 
+  const countConsecutiveRepetitions = (arr: number[]): number => {
+    if (!arr.length) return 0;
+    const last = arr[arr.length - 1];
+    let i = arr.length - 2;
+    let c = 1;
+    while (i >= 0 && arr[i] === last) {
+      c++;
+      i--;
+    }
+    return c;
+  };
+
+  const analyzePeriod = (digits: number[], periodName: string) => {
+    if (!digits || !digits.length) return null as any;
+    const freq = Array(10).fill(0);
+    let total = 0;
+    for (let i = 0; i < digits.length; i++) {
+      const d = digits[i];
+      if (Number.isInteger(d) && d >= 0 && d <= 9) {
+        freq[d]++;
+        total++;
+      }
+    }
+    const sum = freq.reduce((a, b) => a + b, 0);
+    if (!sum) return null as any;
+    const probs = freq.map(score => (score / sum) * 100);
+    let maxProb = -1, maxIdx = -1;
+    let minProb = 101, minIdx = -1;
+    for (let i = 0; i < probs.length; i++) {
+      const p = probs[i];
+      if (p > maxProb) {
+        maxProb = p;
+        maxIdx = i;
+      }
+      if (p < minProb) {
+        minProb = p;
+        minIdx = i;
+      }
+    }
+    return {
+      probabilities: probs,
+      mostProbable: maxIdx,
+      leastProbable: minIdx,
+      mostProbableValue: maxProb,
+      leastProbableValue: minProb,
+      periodName
+    };
+  };
+
+  const calculateDigitGaps = (history: number[], excludeLastTick: boolean) => {
+    const gaps = Array(10).fill(0);
+    const lastIndices = Array(10).fill(-1);
+    const effective = excludeLastTick && history.length > 0 ? history.slice(0, -1) : history;
+    const total = effective.length;
+    for (let i = 0; i < total; i++) {
+      const d = effective[i];
+      lastIndices[d] = i;
+    }
+    for (let d = 0; d <= 9; d++) {
+      if (lastIndices[d] === -1) {
+        gaps[d] = total;
+      } else {
+        gaps[d] = (total - 1) - lastIndices[d];
+      }
+    }
+    return gaps;
+  };
+
+  const calculateProbabilities = (fullHistory: number[], excludeLastTick = false) => {
+    if (!fullHistory || fullHistory.length < 10) return null as any;
+    const dataForStructure = excludeLastTick && fullHistory.length > 0 ? fullHistory.slice(0, -1) : fullHistory;
+    let dataForStats = dataForStructure;
+    if (!excludeLastTick && fullHistory.length > 0) {
+      const repetitionCount = countConsecutiveRepetitions(fullHistory);
+      dataForStats = fullHistory.slice(0, -repetitionCount);
+    }
+    const periods = [
+      { name: '1-10', data: dataForStats.slice(-10), weight: 5.0 },
+      { name: '10-25', data: dataForStats.slice(-25, -10), weight: 2.5 },
+      { name: '25-50', data: dataForStats.slice(-50, -25), weight: 1.0 },
+      { name: '50-100', data: dataForStats.slice(-100, -50), weight: 0.5 },
+      { name: '1-100', data: dataForStats.slice(-100), weight: 0.5 }
+    ];
+    const analyses = periods.map(p => {
+      const a = analyzePeriod(p.data, p.name);
+      if (!a) return null as any;
+      return { ...a, weight: p.weight };
+    });
+    const gaps = calculateDigitGaps(dataForStructure, false);
+    const longTerm = analyses.find(a => a && a.periodName === '1-100') as any;
+    const finalScores: { digit: number; score: number; rawProb: number; consensusHigh: number; consensusLow: number }[] = [];
+    for (let digit = 0; digit <= 9; digit++) {
+      let weightedSum = 0;
+      let totalWeight = 0;
+      let cHigh = 0;
+      let cLow = 0;
+      analyses.forEach((analysis: any) => {
+        if (analysis && analysis.probabilities) {
+          const prob = Number(analysis.probabilities[digit]) || 0;
+          weightedSum += prob * analysis.weight;
+          totalWeight += analysis.weight;
+          if (analysis.mostProbable === digit) cHigh++;
+          if (analysis.leastProbable === digit) cLow++;
+        }
+      });
+      const base = totalWeight > 0 ? weightedSum / totalWeight : 0;
+      let saturationPenalty = 0;
+      if (longTerm && longTerm.probabilities) {
+        const longFreq = Number(longTerm.probabilities[digit]) || 0;
+        if (longFreq > 15) {
+          saturationPenalty = (longFreq - 15) * 2.0;
+        }
+      }
+      let dynamicBias = 0;
+      const longHistory = dataForStructure.slice(-100);
+      const lastDigit = dataForStructure[dataForStructure.length - 1];
+      let appearances = 0;
+      let repetitions = 0;
+      for (let i = 0; i < longHistory.length - 1; i++) {
+        if (longHistory[i] === digit) {
+          appearances++;
+          if (longHistory[i + 1] === digit) repetitions++;
+        }
+      }
+      const repRate = appearances > 0 ? (repetitions / appearances) * 100 : 0;
+      if (digit === lastDigit) {
+        if (repRate < 5) {
+          dynamicBias = 8;
+        } else if (repRate > 15) {
+          dynamicBias = -10;
+        } else {
+          dynamicBias = -5;
+        }
+      } else {
+        if (repRate < 5) dynamicBias = 2;
+      }
+      let gapBonus = 0;
+      if (gaps[digit] >= 10) {
+        gapBonus = Math.pow(gaps[digit] / 10, 2);
+      }
+      const final = (base + gapBonus + dynamicBias) - saturationPenalty;
+      finalScores.push({ digit, score: final, rawProb: base, consensusHigh: cHigh, consensusLow: cLow });
+    }
+    const sortedByScore = [...finalScores].sort((a, b) => b.score - a.score);
+    const best = sortedByScore[0];
+    const worst = sortedByScore[sortedByScore.length - 1];
+    return {
+      probabilities: finalScores.map(s => s.rawProb),
+      mostProbable: best.digit,
+      leastProbable: worst.digit,
+      mostProbableValue: best.rawProb,
+      leastProbableValue: worst.rawProb,
+      highestStrength: Math.max(1, best.consensusHigh),
+      lowestStrength: Math.max(1, worst.consensusLow),
+      sortedScores: sortedByScore.map(s => ({ digit: s.digit, prob: s.rawProb }))
+    };
+  };
+
+  useEffect(() => {
+    const statsObj = calculateProbabilities(stats.digits, true);
+    if (statsObj && statsObj.sortedScores) {
+      predictedTopRef.current = new Set(statsObj.sortedScores.slice(0, topN).map(s => s.digit));
+    }
+  }, [stats.digits, topN]);
+
   // --- Calculations ---
   const last25Digits = stats.digits.slice(-25);
   const last100Digits = stats.digits.slice(-100);
@@ -448,11 +627,11 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
   const upPct = totalMoves ? ((upCount / totalMoves) * 100).toFixed(0) : '0';
   const downPct = totalMoves ? ((downCount / totalMoves) * 100).toFixed(0) : '0';
 
-  // 4. Probabilities (Digit Frequency %)
-  const digitProbs = stats.digitCounts.map((count, digit) => ({
-      digit,
-      prob: last100Digits.length ? (count / last100Digits.length) * 100 : 0
-  })).sort((a, b) => b.prob - a.prob);
+  const probStats = calculateProbabilities(stats.digits, false);
+  const digitProbs = (probStats?.sortedScores ?? stats.digitCounts.map((count, digit) => ({
+    digit,
+    prob: last100Digits.length ? (count / last100Digits.length) * 100 : 0
+  }))).sort((a, b) => b.prob - a.prob);
 
   const highestProb = digitProbs[0];
   const lowestProb = digitProbs[digitProbs.length - 1];
@@ -792,6 +971,39 @@ export default function MarketAnalysisPanel({ symbol, strategyText, generatedStr
         {/* 🎲 Probability Monitor (Block 3 Logic) */}
         <div className="bg-[#0d0a18] border border-gray-700 rounded-lg p-3">
             <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider text-center">Probabilidade (100 Ticks)</div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="relative flex items-center bg-white/5 border border-white/10 rounded px-2 py-1">
+                <span className="text-[10px] text-gray-300 mr-1 font-bold">TOP</span>
+                <span className="text-xs text-white font-bold">{topN}</span>
+                <select
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  value={topN}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(val)) {
+                      const clamped = Math.max(1, Math.min(10, val));
+                      setTopN(clamped);
+                      try { localStorage.setItem('prob_accuracy_topN', String(clamped)); } catch {}
+                      accuracyHistoryRef.current = [];
+                      setAccuracy(100);
+                    }
+                  }}
+                >
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </div>
+              <div
+                className="flex-1 h-2 bg-white/10 rounded relative overflow-hidden"
+                title={`Precisão da Probabilidade: ${accuracy.toFixed(1)}% | Critério: último dígito ∈ Top ${topN} | Janela: 10 ticks`}
+              >
+                <div
+                  className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-500"
+                  style={{ width: `${Math.max(0, Math.min(100, accuracy))}%` }}
+                />
+              </div>
+            </div>
 
             <div className="flex justify-between items-center gap-2">
                 {/* Highest */}
