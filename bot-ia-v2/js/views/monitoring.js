@@ -5619,6 +5619,7 @@ class MonitoringView {
     }
 
     static async checkRulesForTrading(translatedRules, forcedPrice = null) {
+        console.log(translatedRules, forcedPrice);
         try {
             if (!translatedRules || !translatedRules.groups) return;
             if (MonitoringView.state !== 'MONITORING') return;
