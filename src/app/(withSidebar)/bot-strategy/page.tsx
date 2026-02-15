@@ -22,6 +22,7 @@ import { GeminiAIService } from './services/GeminiAIService';
 import { MarketDataService } from './services/MarketDataService';
 import { TradeContractSelector } from './services/TradeContractSelector';
 import { TradeMode } from './services/TradeModeRiskController';
+import { Monitoring } from './services/Monitoring';
 
 export default function BotStrategyPage() {
   const [loading, setLoading] = useState(true);
@@ -236,8 +237,7 @@ export default function BotStrategyPage() {
   };
 
   // Initialization Flow
-  useEffect(() => {
-    const init = async () => {
+  useEffect(() => {    const init = async () => {
       setLoading(true);
       try {
         const accountsStr = localStorage.getItem('deriv_accounts');
@@ -282,7 +282,6 @@ export default function BotStrategyPage() {
           const key = `trade_config_user_${loginid}`;
           const savedStr = localStorage.getItem(key);
           if (savedStr) {
-            const saved = normalizeSavedConfig(JSON.parse(savedStr));
             if (saved) {
               if (saved.symbol) setSelectedSymbol(saved.symbol);
               setConfig(prev => ({

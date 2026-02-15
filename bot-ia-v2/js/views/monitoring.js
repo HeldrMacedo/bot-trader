@@ -1231,7 +1231,7 @@ class MonitoringView {
                         }
                     }
                     const t3 = performance.now();
-
+                    console.log("setupProbalitity");
                     // ⏱️ DIAGNÓSTICO: Passo 4 - Desenho de Tela
                     this.updateProbabilityUI(currentStats);
                     const t4 = performance.now();
@@ -1351,7 +1351,7 @@ class MonitoringView {
 
                 // Armazenar DÍGITOS (não preços) para consistência com o listener real-time
                 this.probabilityHistory = digits;
-
+                console.log("FETCH AND 1");
                 // Atualizar UI imediatamente com os dados do histórico
                 MonitoringView.updateProbabilityUI();
 
@@ -1402,7 +1402,7 @@ class MonitoringView {
                         if (originalHistory) this.probabilityHistory = originalHistory;
                     }
                 }
-
+                console.log("FETCH AND 2");
                 // Atualizar UI novamente agora com precisão calculada
                 MonitoringView.updateProbabilityUI();
 
@@ -1825,7 +1825,6 @@ class MonitoringView {
     }
 
     static updateProbabilityUI(preCalculatedData = null) {
-
         // 🎯 Usar dados já calculados ou calcular agora
         const data = preCalculatedData || this.calculateProbabilities();
 
@@ -5619,7 +5618,6 @@ class MonitoringView {
     }
 
     static async checkRulesForTrading(translatedRules, forcedPrice = null) {
-        console.log(translatedRules, forcedPrice);
         try {
             if (!translatedRules || !translatedRules.groups) return;
             if (MonitoringView.state !== 'MONITORING') return;

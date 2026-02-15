@@ -109,6 +109,12 @@ const Sidebar = ({
       role: ["admin"],
     },
     {
+      name: "Trade Mind Pro",
+      icon: CpuChipIcon,
+      href: "/trade-mind-pro",
+      role: ["admin"]
+    },
+    {
       name: "Bot Copy Trader",
       icon: CpuChipIcon,
       href: "/bottrader",
