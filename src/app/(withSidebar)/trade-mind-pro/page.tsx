@@ -15,7 +15,7 @@ import TradeConfig, { TradeConfigData, DEFAULT_CONFIG as DEFAULT_TRADE_CONFIG } 
 import VolatilitySelector from './components/VolatilitySelector';
 import { useEffect, useState } from 'react';
 import { DerivService } from '@/app/services/DerivService';
-import { Monitoring } from './service/Monitoring';
+import { monitoringService } from './service/Monitoring';
 
 export default function TradeMindPro() {
   const [loading, setLoading] = useState(true);
@@ -78,6 +78,9 @@ export default function TradeMindPro() {
     }
     return DEFAULT_CONTROLLER_CONFIG;
   });
+
+  // Estado para estatísticas de mercado (do MonitoringService)
+  const [marketStats, setMarketStats] = useState<any>(null);
   const getLoginIdFromStorage = (): string | null => {
     try {
       const accountsStr = localStorage.getItem('deriv_accounts');
@@ -89,6 +92,7 @@ export default function TradeMindPro() {
       return null;
     }
   };
+  // Effect para inicialização da conexão Deriv
   useEffect(() => {
     const init = async() => {
       setLoading(true);
@@ -123,9 +127,6 @@ export default function TradeMindPro() {
                 
             }
         }
-       
-        const selectedSymbol = localStorage.getItem('selectedSymbol');
-        //Monitoring.getInstance().render();
       } catch (error) {
         console.error("Initialization error:", error);
         toast.error("Erro na inicialização do sistema.");
@@ -136,6 +137,40 @@ export default function TradeMindPro() {
     init();
     
   }, []);
+
+  // Effect para iniciar monitoring quando símbolo é selecionado
+  useEffect(() => {
+    if (!selectedSymbol) return;
+
+    const startMonitoring = async () => {
+      try {
+        // Iniciar serviço de monitoramento
+        await monitoringService.start({
+          symbol: selectedSymbol,
+          onTick: (data) => {
+            // Callback quando tick é recebido
+            console.log('[TradeMindPro] Tick recebido:', data);
+          },
+          onProbabilityUpdate: (stats) => {
+            // Callback quando probabilidades são atualizadas
+            setMarketStats(stats);
+          }
+        });
+        
+        console.log(`[TradeMindPro] Monitoramento iniciado para ${selectedSymbol}`);
+      } catch (error) {
+        console.error('[TradeMindPro] Erro ao iniciar monitoramento:', error);
+        toast.error('Erro ao iniciar coleta de dados');
+      }
+    };
+
+    startMonitoring();
+
+    // Cleanup ao desmontar ou trocar símbolo
+    return () => {
+      monitoringService.stop();
+    };
+  }, [selectedSymbol]);
 
   const saveCurrentConfiguration = () => {
     // Combine all configurations

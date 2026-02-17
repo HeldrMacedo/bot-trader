@@ -35,6 +35,7 @@ declare global {
     AuxiliarRegras: any;
     RulesHistoryManager: any;
     ProbabilityAccuracy: any;
+    ProbabilityAccuracyManager: any;
     RSIIndicator: any;
     SMAIndicator: any;
     
@@ -46,6 +47,11 @@ declare global {
     // View
     MonitoringView: any;
     TradeMessagesManager: any;
+    
+    // Stop & Monitor
+    StopMonitor: any;
+    getMarketDataInstance?: (token: string) => any;
+    marketDataInstance?: any;
 
     // Shims for legacy compatibility
     selectedSymbol: string;
@@ -92,51 +98,53 @@ export class LegacyBridgeService extends EventEmitter {
     // 2. Ordem de Carregamento (Crítica)
     const scripts = [
       // Utils
-      '/legacy/js/utils/common-helpers.js',
-      '/legacy/js/utils/market-data-helpers.js',
-      '/legacy/js/utils/ui-helpers.js',
+    //   '/legacy/js/utils/common-helpers.js',
+    //   '/legacy/js/utils/market-data-helpers.js',
+    //   '/legacy/js/utils/ui-helpers.js',
 
       // Core / Infra
-      '/legacy/js/session.js',
-      '/legacy/js/token-backend-client.js',
-      '/legacy/js/frontend-reconnection-manager.js',
-      '/legacy/js/deriv-api.js',
-      '/legacy/js/deriv-market-data.js',
+    //   '/legacy/js/session.js',
+    //   '/legacy/js/token-backend-client.js',
+    //   '/legacy/js/frontend-reconnection-manager.js',
+    //   '/legacy/js/deriv-api.js',
+    //   '/legacy/js/deriv-market-data.js',
 
       // Regras e Indicadores (Dependências para Strategy/AI)
-      '/legacy/js/rsi-indicator.js',
-      '/legacy/js/sma-indicator.js',
-      '/legacy/js/probability-accuracy.js',
-      '/legacy/js/digit-pattern-rules.js',
-      '/legacy/js/percentage-rules.js',
-      '/legacy/js/price-movement-rules.js',
+    //   '/legacy/js/rsi-indicator.js',
+    //   '/legacy/js/sma-indicator.js',
+    //   '/legacy/js/probability-accuracy.js',
+    //   '/legacy/js/digit-pattern-rules.js',
+    //   '/legacy/js/percentage-rules.js',
+    //   '/legacy/js/price-movement-rules.js',
       
       // Estratégia Base
-      '/legacy/js/regras-json.js',
-      '/legacy/js/Auxiliar-regras.js',
-      '/legacy/js/rules-history-manager.js',
-      '/legacy/js/rule-compatibility-validator.js',
-      '/legacy/js/robot-strategy.js',
+    //   '/legacy/js/regras-json.js',
+    //   '/legacy/js/Auxiliar-regras.js',
+    //   '/legacy/js/rules-history-manager.js',
+    //   '/legacy/js/rule-compatibility-validator.js',
+    //   '/legacy/js/robot-strategy.js',
 
       // AI Modules (Factories)
-      '/legacy/js/prompt-manager.js',         // Define getPromptManagerInstance
-      '/legacy/js/generate-format.js',        // Define getFormatGeneratorInstance
-      '/legacy/js/strategy-preprocessor.js',  // Define getStrategyPreprocessorInstance
-      '/legacy/js/gemini-strategy-validator.js',
-      '/legacy/js/gemini-ai.js',              // Define getGeminiInstance (depende de format/prompt/preprocessor)
-      '/legacy/js/ai-chat-context.js',
+    //   '/legacy/js/prompt-manager.js',         // Define getPromptManagerInstance
+    //   '/legacy/js/generate-format.js',        // Define getFormatGeneratorInstance
+    //   '/legacy/js/strategy-preprocessor.js',  // Define getStrategyPreprocessorInstance
+    //   '/legacy/js/gemini-strategy-validator.js',
+    //   '/legacy/js/gemini-ai.js',              // Define getGeminiInstance (depende de format/prompt/preprocessor)
+    //   '/legacy/js/ai-chat-context.js',
 
       // Trade Execution (Depende de tudo acima)
-      '/legacy/js/trade/TradeContractSelector.js',
-      '/legacy/js/trade/TradeModeRiskController.js',
-      '/legacy/js/trade/TradeSessionConfig.js',
-      '/legacy/js/trade/TradeSettlementReporter.js',
-      '/legacy/js/trade-messages.js',
-      '/legacy/js/commission-tracker.js',
-      '/legacy/js/stop-monitor.js',
-      '/legacy/js/pause_manager.js',
-      '/legacy/js/trade-manager.js',
-      '/legacy/js/headless-monitoring.js', // Orquestrador headless
+    //   '/legacy/js/trade/TradeContractSelector.js',
+    //   '/legacy/js/trade/TradeModeRiskController.js',
+    //   '/legacy/js/trade/TradeSessionConfig.js',
+    //   '/legacy/js/trade/TradeSettlementReporter.js',
+    //   '/legacy/js/trade-messages.js',
+    //   '/legacy/js/commission-tracker.js',
+    //   '/legacy/js/stop-monitor.js',
+    //   '/legacy/js/pause_manager.js',
+    //   '/legacy/js/trade-manager.js',
+    //   '/legacy/js/headless-monitoring.js',
+      
+       // Orquestrador headless
     ];
 
     for (const src of scripts) {
