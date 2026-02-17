@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src-elem https://gc.kis.v2.scr.kaspersky-labs.com wss://gc.kis.v2.scr.kaspersky-labs.com * 'unsafe-inline' 'unsafe-eval' data: blob:;style-src-elem https://gc.kis.v2.scr.kaspersky-labs.com wss://gc.kis.v2.scr.kaspersky-labs.com * 'unsafe-inline' 'unsafe-eval' data: blob:;img-src https://gc.kis.v2.scr.kaspersky-labs.com wss://gc.kis.v2.scr.kaspersky-labs.com * 'unsafe-inline' 'unsafe-eval' data: blob:;connect-src https://gc.kis.v2.scr.kaspersky-labs.com wss://gc.kis.v2.scr.kaspersky-labs.com * 'unsafe-inline' 'unsafe-eval' data: blob:;child-src https://gc.kis.v2.scr.kaspersky-labs.com wss://gc.kis.v2.scr.kaspersky-labs.com * 'unsafe-inline' 'unsafe-eval' data: blob:;frame-src https://gc.kis.v2.scr.kaspersky-labs.com wss://gc.kis.v2.scr.kaspersky-labs.com * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <link rel="canonical" href="https://www.strategyfree.com/app.html" />
+    <title>Strategy Free</title>
+
+
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=2024">
+    <link rel="shortcut icon" href="favicon.ico?v=2024">
+    <link rel="apple-touch-icon" href="favicon.svg?v=2024">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2024">
+    <link rel="stylesheet" href="style.css?v=20260202-bars">
+    <link rel="stylesheet" href="custom-blocks-style.css">
+    <link rel="stylesheet" href="custom-overrides.css?v=20260202-V2">
+    <link rel="stylesheet" href="final-rule-params-alignment.css">
+    <link rel="stylesheet" href="css/ai-chat-modal.css">
+    <link rel="stylesheet" href="js/chart-modal.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/market-analyzers.css">
+    <link rel="stylesheet" href="css/robot-editor.css?v=20260202-V2"> <!-- New Editor Styles -->
+    <link rel="stylesheet" href="css/language-switcher.css"> <!-- i18n Styles -->
+    <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=FxMhNDhqR1sH88jBSbSsVDpizrIw51ST77b4GI60NOV85Yzji03TWA7wPmYrXVIuv9it2ISsoL7CR_Vy502PoQ" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly93d3cuc3RyYXRlZ3lmcmVlLmNvbS9hcHA"/><script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Google Blockly Scripts -->
+    <script src="https://unpkg.com/blockly@11.1.1/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly@11.1.1/blocks.min.js"></script>
+    <script src="https://unpkg.com/blockly@11.1.1/javascript.min.js"></script>
+    <script src="https://unpkg.com/blockly@11.1.1/msg/en.js"></script>
+    <script src="https://unpkg.com/blockly@11.1.1/msg/pt-br.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- 🎯 CRITICAL: Inline styles for bar animation to bypass cache -->
+    <style>
+        .loading-screen {
+            overflow: visible !important;
+        }
+
+        .loading-container {
+            overflow: visible !important;
+        }
+
+        /* Using new class names to force browser to re-render styles */
+        .loading-bubbles-container {
+            display: flex !important;
+            gap: 8px !important;
+            height: 120px !important;
+            /* Huge height to prevent clipping */
+            padding: 20px 0 !important;
+            align-items: center !important;
+            /* Forces vertical centering */
+            justify-content: center !important;
+            overflow: visible !important;
+            margin-top: 20px !important;
+        }
+
+        .loading-bubble {
+            display: block !important;
+            width: 5px !important;
+            height: 40px !important;
+            /* Helper fixed height */
+            background: linear-gradient(180deg, #1de9b6 0%, #00d9a3 50%, #00b386 100%) !important;
+            border-radius: 3px !important;
+            animation: bubble-pulse 2s ease-in-out infinite !important;
+            box-shadow: 0 0 8px rgba(29, 233, 182, 0.4) !important;
+            will-change: transform, opacity !important;
+            transform-origin: center center !important;
+            /* Critical for growing from center */
+        }
+
+        .loading-bubble:nth-child(1) {
+            animation-delay: 0s !important;
+        }
+
+        .loading-bubble:nth-child(2) {
+            animation-delay: 0.2s !important;
+        }
+
+        .loading-bubble:nth-child(3) {
+            animation-delay: 0.4s !important;
+        }
+
+        .loading-bubble:nth-child(4) {
+            animation-delay: 0.6s !important;
+        }
+
+        .loading-bubble:nth-child(5) {
+            animation-delay: 0.8s !important;
+        }
+
+        @keyframes bubble-pulse {
+
+            0%,
+            100% {
+                transform: scaleY(0.2) !important;
+                opacity: 0.5 !important;
+            }
+
+            50% {
+                transform: scaleY(1) !important;
+                opacity: 1 !important;
+            }
+        }
+    </style>
+
+    <!-- 🎯 MODAL DE GRÁFICO - CSS INLINE PARA BYPASS DE CACHE -->
+    <style>
+        /* Modal Principal - Table Layout */
+        .chart-modal {
+            display: none !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background-color: rgba(0, 0, 0, 0.85) !important;
+            z-index: 2147483647 !important;
+            opacity: 0 !important;
+            transition: opacity 0.3s ease !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+        }
+
+        .chart-modal.show {
+            display: table !important;
+            opacity: 1 !important;
+        }
+
+        /* Overlay - Table Cell */
+        .chart-modal-overlay {
+            display: table-cell !important;
+            vertical-align: middle !important;
+            text-align: center !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            padding: 20px !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Conteúdo do Modal */
+        .chart-modal-content {
+            display: inline-flex !important;
+            flex-direction: column !important;
+            text-align: left !important;
+            margin: 0 auto !important;
+        }
+    </style>
+</head>
+
+<body class="app-loading">
+  
+    <!-- Tela de Loading -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-container">
+            <!-- Animação de Barras Verticais -->
+            <!-- Animação de Barras Verticais -->
+            <!-- 🎯 CRITICAL: Loader V3 - Inline Styles to Bypass Cache -->
+            <style>
+                .ai-pulse-container {
+                    position: relative !important;
+                    width: 250px !important;
+                    /* MAIOR */
+                    height: 250px !important;
+                    margin: 0 auto !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+
+                .app-title {
+                    position: absolute !important;
+                    z-index: 10 !important;
+                    margin: 0 !important;
+                    font-size: 2.8rem !important;
+                    color: #ffffff !important;
+                    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.8) !important;
+                    white-space: nowrap !important;
+                }
+
+                .ai-pulse-ring {
+                    position: absolute !important;
+                    width: 120px !important;
+                    /* MAIOR */
+                    height: 120px !important;
+                    border-radius: 50% !important;
+                    background: var(--accent-primary) !important;
+                    box-shadow: 0 0 40px var(--accent-primary), 0 0 80px var(--accent-primary) !important;
+                    animation: ai-glow 2.5s ease-in-out infinite !important;
+                    opacity: 0.6 !important;
+                }
+
+                .ai-pulse-ring-outer {
+                    position: absolute !important;
+                    width: 120px !important;
+                    height: 120px !important;
+                    border-radius: 50% !important;
+                    border: 3px solid var(--accent-primary) !important;
+                    animation: ai-spread 2.5s ease-out infinite !important;
+                }
+
+                @keyframes ai-glow {
+
+                    0%,
+                    100% {
+                        transform: scale(1);
+                        opacity: 0.7;
+                        box-shadow: 0 0 20px var(--accent-primary);
+                    }
+
+                    50% {
+                        transform: scale(1.2);
+                        opacity: 1;
+                        box-shadow: 0 0 40px var(--accent-primary), 0 0 80px var(--accent-primary);
+                    }
+                }
+
+                @keyframes ai-spread {
+                    0% {
+                        transform: scale(1);
+                        opacity: 0.8;
+                    }
+
+                    100% {
+                        transform: scale(2.5);
+                        opacity: 0;
+                    }
+                }
+            </style>
+
+            <div class="ai-pulse-container">
+                <h1 class="app-title">Strategy Free</h1>
+                <div class="ai-pulse-ring"></div>
+                <div class="ai-pulse-ring-outer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📱 Header Mobile com Menu Hambúrguer (FORA do app-container para ficar sempre visível) -->
+    <div class="mobile-header">
+        <button id="mobile-menu-toggle" class="mobile-menu-toggle" aria-label="Menu">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+        <h1 class="mobile-header-title">Strategy Free</h1>
+    </div>
+
+    <!-- 🌍 Language Switcher - Desktop (sempre visível) -->
+    <div id="language-switcher-container"
+        style="position: fixed; top: 20px; right: 20px; z-index: 99999; display: none;"></div>
+
+    <!-- 📱 Overlay do Menu Mobile (deve vir primeiro) -->
+    <div class="mobile-sidebar-overlay"></div>
+
+    <!-- 📱 Menu Lateral Mobile (sidebar) - FORA do app-container -->
+    <div id="mobile-sidebar" class="mobile-sidebar">
+        <div class="mobile-sidebar-content">
+            <div class="mobile-sidebar-header">
+                <h2>Menu</h2>
+                <button id="mobile-sidebar-close" class="mobile-sidebar-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="mobile-sidebar-body" id="mobile-sidebar-body">
+                <!-- Botões flutuantes serão movidos para cá em mobile -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Interface Principal (inicialmente oculta) -->
+    <div id="app-container" class="app-container-hidden">
+
+        <!-- Container pré-definido para mensagens de trade -->
+        <div id="trade-messages-container" class="trade-messages-container" style="display: none;">
+            <div class="messages-list" id="messages-list">
+                <div class="no-messages">Nenhum trade executado ainda</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de configuração -->
+    <script src="js/replit-ai-market-analysis.js?v=20260202-V2"></script>
+    <script src="js/config.js?v=20260202-V2"></script>
+    <script src="js/directAutomacao.js?v=20260202-V2"></script>
+
+    <!-- 🔧 UTILITIES: Carregados ANTES para uso em todo o sistema -->
+    <!-- Scripts -->
+    <script>
+        // 🚨 CRÍTICO: Definir logConfig ANTES de qualquer outro script
+        if (typeof window.logConfig === 'undefined') {
+            window.logConfig = {
+                info: (context, message) => console.log(`ℹ️ [${context}] ${message}`),
+                error: (context, message) => console.error(`❌ [${context}] ${message}`),
+                warn: (context, message) => console.warn(`⚠️ [${context}] ${message}`),
+                debug: (context, message) => console.log(`🔍 [${context}] ${message}`)
+            };
+        }
+    </script>
+    <script src="js/session.js"></script>
+    <script src="js/utils/common-helpers.js"></script>
+    <script src="js/utils/ui-helpers.js"></script>
+    <script src="js/online-users-monitor.js"></script>
+
+    <script src="js/modalLogout.js"></script>
+    <script src="js/user-levels.js"></script>
+    <script src="js/account-manager.js"></script>
+    <script src="js/token-backend-client.js"></script>
+    <script src="js/deriv-api.js"></script>
+    <script src="js/deriv-market-data.js?v=20260202-V2"></script>
+
+    <!-- 🔧 MarketDataHelpers: Carregado APÓS deriv-market-data.js -->
+    <script src="js/utils/market-data-helpers.js"></script>
+
+    <script src="js/trade-messages.js"></script>
+
+    <!-- 🔄 REFATORAÇÃO: Módulos de Trading Separados -->
+    <script src="js/trade/TradeSessionConfig.js"></script>
+    <script src="js/trade/TradeContractSelector.js?v=20260202-V2"></script>
+    <script src="js/trade/TradeModeRiskController.js?v=20260202-V2"></script>
+    <script src="js/trade/TradeSettlementReporter.js"></script>
+
+    <!-- Scripts de trading -->
+    <script src="js/trade-manager.js?v=20260202-V2"></script>
+    <script src="js/pause_manager.js?v=20260202-V2"></script>
+
+    <!-- Modal de Sugestões da IA - DEVE ser carregado ANTES do MonitoringView -->
+    <script src="js/ModalSuggestoesIA.js"></script>
+
+    <!-- Modal de Erros do Gemini - DEVE ser carregado ANTES do MonitoringView -->
+    <script src="js/modalErros.js"></script>
+
+    <!-- Sistema de Planilha de Trades -->
+    <script src="js/planilhaTrade.js?v=20260202-V2"></script>
+
+    <!-- ✨ Sistema Gemini - DEVE ser carregado ANTES das Views -->
+    <script src="js/strategy-preprocessor.js?v=20260202-V2"></script>
+    <script src="js/prompt-manager.js?v=20260202-V2"></script>
+    <script src="js/gemini-strategy-validator.js?v=20260202-V2"></script>
+    <!-- <script src="js/pre-gemini-ai.js?v=20260202-V2"></script> -->
+    <script src="js/gemini-ai.js?v=20260202-V2"></script>
+
+    <!-- 🔍 DEBUG: Verificar se getGeminiInstance está disponível -->
+    <script>
+        if (typeof getGeminiInstance === 'function') {
+
+        } else {
+            console.error('❌ ERRO: getGeminiInstance NÃO está disponível!');
+
+        }
+    </script>
+
+    <!-- 🔥 Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+    <!-- 🔥 Firebase Configuration -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/strategy-sharing.js"></script>
+    <script src="js/file-sharing.js"></script>
+
+    <!-- Views -->
+    <script src="js/views/configurations.js?v=20260202-V2"></script>
+    <script src="js/strategy-library-modal.js"></script>
+    <script src="js/probability-accuracy.js"></script>
+    <script src="js/views/monitoring.js?v=20260202-V2"></script>
+    <script src="js/views/display.js"></script>
+    <script src="js/views/history.js"></script>
+    <script src="js/block-definitions.js?v=20260202-V2"></script>
+    <script src="js/javascript-generator.js?v=20260202-V2"></script>
+    <script src="js/robot-strategy.js?v=20260202-V2"></script>
+    <script src="js/views/robot-editor.js?v=20260202-V2"></script>
+
+    <!-- 💬 Sistema de Chat IA -->
+    <script src="js/ai-chat-context.js"></script>
+    <script src="js/ai-chat-manager.js"></script>
+
+    <script src="js/components/gemini-translation-animation.js"></script>
+    <script src="js/views/strategy-validation-modal.js"></script>
+
+    <script src="js/generate-format.js?v=20260202-V2"></script>
+    <script src="js/percentage-rules.js?v=20260202-V2"></script>
+    <script src="js/price-movement-rules.js"></script>
+    <script src="js/digit-pattern-rules.js?v=20260202-V2"></script>
+    <script src="js/rsi-indicator.js"></script>
+    <script src="js/sma-indicator.js"></script>
+    <script src="js/level-features.js"></script>
+    <script src="js/vip-payment-modal.js?v=20260202-V2"></script>
+    <script src="js/vip-sync.js?v=20260202-V2"></script>
+    <script src="js/chart-modal.js?v=20260202-V2"></script>
+    <script src="js/video-tutorial-modal.js?v=20260202-V2"></script>
+    <script src="js/probability-tutorial-button.js?v=20260202-V2"></script>
+    <script src="js/premium-tooltip.js?v=20260202-V2"></script>
+    <script src="js/vip-backend-sync.js"></script>
+    <script src="js/admin-vip-manager.js"></script>
+    <script src="js/admin-gemini-toggle.js"></script>
+    <script src="js/help-manual.js"></script>
+    <script src="js/Auxiliar-regras.js"></script>
+    <script src="js/tour-guide.js"></script>
+    <script src="js/IA.js"></script>
+    <script src="js/footer-manager.js"></script>
+
+    <!-- Sistema de Termos de Uso Obrigatório -->
+    <script src="js/terms-modal.js"></script>
+
+    <script src="js/loading-manager.js?v=20260202-V2"></script>
+    <script src="js/voice-input-manager.js"></script>
+    <script src="js/ui.js?v=20260202-V2"></script>
+    <script src="js/app-manager.js?v=20260202-V2"></script>
+    <script src="js/commission-tracker.js"></script>
+
+    <!-- Rule Compatibility Validator -->
+    <script src="js/rule-compatibility-validator.js"></script>
+
+    <!-- Rules History Manager -->
+    <script src="js/rules-history-manager.js"></script>
+    <script src="js/credits-manager.js"></script>
+    <script src="js/modal-creditos.js?v=20260202-V2"></script>
+    <script src="js/creditoVisor.js"></script>
+    <script src="js/regras-json.js"></script>
+    <script src="js/stop-monitor.js"></script>
+
+    <!-- Sistema de Correção Automática de Texto -->
+    <!-- TEMPORARIAMENTE DESABILITADO - Remove espaços enquanto usuário digita -->
+    <!-- <script src="js/text-correction-system.js?v=20251102-no-trim-spaces"></script> -->
+
+    <!-- 🔧 CRÍTICO: Carregar cooldown-overlay.js ANTES do app.js -->
+    <script src="js/cooldown-overlay.js?v=20260202-V2"></script>
+
+    <!-- Frontend Reconnection Manager -->
+    <script src="js/frontend-reconnection-manager.js"></script>
+
+    <!-- 📱 Mobile Menu Manager (Hambúrguer) -->
+    <script src="js/mobile-menu-manager.js"></script>
+
+    <!-- 🌍 i18n System - DEVE vir ANTES de outros scripts -->
+    <script src="js/i18n/translations/pt-BR.js"></script>
+    <!-- <script src="js/i18n/translations/en-US.js"></script> -->
+    <!-- <script src="js/i18n/translations/es-ES.js"></script> -->
+    <!-- <script src="js/i18n/translations/ja-JP.js"></script> -->
+    <script src="js/i18n/i18n-manager.js"></script>
+    <!-- <script src="js/i18n/language-switcher.js"></script> -->
+
+    <!-- UI Manager deve vir APÓS todas as views -->
+    <script>
+
+        // 🔍 DETECTAR TOKENS DE OAUTH NA URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('acct1') || urlParams.has('token1') || urlParams.has('token')) {
+
+        }
+
+        // ✅ NOVO: Marcar timestamp de carregamento da página
+        window.pageLoadTime = Date.now();
+
+        // Configurar logs globalmente
+        window.enableVipLogs = true;
+
+        // Configurar timestamp para debugging de performance
+    </script>
+    <script src="app.js?v=20260202-V2"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"f2ce45ab25f1432598785304e007826f","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+
+</html>

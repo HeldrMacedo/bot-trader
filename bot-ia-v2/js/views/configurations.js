@@ -181,7 +181,7 @@ class ConfigurationsView {
 
                     <div class="form-group-inline">
                         <label for="win-real-input">Vitórias Reais:</label>
-                        <input type="number" id="win-real-input" class="form-control" value="5" min="0" step="1" oninput="this.value = Math.floor(Math.abs(this.value)); ConfigurationsView.saveCurrentConfiguration();" title="Apenas números inteiros">
+                        <input type="number" id="win-eal-input" class="frorm-control" value="5" min="0" step="1" oninput="this.value = Math.floor(Math.abs(this.value)); ConfigurationsView.saveCurrentConfiguration();" title="Apenas números inteiros">
                     </div>
                     <div class="form-group-inline">
                         <label for="loss-real-input">Perdas Reais:</label>

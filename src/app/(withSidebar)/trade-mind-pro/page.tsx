@@ -15,10 +15,19 @@ import TradeConfig, { TradeConfigData, DEFAULT_CONFIG as DEFAULT_TRADE_CONFIG } 
 import VolatilitySelector from './components/VolatilitySelector';
 import { useEffect, useState } from 'react';
 import { DerivService } from '@/app/services/DerivService';
+import { Monitoring } from './service/Monitoring';
 
 export default function TradeMindPro() {
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState('');
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [aiMode, setAiMode] = useState<'strategy' | 'chat'>('strategy');
+  const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [resultsList, setResultsList] = useState<any[]>([]);
   
   // Tab navigation state
   const [activeTab, setActiveTab] = useState<'trade' | 'management' | 'controller'>('trade');
@@ -69,7 +78,17 @@ export default function TradeMindPro() {
     }
     return DEFAULT_CONTROLLER_CONFIG;
   });
-    
+  const getLoginIdFromStorage = (): string | null => {
+    try {
+      const accountsStr = localStorage.getItem('deriv_accounts');
+      if (!accountsStr) return null;
+      const accounts = JSON.parse(accountsStr);
+      const a = Array.isArray(accounts) ? accounts[0] : null;
+      return a?.selectedLoginId || a?.loginId || a?.tokens?.[0]?.loginid || null;
+    } catch {
+      return null;
+    }
+  };
   useEffect(() => {
     const init = async() => {
       setLoading(true);
@@ -104,6 +123,9 @@ export default function TradeMindPro() {
                 
             }
         }
+       
+        const selectedSymbol = localStorage.getItem('selectedSymbol');
+        //Monitoring.getInstance().render();
       } catch (error) {
         console.error("Initialization error:", error);
         toast.error("Erro na inicialização do sistema.");
@@ -133,6 +155,10 @@ export default function TradeMindPro() {
     
     toast.success('Configurações salvas com sucesso!');
   };
+
+  const handleAiMessage = async () => {}
+
+  const requestSuggestions = async () => {}
 
   if (loading) {
     return (
@@ -259,13 +285,28 @@ export default function TradeMindPro() {
           {mainView === 'chat' ? (
             <div className="flex h-full gap-4">
               <div className="flex-1 min-w-0">
-                <AiChatPanel />
+                <AiChatPanel 
+                  messages={messages}
+                  isProcessing={isAiProcessing}
+                  onSendMessage={handleAiMessage}
+                  onStrategyGenerated={() => {}}
+                  mode={aiMode}
+                  onModeChange={setAiMode}
+                  progressMessage={aiProgressMessage}
+                  onRequestSuggestions={requestSuggestions}
+                  draftStorageKey={(() => {
+                    const loginid = getLoginIdFromStorage();
+                    return loginid ? `monitoring_strategy_${loginid}` : null;
+                  })()}
+                />
               </div>
             </div>
           ) : mainView === 'blockly' ? (
             <BlocklyEditor />
           ) : (
-            <BotDashboard />
+            <BotDashboard 
+              logs={logs} running={isRunning} resultsList={resultsList}
+            />
           )}
         </div>
       </div>

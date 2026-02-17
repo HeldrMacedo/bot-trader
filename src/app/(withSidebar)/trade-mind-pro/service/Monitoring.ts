@@ -41,4 +41,8 @@ export class Monitoring {
         console.log('Tick data:', data);
     });  
   }
+
+  static async startMonitoring() {
+    
+  }
 }
