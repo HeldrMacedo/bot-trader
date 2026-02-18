@@ -10,6 +10,8 @@ export interface ProbabilityStats {
   highestStrength: number;
   lowestStrength: number;
   sortedScores: { digit: number; prob: number }[];
+  topN?: number;
+  topNDigits?: number[];
 }
 
 export interface TickData {
@@ -59,9 +61,7 @@ export class MonitoringService {
     // 1. Carregar scripts legados primeiro
     try {
       await this.legacyBridge.loadLegacyScripts();
-      console.log('[Monitoring] Scripts legados carregados');
     } catch (error) {
-      console.error('[Monitoring] Erro ao carregar scripts legados:', error);
       // Continua mesmo sem scripts legados (modo fallback)
     }
 
@@ -70,8 +70,6 @@ export class MonitoringService {
     
     // 3. Configurar monitor de probabilidades
     this.setupProbabilityMonitor();
-
-    console.log(`[Monitoring] Monitoramento iniciado para ${config.symbol}`);
   }
 
   /**
@@ -86,8 +84,6 @@ export class MonitoringService {
     this.isSubscribed = false;
     this.probabilityHistory = [];
     this.globalTickCounter = 0;
-    
-    console.log('[Monitoring] Monitoramento parado');
   }
 
   /**
@@ -95,7 +91,6 @@ export class MonitoringService {
    */
   private async subscribeToTicks(): Promise<void> {
     if (!this.config?.symbol) return;
-
     try {
       await this.deriv.send({ 
         ticks: this.config.symbol, 
@@ -103,7 +98,6 @@ export class MonitoringService {
       });
       
       this.isSubscribed = true;
-      console.log(`[Monitoring] Inscrito em ticks: ${this.config.symbol}`);
     } catch (error: any) {
       if (!error.message?.includes('already subscribed')) {
         console.error('[Monitoring] Erro ao inscrever:', error);
@@ -127,15 +121,22 @@ export class MonitoringService {
         this.handleTick(data.tick);
       }
     });
+  }
 
-    console.log('[Monitoring] Monitor de probabilidades configurado');
+  private getTopN(): number {
+    if (typeof window === 'undefined') return 5;
+    const raw = localStorage.getItem('prob_accuracy_topN');
+    const val = raw ? parseInt(raw, 10) : 5;
+    return Number.isFinite(val) && val >= 1 && val <= 10 ? val : 5;
   }
 
   /**
    * Processa cada tick recebido
    */
   private handleTick(tick: any): void {
+
     const { symbol, quote: price } = tick;
+    
     const digit = this.extractLastDigit(price, symbol);
     
     if (digit === null || digit === undefined || isNaN(digit) || digit < 0 || digit > 9) {
@@ -302,6 +303,7 @@ export class MonitoringService {
     const sortedByScore = [...finalScores].sort((a, b) => b.score - a.score);
     const best = sortedByScore[0];
     const worst = sortedByScore[sortedByScore.length - 1];
+    const topN = this.getTopN();
     
     return {
       probabilities: finalScores.map(s => s.rawProb),
@@ -311,7 +313,9 @@ export class MonitoringService {
       leastProbableValue: worst.rawProb,
       highestStrength: Math.max(1, best.consensusHigh),
       lowestStrength: Math.max(1, worst.consensusLow),
-      sortedScores: sortedByScore.map(s => ({ digit: s.digit, prob: s.rawProb }))
+      sortedScores: sortedByScore.map(s => ({ digit: s.digit, prob: s.rawProb })),
+      topN,
+      topNDigits: sortedByScore.slice(0, topN).map(s => s.digit)
     };
   }
 

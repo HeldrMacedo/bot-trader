@@ -112,7 +112,7 @@ export class LegacyBridgeService extends EventEmitter {
       // Regras e Indicadores (Dependências para Strategy/AI)
     //   '/legacy/js/rsi-indicator.js',
     //   '/legacy/js/sma-indicator.js',
-    //   '/legacy/js/probability-accuracy.js',
+    '/legacy/js/probability-accuracy.js',
     //   '/legacy/js/digit-pattern-rules.js',
     //   '/legacy/js/percentage-rules.js',
     //   '/legacy/js/price-movement-rules.js',

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { DerivService } from '@/app/services/DerivService';
 
 interface MarketStats {
@@ -9,7 +9,7 @@ interface MarketStats {
   direction: 'up' | 'down' | 'equal';
 }
 
-interface ProbabilityStats {
+export interface ProbabilityStats {
   probabilities: number[];
   mostProbable: number;
   leastProbable: number;
@@ -18,13 +18,17 @@ interface ProbabilityStats {
   highestStrength: number;
   lowestStrength: number;
   sortedScores: { digit: number; prob: number }[];
+  topN: any,
+  topNDigits: any
 }
 
 interface MarketAnalysisPanelProps {
   symbol: string;
+  marketStats?: ProbabilityStats | null;
 }
 
-export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps) {
+export default function MarketAnalysisPanel({ symbol, marketStats }: MarketAnalysisPanelProps) {
+  // Estado local apenas para estatísticas básicas (não probabilidades)
   const [stats, setStats] = useState<MarketStats>({
     digits: [],
     prices: [],
@@ -33,17 +37,21 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
     direction: 'equal'
   });
 
-  const [probStats, setProbStats] = useState<ProbabilityStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [topN, setTopN] = useState<number>(() => {
     const v = parseInt(localStorage.getItem('prob_accuracy_topN') || '5', 10);
     return Number.isFinite(v) && v >= 1 && v <= 10 ? v : 5;
   });
   
-  const deriv = DerivService.getInstance();
-  const probabilityHistoryRef = useRef<number[]>([]);
-  const accuracyHistoryRef = useRef<boolean[]>([]);
+  // Precisão calculada via ProbabilityAccuracyManager do legado
   const [accuracy, setAccuracy] = useState<number>(100);
+  
+  const deriv = DerivService.getInstance();
+  const marketStatsRef = useRef<ProbabilityStats | null | undefined>(marketStats);
+
+  useEffect(() => {
+    marketStatsRef.current = marketStats;
+  }, [marketStats]);
 
   // Helper to extract digit based on symbol type
   const getLastDigit = useCallback((price: number, symbol: string): number => {
@@ -57,198 +65,28 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
     return parseInt(price.toFixed(precision).slice(-1));
   }, []);
 
-  // Calculate digit gaps
-  const calculateDigitGaps = useCallback((history: number[], excludeLastTick: boolean): number[] => {
-    const gaps = Array(10).fill(0);
-    const lastIndices = Array(10).fill(-1);
-    const effective = excludeLastTick && history.length > 0 ? history.slice(0, -1) : history;
-    const total = effective.length;
-    
-    for (let i = 0; i < total; i++) {
-      const d = effective[i];
-      lastIndices[d] = i;
-    }
-    
-    for (let d = 0; d <= 9; d++) {
-      if (lastIndices[d] === -1) {
-        gaps[d] = total;
-      } else {
-        gaps[d] = (total - 1) - lastIndices[d];
+  // Atualiza precisão usando ProbabilityAccuracyManager do legado
+  const updateAccuracy = useCallback((digit: number, sortedScores: { digit: number; prob: number }[] | undefined) => {
+    if (typeof window !== 'undefined' && (window as any).ProbabilityAccuracyManager && sortedScores) {
+      try {
+        const accManager = (window as any).ProbabilityAccuracyManager.getInstance();
+        
+        // Registrar previsão para o próximo tick
+        accManager.recordPrediction(sortedScores);
+        
+        // Atualizar resultado
+        accManager.updateOutcome(digit);
+        
+        // Obter precisão atual
+        const currentAccuracy = accManager.getAccuracy();
+        setAccuracy(currentAccuracy);
+      } catch (e) {
+        // Silenciar erros do legado
       }
     }
-    return gaps;
   }, []);
 
-  // Analyze period for probability calculation
-  const analyzePeriod = useCallback((digits: number[], periodName: string) => {
-    if (!digits || !digits.length) return null;
-    
-    const freq = Array(10).fill(0);
-    let total = 0;
-    
-    for (let i = 0; i < digits.length; i++) {
-      const d = digits[i];
-      if (Number.isInteger(d) && d >= 0 && d <= 9) {
-        freq[d]++;
-        total++;
-      }
-    }
-    
-    const sum = freq.reduce((a, b) => a + b, 0);
-    if (!sum) return null;
-    
-    const probs = freq.map(score => (score / sum) * 100);
-    let maxProb = -1, maxIdx = -1;
-    let minProb = 101, minIdx = -1;
-    
-    for (let i = 0; i < probs.length; i++) {
-      const p = probs[i];
-      if (p > maxProb) {
-        maxProb = p;
-        maxIdx = i;
-      }
-      if (p < minProb) {
-        minProb = p;
-        minIdx = i;
-      }
-    }
-    
-    return {
-      probabilities: probs,
-      mostProbable: maxIdx,
-      leastProbable: minIdx,
-      mostProbableValue: maxProb,
-      leastProbableValue: minProb,
-      periodName
-    };
-  }, []);
-
-  // Calculate probabilities - based on legacy monitoring.js
-  const calculateProbabilities = useCallback((fullHistory: number[], excludeLastTick = false): ProbabilityStats | null => {
-    if (!fullHistory || fullHistory.length < 10) return null;
-    
-    const dataForStructure = excludeLastTick && fullHistory.length > 0 ? fullHistory.slice(0, -1) : fullHistory;
-    let dataForStats = dataForStructure;
-    
-    if (!excludeLastTick && fullHistory.length > 0) {
-      // Count consecutive repetitions
-      const lastDigit = fullHistory[fullHistory.length - 1];
-      let repetitionCount = 1;
-      for (let i = fullHistory.length - 2; i >= 0; i--) {
-        if (fullHistory[i] === lastDigit) {
-          repetitionCount++;
-        } else {
-          break;
-        }
-      }
-      dataForStats = fullHistory.slice(0, -repetitionCount);
-    }
-    
-    const periods = [
-      { name: '1-10', data: dataForStats.slice(-10), weight: 5.0 },
-      { name: '10-25', data: dataForStats.slice(-25, -10), weight: 2.5 },
-      { name: '25-50', data: dataForStats.slice(-50, -25), weight: 1.0 },
-      { name: '50-100', data: dataForStats.slice(-100, -50), weight: 0.5 },
-      { name: '1-100', data: dataForStats.slice(-100), weight: 0.5 }
-    ];
-    
-    const analyses = periods.map(p => {
-      const a = analyzePeriod(p.data, p.name);
-      if (!a) return null;
-      return { ...a, weight: p.weight };
-    }).filter(Boolean);
-    
-    const gaps = calculateDigitGaps(dataForStructure, false);
-    const longTerm = analyses.find((a: any) => a && a.periodName === '1-100') as any;
-    
-    const finalScores: { digit: number; score: number; rawProb: number; consensusHigh: number; consensusLow: number }[] = [];
-    
-    // Pre-calculate appearances and repetitions
-    const longTermHistory = dataForStructure.slice(-100);
-    const lastDigit = dataForStructure[dataForStructure.length - 1];
-    const appearancesMap = new Array(10).fill(0);
-    const repetitionsMap = new Array(10).fill(0);
-    
-    for (let i = 0; i < longTermHistory.length - 1; i++) {
-      const d = longTermHistory[i];
-      appearancesMap[d]++;
-      if (longTermHistory[i + 1] === d) {
-        repetitionsMap[d]++;
-      }
-    }
-    
-    for (let digit = 0; digit <= 9; digit++) {
-      let weightedSum = 0;
-      let totalWeight = 0;
-      let cHigh = 0;
-      let cLow = 0;
-      
-      analyses.forEach((analysis: any) => {
-        if (analysis && analysis.probabilities) {
-          const prob = Number(analysis.probabilities[digit]) || 0;
-          weightedSum += prob * analysis.weight;
-          totalWeight += analysis.weight;
-          if (analysis.mostProbable === digit) cHigh++;
-          if (analysis.leastProbable === digit) cLow++;
-        }
-      });
-      
-      const base = totalWeight > 0 ? weightedSum / totalWeight : 0;
-      
-      // Saturation penalty
-      let saturationPenalty = 0;
-      if (longTerm && longTerm.probabilities) {
-        const longFreq = Number(longTerm.probabilities[digit]) || 0;
-        if (longFreq > 15) {
-          saturationPenalty = (longFreq - 15) * 2.0;
-        }
-      }
-      
-      // Dynamic bias
-      let dynamicBias = 0;
-      const appearances = appearancesMap[digit];
-      const repetitions = repetitionsMap[digit];
-      const repRate = appearances > 0 ? (repetitions / appearances) * 100 : 0;
-      
-      if (digit === lastDigit) {
-        if (repRate < 5) {
-          dynamicBias = 8;
-        } else if (repRate > 15) {
-          dynamicBias = -10;
-        } else {
-          dynamicBias = -5;
-        }
-      } else {
-        if (repRate < 5) dynamicBias = 2;
-      }
-      
-      // Gap bonus
-      let gapBonus = 0;
-      if (gaps[digit] >= 10) {
-        gapBonus = Math.pow(gaps[digit] / 10, 2);
-      }
-      
-      const final = (base + gapBonus + dynamicBias) - saturationPenalty;
-      finalScores.push({ digit, score: final, rawProb: base, consensusHigh: cHigh, consensusLow: cLow });
-    }
-    
-    const sortedByScore = [...finalScores].sort((a, b) => b.score - a.score);
-    const best = sortedByScore[0];
-    const worst = sortedByScore[sortedByScore.length - 1];
-    
-    return {
-      probabilities: finalScores.map(s => s.rawProb),
-      mostProbable: best.digit,
-      leastProbable: worst.digit,
-      mostProbableValue: best.rawProb,
-      leastProbableValue: worst.rawProb,
-      highestStrength: Math.max(1, best.consensusHigh),
-      lowestStrength: Math.max(1, worst.consensusLow),
-      sortedScores: sortedByScore.map(s => ({ digit: s.digit, prob: s.rawProb }))
-    };
-  }, [analyzePeriod, calculateDigitGaps]);
-
-  // Subscribe to ticks
+  // Subscribe to ticks apenas para estatísticas básicas (não probabilidades)
   useEffect(() => {
     if (!symbol) return;
 
@@ -262,27 +100,17 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
       lastDigit: null,
       direction: 'equal'
     });
-    probabilityHistoryRef.current = [];
 
     const handleTick = (data: any) => {
       if (data.tick && data.tick.symbol === symbol) {
+        
         const price = data.tick.quote;
         const digit = getLastDigit(price, symbol);
-
-        // Update accuracy tracking
-        const predictedTop = probStats?.sortedScores.slice(0, topN).map(s => s.digit) || [];
-        const hit = predictedTop.includes(digit);
-        accuracyHistoryRef.current.push(hit);
-        if (accuracyHistoryRef.current.length > 10) accuracyHistoryRef.current.shift();
-        const hits = accuracyHistoryRef.current.filter(Boolean).length;
-        const acc = accuracyHistoryRef.current.length ? (hits / accuracyHistoryRef.current.length) * 100 : 100;
-        setAccuracy(accuracyHistoryRef.current.length ? acc : 100);
-
+        
         // Update stats
         setStats(prev => {
           const newDigits = [...prev.digits, digit].slice(-1000);
           const newPrices = [...prev.prices, price].slice(-1000);
-
           // Update counts
           const counts = Array(10).fill(0);
           const recentDigits = newDigits.slice(-100);
@@ -300,24 +128,15 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
           };
         });
 
-        // Update probability history
-        probabilityHistoryRef.current.push(digit);
-        if (probabilityHistoryRef.current.length > 200) {
-          probabilityHistoryRef.current.shift();
-        }
-
-        // Calculate probabilities
-        const newProbStats = calculateProbabilities(probabilityHistoryRef.current, false);
-        if (newProbStats) {
-          setProbStats(newProbStats);
-        }
+        // Atualizar precisão via legado
+        updateAccuracy(digit, marketStatsRef.current?.sortedScores);
 
         setLoading(false);
       }
     };
 
     // Subscribe to ticks
-    deriv.send({ ticks: symbol, subscribe: 1 }).catch(console.error);
+   // deriv.send({ ticks: symbol, subscribe: 1 }).catch(console.error);
 
     // Listen using DerivService observer
     const listenerId = deriv.observerInstance.on('deriv.tick', handleTick);
@@ -325,18 +144,30 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
     return () => {
       deriv.observerInstance.removeById(listenerId);
     };
-  }, [symbol, deriv, getLastDigit, calculateProbabilities, topN, probStats]);
+  }, [symbol, deriv, getLastDigit, updateAccuracy]);
 
-  // Update predicted top when topN changes
-  useEffect(() => {
-    if (probStats?.sortedScores) {
-      // Reset accuracy when changing topN
-      accuracyHistoryRef.current = [];
-      setAccuracy(100);
+  // Handler para mudança do TOP N - sincroniza com legado
+  const handleTopNChange = useCallback((newTopN: number) => {
+    setTopN(newTopN);
+    
+    // Salvar no localStorage
+    localStorage.setItem('prob_accuracy_topN', String(newTopN));
+    
+    // Atualizar no ProbabilityAccuracyManager do legado se disponível
+    if (typeof window !== 'undefined' && (window as any).ProbabilityAccuracyManager) {
+      try {
+        const accManager = (window as any).ProbabilityAccuracyManager.getInstance();
+        accManager.setTopN(newTopN);
+      } catch (e) {
+        console.warn('[MarketAnalysisPanel] Erro ao atualizar topN no legado:', e);
+      }
     }
-  }, [topN, probStats?.sortedScores]);
+    
+    // Resetar precisão ao mudar critério
+    setAccuracy(100);
+  }, []);
 
-  // Calculations for display
+  // Calculations for display (baseado em estatísticas locais)
   const last25Digits = stats.digits.slice(-25);
   const last100Digits = stats.digits.slice(-100);
   
@@ -364,13 +195,10 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
   const upPct = totalMoves ? ((upCount / totalMoves) * 100).toFixed(0) : '0';
   const downPct = totalMoves ? ((downCount / totalMoves) * 100).toFixed(0) : '0';
 
-  const digitProbs = probStats?.sortedScores ?? stats.digitCounts.map((count, digit) => ({
-    digit,
-    prob: last100Digits.length ? (count / last100Digits.length) * 100 : 0
-  })).sort((a, b) => b.prob - a.prob);
-
-  const highestProb = digitProbs[0];
-  const lowestProb = digitProbs[digitProbs.length - 1];
+  // Usar dados do marketStats (via props) para probabilidades
+  const digitProbs = marketStats?.sortedScores ?? [];
+  const topNDisplay = marketStats?.topN ?? topN;
+  const topNDigits = marketStats?.topNDigits ?? digitProbs.slice(0, topNDisplay).map(d => d.digit);
 
   if (!symbol) return <div className="text-gray-500 p-4">Selecione um ativo</div>;
 
@@ -387,25 +215,19 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
         </div>
       </div>
 
-      {/* 🎲 Probability Monitor */}
+      {/* 🎲 Probability Monitor - Usando marketStats */}
       <div className="bg-[#0d0a18] border border-gray-700 rounded-lg p-3">
         <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider text-center">Probabilidade (100 Ticks)</div>
         
         <div className="flex items-center gap-2 mb-2">
           <div className="relative flex items-center bg-white/5 border border-white/10 rounded px-2 py-1">
             <span className="text-[10px] text-gray-300 mr-1 font-bold">TOP</span>
-            <span className="text-xs text-white font-bold">{topN}</span>
+            <span className="text-xs text-white font-bold">{topNDisplay}</span>
+            <span className="text-[10px] text-blue-300 ml-2">{topNDigits.length ? topNDigits.join(' ') : '-'}</span>
             <select
               className="absolute inset-0 opacity-0 cursor-pointer"
               value={topN}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!Number.isNaN(val)) {
-                  const clamped = Math.max(1, Math.min(10, val));
-                  setTopN(clamped);
-                  try { localStorage.setItem('prob_accuracy_topN', String(clamped)); } catch {}
-                }
-              }}
+              onChange={(e) => handleTopNChange(parseInt(e.target.value, 10))}
             >
               {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
                 <option key={n} value={n}>{n}</option>
@@ -414,13 +236,14 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
           </div>
           <div
             className="flex-1 h-2 bg-white/10 rounded relative overflow-hidden"
-            title={`Precisão: ${accuracy.toFixed(1)}%`}
+            title={`Precisão: ${accuracy.toFixed(1)}% | Top ${topNDisplay}`}
           >
             <div
               className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-500"
               style={{ width: `${Math.max(0, Math.min(100, accuracy))}%` }}
             />
           </div>
+          <span className="text-[10px] text-gray-400">{accuracy.toFixed(0)}%</span>
         </div>
 
         <div className="flex justify-between items-center gap-2">
@@ -428,10 +251,10 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
           <div className="flex flex-col items-center bg-green-900/20 border border-green-900/50 rounded p-2 flex-1">
             <span className="text-[10px] text-green-400 uppercase">Maior</span>
             <span className="text-2xl font-bold text-white my-1">
-              {highestProb?.digit ?? '-'}
+              {marketStats?.mostProbable ?? '-'}
             </span>
             <span className="text-xs text-green-400 font-mono">
-              {highestProb?.prob?.toFixed?.(1) ?? '--'}%
+              {marketStats?.mostProbableValue?.toFixed?.(1) ?? '--'}%
             </span>
           </div>
 
@@ -451,10 +274,10 @@ export default function MarketAnalysisPanel({ symbol }: MarketAnalysisPanelProps
           <div className="flex flex-col items-center bg-red-900/20 border border-red-900/50 rounded p-2 flex-1">
             <span className="text-[10px] text-red-400 uppercase">Menor</span>
             <span className="text-2xl font-bold text-white my-1">
-              {lowestProb?.digit ?? '-'}
+              {marketStats?.leastProbable ?? '-'}
             </span>
             <span className="text-xs text-red-400 font-mono">
-              {lowestProb?.prob?.toFixed?.(1) ?? '--'}%
+              {marketStats?.leastProbableValue?.toFixed?.(1) ?? '--'}%
             </span>
           </div>
         </div>

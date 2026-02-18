@@ -348,7 +348,8 @@ export default function TradeMindPro() {
 
       {selectedSymbol && mainView !== 'blockly' && (
         <div className="flex-1 flex flex-col min-w-0">
-          <MarketAnalysisPanel symbol={selectedSymbol} />
+          <MarketAnalysisPanel symbol={selectedSymbol} marketStats={marketStats} />
+
         </div>
       )}
 
