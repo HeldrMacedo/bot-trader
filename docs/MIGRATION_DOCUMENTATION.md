@@ -161,6 +161,35 @@ interface ControllerConfigData {
 }
 ```
 
+### 4. IA e Estratégias (trade-mind-pro)
+
+#### Funcionalidades Migradas:
+- ✅ **Validação de pré-condições**: Compatibilidade de contrato/tipo trade e modo Ambos antes da tradução
+- ✅ **Tradução de estratégia**: Resolução por cache, histórico, código embutido e Gemini
+- ✅ **Pré-processamento**: Normalização de regras com `* Entrar quando ...`
+- ✅ **Progresso no chat**: Mensagens de status durante o processamento da IA
+
+#### Fluxo de Tradução:
+1. `page.tsx` valida pré-condições da estratégia
+2. `Monitoring.translateStrategy` resolve JSON por prioridade:
+   - JSON cached do histórico
+   - Código embutido na regra
+   - Histórico local
+   - Cache de traduções
+   - Gemini (fallback)
+3. Persistência no cache e histórico após sucesso
+4. Mensagens de progresso exibidas no chat
+
+#### Mensagens de Progresso:
+- Carregando módulos da IA
+- Encontrando JSON em cache
+- Buscando código de regra
+- Verificando histórico
+- Verificando cache de traduções
+- Pré-processando estratégia
+- Gerando estratégia da IA
+- Estratégia criada com sucesso
+
 ## Mapeamento de Funções Originais
 
 ### Funções de ConfigurationsView → React Hooks

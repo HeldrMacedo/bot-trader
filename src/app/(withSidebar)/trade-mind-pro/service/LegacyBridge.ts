@@ -98,7 +98,7 @@ export class LegacyBridgeService extends EventEmitter {
     // 2. Ordem de Carregamento (Crítica)
     const scripts = [
       // Utils
-    //   '/legacy/js/utils/common-helpers.js',
+       '/legacy/js/utils/common-helpers.js',
     //   '/legacy/js/utils/market-data-helpers.js',
     //   '/legacy/js/utils/ui-helpers.js',
 
@@ -118,19 +118,19 @@ export class LegacyBridgeService extends EventEmitter {
     //   '/legacy/js/price-movement-rules.js',
       
       // Estratégia Base
-    //   '/legacy/js/regras-json.js',
+      '/legacy/js/regras-json.js',
     //   '/legacy/js/Auxiliar-regras.js',
-    //   '/legacy/js/rules-history-manager.js',
-    //   '/legacy/js/rule-compatibility-validator.js',
+      '/legacy/js/rules-history-manager.js',
+    '/legacy/js/rule-compatibility-validator.js',
     //   '/legacy/js/robot-strategy.js',
 
       // AI Modules (Factories)
-    //   '/legacy/js/prompt-manager.js',         // Define getPromptManagerInstance
-    //   '/legacy/js/generate-format.js',        // Define getFormatGeneratorInstance
-    //   '/legacy/js/strategy-preprocessor.js',  // Define getStrategyPreprocessorInstance
-    //   '/legacy/js/gemini-strategy-validator.js',
-    //   '/legacy/js/gemini-ai.js',              // Define getGeminiInstance (depende de format/prompt/preprocessor)
-    //   '/legacy/js/ai-chat-context.js',
+       '/legacy/js/prompt-manager.js',         // Define getPromptManagerInstance
+       '/legacy/js/generate-format.js',        // Define getFormatGeneratorInstance
+       '/legacy/js/strategy-preprocessor.js',  // Define getStrategyPreprocessorInstance
+       '/legacy/js/gemini-strategy-validator.js',
+       '/legacy/js/gemini-ai.js',              // Define getGeminiInstance (depende de format/prompt/preprocessor)
+      '/legacy/js/ai-chat-context.js',
 
       // Trade Execution (Depende de tudo acima)
     //   '/legacy/js/trade/TradeContractSelector.js',

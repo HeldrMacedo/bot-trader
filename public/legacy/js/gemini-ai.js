@@ -5,7 +5,8 @@
 class GeminiAI {
     constructor() {
         this.apiKey = null; // Será configurado via Secrets
-        this.sessionId = SessionManager.getUserSessionId();
+        
+        this.sessionId = JSON.parse(localStorage.getItem('deriv_accounts'))[0].selectedLoginId;
 
         // 🔒 CONTROLE DE CONCORRÊNCIA
         this.isProcessing = false;
@@ -17,7 +18,7 @@ class GeminiAI {
         this.ensureLogConfigAvailable();
 
         // 🔍 Validar integridade na inicialização
-        this.validateUserAccess();
+        //this.validateUserAccess();
 
         // ✅ CORREÇÃO: Sistema de fallback robusto com modelos Gemini - ORDEM OTIMIZADA
         this.modelVersions = [
@@ -172,49 +173,49 @@ class GeminiAI {
         if (!this.apiKey) {
             throw new Error("API Key da IA não configurada");
         }
-
         // 🔒 MARCAR COMO PROCESSANDO
         this.isProcessing = true;
 
         // 💰 VERIFICAÇÃO DE CRÉDITOS (UX - Fail Fast)
         // Se já foi pago (manualDebit), ignoramos esta verificação interna.
-        if (!isAlreadyPaid && typeof CreditsManager !== 'undefined') {
-            const currentCredits = await CreditsManager.getCurrentCredits();
-            const cost = CreditsManager.CREDIT_COSTS.GEMINI_TRANSLATION || 1;
+        // if (!isAlreadyPaid && typeof CreditsManager !== 'undefined') {
+        //     const currentCredits = await CreditsManager.getCurrentCredits();
+        //     const cost = CreditsManager.CREDIT_COSTS.GEMINI_TRANSLATION || 1;
 
-            if (currentCredits < cost) {
-                this.isProcessing = false;
-                const msg = `Saldo insuficiente (${currentCredits}). Necessário: ${cost} crédito(s).`;
-                throw new Error(msg);
-            }
-        }
+        //     if (currentCredits < cost) {
+        //         this.isProcessing = false;
+        //         const msg = `Saldo insuficiente (${currentCredits}). Necessário: ${cost} crédito(s).`;
+        //         throw new Error(msg);
+        //     }
+        // }
 
         // 🔒 MARCAR COMO PROCESSANDO
         this.isProcessing = true;
 
         // 📋 Helper para adicionar logs ao modal (definir ANTES do try)
-        const addLog = (message, level = 'info') => {
-            try {
-                const animation = window.geminiTranslationAnimation || (typeof getGeminiTranslationAnimation === 'function' ? getGeminiTranslationAnimation() : null);
-                if (animation && typeof animation.addLog === 'function') {
-                    animation.addLog(message, level);
-                }
-            } catch (e) {
-                // Silenciosamente ignorar erros de log para não quebrar a tradução
+        // const addLog = (message, level = 'info') => {
+        //     try {
+        //         const animation = window.geminiTranslationAnimation || (typeof getGeminiTranslationAnimation === 'function' ? getGeminiTranslationAnimation() : null);
+        //         if (animation && typeof animation.addLog === 'function') {
+        //             animation.addLog(message, level);
+        //         }
+        //     } catch (e) {
+        //         // Silenciosamente ignorar erros de log para não quebrar a tradução
 
-            }
-        };
+        //     }
+        // };
 
         try {
-            addLog('🔍 Iniciando tradução da estratégia...', 'info');
-
+           
+            // addLog('🔍 Iniciando tradução da estratégia...', 'info');
+          
             // ✅ CORREÇÃO: Validação ignorada pois a chave é gerenciada pelo servidor
             if (this.apiKey !== 'SERVER_MANAGED' && !this.apiKey.startsWith('AIza')) {
                 throw new Error("API Key da IA inválida");
             }
 
-            addLog(`✅ API Key validada`, 'success');
-            addLog(`📡 Modelo: ${this.getCurrentVersion().name}`, 'info');
+            // addLog(`✅ API Key validada`, 'success');
+            // addLog(`📡 Modelo: ${this.getCurrentVersion().name}`, 'info');
 
             // ⚡ OTIMIZAÇÃO: Tentar match com Templates Locais (Sem Gasto de Tokens)
             try {
@@ -229,13 +230,13 @@ class GeminiAI {
                 }
 
                 if (promptManager) {
-                    addLog('⚡ Verificando templates locais...', 'info');
+                    // addLog('⚡ Verificando templates locais...', 'info');
 
                     const localMatch = promptManager.matchStrategy(strategyText);
 
                     if (localMatch) {
-                        addLog('🚀 Estratégia reconhecida! Usando template local.', 'success');
-                        addLog('⚡ Gerando JSON instantaneamente...', 'success');
+                        // addLog('🚀 Estratégia reconhecida! Usando template local.', 'success');
+                        // addLog('⚡ Gerando JSON instantaneamente...', 'success');
 
                         // Pequeno delay para garantir que a UI atualize
                         await new Promise(r => setTimeout(r, 800));
@@ -245,38 +246,39 @@ class GeminiAI {
                         const formattedLocal = this.formatGeminiResponse(localMatch);
 
                         this.isProcessing = false;
-                        onProgress(100, 'Tradução (Local) concluída!');
+                        // onProgress(100, 'Tradução (Local) concluída!');
                         return formattedLocal;
                     }
                 } else {
                     console.error("[GEMINI DEBUG] PromptManager NÃO encontrado!");
-                    addLog('⚠️ PromptManager indisponível.', 'warning');
+                    // addLog('⚠️ PromptManager indisponível.', 'warning');
                 }
 
                 if (!promptManager.matchStrategy(strategyText)) {
-                    addLog('⚠️ Regra não reconhecida localmente. Enviando para IA...', 'warning');
+                    console.log("Regra não reconhecida localmente. Enviando para IA...'");
+                    // addLog('⚠️ Regra não reconhecida localmente. Enviando para IA...', 'warning');
                 }
 
             } catch (e) {
                 console.error("[GEMINI DEBUG] Erro FATAL no match local:", e);
                 console.error("[GEMINI DEBUG] Stack:", e.stack);
-                addLog(`⚠️ Erro na verificação local: ${e.message}. Seguindo para IA...`, 'warning');
+                // addLog(`⚠️ Erro na verificação local: ${e.message}. Seguindo para IA...`, 'warning');
             }
 
             // ✨ NOVO: Pré-processamento da estratégia
             const preprocessor = getStrategyPreprocessorInstance();
 
             // Processar estratégia
-            onProgress(10, 'Pré-processando estratégia...');
-            addLog('🔧 Pré-processando texto da estratégia...', 'info');
+            // onProgress(10, 'Pré-processando estratégia...');
+            // addLog('🔧 Pré-processando texto da estratégia...', 'info');
 
             const preprocessedData = await preprocessor.processStrategy(strategyText, (percent, message) => {
                 // Não chamar onProgress aqui para evitar conflito
-                addLog(message, 'info');
+                // addLog(message, 'info');
             });
 
-            addLog(`📊 ${preprocessedData.structure.totalGroups} grupo(s) identificado(s)`, 'info');
-
+            // addLog(`📊 ${preprocessedData.structure.totalGroups} grupo(s) identificado(s)`, 'info');
+            
             // ✨ Mostrar regras pré-processadas no modal
             if (typeof getGeminiTranslationAnimation === 'function') {
                 const animation = getGeminiTranslationAnimation();
@@ -284,16 +286,16 @@ class GeminiAI {
                     animation.showPreprocessedRules(preprocessedData);
                 }
             }
-
+            
             // 🔍 Construir prompt
-            onProgress(20, 'Construindo prompt para IA...');
-            addLog('📝 Construindo prompt estruturado...', 'info');
+            // onProgress(20, 'Construindo prompt para IA...');
+            // addLog('📝 Construindo prompt estruturado...', 'info');
 
             const basePrompt = this.buildPrompt(strategyText);
             const enrichedPrompt = preprocessor.enrichPrompt(basePrompt, preprocessedData);
 
             const estimatedTokens = this.estimateTokenCount(enrichedPrompt);
-            addLog(`📏 Tamanho do prompt: ${enrichedPrompt.length} caracteres (~${estimatedTokens} tokens)`, 'info');
+            // addLog(`📏 Tamanho do prompt: ${enrichedPrompt.length} caracteres (~${estimatedTokens} tokens)`, 'info');
 
             // 🎯 OTIMIZAÇÃO: Seleção inteligente baseada na quantidade de GRUPOS
             const totalGroups = preprocessedData.structure?.totalGroups || 1;
@@ -301,13 +303,13 @@ class GeminiAI {
 
             if (totalGroups === 1) {
                 startModelIndex = 0; // Flash (Modelo 1)
-                addLog('🎯 Estratégia Simples (1 Grupo) -> Iniciando com Modelo 1', 'info');
+                // addLog('🎯 Estratégia Simples (1 Grupo) -> Iniciando com Modelo 1', 'info');
             } else if (totalGroups === 2) {
                 startModelIndex = 1; // Pro (Modelo 2)
-                addLog('🎯 Estratégia Média (2 Grupos) -> Iniciando com Modelo 2', 'info');
+                // addLog('🎯 Estratégia Média (2 Grupos) -> Iniciando com Modelo 2', 'info');
             } else {
                 startModelIndex = 2; // Avançado (Modelo 3)
-                addLog(`🎯 Estratégia Complexa (${totalGroups} Grupos) -> Iniciando direto com Modelo 3`, 'info');
+                // addLog(`🎯 Estratégia Complexa (${totalGroups} Grupos) -> Iniciando direto com Modelo 3`, 'info');
             }
 
             // Fallback de segurança: Se o modelo escolhido tiver limite de tokens E o prompt estourar
@@ -315,7 +317,7 @@ class GeminiAI {
             for (let i = startModelIndex; i < this.modelVersions.length; i++) {
                 const model = this.modelVersions[i];
                 if (model.maxTokens && estimatedTokens > model.maxTokens) {
-                    addLog(`⚠️ Prompt muito grande para ${model.name}. Pulando...`, 'warning');
+                    // addLog(`⚠️ Prompt muito grande para ${model.name}. Pulando...`, 'warning');
                     continue;
                 }
                 startModelIndex = i;
@@ -323,7 +325,7 @@ class GeminiAI {
             }
 
             if (startModelIndex > 0) {
-                addLog(`🚀 Otimização ativada: Pulando modelos menores.`, 'success');
+                // addLog(`🚀 Otimização ativada: Pulando modelos menores.`, 'success');
             }
 
             // 🔄 Tentar com cada versão disponível, começando do modelo ideal
@@ -338,19 +340,19 @@ class GeminiAI {
                     // 🛠️ VERIFICAÇÃO REDUNDANTE REMOVIDA: Já calculamos o modelo ideal acima
                     // A lógica antiga de "pular" dentro do loop foi removida pois agora começamos do modelo correto
 
-                    addLog(`🤖 Tentando com ${currentModel.name}...`, 'info');
+                    // addLog(`🤖 Tentando com ${currentModel.name}...`, 'info');
 
-                    onProgress(30 + (attempt * 10), `Enviando para ${currentModel.name}...`);
+                    // onProgress(30 + (attempt * 10), `Enviando para ${currentModel.name}...`);
 
                     // 🔥 CHAMAR API
-                    addLog('📤 Enviando requisição para IA API...', 'info');
+                    // addLog('📤 Enviando requisição para IA API...', 'info');
                     const response = await this.callGeminiAPI(enrichedPrompt, isAlreadyPaid);
 
-                    addLog('📥 Resposta recebida do IA ', 'success');
-                    onProgress(70, 'Processando resposta...');
+                    // addLog('📥 Resposta recebida do IA ', 'success');
+                    // onProgress(70, 'Processando resposta...');
 
                     // 🔍 Validar resposta
-                    addLog('🔍 Validando estrutura da resposta...', 'info');
+                    // addLog('🔍 Validando estrutura da resposta...', 'info');
                     if (!response) {
                         throw new Error('Resposta vazia da IA');
                     }
@@ -359,14 +361,14 @@ class GeminiAI {
 
                     // Se callGeminiAPI já retornou um objeto JSON parseado
                     if (typeof response === 'object' && response.groups) {
-                        addLog('✅ JSON já parseado pela API', 'success');
+                        // addLog('✅ JSON já parseado pela API', 'success');
                         geminiJson = response;
                     }
                     // Se retornou string, precisamos extrair o JSON
                     else if (typeof response === 'string') {
                         // 🔍 Extrair JSON
-                        onProgress(80, 'Extraindo JSON da resposta...');
-                        addLog('📋 Extraindo JSON da resposta...', 'info');
+                        // onProgress(80, 'Extraindo JSON da resposta...');
+                        // addLog('📋 Extraindo JSON da resposta...', 'info');
 
                         const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) ||
                             response.match(/```\s*([\s\S]*?)\s*```/) ||
@@ -376,20 +378,20 @@ class GeminiAI {
                             throw new Error('Não foi possível encontrar JSON na resposta');
                         }
 
-                        addLog('✅ JSON extraído com sucesso', 'success');
+                        // addLog('✅ JSON extraído com sucesso', 'success');
 
                         const jsonText = jsonMatch[1] || jsonMatch[0];
                         geminiJson = JSON.parse(jsonText);
 
-                        addLog('✅ JSON parseado com sucesso', 'success');
+                        // addLog('✅ JSON parseado com sucesso', 'success');
                     }
                     else {
                         throw new Error('Formato de resposta inválido da IA');
                     }
 
                     // 🔍 Formatar resposta
-                    onProgress(90, 'Formatando regras...');
-                    addLog('🎨 Formatando regras para o sistema...', 'info');
+                    // onProgress(90, 'Formatando regras...');
+                    // addLog('🎨 Formatando regras para o sistema...', 'info');
 
                     const formattedRules = this.formatGeminiResponse(geminiJson);
 
@@ -398,25 +400,24 @@ class GeminiAI {
                         formattedRules._gemini_prompt = enrichedPrompt;
                     }
 
-                    addLog(`✅ ${formattedRules.groups?.length || 0} grupo(s) formatado(s)`, 'success');
-                    addLog('🎉 Tradução concluída com sucesso!', 'success');
+                    // addLog(`✅ ${formattedRules.groups?.length || 0} grupo(s) formatado(s)`, 'success');
+                    // addLog('🎉 Tradução concluída com sucesso!', 'success');
 
                     // 🔒 LIMPAR FLAG DE PROCESSAMENTO
                     this.isProcessing = false;
 
-                    onProgress(100, 'Tradução concluída!');
+                    // onProgress(100, 'Tradução concluída!');
                     return formattedRules;
 
                 } catch (error) {
                     // Se é a última tentativa, lançar erro
                     if (attempt === this.modelVersions.length - 1) {
-                        addLog(`❌ Erro: ${error.message}`, 'error');
+                        console.error(` Erro: ${error.message}`)
                         throw error;
                     }
 
                     const currentModel = this.modelVersions[attempt];
-
-                    addLog(`⚠️ Falha com ${currentModel.name}: ${error.message}`, 'warning');
+                    console.error(`⚠️ Falha com ${currentModel.name}: ${error.message}`);
 
                     // ✅ CORREÇÃO: Log seguro sem depender de logConfig.shouldLog
                     if (typeof window !== 'undefined' && window.logConfig && typeof window.logConfig.warn === 'function') {
@@ -426,8 +427,8 @@ class GeminiAI {
 
                 // Se não é a última tentativa, tentar próxima versão
                 if (attempt < this.modelVersions.length - 1) {
-                    onProgress(30 + ((attempt + 1) * 10), `Tentando próximo modelo...`);
-                    addLog('🔄 Tentando próximo modelo...', 'info');
+                    // onProgress(30 + ((attempt + 1) * 10), `Tentando próximo modelo...`);
+                    // addLog('🔄 Tentando próximo modelo...', 'info');
                     continue;
                 }
 
@@ -435,7 +436,6 @@ class GeminiAI {
                 console.error("❌ Todas as versões da IA falharam");
                 console.error("🔍 Versões testadas:", this.modelVersions.map(m => m.name));
 
-                addLog('❌ Todas as versões falharam', 'error');
 
                 // 🔒 LIMPAR FLAG DE PROCESSAMENTO
                 this.isProcessing = false;
@@ -443,6 +443,7 @@ class GeminiAI {
             }
         } catch (error) {
             this.isProcessing = false;
+            console.error(error);
             addLog(`❌ Erro fatal: ${error.message}`, 'error');
             throw error;
         }
@@ -1765,11 +1766,11 @@ Responda APENAS com o JSON estruturado, sem explicações adicionais.
     }
 
     // 🔍 Validar acesso do usuário
-    validateUserAccess() {
-        // ✅ CORREÇÃO: Só validar se usuário já está logado
-        const currentUser = SessionManager.getCurrentUser();
+    // validateUserAccess() {
+    //     // ✅ CORREÇÃO: Só validar se usuário já está logado
+    //     const currentUser = SessionManager.getCurrentUser();
 
-    }
+    // }
 
     // 🔐 Salvar estratégia traduzida com segurança (isolada por usuário)
     saveTranslatedStrategy(strategyRules) {

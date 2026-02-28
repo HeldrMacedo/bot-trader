@@ -149,7 +149,7 @@ export default function TradeMindPro() {
           symbol: selectedSymbol,
           onTick: (data) => {
             // Callback quando tick é recebido
-            console.log('[TradeMindPro] Tick recebido:', data);
+   
           },
           onProbabilityUpdate: (stats) => {
             // Callback quando probabilidades são atualizadas
@@ -157,7 +157,7 @@ export default function TradeMindPro() {
           }
         });
         
-        console.log(`[TradeMindPro] Monitoramento iniciado para ${selectedSymbol}`);
+        
       } catch (error) {
         console.error('[TradeMindPro] Erro ao iniciar monitoramento:', error);
         toast.error('Erro ao iniciar coleta de dados');
@@ -191,7 +191,55 @@ export default function TradeMindPro() {
     toast.success('Configurações salvas com sucesso!');
   };
 
-  const handleAiMessage = async () => {}
+  const handleAiMessage = async (text: string) => {
+    const userMsg = {
+      id: Date.now().toString(), 
+      role: 'user', 
+      content: text, 
+      timestamp: new Date() 
+    }
+
+    setMessages(prev => [...prev, userMsg]);
+    setIsAiProcessing(true);
+    setAiProgressMessage(null);
+
+    try {
+      if (aiMode === 'strategy') {
+        const validation = await monitoringService._validatePreconditions(text, {
+          contractType: tradeConfig.contractType,
+          tradeType: tradeConfig.tradeType,
+          prediction: tradeConfig.prediction
+        });
+
+        console.log("VALID ", validation);
+        if (!validation.isValid) {
+          const issueText = validation.issues.length > 0 ? `Problemas encontrados:\n- ${validation.issues.join('\n- ')}` : '';
+          const tipsText = validation.tips.length > 0 ? `\n\nDicas para corrigir:\n- ${validation.tips.join('\n- ')}` : '';
+          const aiMsg = {
+            id: `${Date.now()}-ai`,
+            role: 'ai',
+            content: `⚠️ Estratégia incompatível com a configuração atual.\n\n${issueText}${tipsText}`.trim(),
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, aiMsg]);
+          setIsAiProcessing(false);
+          setAiProgressMessage(null);
+          return;
+        } else {
+          setAiProgressMessage('Iniciando processamento...');
+          const response = await monitoringService.translateStrategy(text, (message) => {
+            setAiProgressMessage(message);
+          });
+          if (response?.source === 'gemini') {
+            setAiProgressMessage('Estratégia criada com sucesso!');
+          }
+          setTimeout(() => setAiProgressMessage(null), 1200);
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao enviar mensagem para o bot:', e);
+    }
+  }
 
   const requestSuggestions = async () => {}
 

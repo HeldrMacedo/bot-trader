@@ -45,6 +45,7 @@ Esta documentação descreve a arquitetura de migração do sistema de análise 
 2. Quando usuário seleciona símbolo, inicia `monitoringService.start()`
 3. Recebe callbacks de ticks e probabilidades
 4. Repassa dados para MarketAnalysisPanel
+5. No modo estratégia, valida pré-condições e executa tradução da estratégia com feedback de progresso no chat
 
 ### 2. Monitoring.ts (Serviço de Monitoramento)
 
@@ -59,6 +60,8 @@ Esta documentação descreve a arquitetura de migração do sistema de análise 
 - `stop()`: Para monitoramento
 - `calculateProbabilities()`: Calcula probabilidades baseado no histórico
 - `handleTick()`: Processa cada tick recebido
+- `_validatePreconditions(strategyText, config)`: Valida compatibilidade da estratégia com contrato/tipo trade
+- `translateStrategy(strategyText, onProgress)`: Resolve tradução (cache/histórico/Gemini) com progresso
 
 **Algoritmo de Probabilidades:**
 Baseado no `monitoring.js` legado, considera:
@@ -83,6 +86,7 @@ Baseado no `monitoring.js` legado, considera:
 4. Regras (regras-json, Auxiliar-regras, robot-strategy)
 5. AI (gemini-ai, strategy-preprocessor, prompt-manager)
 6. Trade (trade-manager, monitoring)
+7. Validação e cache de estratégia (rule-compatibility-validator, regras-json, rules-history-manager)
 
 **Shims Criados:**
 - `selectedSymbol`: Propriedade global para símbolo
@@ -136,6 +140,13 @@ window.dispatchEvent(new CustomEvent('marketDataUpdate', {
   detail: { symbol, price, digit, stats }
 }));
 ```
+
+### Tradução de Estratégia (Fluxo)
+1. page.tsx valida pré-condições e, se ok, chama `translateStrategy`
+2. `translateStrategy` tenta JSON cached, código embutido, histórico e cache de traduções
+3. Se não houver cache, aplica pré-processamento e chama Gemini
+4. Salva tradução no cache e no histórico quando aplicável
+5. Emite mensagens de progresso para o chat via `setAiProgressMessage`
 
 ### Eventos
 

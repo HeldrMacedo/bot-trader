@@ -119,19 +119,16 @@ export const TicksTest = () => {
     setLoading(true);
     try {
       const authResponse = await deriv.send({ authorize: token });
-
       const updatedAccount: AccountInfo = {
         ...accountInfo,
         activeToken: token,
-        selectedLoginId:
-          accountInfo.tokens.find((t) => t.token === token)?.loginid || "",
+        selectedLoginId: authResponse?.authorize?.loginid ?? "",
         tokens: accountInfo.tokens.map((t) => ({
           ...t,
           balance:
             t.token === token ? authResponse.authorize.balance : t.balance,
         })),
       };
-
       localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
       deriv.setAccountData(updatedAccount);
       setValorEntrada(updatedAccount.amount.toString());

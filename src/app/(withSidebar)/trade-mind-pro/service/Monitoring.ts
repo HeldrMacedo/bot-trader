@@ -86,6 +86,263 @@ export class MonitoringService {
     this.globalTickCounter = 0;
   }
 
+  public async startMonitoring() {
+    
+  }
+
+  public async translateStrategy(strategyText: string, onProgress?: (message: string) => void) {
+    const normalized = (strategyText || '').trim();
+    if (!normalized) {
+      return { translatedRules: null, source: 'empty', corrections: [] };
+    }
+
+    try {
+      onProgress?.('Carregando módulos da IA...');
+      await this.legacyBridge.loadLegacyScripts();
+    } catch {
+      return { translatedRules: null, source: 'legacy_unavailable', corrections: [] };
+    }
+
+    if (typeof window === 'undefined') {
+      return { translatedRules: null, source: 'window_unavailable', corrections: [] };
+    }
+
+    const regrasJsonManager = typeof window.getRegrasJsonManagerInstance === 'function'
+      ? window.getRegrasJsonManagerInstance()
+      : null;
+
+    if (regrasJsonManager?.hasCachedJson?.()) {
+      onProgress?.('Encontrando JSON em cache...');
+      const cachedJson = regrasJsonManager.getCachedGeminiJson?.();
+      if (cachedJson) {
+        regrasJsonManager.clearCachedGeminiJson?.();
+        return { translatedRules: cachedJson, source: 'cached_json', corrections: [] };
+      }
+    }
+
+    try {
+      onProgress?.('Buscando código de regra...');
+      const ruleCode = regrasJsonManager?.extractRuleCodeFromText?.(normalized);
+      if (ruleCode) {
+        const jsonByCode = regrasJsonManager.getJsonByRuleCode?.(ruleCode);
+        if (jsonByCode) {
+          return { translatedRules: jsonByCode, source: 'rule_code', corrections: [] };
+        }
+      }
+    } catch {}
+
+    onProgress?.('Verificando histórico...');
+    const historicalJson = this.checkForHistoricalJson(normalized);
+    if (historicalJson) {
+      return { translatedRules: historicalJson, source: 'historical', corrections: [] };
+    }
+
+    if (regrasJsonManager?.getCachedTranslation) {
+      try {
+        onProgress?.('Verificando cache de traduções...');
+        const cachedTranslation = await regrasJsonManager.getCachedTranslation(normalized);
+        console.log("CACHED TRANSLATION ", cachedTranslation);
+        if (cachedTranslation) {
+          return { translatedRules: cachedTranslation, source: 'cached_translation', corrections: [] };
+        }
+      } catch {}
+    }
+
+    onProgress?.('Pré-processando estratégia...');
+    const preprocessResult = this.preprocessStrategyForGemini(normalized);
+    const gemini = this.legacyBridge.getGeminiAI();
+    if (!gemini || typeof gemini.translateStrategy !== 'function') {
+      return { translatedRules: null, source: 'gemini_unavailable', corrections: preprocessResult.corrections };
+    }
+
+    try {
+      onProgress?.('Gerando estratégia da IA...');
+      const translatedRules = await gemini.translateStrategy(preprocessResult.processedStrategy);
+      console.log("TRANSLATED RULES ", translatedRules);
+      if (translatedRules && regrasJsonManager?.saveCachedTranslation) {
+        regrasJsonManager.saveCachedTranslation(normalized, translatedRules);
+      }
+      if (window.rulesHistoryManager?.saveRule) {
+        window.rulesHistoryManager.saveRule(normalized, translatedRules);
+      }
+      onProgress?.('Estratégia criada com sucesso!');
+      return { translatedRules, source: 'gemini', corrections: preprocessResult.corrections };
+    } catch (error: any) {
+      return { translatedRules: null, source: 'gemini_error', corrections: preprocessResult.corrections, error };
+    }
+  }
+
+  private preprocessStrategyForGemini(strategyValue: string) {
+    if (!strategyValue || typeof strategyValue !== 'string') {
+      return { processedStrategy: strategyValue, corrections: [] };
+    }
+
+    const lines = strategyValue.split('\n');
+    const processedLines: string[] = [];
+    const corrections: Array<{ original: string; corrected: string; type: string }> = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedLine = line.trim();
+
+      if (trimmedLine.startsWith('*')) {
+        const contentAfterAsterisk = trimmedLine.substring(1).trim();
+        const startsWithEntrar = /^entrar\s+/i.test(contentAfterAsterisk);
+
+        if (!startsWithEntrar && contentAfterAsterisk.length > 0) {
+          const indentation = line.match(/^\s*/)?.[0] || '';
+          const correctedLine = `${indentation}* Entrar quando ${contentAfterAsterisk}`;
+          processedLines.push(correctedLine);
+          corrections.push({
+            original: trimmedLine,
+            corrected: `* Entrar quando ${contentAfterAsterisk}`,
+            type: 'add_entrar_quando'
+          });
+        } else {
+          processedLines.push(line);
+        }
+      } else {
+        processedLines.push(line);
+      }
+    }
+
+    const processedStrategy = processedLines.join('\n');
+    return { processedStrategy, corrections };
+  }
+
+  private normalizeRuleForComparison(ruleText: string) {
+    if (!ruleText) return '';
+    return ruleText
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/\n+/g, '\n')
+      .replace(/\s*([,;:.])\s*/g, '$1')
+      .trim();
+  }
+
+  private checkForHistoricalJson(strategyText: string) {
+    if (typeof window === 'undefined') return null;
+    try {
+      const allKeys = Object.keys(localStorage);
+      const historyKeys = allKeys.filter(key => key.startsWith('rules_history_'));
+      const normalizedStrategy = this.normalizeRuleForComparison(strategyText);
+
+      for (const key of historyKeys) {
+        const historyData = localStorage.getItem(key);
+        if (!historyData) continue;
+        let history: any[] = [];
+        try {
+          history = JSON.parse(historyData);
+        } catch {
+          continue;
+        }
+        if (!Array.isArray(history)) continue;
+
+        for (const item of history) {
+          if (item?.hasJson && item?.geminiJson && item?.rule) {
+            if (!item.geminiJson.parameters) continue;
+            const normalizedHistoryRule = this.normalizeRuleForComparison(item.rule);
+            if (normalizedHistoryRule === normalizedStrategy) {
+              return item.geminiJson;
+            }
+          }
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  
+
+  public async _validatePreconditions(strategyText: string, config: { contractType: string; tradeType: string; prediction?: string | number }) {
+    const issues: string[] = [];
+    const tips: string[] = [];
+    const raw: any[] = [];
+
+    const normalized = (strategyText || '').trim();
+    if (!normalized) {
+      issues.push('Estratégia não pode estar vazia.');
+      tips.push('Digite ao menos uma regra iniciada com *.');
+      return { isValid: false, issues, tips, raw };
+    }
+
+    const hasRules = normalized.split('\n').some(line => line.trim().startsWith('*') && line.trim().length > 1);
+    if (!hasRules) {
+      issues.push('Estratégia deve conter pelo menos uma regra iniciada com *.');
+      tips.push('Exemplo: * Entrar quando o último dígito for par');
+      return { isValid: false, issues, tips, raw };
+    }
+
+    try {
+      await this.legacyBridge.loadLegacyScripts();
+    } catch {
+      return { isValid: true, issues, tips, raw };
+    }
+
+    if (typeof window === 'undefined' || typeof window.getRuleCompatibilityValidatorInstance !== 'function') {
+      return { isValid: true, issues, tips, raw };
+    }
+
+    const createdElements: HTMLElement[] = [];
+    const restoreValues: Array<() => void> = [];
+    const ensureValue = (id: string, tag: 'input' | 'select' | 'textarea', value: string) => {
+      const existing = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
+      if (existing) {
+        const prev = existing.value;
+        existing.value = value;
+        restoreValues.push(() => { existing.value = prev; });
+        return;
+      }
+      const el = document.createElement(tag);
+      el.id = id;
+      el.value = value;
+      el.style.display = 'none';
+      document.body.appendChild(el);
+      createdElements.push(el);
+    };
+
+    ensureValue('contract-select', 'select', config.contractType || '');
+    ensureValue('trade-type-select', 'select', config.tradeType || '');
+    ensureValue('prediction-input', 'input', config.prediction !== undefined ? String(config.prediction) : '');
+    ensureValue('strategy-text', 'textarea', normalized);
+
+    const validator = window.getRuleCompatibilityValidatorInstance();
+    const compatibility = validator.validateStrategyContractCompatibility();
+
+    raw.push(compatibility);
+    if (!compatibility.isValid) {
+      if (compatibility.type === 'nonsense_trading_logic') {
+        issues.push(compatibility.message || 'A estratégia não parece válida para trading.');
+        tips.push('Use termos como preço, dígito, CALL/PUT, RSI, SMA ou barreira.');
+      } else if (compatibility.type === 'prediction_logic_error') {
+        issues.push(compatibility.issue || 'Previsão inválida para o tipo de contrato.');
+        tips.push('Ajuste a previsão para um valor possível (0 a 9).');
+      } else if (compatibility.type === 'single_contract_mismatch') {
+        issues.push('Tipo Trade não combina com termos detectados na estratégia.');
+        tips.push('Alinhe o Tipo Trade com os contratos citados na estratégia.');
+      } else {
+        issues.push('Incompatibilidade entre estratégia e configuração.');
+        tips.push('Revise contrato, tipo trade e termos usados na estratégia.');
+      }
+    }
+
+    const bothMode = validator.validateBothModeBeforeStart();
+    raw.push(bothMode);
+    if (!bothMode.isValid) {
+      issues.push(bothMode.error || 'Modo "Ambos" configurado de forma incompatível.');
+      tips.push('Ajuste a previsão para valores válidos quando usar modo "Ambos".');
+    }
+
+    createdElements.forEach(el => el.remove());
+    restoreValues.forEach(fn => fn());
+
+    const isValid = issues.length === 0;
+    return { isValid, issues, tips, raw };
+  }
+
   /**
    * Inscreve nos ticks da Deriv
    */
@@ -427,6 +684,8 @@ export class MonitoringService {
   public getCurrentStats(): ProbabilityStats | null {
     return this.calculateProbabilities();
   }
+
+ 
 }
 
 // Singleton export

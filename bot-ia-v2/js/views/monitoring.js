@@ -688,7 +688,7 @@ class MonitoringView {
 
                 <!-- Botões de controle movidos para baixo do DisplayView -->
                 <div class="monitoring-buttons">
-                    <button id="start-monitoring-btn" class="market-btn start-btn" title="Iniciar Monitoramento">
+                    <button id="start-monitoring-btn" class="market-btn start-btn" title="Iniciar Monitoramentoo">
                     </button>
 
                     <!-- Checkbox de execução imediata colada ao lado esquerdo do visor L&P -->
@@ -3425,6 +3425,7 @@ class MonitoringView {
             // ✅ CORREÇÃO: Apenas CARREGAR mensagens salvas, NÃO limpar
             try {
                 const messagesManager = getTradeMessagesInstance();
+                console.log("MESSAGES MANAGER ", messagesManager);
                 if (messagesManager) {
                     messagesManager.loadSavedMessages(); // Apenas carregar mensagens existentes
                 }
@@ -3433,6 +3434,7 @@ class MonitoringView {
 
             // Validações
             const validation = this._validatePreconditions();
+            console.log("VALIDATION ", validation);
             if (!validation.isValid) {
                 this.setInputsDisabled(false); // Reabilitar se falhar validação
                 if (startBtn) {
@@ -3445,7 +3447,7 @@ class MonitoringView {
 
             // Setup
             const context = await this._prepareExecutionContext();
-
+            console.log("CONTEXT ", context);
             // 🛡️ [STOP SYNC] Verificar se foi interrompido durante o setup
             if (this._checkAbort()) return;
 
@@ -3471,7 +3473,7 @@ class MonitoringView {
 
             try {
                 strategyValue = strategyText.value;
-
+                console.log("STRATEGY VALUE ", strategyValue);
                 // 🎯 Verificar se "Entrada Imediata" está marcado
                 const immediateCheckbox = CommonHelpers.getElement('immediate-execution-mode');
                 const isImmediateMode = immediateCheckbox && immediateCheckbox.checked;
