@@ -703,7 +703,6 @@ class UIManager {
         // Event listener para atualização de regras
         window.addEventListener('rulesUpdated', (event) => {
             try {
-
                 this.updateRulesDisplay(event.detail);
 
             } catch (error) {
@@ -904,6 +903,7 @@ class UIManager {
 
     // 🔄 CORRIGIDO: Processar estrutura de GRUPOS corretamente AGORA COM DOM DIFFING
     static updateRulesDisplay(rulesData) {
+        console.log(rulesData);
         const uiStartTime = performance.now();
         const rulesContainer = document.getElementById('rules-visual-display');
         if (!rulesContainer) {

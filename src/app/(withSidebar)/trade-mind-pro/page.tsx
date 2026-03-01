@@ -22,8 +22,9 @@ export default function TradeMindPro() {
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [aiMode, setAiMode] = useState<'strategy' | 'chat'>('strategy');
+  const [aiMode, setAiMode] = useState<'strategy' | 'chat' | 'config'>('strategy');
   const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
+  const [translatedRules, setTranslatedRules] = useState<any | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
@@ -230,6 +231,11 @@ export default function TradeMindPro() {
           const response = await monitoringService.translateStrategy(text, (message) => {
             setAiProgressMessage(message);
           });
+          console.log("RESPONSE ", response);
+          if (response?.translatedRules) {
+            setTranslatedRules(response.translatedRules);
+            setAiMode('config');
+          }
           if (response?.source === 'gemini') {
             setAiProgressMessage('Estratégia criada com sucesso!');
           }
@@ -238,6 +244,8 @@ export default function TradeMindPro() {
       }
     } catch (e) {
       console.warn('Erro ao enviar mensagem para o bot:', e);
+    } finally {
+      setIsAiProcessing(false);
     }
   }
 
@@ -377,6 +385,8 @@ export default function TradeMindPro() {
                   onModeChange={setAiMode}
                   progressMessage={aiProgressMessage}
                   onRequestSuggestions={requestSuggestions}
+                  configRules={translatedRules}
+                  onConfigRulesChange={setTranslatedRules}
                   draftStorageKey={(() => {
                     const loginid = getLoginIdFromStorage();
                     return loginid ? `monitoring_strategy_${loginid}` : null;

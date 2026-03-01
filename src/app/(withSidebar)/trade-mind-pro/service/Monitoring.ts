@@ -86,10 +86,6 @@ export class MonitoringService {
     this.globalTickCounter = 0;
   }
 
-  public async startMonitoring() {
-    
-  }
-
   public async translateStrategy(strategyText: string, onProgress?: (message: string) => void) {
     const normalized = (strategyText || '').trim();
     if (!normalized) {

@@ -14,11 +14,13 @@ interface AiChatPanelProps {
   isProcessing: boolean;
   onSendMessage: (text: string, image?: ImageData) => void;
   messages: Message[];
-  mode: 'strategy' | 'chat';
-  onModeChange: (mode: 'strategy' | 'chat') => void;
+  mode: 'strategy' | 'chat' | 'config';
+  onModeChange: (mode: 'strategy' | 'chat' | 'config') => void;
   progressMessage?: string | null;
   onRequestSuggestions?: () => void;
   draftStorageKey?: string | null;
+  configRules?: any | null;
+  onConfigRulesChange?: (rules: any) => void;
 }
 export default function AiChatPanel(
   { 
@@ -30,11 +32,14 @@ export default function AiChatPanel(
     onModeChange, 
     progressMessage, 
     onRequestSuggestions, 
-    draftStorageKey }: AiChatPanelProps) {
+    draftStorageKey,
+    configRules,
+    onConfigRulesChange }: AiChatPanelProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showJsonModal, setShowJsonModal] = useState(false);
 
   const scrollToBottom = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,8 +82,91 @@ export default function AiChatPanel(
             '- Acompanhar padrão de reversão...'
           );
         }
+        if (mode === 'config') {
+          return 'Parâmetros da estratégia...';
+        }
         return 'Digite sua pergunta...';
       }, [mode]);
+      
+    const groupedParameters = useMemo(() => {
+      const parameters = configRules?.parameters || [];
+      const grouped: Record<string, any[]> = {};
+      parameters.forEach((param: any) => {
+        const match = typeof param.label === 'string' ? param.label.match(/\(G(\d+)R\d+\)/) : null;
+        const groupNum = match ? match[1] : '1';
+        const groupKey = `Grupo ${groupNum}`;
+        if (!grouped[groupKey]) grouped[groupKey] = [];
+        grouped[groupKey].push(param);
+      });
+      return grouped;
+    }, [configRules]);
+
+    const getGroupRuleText = (groupKey: string) => {
+      const groupMatch = groupKey.match(/Grupo (\d+)/);
+      const groupNum = groupMatch ? parseInt(groupMatch[1], 10) : 1;
+      const rules = configRules?.groups || [];
+      const group = rules.find((g: any) => Number(g.id) === groupNum);
+      if (!group?.rules?.length) return null;
+      const texts = group.rules.map((rule: any) => rule.description || rule.type).filter(Boolean);
+      return texts.length > 0 ? texts.join(' + ') : null;
+    };
+
+    const parsePath = (path: string) => {
+      const tokens: Array<string | number> = [];
+      const regex = /([^[.\]]+)|\[(\d+)\]/g;
+      let match;
+      while ((match = regex.exec(path)) !== null) {
+        if (match[1]) tokens.push(match[1]);
+        if (match[2]) tokens.push(Number(match[2]));
+      }
+      return tokens;
+    };
+
+    const setValueByPath = (obj: any, path: string, value: any) => {
+      if (!obj || !path) return obj;
+      const tokens = parsePath(path);
+      if (tokens.length === 0) return obj;
+      const next = Array.isArray(obj) ? [...obj] : { ...obj };
+      let current: any = next;
+      for (let i = 0; i < tokens.length - 1; i++) {
+        const token = tokens[i];
+        const nextToken = tokens[i + 1];
+        const currentValue = current[token as any];
+        const cloned = Array.isArray(currentValue) ? [...currentValue] : { ...(currentValue || (typeof nextToken === 'number' ? [] : {})) };
+        current[token as any] = cloned;
+        current = cloned;
+      }
+      const lastToken = tokens[tokens.length - 1];
+      current[lastToken as any] = value;
+      return next;
+    };
+
+    const handleParameterChange = (param: any, rawValue: string) => {
+      if (!configRules) return;
+      let updatedValue: any = rawValue;
+      if (param.isArray) {
+        updatedValue = rawValue
+          .split(',')
+          .map((v: string) => v.trim())
+          .filter((v: string) => v.length > 0)
+          .map((v: string) => Number(v))
+          .filter((v: number) => !Number.isNaN(v));
+      } else if (param.type === 'number') {
+        updatedValue = rawValue === '' ? '' : Number(rawValue);
+        if (Number.isNaN(updatedValue)) updatedValue = rawValue;
+      }
+
+      let updatedRules = setValueByPath(configRules, param.path, updatedValue);
+      if (updatedRules?.parameters) {
+        updatedRules = {
+          ...updatedRules,
+          parameters: updatedRules.parameters.map((p: any) =>
+            p.key === param.key ? { ...p, value: param.isArray ? rawValue : updatedValue } : p
+          )
+        };
+      }
+      onConfigRulesChange?.(updatedRules);
+    };
   return (
     <div className="flex flex-col h-full bg-[#13111c] border border-gray-800 rounded-lg">
       <div className="p-4 border-b border-gray-800 flex justify-between items-center">
@@ -95,6 +183,14 @@ export default function AiChatPanel(
               disabled={isProcessing}
             >
               Estratégia
+            </button>
+            <button
+              type="button"
+              onClick={() => onModeChange('config')}
+              className={`px-2 py-1 text-xs rounded ${mode === 'config' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'}`}
+              disabled={isProcessing}
+            >
+              Configuração
             </button>
             <button
               type="button"
@@ -117,9 +213,10 @@ export default function AiChatPanel(
           </button>
         )}
       </div>
-
+      {mode !== 'config' && (
+      <>
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-        {messages.length === 0 && (
+        {messages.length === 0 &&  (
             <div className="text-center text-gray-500 mt-10">
                 <p>Olá! Eu sou a IA Trader.</p>
                 <p className="text-sm mt-2">{mode === 'strategy' ? 'Descreva sua estratégia e eu a configurarei para você.' : 'Faça perguntas sobre mercado, dígitos, preços e indicadores.'}</p>
@@ -170,7 +267,7 @@ export default function AiChatPanel(
         )}
         <div ref={messagesEndRef} />
       </div>
-
+  
       <form onSubmit={handleSubmit} className="p-3 border-t border-gray-800 flex gap-2">
        
         <textarea
@@ -212,6 +309,106 @@ export default function AiChatPanel(
             <PaperAirplaneIcon className="w-5 h-5" />
         </button>
       </form>
+      </>
+      )}
+      {mode === 'config' && (
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+          <div className="flex justify-between items-center">
+            <h4 className="text-white font-semibold">Parâmetros da Estratégia</h4>
+            <button
+              type="button"
+              className="text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-white"
+              onClick={() => setShowJsonModal(true)}
+              disabled={!configRules}
+            >
+              🔍 Ver JSON
+            </button>
+          </div>
+          {!configRules && (
+            <div className="text-sm text-gray-400">
+              Nenhum parâmetro disponível.
+            </div>
+          )}
+          {configRules && Object.keys(groupedParameters).length === 0 && (
+            <div className="text-sm text-gray-400">
+              Nenhum parâmetro disponível.
+            </div>
+          )}
+          {configRules && Object.keys(groupedParameters).sort().map((groupKey) => {
+            const groupParams = groupedParameters[groupKey];
+            const ruleText = getGroupRuleText(groupKey);
+            return (
+              <div key={groupKey} className="border border-gray-800 rounded-lg p-3 bg-[#0d0a18] space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-white font-semibold">{groupKey}</div>
+                  {ruleText && (
+                    <div className="text-xs text-gray-400">{ruleText}</div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {groupParams.map((param: any) => {
+                    const isPattern = param.type === 'text' && param.validation === 'pattern';
+                    const isArray = param.isArray;
+                    const inputType = isPattern || isArray ? 'text' : (param.type || 'text');
+                    const inputValue = isArray ? String(param.value ?? '') : String(param.value ?? '');
+                    return (
+                      <div key={param.key} className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-300">{param.label || param.key}</label>
+                        <input
+                          type={inputType}
+                          value={inputValue}
+                          onChange={(e) => handleParameterChange(param, e.target.value)}
+                          className="bg-[#13111c] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                          placeholder={isPattern ? 'Ex: XXOX' : undefined}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          {showJsonModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+              onClick={() => setShowJsonModal(false)}
+            >
+              <div
+                className="w-full max-w-3xl bg-[#0d0a18] border border-gray-700 rounded-lg overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-[#13111c]">
+                  <div className="text-sm font-semibold text-white">JSON da Estratégia</div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(JSON.stringify(configRules, null, 2))}
+                      className="text-xs text-white bg-blue-600 hover:bg-blue-500 rounded px-3 py-1.5"
+                      disabled={!configRules}
+                    >
+                      Copiar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowJsonModal(false)}
+                      className="text-xs text-gray-200 bg-gray-700 hover:bg-gray-600 rounded px-3 py-1.5"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <textarea
+                    value={configRules ? JSON.stringify(configRules, null, 2) : 'Nenhum JSON disponível.'}
+                    readOnly
+                    className="w-full h-[60vh] bg-[#0b0913] border border-gray-700 rounded p-3 text-xs text-gray-200 font-mono outline-none resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
