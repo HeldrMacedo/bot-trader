@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { DerivService } from '@/app/services/DerivService';
+import { RulesVisualData } from '../service/Monitoring';
 
 interface MarketStats {
   digits: number[];
@@ -25,9 +26,10 @@ export interface ProbabilityStats {
 interface MarketAnalysisPanelProps {
   symbol: string;
   marketStats?: ProbabilityStats | null;
+  rulesVisualData?: RulesVisualData | null;
 }
 
-export default function MarketAnalysisPanel({ symbol, marketStats }: MarketAnalysisPanelProps) {
+export default function MarketAnalysisPanel({ symbol, marketStats, rulesVisualData }: MarketAnalysisPanelProps) {
   // Estado local apenas para estatísticas básicas (não probabilidades)
   const [stats, setStats] = useState<MarketStats>({
     digits: [],
@@ -216,6 +218,28 @@ export default function MarketAnalysisPanel({ symbol, marketStats }: MarketAnaly
       </div>
 
       {/* 🎲 Probability Monitor - Usando marketStats */}
+      <div className="bg-[#0d0a18] border border-gray-700 rounded-lg p-3">
+        <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider text-center">Regras em Tempo Real</div>
+        <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+          {rulesVisualData?.groups?.length ? (
+            rulesVisualData.groups.map((group) => (
+              <div key={String(group.id)} className="bg-[#1e1b2e] border border-gray-700 rounded p-2">
+                <div className="text-[10px] text-blue-300 mb-1">Grupo {group.id}</div>
+                <div className="space-y-1">
+                  {group.rules.map((rule) => (
+                    <div key={String(rule.id)} className="text-xs text-gray-200 break-words">
+                      {rule.displayText}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-xs text-gray-500 text-center py-2">Aguardando formato visual das regras...</div>
+          )}
+        </div>
+      </div>
+
       <div className="bg-[#0d0a18] border border-gray-700 rounded-lg p-3">
         <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider text-center">Probabilidade (100 Ticks)</div>
         

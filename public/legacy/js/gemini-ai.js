@@ -1761,7 +1761,7 @@ Responda APENAS com o JSON estruturado, sem explicações adicionais.
 
     // Formatar resposta do Gemini para uso no sistema
     formatGeminiResponse(geminiResponse) {
-        const formatGenerator = getFormatGeneratorInstance();
+        const formatGenerator = getGeminiFormatGeneratorInstance();
         return formatGenerator.formatGeminiResponse(geminiResponse);
     }
 
@@ -2131,7 +2131,14 @@ function getGeminiInstance() {
 }
 
 // Função auxiliar para obter instância do FormatGenerator
-function getFormatGeneratorInstance() {
+function getGeminiFormatGeneratorInstance() {
+    if (typeof window !== 'undefined' && typeof window.getFormatGeneratorInstance === 'function') {
+        const instance = window.getFormatGeneratorInstance();
+        if (instance) {
+            return instance;
+        }
+    }
+
     if (typeof window !== 'undefined' && window.formatGeneratorInstance) {
         return window.formatGeneratorInstance;
     }

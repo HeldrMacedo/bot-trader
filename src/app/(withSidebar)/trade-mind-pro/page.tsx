@@ -15,7 +15,7 @@ import TradeConfig, { TradeConfigData, DEFAULT_CONFIG as DEFAULT_TRADE_CONFIG } 
 import VolatilitySelector from './components/VolatilitySelector';
 import { useEffect, useState } from 'react';
 import { DerivService } from '@/app/services/DerivService';
-import { monitoringService } from './service/Monitoring';
+import { monitoringService, RulesVisualData } from './service/Monitoring';
 
 export default function TradeMindPro() {
   const [loading, setLoading] = useState(true);
@@ -82,6 +82,7 @@ export default function TradeMindPro() {
 
   // Estado para estatísticas de mercado (do MonitoringService)
   const [marketStats, setMarketStats] = useState<any>(null);
+  const [rulesVisualData, setRulesVisualData] = useState<RulesVisualData | null>(null);
   const getLoginIdFromStorage = (): string | null => {
     try {
       const accountsStr = localStorage.getItem('deriv_accounts');
@@ -155,6 +156,10 @@ export default function TradeMindPro() {
           onProbabilityUpdate: (stats) => {
             // Callback quando probabilidades são atualizadas
             setMarketStats(stats);
+          },
+          onRulesVisualUpdate: (rulesData) => {
+            console.log("rulesData ", rulesData);
+            setRulesVisualData(rulesData);
           }
         });
         
@@ -233,7 +238,12 @@ export default function TradeMindPro() {
           });
           console.log("RESPONSE ", response);
           if (response?.translatedRules) {
+            response.translatedRules = {
+              ...response.translatedRules,
+              originalText: text
+            }
             setTranslatedRules(response.translatedRules);
+            monitoringService.setTranslatedRules(response.translatedRules);
             setAiMode('config');
           }
           if (response?.source === 'gemini') {
@@ -406,7 +416,11 @@ export default function TradeMindPro() {
 
       {selectedSymbol && mainView !== 'blockly' && (
         <div className="flex-1 flex flex-col min-w-0">
-          <MarketAnalysisPanel symbol={selectedSymbol} marketStats={marketStats} />
+          <MarketAnalysisPanel
+            symbol={selectedSymbol}
+            marketStats={marketStats}
+            rulesVisualData={rulesVisualData}
+          />
 
         </div>
       )}

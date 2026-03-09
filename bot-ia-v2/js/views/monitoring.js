@@ -1231,7 +1231,6 @@ class MonitoringView {
                         }
                     }
                     const t3 = performance.now();
-                    console.log("setupProbalitity");
                     // ⏱️ DIAGNÓSTICO: Passo 4 - Desenho de Tela
                     this.updateProbabilityUI(currentStats);
                     const t4 = performance.now();
@@ -1351,7 +1350,6 @@ class MonitoringView {
 
                 // Armazenar DÍGITOS (não preços) para consistência com o listener real-time
                 this.probabilityHistory = digits;
-                console.log("FETCH AND 1");
                 // Atualizar UI imediatamente com os dados do histórico
                 MonitoringView.updateProbabilityUI();
 
@@ -1402,7 +1400,7 @@ class MonitoringView {
                         if (originalHistory) this.probabilityHistory = originalHistory;
                     }
                 }
-                console.log("FETCH AND 2");
+
                 // Atualizar UI novamente agora com precisão calculada
                 MonitoringView.updateProbabilityUI();
 
@@ -2482,7 +2480,7 @@ class MonitoringView {
                 this.applyParameters(this.configModeRules, paramMap);
 
                 // Renderizar como preview (isPreview=true)
-                this.displayStrategyRules(this.configModeRules, true);
+                this.displayStrategyRules(this.configModeRules, true, 4);
             } else {
                 // Se estamos em Monitoring, aplicar alterações normalmente
 
@@ -2739,7 +2737,7 @@ class MonitoringView {
         // MAS se for monitoring, applyParametersToRules será chamado abaixo
         if (!isMonitoringActive && rules === this.configModeRules) {
             // Modo de edição (offline): atualizar apenas a visualização
-            this.displayStrategyRules(rules);
+            this.displayStrategyRules(rules, false,5);
         } else if (isMonitoringActive) {
             // Modo Online: Forçar aplicação para garantir atualização visual imediata
             this.applyParametersToRules(true);
@@ -2786,7 +2784,7 @@ class MonitoringView {
         // 🔧 CRÍTICO: Se estamos editando parâmetros EM TEMPO REAL, forçar atualização visual
         if (isMonitoringActive || forceUpdate) {
             // 🔄 CRÍTICO: Atualizar visualização das regras (texto/cards)
-            this.displayStrategyRules(this.currentTranslatedRules);
+            this.displayStrategyRules(this.currentTranslatedRules, false, 6);
 
             // 🔄 CRÍTICO: Forçar atualização dos visuais (bolhas)
             this.updateRuleVisualsImmediate();
@@ -3425,7 +3423,6 @@ class MonitoringView {
             // ✅ CORREÇÃO: Apenas CARREGAR mensagens salvas, NÃO limpar
             try {
                 const messagesManager = getTradeMessagesInstance();
-                console.log("MESSAGES MANAGER ", messagesManager);
                 if (messagesManager) {
                     messagesManager.loadSavedMessages(); // Apenas carregar mensagens existentes
                 }
@@ -3748,7 +3745,8 @@ class MonitoringView {
 
 
                 try {
-                    this.displayStrategyRules(translatedRules, false); // Modo normal, não preview
+                    
+                    this.displayStrategyRules(translatedRules, false, 7); // Modo normal, não preview
 
                     // Isso evita o delay "..." nas regras de Resistência/Suporte
                     if (translatedRules.groups) {
@@ -3785,8 +3783,8 @@ class MonitoringView {
                     // Tentar novamente após um delay
                     setTimeout(() => {
                         try {
-
-                            this.displayStrategyRules(translatedRules, false);
+                           
+                            this.displayStrategyRules(translatedRules, false, 8);
 
                         } catch (retryError) {
                             console.error('❌ Erro na segunda tentativa:', retryError.stack);
@@ -3993,7 +3991,8 @@ class MonitoringView {
 
     }
 
-    static displayStrategyRules(translatedRules, isPreview = false) {
+    static displayStrategyRules(translatedRules, isPreview = false, num = 0) {
+        console.log("translated rules ", translatedRules, isPreview, num);
         // 🛡️ [STOP SYNC] Abortar se paralisado e não for preview
         if (!isPreview && this.state === 'IDLE') return;
 
@@ -4240,6 +4239,7 @@ class MonitoringView {
 
     // 🔄 CORRIGIDO: Sincronizar regras MANTENDO estrutura de grupos
     static syncWithRulesDisplayBlock(translatedRules, isPreview = false) {
+        console.log("syncWithRulesDisplayBlock", translatedRules, isPreview);
         // 🛡️ [STOP SYNC] Abortar se paralisado e não for preview
         if (!isPreview && this.state === 'IDLE') return;
 
@@ -4276,7 +4276,7 @@ class MonitoringView {
         }
 
 
-
+        console.log('synWithRulesDisplayBlock ', );
         // Disparar evento para o UIManager atualizar o bloco de visualização
         window.dispatchEvent(new CustomEvent('rulesUpdated', {
             detail: rulesData
@@ -4599,7 +4599,7 @@ class MonitoringView {
             }],
             isUpdate: true
         };
-
+        console.log("updateRulesDisplayBlock ",rulesData);
         // Disparar evento para atualização individual
         window.dispatchEvent(new CustomEvent('rulesUpdated', {
             detail: rulesData
@@ -5221,7 +5221,7 @@ class MonitoringView {
             }
 
             MonitoringView.lastVisualState = currentVisualState;
-
+            console.log("debounce Update Rule Visuais ");
             window.dispatchEvent(new CustomEvent('rulesUpdated', {
                 detail: {
                     groups: updatedGroups, // ✅ GRUPOS em vez de regras individuais
@@ -8119,7 +8119,7 @@ class MonitoringView {
 
         // Retomar atualizações visuais se houver regras traduzidas
         if (MonitoringView.currentTranslatedRules) {
-            MonitoringView.displayStrategyRules(MonitoringView.currentTranslatedRules, false);
+            MonitoringView.displayStrategyRules(MonitoringView.currentTranslatedRules, false, 1);
         }
     }
 
@@ -8129,7 +8129,7 @@ class MonitoringView {
         // Forçar atualização imediata das regras visuais
         if (MonitoringView.currentTranslatedRules) {
 
-            this.displayStrategyRules(this.currentTranslatedRules, false);
+            this.displayStrategyRules(this.currentTranslatedRules, false, 2);
         }
 
 
@@ -9159,7 +9159,7 @@ class MonitoringView {
         // Forçar uma atualização imediata das regras visuais
         if (this.currentTranslatedRules) {
 
-            this.displayStrategyRules(this.currentTranslatedRules, false);
+            this.displayStrategyRules(this.currentTranslatedRules, false, 3);
         }
 
 

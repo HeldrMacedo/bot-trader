@@ -25,6 +25,24 @@ interface Config {
   symbol: string;
   onTick?: (data: TickData) => void;
   onProbabilityUpdate?: (stats: ProbabilityStats) => void;
+  onRulesVisualUpdate?: (rulesData: RulesVisualData) => void;
+}
+
+export interface RulesVisualRule {
+  id: string | number;
+  displayText: string;
+  status: string;
+}
+
+export interface RulesVisualGroup {
+  id: string | number;
+  rules: RulesVisualRule[];
+}
+
+export interface RulesVisualData {
+  groups: RulesVisualGroup[];
+  isPreview: boolean;
+  timestamp: number;
 }
 
 export class MonitoringService {
@@ -38,10 +56,13 @@ export class MonitoringService {
   // History for probability calculations
   private probabilityHistory: number[] = [];
   private globalTickCounter = 0;
-
+  private state: string;
+  private currentTranslatedRules: any = null;
+  private currentRulesVisualData: RulesVisualData | null = null;
   private constructor() {
     this.deriv = DerivService.getInstance();
     this.legacyBridge = LegacyBridgeService.getInstance();
+    this.state = 'IDLE';
   }
 
   public static getInstance(): MonitoringService {
@@ -84,6 +105,7 @@ export class MonitoringService {
     this.isSubscribed = false;
     this.probabilityHistory = [];
     this.globalTickCounter = 0;
+    this.state = 'IDLE';
   }
 
   public async translateStrategy(strategyText: string, onProgress?: (message: string) => void) {
@@ -137,7 +159,6 @@ export class MonitoringService {
       try {
         onProgress?.('Verificando cache de traduções...');
         const cachedTranslation = await regrasJsonManager.getCachedTranslation(normalized);
-        console.log("CACHED TRANSLATION ", cachedTranslation);
         if (cachedTranslation) {
           return { translatedRules: cachedTranslation, source: 'cached_translation', corrections: [] };
         }
@@ -154,7 +175,6 @@ export class MonitoringService {
     try {
       onProgress?.('Gerando estratégia da IA...');
       const translatedRules = await gemini.translateStrategy(preprocessResult.processedStrategy);
-      console.log("TRANSLATED RULES ", translatedRules);
       if (translatedRules && regrasJsonManager?.saveCachedTranslation) {
         regrasJsonManager.saveCachedTranslation(normalized, translatedRules);
       }
@@ -415,6 +435,9 @@ export class MonitoringService {
         timestamp: Date.now()
       });
     }
+    if (this.currentTranslatedRules) {
+      this.setTranslatedRules(this.currentTranslatedRules, false);
+    }
 
     // Atualizar via legado se disponível
     this.updateLegacySystem(symbol, price, digit, stats);
@@ -640,6 +663,101 @@ export class MonitoringService {
       }
     }
     return gaps;
+  }
+
+  public generateVisualFormat(rule: any, statusIcon: string) {
+    try {
+      if (typeof window === 'undefined') {
+        return `${statusIcon} ${rule?.description || rule?.type || 'Regra'}`;
+      }
+      console.log("PASSOU 1");
+      const formatGenerator = (window as any).getFormatGeneratorInstance?.();
+      console.log("format Generator ", formatGenerator);
+      console.log(!formatGenerator || typeof formatGenerator.generateVisualFormat !== 'function');
+      if (!formatGenerator || typeof formatGenerator.generateVisualFormat !== 'function') {
+        return `${statusIcon} ${rule?.description || rule?.type || 'Regra'}`;
+      }
+      console.log("PASSOU 2");
+      if (rule?.type === 'rsi' || rule?.type === 'sma' || rule?.type === 'percentage') {
+        const hasMinimumHistoricalData = (window as any).MonitoringView?.hasMinimumHistoricalData;
+        if (typeof hasMinimumHistoricalData === 'function' && !hasMinimumHistoricalData.call((window as any).MonitoringView)) {
+          return `⏳ ${rule?.description || rule?.type} (coletando dados...)`;
+        }
+      }
+      console.log("PASSOU 3");
+      if (rule?.type === 'last_digits' || rule?.type === 'digit_repetition' || rule?.type === 'digit_pattern') {
+        const marketData = (window as any).getMarketDataInstance?.((window as any).SessionManager?.getLocalToken?.());
+        if (marketData) {
+          const currentSymbol = this.config.symbol;
+
+          if (currentSymbol) {
+            formatGenerator.currentSymbol = currentSymbol;
+            formatGenerator.marketData = marketData;
+          }
+        }
+      }
+      console.log("rule ", rule);
+      console.log("statusIcon ", statusIcon);
+      return formatGenerator.generateVisualFormat(rule, statusIcon);
+    } catch (error) {
+      console.error(`❌[MONITORING] Erro em generateVisualFormat para regra ${rule?.type}: `, error);
+      return `❌ ${rule?.description || rule?.type} (erro na exibição)`;
+    }
+  }
+
+  public setTranslatedRules(translatedRules, isPreview = false) {
+    try {
+      if (!translatedRules || !Array.isArray(translatedRules.groups)) {
+        return;
+      }
+
+      this.currentTranslatedRules = translatedRules;
+      if (!isPreview) {
+        this.state = 'MONITORING';
+      }
+
+      const rulesData: RulesVisualData = {
+        groups: [],
+        isPreview,
+        timestamp: Date.now()
+      };
+
+      translatedRules.groups.forEach((group) => {
+        if (group.rules && group.rules.length > 0) {
+          const formattedGroup: RulesVisualGroup = {
+            id: group.id,
+            rules: []
+          };
+
+          group.rules.forEach((rule) => {
+            const statusIcon = isPreview ? '⚪' : '🔴';
+            const visualFormat = this.generateVisualFormat(rule, statusIcon);
+            console.log("visualFormat ", visualFormat);
+            formattedGroup.rules.push({
+              id: rule.id,
+              displayText: visualFormat,
+              status: isPreview ? 'waiting' : 'failed'
+            });
+          });
+
+          rulesData.groups.push(formattedGroup);
+        }
+      });
+
+      this.currentRulesVisualData = rulesData;
+
+      if (this.config?.onRulesVisualUpdate) {
+        this.config.onRulesVisualUpdate(rulesData);
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('rulesUpdated', {
+          detail: rulesData
+        }));
+      }
+    } catch (error) {
+      console.error('[MonitoringService] setTranslatedRules error:', error);
+    }
   }
 
   /**

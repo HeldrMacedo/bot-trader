@@ -52,6 +52,7 @@ declare global {
     StopMonitor: any;
     getMarketDataInstance?: (token: string) => any;
     marketDataInstance?: any;
+    formatGeneratorInstance?: any;
 
     // Shims for legacy compatibility
     selectedSymbol: string;
@@ -110,12 +111,12 @@ export class LegacyBridgeService extends EventEmitter {
     //   '/legacy/js/deriv-market-data.js',
 
       // Regras e Indicadores (Dependências para Strategy/AI)
-    //   '/legacy/js/rsi-indicator.js',
-    //   '/legacy/js/sma-indicator.js',
-    '/legacy/js/probability-accuracy.js',
-    //   '/legacy/js/digit-pattern-rules.js',
-    //   '/legacy/js/percentage-rules.js',
-    //   '/legacy/js/price-movement-rules.js',
+      '/legacy/js/rsi-indicator.js',
+      '/legacy/js/sma-indicator.js',
+      '/legacy/js/probability-accuracy.js',
+      '/legacy/js/digit-pattern-rules.js',
+      '/legacy/js/percentage-rules.js',
+      '/legacy/js/price-movement-rules.js',
       
       // Estratégia Base
       '/legacy/js/regras-json.js',
@@ -147,8 +148,19 @@ export class LegacyBridgeService extends EventEmitter {
        // Orquestrador headless
     ];
 
+    let generateFormatGetter: any = null;
     for (const src of scripts) {
       await this.loadScript(src);
+      if (src === '/legacy/js/generate-format.js' && typeof window.getFormatGeneratorInstance === 'function') {
+        generateFormatGetter = window.getFormatGeneratorInstance;
+      }
+    }
+
+    if (generateFormatGetter) {
+      window.getFormatGeneratorInstance = generateFormatGetter;
+      try {
+        window.formatGeneratorInstance = window.getFormatGeneratorInstance();
+      } catch {}
     }
 
     this.scriptsLoaded = true;

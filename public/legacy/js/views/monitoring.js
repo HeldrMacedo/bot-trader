@@ -4303,7 +4303,7 @@ class MonitoringView {
     }
 
     // Gerar formato visual simplificado para cada regra
-    static generateVisualFormat(rule, statusIcon) {
+    static generateVisualFormat(rule, statu76Icon) {
         try {
 
             const formatGenerator = getFormatGeneratorInstance();

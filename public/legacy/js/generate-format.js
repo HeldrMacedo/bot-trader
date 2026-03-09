@@ -4,7 +4,7 @@
 
 class FormatGenerator {
     constructor() {
-        this.sessionId = SessionManager.getUserSessionId();
+        this.sessionId = JSON.parse(localStorage.getItem('deriv_accounts'))?.[0]?.selectedLoginId || null;
     }
 
     getGlobalCountRepeated() {
@@ -3999,8 +3999,12 @@ function getFormatGeneratorInstance() {
     if (!formatGeneratorInstance) {
         formatGeneratorInstance = new FormatGenerator();
     }
+    if (typeof window !== 'undefined') {
+        window.formatGeneratorInstance = formatGeneratorInstance;
+    }
     return formatGeneratorInstance;
 }
 
 // ✅ Expor para uso global
 window.getFormatGeneratorInstance = getFormatGeneratorInstance;
+window.formatGeneratorInstance = getFormatGeneratorInstance();
