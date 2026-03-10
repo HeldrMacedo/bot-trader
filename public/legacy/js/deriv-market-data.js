@@ -2851,11 +2851,12 @@ class DerivMarketData {
 const persistentInstances = new Map(); // loginId -> MarketDataInstance
 
 function getMarketDataInstance(token) {
+    console.log("PASSOU token ",  token);
     if (!token) {
         console.error('❌ [MARKET DATA] Token não fornecido');
         return null;
     }
-
+    
     const currentUser = SessionManager.getCurrentUser();
     if (!currentUser || !currentUser.authorize || !currentUser.authorize.loginid) {
         // Durante troca de conta, silenciar erro e retornar instância global se existir

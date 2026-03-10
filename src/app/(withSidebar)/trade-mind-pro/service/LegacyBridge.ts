@@ -108,7 +108,7 @@ export class LegacyBridgeService extends EventEmitter {
     //   '/legacy/js/token-backend-client.js',
     //   '/legacy/js/frontend-reconnection-manager.js',
     //   '/legacy/js/deriv-api.js',
-    //   '/legacy/js/deriv-market-data.js',
+       '/legacy/js/deriv-market-data.js',
 
       // Regras e Indicadores (Dependências para Strategy/AI)
       '/legacy/js/rsi-indicator.js',

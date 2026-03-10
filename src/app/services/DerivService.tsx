@@ -79,6 +79,11 @@ export class DerivService {
   private currentAccount: AccountInfo | null = null;
   private balanceSubscriptionId: string | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  
+  // Histórico de ticks em memória para acesso síncrono
+  private tickHistory = new Map<string, { price: number; time: number }[]>();
+  private symbolDecimals = new Map<string, number>();
+  private readonly MAX_HISTORY_SIZE = 1000;
 
   private needAuthorize = [
     "get_settings",
@@ -106,12 +111,19 @@ export class DerivService {
   public static getInstance(): DerivService {
     if (!DerivService.instance) {
       DerivService.instance = new DerivService();
+      if (typeof window !== 'undefined') {
+        (window as any).DerivServiceInstance = DerivService.instance;
+      }
     }
     return DerivService.instance;
   }
 
   private initialize() {
     if (typeof window === 'undefined') return;
+
+    // Expor instância globalmente também no initialize caso já tenha sido criada
+    (window as any).DerivServiceInstance = this;
+
     if (window.location.search) {
       const tokens = this.parseQueryTokens(window.location.search.substring(1));
       if (tokens.length > 0) {
@@ -126,6 +138,14 @@ export class DerivService {
     this.observer.on("open", () => {
       this.processAuthenticatedUserData();
       this.setupBalanceMonitoring();
+    });
+
+    // Monitorar ticks para manter histórico
+    this.observer.on("deriv.tick", (data) => {
+      if (data.tick) {
+        const { symbol, quote: price, epoch: time } = data.tick;
+        this.updateTickHistory(symbol, price, time);
+      }
     });
 
     this.observer.on("deriv.balance", (data) => {
@@ -808,5 +828,93 @@ export class DerivService {
 
   public get hasAuthorized(): boolean {
     return this.isAuthorized;
+  }
+
+  private updateTickHistory(symbol: string, price: number, time: number) {
+    if (!this.tickHistory.has(symbol)) {
+      this.tickHistory.set(symbol, []);
+    }
+
+    // Detectar e armazenar casas decimais se não conhecidas
+    if (!this.symbolDecimals.has(symbol)) {
+      const priceStr = price.toString();
+      const decimalIndex = priceStr.indexOf('.');
+      if (decimalIndex !== -1) {
+        const decimals = priceStr.length - decimalIndex - 1;
+        this.symbolDecimals.set(symbol, decimals);
+      } else {
+        this.symbolDecimals.set(symbol, 0);
+      }
+    }
+    
+    const history = this.tickHistory.get(symbol)!;
+    history.push({ price, time });
+    
+    if (history.length > this.MAX_HISTORY_SIZE) {
+      history.shift();
+    }
+  }
+
+  /**
+   * Extrai o último dígito de um preço de forma padronizada
+   * @param price Preço atual
+   * @param symbol Símbolo do ativo (opcional, usa cache se disponível)
+   */
+  public extractLastDigit(price: number, symbol: string): number | null {
+    if (typeof price !== 'number' || price === null || price === undefined) {
+      return null;
+    }
+
+    let decimals = this.symbolDecimals.get(symbol);
+    
+    // Se não tivermos info de decimais, tentar detectar do preço atual
+    if (decimals === undefined) {
+      const priceStr = price.toString();
+      const decimalIndex = priceStr.indexOf('.');
+      if (decimalIndex !== -1) {
+        decimals = priceStr.length - decimalIndex - 1;
+        // Armazenar para uso futuro
+        this.symbolDecimals.set(symbol, decimals);
+      } else {
+        decimals = 0;
+      }
+    }
+
+    // Garantir pelo menos 1 casa decimal para processamento correto
+    const effectiveDecimals = Math.max(1, decimals);
+    const multiplier = Math.pow(10, effectiveDecimals);
+    const processedPrice = Math.round(price * multiplier);
+    
+    return processedPrice % 10;
+  }
+
+  /**
+   * Obtém histórico de ticks de forma síncrona (do buffer local)
+   * Compatível com a interface esperada pelo sistema legado
+   */
+  public getHistoricalTicksSync(symbol: string, count: number): { prices: number[]; times: number[] } | null {
+    const history = this.tickHistory.get(symbol);
+    if (!history || history.length === 0) {
+      return null;
+    }
+
+    const sliced = history.slice(-count);
+    return {
+      prices: sliced.map(h => h.price),
+      times: sliced.map(h => h.time)
+    };
+  }
+
+  /**
+   * Obtém histórico de ticks da API (Assíncrono)
+   */
+  public async getHistoricalTicks(symbol: string, count: number): Promise<any> {
+    return this.send({
+      ticks_history: symbol,
+      adjust_start_time: 1,
+      count: count,
+      end: "latest",
+      style: "ticks"
+    });
   }
 }

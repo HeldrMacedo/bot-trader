@@ -46,7 +46,7 @@ class FormatGenerator {
     // 🎯 FUNÇÃO AUXILIAR: Obter ativo selecionado (SEM FALLBACKS)
     getSelectedSymbol() {
         const globalSymbol = window.selectedSymbol;
-        const sessionSymbol = SessionManager.getSessionData('selected_symbol');
+        const sessionSymbol = localStorage.getItem('selectedSymbol');
         const displaySymbol = window.displayViewInstance?.currentSymbol;
         const selectedSymbol = globalSymbol || sessionSymbol || displaySymbol;
 
@@ -1765,18 +1765,39 @@ class FormatGenerator {
                 return null; // Retorna null em vez de fallback
             }
 
-            // Obter instância do market data
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível');
-                return null;
-            }
-
             // Obter símbolo atual selecionado (sem fallback)
             const currentSymbol = this.getSelectedSymbol();
 
-            // Obter EXATAMENTE o número de ticks necessários
-            const history = marketData.getHistoricalTicks(currentSymbol, count);
+            // 🎯 TENTATIVA 1: Usar DerivServiceInstance (Sistema Moderno)
+            // Isso permite acessar os dados coletados pelo Monitoring.ts
+            let history = null;
+            
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                try {
+                    const modernHistory = window.DerivServiceInstance.getHistoricalTicksSync(currentSymbol, count);
+                    if (modernHistory && modernHistory.prices && modernHistory.prices.length > 0) {
+                        history = modernHistory;
+                        // console.log(`✅ [GENERATE-FORMAT] Usando dados do DerivService moderno para ${currentSymbol}`);
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Erro ao acessar DerivServiceInstance:', e);
+                }
+            }
+
+            // 🎯 TENTATIVA 2: Usar sistema legado (Fallback)
+            if (!history) {
+                const token = JSON.parse(localStorage.getItem('deriv_accounts'))?.[0]?.activeToken || null;
+                const marketData = getMarketDataInstance(token);
+                
+                if (marketData) {
+                    history = marketData.getHistoricalTicks(currentSymbol, count);
+                }
+            }
+
+            if (!history) {
+                console.error('❌ Market data instance não disponível (Moderno e Legado falharam)');
+                return null;
+            }
 
             if (history && history.prices && Array.isArray(history.prices) && history.prices.length > 0) {
                 // GARANTIR que pegamos APENAS os últimos N preços, não mais
@@ -1789,9 +1810,16 @@ class FormatGenerator {
                         return null;
                     }
 
-                    // ✅ USAR MÉTODO UNIFICADO
+                    // ✅ USAR MÉTODO UNIFICADO VIA DERIV SERVICE (MODERNO)
                     const currentSymbol = this.getSelectedSymbol();
-                    const lastDigit = CommonHelpers.extractLastDigitUnified(price, currentSymbol);
+                    let lastDigit = null;
+
+                    if (window.DerivServiceInstance && typeof window.DerivServiceInstance.extractLastDigit === 'function') {
+                        lastDigit = window.DerivServiceInstance.extractLastDigit(price, currentSymbol);
+                    } else {
+                        // Fallback para CommonHelpers apenas se DerivService não estiver disponível
+                        lastDigit = CommonHelpers.extractLastDigitUnified(price, currentSymbol);
+                    }
 
                     if (lastDigit === null) {
                         console.error(`❌ Dígito inválido extraído de: ${price} `);
@@ -2536,7 +2564,15 @@ class FormatGenerator {
             let availableDigits = this.getLastNDigitsFromMarketData(searchCount);
 
             if (forcedPrice !== null) {
-                const forcedDigit = CommonHelpers.extractLastDigitUnified(forcedPrice, this.getSelectedSymbol());
+                const symbol = this.getSelectedSymbol();
+                let forcedDigit = null;
+                
+                if (window.DerivServiceInstance && typeof window.DerivServiceInstance.extractLastDigit === 'function') {
+                    forcedDigit = window.DerivServiceInstance.extractLastDigit(forcedPrice, symbol);
+                } else {
+                    forcedDigit = CommonHelpers.extractLastDigitUnified(forcedPrice, symbol);
+                }
+
                 if (!availableDigits) availableDigits = [];
 
                 // 🛡️ EVITAR DUPLICIDADE: Ver se o último dígito do histórico já é o mesmo que o forçado
@@ -2808,7 +2844,12 @@ class FormatGenerator {
                 currentTickTime = lastHistory.times[0];
             }
 
-            const currentDigit = CommonHelpers.extractLastDigitUnified(currentPrice, currentSymbol);
+            let currentDigit = null;
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.extractLastDigit === 'function') {
+                currentDigit = window.DerivServiceInstance.extractLastDigit(currentPrice, currentSymbol);
+            } else {
+                currentDigit = CommonHelpers.extractLastDigitUnified(currentPrice, currentSymbol);
+            }
 
             if (currentDigit === null) return false;
 
