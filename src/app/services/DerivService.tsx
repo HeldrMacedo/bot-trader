@@ -917,4 +917,27 @@ export class DerivService {
       style: "ticks"
     });
   }
+
+  /**
+   * Extrai o último dígito para um ativo específico.
+   * Assinatura compatível com o método homônimo do sistema legado (DerivMarketData).
+   */
+  public extractLastDigitForAsset(symbol: string, price: number): number | null {
+    return this.extractLastDigit(price, symbol);
+  }
+
+  /**
+   * Versão adaptada de CommonHelpers.extractLastDigitUnified para o sistema moderno.
+   * Obtém token de activeToken e símbolo de selectedSymbol direto do localStorage,
+   * sem depender do SessionManager legado.
+   */
+  public extractLastDigitUnified(price: number, symbol?: string): number | null {
+    if (typeof price !== 'number' || price === null || price === undefined) {
+      return null;
+    }
+
+    const selectedSymbol = symbol || localStorage.getItem('selectedSymbol') || '';
+
+    return this.extractLastDigitForAsset(selectedSymbol, price);
+  }
 }

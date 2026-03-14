@@ -22,16 +22,29 @@ class RSIIndicator {
         }
 
         try {
-            // Obter instância do market data
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível para RSI');
-                return null;
-            }
-
             // Obter histórico de preços (precisamos de period + 1 preços mínimo)
             const requiredTicks = Math.max(period + 10, 50); // Margem de segurança
-            const history = marketData.getHistoricalTicks(symbol, requiredTicks);
+            let history = null;
+
+            // 🎯 TENTATIVA 1: Usar DerivServiceInstance (Sistema Moderno)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                try {
+                    history = window.DerivServiceInstance.getHistoricalTicksSync(symbol, requiredTicks);
+                } catch (e) {
+                    console.warn('⚠️ [RSI] Erro ao acessar DerivServiceInstance:', e);
+                }
+            }
+
+            // 🎯 TENTATIVA 2: Usar sistema legado (Fallback)
+            // if (!history) {
+            //     const marketData = getMarketDataInstance(SessionManager.getLocalToken());
+            //     if (marketData) {
+            //         history = marketData.getHistoricalTicks(symbol, requiredTicks);
+            //     } else {
+            //         console.error('❌ Market data instance não disponível para RSI');
+            //         return null;
+            //     }
+            // }
             
             if (!history || !history.prices || history.prices.length < period + 1) {
                 console.warn(`⚠️ Histórico insuficiente para RSI: ${history?.prices?.length || 0} ticks (necessário: ${period + 1})`);

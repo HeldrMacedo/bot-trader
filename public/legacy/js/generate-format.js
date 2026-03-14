@@ -7,55 +7,45 @@ class FormatGenerator {
         this.sessionId = JSON.parse(localStorage.getItem('deriv_accounts'))?.[0]?.selectedLoginId || null;
     }
 
+    //Método REVISADO
     getGlobalCountRepeated() {
         // 1. Tentar pelo DOM (prioridade se a aba estiver aberta)
-        const checkbox = document.getElementById('count-repeated-digits-input');
+        const checkbox = JSON.parse(localStorage.getItem('trade_config_full'))?.config?.countRepeated || null	;
+        const tradeConfigFull = JSON.parse(localStorage.getItem('trade_config_full')) || {};
         if (checkbox) {
-            const val = checkbox.checked;
+            const val = checkbox;
 
             return val;
         }
 
         // 2. Tentar pelo TradeManager (se iniciado)
-        if (window.tradeManager && window.tradeManager.config && window.tradeManager.config.countRepeated !== undefined) {
-            const val = window.tradeManager.config.countRepeated;
+        if (tradeConfigFull && tradeConfigFull.config && tradeConfigFull.config.countRepeated !== undefined) {
+            const val = tradeConfigFull.config.countRepeated;
 
             return val;
         }
 
         try {
-            const loginid = localStorage.getItem('current_user_loginid');
+            // Busca ID correto em deriv_accounts
+            const derivAccounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+            const loginid = derivAccounts?.[0]?.selectedLoginId || localStorage.getItem('current_user_loginid');
+
             if (loginid) {
                 const saved = localStorage.getItem(`trade_config_user_${loginid}`);
                 if (saved) {
-                    const data = JSON.parse(saved);
-                    const config = data.config || data;
-                    if (config.countRepeated !== undefined) {
-                        console.error(`[STORE-LOG] LocalStorage found, countRepeated: ${config.countRepeated}`);
-                        return config.countRepeated;
-                    }
+                    const config = JSON.parse(saved).config || JSON.parse(saved);
+                    if (config.countRepeated !== undefined) return config.countRepeated;
                 }
             }
         } catch (e) { }
 
-        // 4. Default
-        console.error(`[DEFAULT-LOG] No source found, using default: true`);
+        // 5. Padrão
         return true;
     }
 
     // 🎯 FUNÇÃO AUXILIAR: Obter ativo selecionado (SEM FALLBACKS)
     getSelectedSymbol() {
-        const globalSymbol = window.selectedSymbol;
-        const sessionSymbol = localStorage.getItem('selectedSymbol');
-        const displaySymbol = window.displayViewInstance?.currentSymbol;
-        const selectedSymbol = globalSymbol || sessionSymbol || displaySymbol;
-
-        if (!selectedSymbol) {
-            console.error('❌ [FORMAT GENERATOR] CRÍTICO: Nenhum ativo selecionado!');
-            throw new Error('ERRO CRÍTICO: Nenhum ativo foi selecionado. Recarregue a página.');
-        }
-
-        return selectedSymbol;
+        return localStorage.getItem('selectedSymbol');
     }
 
     // Gerar formato de display para cada tipo de regra
@@ -472,7 +462,7 @@ class FormatGenerator {
                     return `${statusIcon} ERRO: Contagem inválida`;
                 }
 
-                // Obter os dígitos (com suporte a intervalo)
+                // Obter os dígitos (com suporte a intervalo)  - Métodos revisados
                 const countRepeated = this.getGlobalCountRepeated();
                 const digits = this.getRecentDigitsFromMarket(count, null, countRepeated, startIndex, endIndex);
 
@@ -1817,8 +1807,10 @@ class FormatGenerator {
                     if (window.DerivServiceInstance && typeof window.DerivServiceInstance.extractLastDigit === 'function') {
                         lastDigit = window.DerivServiceInstance.extractLastDigit(price, currentSymbol);
                     } else {
-                        // Fallback para CommonHelpers apenas se DerivService não estiver disponível
-                        lastDigit = CommonHelpers.extractLastDigitUnified(price, currentSymbol);
+                        // Fallback adaptado: token de activeToken e símbolo de selectedSymbol do localStorage,
+                        // sem depender do SessionManager legado
+                        const _selectedSymbol = localStorage.getItem('selectedSymbol') || currentSymbol;
+                        lastDigit = window.DerivServiceInstance?.extractLastDigitUnified(price, _selectedSymbol);
                     }
 
                     if (lastDigit === null) {
@@ -2554,6 +2546,7 @@ class FormatGenerator {
         }
     }
 
+    //Método REVISADO
     // ✅ NOVO: Obter dígitos recentes do market data (com suporte a Forced Price)
     getRecentDigitsFromMarket(count = 1, forcedPrice = null, countRepeated = true, startIndex = null, endIndex = null) {
         try {
@@ -2570,7 +2563,7 @@ class FormatGenerator {
                 if (window.DerivServiceInstance && typeof window.DerivServiceInstance.extractLastDigit === 'function') {
                     forcedDigit = window.DerivServiceInstance.extractLastDigit(forcedPrice, symbol);
                 } else {
-                    forcedDigit = CommonHelpers.extractLastDigitUnified(forcedPrice, symbol);
+                    forcedDigit = window.DerivServiceInstance.extractLastDigitUnified(forcedPrice, symbol);
                 }
 
                 if (!availableDigits) availableDigits = [];
@@ -2756,7 +2749,7 @@ class FormatGenerator {
             return false;
         }
     }
-
+    //Método REVISADO
     // ✅ NOVO: Verificar condição de paridade de dígitos (par/ímpar)
     checkDigitParityCondition(rule, forcedPrice = null) {
         try {
