@@ -434,6 +434,50 @@ export class LegacyBridgeService extends EventEmitter {
             getCurrentUserLevel: () => 'vip'
         };
     }
+
+    // Shim para SessionManager (usado por gemini-ai.js para autenticação)
+    if (!window.SessionManager) {
+        window.SessionManager = {
+            getUserSessionId: () => {
+                try {
+                    const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+                    return accounts[0]?.loginId || accounts[0]?.selectedLoginId || '';
+                } catch { return ''; }
+            },
+            getLocalToken: () => {
+                try {
+                    const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+                    return accounts[0]?.activeToken || '';
+                } catch { return ''; }
+            },
+            getCurrentUser: () => {
+                try {
+                    const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+                    const account = accounts[0];
+                    if (!account) return null;
+                    return {
+                        authorize: {
+                            loginid: account.loginId || account.selectedLoginId,
+                            is_virtual: account.tokens?.some((t: any) => t.is_virtual && t.token === account.activeToken) ?? false
+                        }
+                    };
+                } catch { return null; }
+            },
+            getSessionData: (key: string) => {
+                try { return localStorage.getItem(key); } catch { return null; }
+            },
+            safeStorageOperation: (key: string, fn: () => any) => {
+                try { return fn(); } catch { return null; }
+            },
+            getTokenByLoginId: (loginId: string) => {
+                try {
+                    const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+                    const token = accounts[0]?.tokens?.find((t: any) => t.acct === loginId || t.loginid === loginId);
+                    return token?.token || null;
+                } catch { return null; }
+            }
+        };
+    }
   }
 
   // --- Helpers de Acesso às Instâncias ---

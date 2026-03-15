@@ -453,11 +453,13 @@ class PromptManager {
             },
             {
                 id: 'probability_token_match',
+                friendlyName: 'Entrada por Chance (Maior/Menor)',
+                example: 'entrar differ do digito menor chance',
                 // Regex: "* entrar differ do digito menor chance"
-                pattern: new RegExp(`${this.contractPrefix}(?:[oa]\\s+)?d[ií]gito\\s+(menor|maior)\\s+chance\\s*$`, 'i'),
+                pattern: new RegExp(`${this.contractPrefix}(?:[oa]s?\\s+)?d[ií]gitos?\\s+(menor|maior)\\s+chance\\s*$`, 'i'),
                 builder: (match) => {
                     const action = match[1] ? match[1].toLowerCase() : 'differ';
-                    const probType = match[2].toLowerCase(); // menor ou maior
+                    const probType = match[3].toLowerCase(); // menor ou maior
                     const probVar = probType.includes('menor') ? '$LOWER_PROB' : '$HIGHER_PROB';
 
                     return {
@@ -472,7 +474,20 @@ class PromptManager {
                                 "probabilityVariable": probVar
                             }
                         },
-                        "parameters_ui": []
+                        "parameters_ui": [
+                            {
+                                "key": "param_prob_choice",
+                                "label": "Escolha da Chance",
+                                "value": probVar,
+                                "type": "select",
+                                "options": [
+                                    { "value": "$LOWER_PROB", "label": "Menor Chance" },
+                                    { "value": "$HIGHER_PROB", "label": "Maior Chance" }
+                                ],
+                                "path": "groups[0].rules[0].parameters.condition.probabilityVariable",
+                                "tooltip": "Escolha se o robà´ deve entrar no dígito que menos saiu ou no que mais saiu."
+                            }
+                        ]
                     };
                 }
             },

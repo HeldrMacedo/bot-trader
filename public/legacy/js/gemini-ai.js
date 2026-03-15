@@ -231,9 +231,9 @@ class GeminiAI {
 
                 if (promptManager) {
                     // addLog('⚡ Verificando templates locais...', 'info');
-                    console.log("strategyText:", strategyText);
+                    
                     const localMatch = promptManager.matchStrategy(strategyText);
-
+                    console.log("localMatch:", localMatch);
                     if (localMatch) {
                         // addLog('🚀 Estratégia reconhecida! Usando template local.', 'success');
                         // addLog('⚡ Gerando JSON instantaneamente...', 'success');
@@ -444,7 +444,7 @@ class GeminiAI {
         } catch (error) {
             this.isProcessing = false;
             console.error(error);
-            addLog(`❌ Erro fatal: ${error.message}`, 'error');
+            if (typeof addLog === 'function') addLog(`❌ Erro fatal: ${error.message}`, 'error');
             throw error;
         }
     }
