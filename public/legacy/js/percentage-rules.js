@@ -160,13 +160,7 @@ class PercentageRulesProcessor {
     // Obter dígitos para período específico (ou intervalo)
     getDigitsForPeriod(period, startIndex = null, endIndex = null, forcedPrice = null) {
         try {
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível');
-                return [];
-            }
-
-            const currentSymbol = window.selectedSymbol || SessionManager.getSessionData('selected_symbol');
+            const currentSymbol = localStorage.getItem('selectedSymbol');
             if (!currentSymbol) {
                 console.error('❌ [PERCENTAGE] Nenhum ativo selecionado!');
                 throw new Error('ERRO: Nenhum ativo selecionado. Recarregue a página.');
@@ -174,7 +168,17 @@ class PercentageRulesProcessor {
 
             // Se houver intervalo, o período base é o maior índice
             const basePeriod = (startIndex && endIndex) ? Math.max(startIndex, endIndex) : period;
-            const history = marketData.getHistoricalTicks(currentSymbol, basePeriod);
+            
+            let history = null;
+
+            // 1. Tentar DerivServiceInstance (Novo Sistema)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                 try {
+                     history = window.DerivServiceInstance.getHistoricalTicksSync(currentSymbol, basePeriod);
+                 } catch (e) {
+                     console.warn('⚠️ [Percentage] Erro ao acessar DerivServiceInstance:', e);
+                 }
+            }
 
             if (history && history.prices && Array.isArray(history.prices) && history.prices.length > 0) {
                 // Converter preços para últimos dígitos
@@ -215,25 +219,13 @@ class PercentageRulesProcessor {
     extractLastDigit(price) {
         try {
             // Obter marketData e símbolo
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            const currentSymbol = window.selectedSymbol || SessionManager.getSessionData('selected_symbol');
+            const currentSymbol = localStorage.getItem('selectedSymbol');
 
-            if (!marketData || !currentSymbol) {
-                console.error('❌ [PERCENTAGE] MarketData ou símbolo não disponível');
-                return null;
+            // 1. Tentar DerivServiceInstance (Novo Sistema)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.extractLastDigitUnified === 'function') {
+                return window.DerivServiceInstance.extractLastDigitUnified(price, currentSymbol || undefined);
             }
 
-            // 🎯 USAR O MESMO MÉTODO QUE O RODAPÉ USA
-            // Esse método já funciona corretamente
-            if (typeof marketData.extractLastDigitForAsset === 'function') {
-                const lastDigit = marketData.extractLastDigitForAsset(price, currentSymbol);
-
-
-                return lastDigit;
-            } else {
-                console.error('❌ [PERCENTAGE] extractLastDigitForAsset não disponível');
-                return null;
-            }
         } catch (error) {
             console.error('❌ [PERCENTAGE] Erro ao extrair dígito:', error);
             return null;
@@ -979,12 +971,19 @@ class PercentageRulesProcessor {
             }
 
             // Obter dados de mercado com token
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
+            // const marketData = getMarketDataInstance(SessionManager.getLocalToken());
 
-            if (!marketData) {
-                return `${statusIcon} Aguardando dados...`;
-            }
+            // if (!marketData) {
+            //     return `${statusIcon} Aguardando dados...`;
+            // }
 
+            
+            let currentSymbol = localStorage.getItem('selectedSymbol');
+            const derivService = window.DerivServiceInstance;
+            
+
+
+            
             // 🎯 NOVO: Lógica específica para INTERVALOS (#START#END)
             const startIndex = canonical.startIndex;
             const endIndex = canonical.endIndex;
@@ -1005,7 +1004,38 @@ class PercentageRulesProcessor {
                 }
             } else {
                 // Lógica de período deslizante original
-                const stats = marketData.getDigitStats(canonical.period);
+                let stats = null;
+                
+                // 1. Tentar DerivServiceInstance (Novo Sistema)
+                if (derivService && typeof derivService.getHistoricalTicksSync === 'function') {
+                    try {
+                        const history = derivService.getHistoricalTicksSync(currentSymbol, canonical.period);
+                        if (history && history.prices && history.prices.length > 0) {
+                             stats = {};
+                             const total = history.prices.length;
+                             // Inicializar stats
+                             for(let i=0; i<=9; i++) stats[i] = 0;
+                             
+                             // Contar dígitos
+                             history.prices.forEach(price => {
+                                 const digit = derivService.extractLastDigitUnified(price, currentSymbol);
+                                 if (digit !== null) stats[digit]++;
+                             });
+                             
+                             // Converter para percentual
+                             for(let i=0; i<=9; i++) stats[i] = (stats[i] / total) * 100;
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ [Percentage] Erro ao calcular stats via DerivService:', e);
+                    }
+                }
+
+                // 2. Fallback para sistema legado
+              
+
+                if (!stats) {
+                    return `${statusIcon} Aguardando dados...`;
+                }
 
                 if (canonical.conditionType) {
                     // Lógica baseada no tipo de condição
@@ -1045,10 +1075,19 @@ class PercentageRulesProcessor {
                             break;
                         case 'single_digit':
                             // ✅ NOVO: Usar o percentual do ÚLTIMO dígito que saiu
-                            const currentSymbol = window.selectedSymbol || SessionManager.getSessionData('selected_symbol');
+                            const currentSymbol = localStorage.getItem('selectedSymbol');
                             if (currentSymbol) {
-                                const lastPrice = marketData.getCurrentPrice(currentSymbol);
-                                const lastDigit = marketData.extractLastDigitForAsset(lastPrice, currentSymbol);
+                                let lastDigit = null;
+
+                                // 1. Tentar DerivServiceInstance (Novo Sistema)
+                                if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getLastTick === 'function') {
+                                    const tick = window.DerivServiceInstance.getLastTick(currentSymbol);
+                                    if (tick) {
+                                        lastDigit = window.DerivServiceInstance.extractLastDigitUnified(tick.quote, currentSymbol);
+                                    }
+                                }
+
+                               
                                 if (lastDigit !== null) {
                                     currentPercentage = stats[lastDigit] || 0;
                                     // Guardar para o display
@@ -1115,8 +1154,7 @@ class PercentageRulesProcessor {
                 if (canonical.allowedDigits && Array.isArray(canonical.allowedDigits) && canonical.allowedDigits.length > 0) {
                     digitsDisplay = `${canonical.allowedDigits.join(', ')}`;
                 } else {
-                    const configDigit = window.selectedDigit !== undefined ? window.selectedDigit :
-                        (SessionManager.getSessionData('selected_digit') || 0);
+                    const configDigit = JSON.parse(localStorage.getItem('trade_config_full'))?.config?.prediction || 0;
                     digitsDisplay = `${configDigit}`;
                 }
             }

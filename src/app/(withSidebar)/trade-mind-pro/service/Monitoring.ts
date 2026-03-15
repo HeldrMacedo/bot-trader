@@ -68,6 +68,9 @@ export class MonitoringService {
   public static getInstance(): MonitoringService {
     if (!MonitoringService.instance) {
       MonitoringService.instance = new MonitoringService();
+      if (typeof window !== 'undefined') {
+        (window as any).MonitoringServiceInstance = MonitoringService.instance;
+      }
     }
     return MonitoringService.instance;
   }
@@ -474,7 +477,7 @@ export class MonitoringService {
    * Calcula probabilidades baseado no histórico
    * Implementação baseada no monitoring.js legado
    */
-  private calculateProbabilities(excludeLastTick = false): ProbabilityStats | null {
+  public calculateProbabilities(excludeLastTick = false): ProbabilityStats | null {
     if (!this.probabilityHistory || this.probabilityHistory.length < 10) {
       return null;
     }
@@ -665,43 +668,111 @@ export class MonitoringService {
     return gaps;
   }
 
+  /**
+   * Avalia se uma regra está sendo atendida no tick atual
+   * Delega para o FormatGenerator legado (checkRuleCondition)
+   */
+  private checkRuleCondition(rule: any): boolean {
+    try {
+      if (typeof window === 'undefined') return false;
+
+      const formatGenerator = (window as any).getFormatGeneratorInstance?.();
+      if (!formatGenerator || typeof formatGenerator.checkRuleCondition !== 'function') {
+        return false;
+      }
+
+      // Configurar símbolo e marketData no formatGenerator usando DerivService migrado
+      const needsMarketData = ['last_digits', 'digit_repetition', 'digit_pattern', 'dynamic_prediction', 'isolated_digits'];
+      if (needsMarketData.includes(rule?.type)) {
+        const currentSymbol = this.config?.symbol;
+        if (currentSymbol) {
+          formatGenerator.currentSymbol = currentSymbol;
+          formatGenerator.marketData = this.deriv;
+        }
+      }
+
+      // Resolver variáveis especiais ($LOWER_PROB, $HIGHER_PROB)
+      if (typeof (window as any).getProbabilityResolver === 'function') {
+        const resolver = (window as any).getProbabilityResolver();
+        if (resolver) {
+          const stats = this.calculateProbabilities(true);
+          if (stats?.sortedScores) {
+            resolver.updateProbabilityData(stats.sortedScores);
+          }
+
+          const hasSpecialVar = resolver.isSpecialVariable(rule.targetValue) ||
+            resolver.isSpecialVariable(rule.target) ||
+            resolver.isSpecialVariable(rule.value) ||
+            resolver.isSpecialVariable(rule.parameters?.targetValue) ||
+            resolver.isSpecialVariable(rule.parameters?.condition?.value) ||
+            resolver.isSpecialVariable(rule.parameters?.condition?.probabilityVariable);
+
+          if (hasSpecialVar) {
+            if (rule.type !== 'isolated_digits' && rule.type !== 'sequence') {
+              const ruleCopy = JSON.parse(JSON.stringify(rule));
+              const processed = resolver.processRule(ruleCopy);
+              if (processed.type === 'probability_check' && processed._probabilityVariable) {
+                return resolver.validateProbabilityCheck(processed);
+              }
+              return formatGenerator.checkRuleCondition(processed, null);
+            }
+          }
+        }
+      }
+
+      return formatGenerator.checkRuleCondition(rule, null);
+    } catch (error) {
+      console.error(`[MonitoringService] checkRuleCondition error for ${rule?.type}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Verifica se o cooldown está ativo (via legado CooldownOverlay)
+   */
+  private isCooldownActive(): boolean {
+    try {
+      if (typeof window === 'undefined') return false;
+      const getCooldownInstance = (window as any).getCooldownOverlayInstance;
+      if (typeof getCooldownInstance === 'function') {
+        const instance = getCooldownInstance();
+        if (instance?.getCooldownState) {
+          const state = instance.getCooldownState();
+          return !!(state && state.active);
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
   public generateVisualFormat(rule: any, statusIcon: string) {
     try {
       if (typeof window === 'undefined') {
         return `${statusIcon} ${rule?.description || rule?.type || 'Regra'}`;
       }
-      console.log("PASSOU 1");
       const formatGenerator = (window as any).getFormatGeneratorInstance?.();
-      console.log("format Generator ", formatGenerator);
-      console.log(!formatGenerator || typeof formatGenerator.generateVisualFormat !== 'function');
       if (!formatGenerator || typeof formatGenerator.generateVisualFormat !== 'function') {
         return `${statusIcon} ${rule?.description || rule?.type || 'Regra'}`;
       }
-      console.log("PASSOU 2");
       if (rule?.type === 'rsi' || rule?.type === 'sma' || rule?.type === 'percentage') {
         const hasMinimumHistoricalData = (window as any).MonitoringView?.hasMinimumHistoricalData;
         if (typeof hasMinimumHistoricalData === 'function' && !hasMinimumHistoricalData.call((window as any).MonitoringView)) {
           return `⏳ ${rule?.description || rule?.type} (coletando dados...)`;
         }
       }
-      console.log("PASSOU 3");
-      if (rule?.type === 'last_digits' || rule?.type === 'digit_repetition' || rule?.type === 'digit_pattern') {
-        const marketData = (window as any).getMarketDataInstance?.((window as any).SessionManager?.getLocalToken?.());
-        if (marketData) {
-          const currentSymbol = this.config.symbol;
-
-          if (currentSymbol) {
-            formatGenerator.currentSymbol = currentSymbol;
-            formatGenerator.marketData = marketData;
-          }
+      if (rule?.type === 'last_digits' || rule?.type === 'digit_repetition' || rule?.type === 'digit_pattern' || rule?.type === 'dynamic_prediction' || rule?.type === 'isolated_digits') {
+        const currentSymbol = this.config?.symbol;
+        if (currentSymbol) {
+          formatGenerator.currentSymbol = currentSymbol;
+          formatGenerator.marketData = this.deriv;
         }
       }
-      console.log("rule ", rule);
-      console.log("statusIcon ", statusIcon);
       return formatGenerator.generateVisualFormat(rule, statusIcon);
     } catch (error) {
-      console.error(`❌[MONITORING] Erro em generateVisualFormat para regra ${rule?.type}: `, error);
-      return `❌ ${rule?.description || rule?.type} (erro na exibição)`;
+      console.error(`[MonitoringService] generateVisualFormat error for ${rule?.type}:`, error);
+      return `${statusIcon} ${rule?.description || rule?.type || 'Regra'}`;
     }
   }
 
@@ -729,14 +800,56 @@ export class MonitoringService {
             rules: []
           };
 
+          const cooldownActive = this.isCooldownActive();
+
           group.rules.forEach((rule) => {
-            const statusIcon = isPreview ? '⚪' : '🔴';
-            const visualFormat = this.generateVisualFormat(rule, statusIcon);
-            console.log("visualFormat ", visualFormat);
+            let statusIcon: string;
+            let ruleStatus: string;
+
+            if (isPreview) {
+              statusIcon = '⚪';
+              ruleStatus = 'waiting';
+            } else {
+              const isRuleSatisfied = this.checkRuleCondition(rule);
+              if (isRuleSatisfied) {
+                statusIcon = '🟢';
+                ruleStatus = cooldownActive ? 'satisfied-cooldown' : 'satisfied';
+              } else {
+                statusIcon = '🔴';
+                ruleStatus = 'failed';
+              }
+            }
+
+            // Preservar $LOWER_PROB/$HIGHER_PROB de parameters
+            const ruleForDisplay = { ...rule };
+            if (rule.parameters) {
+              ruleForDisplay.parameters = { ...rule.parameters };
+              if (rule.parameters.value !== null && rule.parameters.value !== undefined) {
+                ruleForDisplay.value = rule.parameters.value;
+              }
+            }
+
+            let visualFormat = this.generateVisualFormat(ruleForDisplay, statusIcon);
+
+            // Resolver $LOWER_PROB/$HIGHER_PROB no texto visual
+            if (visualFormat && typeof (window as any).getProbabilityResolver === 'function') {
+              const resolver = (window as any).getProbabilityResolver();
+              if (resolver) {
+                if (visualFormat.includes('$LOWER_PROB')) {
+                  const val = resolver.resolve('$LOWER_PROB');
+                  if (val !== null) visualFormat = visualFormat.replace(/\$LOWER_PROB/g, val);
+                }
+                if (visualFormat.includes('$HIGHER_PROB')) {
+                  const val = resolver.resolve('$HIGHER_PROB');
+                  if (val !== null) visualFormat = visualFormat.replace(/\$HIGHER_PROB/g, val);
+                }
+              }
+            }
+
             formattedGroup.rules.push({
               id: rule.id,
               displayText: visualFormat,
-              status: isPreview ? 'waiting' : 'failed'
+              status: ruleStatus
             });
           });
 

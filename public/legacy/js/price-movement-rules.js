@@ -91,19 +91,24 @@ class PriceMovementRulesProcessor {
     // Obter preços para período específico
     getPricesForPeriod(period) {
         try {
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível');
-                return [];
-            }
-
             // ❌ REMOVIDO fallback de R_10 - usar ativo selecionado obrigatoriamente
-            const currentSymbol = window.selectedSymbol || SessionManager.getSessionData('selected_symbol');
+            const currentSymbol = localStorage.getItem('selectedSymbol');
             if (!currentSymbol) {
                 console.error('❌ [PRICE MOVEMENT] Nenhum ativo selecionado!');
                 throw new Error('ERRO: Nenhum ativo selecionado. Recarregue a página.');
             }
-            const history = marketData.getHistoricalTicks(currentSymbol, period + 1); // +1 para ter referência
+
+            let history = null;
+
+            // 🎯 TENTATIVA 1: Usar DerivServiceInstance (Sistema Moderno)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                try {
+                    history = window.DerivServiceInstance.getHistoricalTicksSync(currentSymbol, period + 1);
+                } catch (e) {
+                    console.warn('⚠️ [PriceMove] Erro ao acessar DerivServiceInstance:', e);
+                }
+            }
+
 
             if (history && history.prices && Array.isArray(history.prices) && history.prices.length > 0) {
                 const validPrices = history.prices.filter(price => typeof price === 'number' && price > 0);

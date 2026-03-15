@@ -38,7 +38,7 @@ export default function VolatilitySelector({ selectedSymbol, onSelectSymbol }: V
             const volatilitySymbols = response.active_symbols.filter((s: any) => 
                 s.market === 'synthetic_index' && s.submarket === 'random_index'
             );
-            console.log('volatilitySymbols', volatilitySymbols);
+
             setSymbols(volatilitySymbols);
             
             // Set default if none selected

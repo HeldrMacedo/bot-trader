@@ -767,9 +767,19 @@ class FormatGenerator {
                 const resolver = getProbabilityResolver();
                 // Obter estatísticas detalhadas
                 let stats = null;
-                if (typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
-                    stats = MonitoringView.calculateProbabilities(true);
+                
+                // 1. Tentar MonitoringServiceInstance (Novo Sistema TypeScript)
+                if (window.MonitoringServiceInstance && typeof window.MonitoringServiceInstance.calculateProbabilities === 'function') {
+                    const rawStats = window.MonitoringServiceInstance.calculateProbabilities(true);
+                    if (rawStats) {
+                        stats = rawStats;
+                    }
                 }
+                
+                // // 2. Fallback para sistema legado (MonitoringView)
+                // if (!stats && typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
+                //     stats = MonitoringView.calculateProbabilities(true);
+                // }
 
                 // CASO 1: Comparação de Valor Percentual (Percentual Menor Chance <= 10%)
                 if (target === '$LOWER_PROB_VALUE' || target === '$HIGHER_PROB_VALUE') {
@@ -783,8 +793,14 @@ class FormatGenerator {
                 // CASO 2: Comparação de Dígito de Probabilidade com Número (Menor Chance <= 2)
                 if ((target === '$LOWER_PROB' || target === '$HIGHER_PROB') && typeof value === 'number') {
                     let probDigit = '?';
-                    if (stats && stats.sorted && stats.sorted.length >= 10) {
-                        probDigit = (target === '$HIGHER_PROB') ? stats.sorted[0] : stats.sorted[9];
+                    if (stats) {
+                        if (stats.sortedScores && stats.sortedScores.length >= 10) {
+                             // Novo sistema: sortedScores [{digit, prob}]
+                             probDigit = (target === '$HIGHER_PROB') ? stats.sortedScores[0].digit : stats.sortedScores[9].digit;
+                        } else if (stats.sorted && stats.sorted.length >= 10) {
+                             // Sistema legado: sorted [digit]
+                             probDigit = (target === '$HIGHER_PROB') ? stats.sorted[0] : stats.sorted[9];
+                        }
                     }
 
                     // Formato: 🔴 9 : 2 (Onde 9 é o dígito de menor chance e 2 é o limite)
@@ -793,8 +809,12 @@ class FormatGenerator {
 
                 // Ultimo digito = Menor Chance
                 let probDigit = '?';
-                if (stats && stats.sorted) {
-                    probDigit = (value === '$HIGHER_PROB') ? stats.sorted[0] : stats.sorted[9];
+                if (stats) {
+                    if (stats.sortedScores && stats.sortedScores.length >= 10) {
+                         probDigit = (value === '$HIGHER_PROB') ? stats.sortedScores[0].digit : stats.sortedScores[9].digit;
+                    } else if (stats.sorted && stats.sorted.length >= 10) {
+                         probDigit = (value === '$HIGHER_PROB') ? stats.sorted[0] : stats.sorted[9];
+                    }
                 }
                 const lastDigits = this.getLastNDigitsFromMarketData(count) || [];
                 const digitsDisplay = lastDigits.length > 0 ? lastDigits.join(',') : 'X'.repeat(count).split('').join(',');
@@ -859,13 +879,29 @@ class FormatGenerator {
                 if ((target === '$LOWER_PROB' || target === '$HIGHER_PROB') && value !== undefined && typeof value === 'number') {
                     const resolver = getProbabilityResolver();
                     let stats = null;
-                    if (typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
-                        stats = MonitoringView.calculateProbabilities(true);
+
+                    // 1. Tentar MonitoringServiceInstance (Novo Sistema TypeScript)
+                    if (window.MonitoringServiceInstance && typeof window.MonitoringServiceInstance.calculateProbabilities === 'function') {
+                        const rawStats = window.MonitoringServiceInstance.calculateProbabilities(true);
+                        if (rawStats) {
+                            stats = rawStats;
+                        }
                     }
 
+                    // 2. Fallback para sistema legado (MonitoringView)
+                    // if (!stats && typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
+                    //    stats = MonitoringView.calculateProbabilities(true);
+                    // }
+
                     let probDigit = '?';
-                    if (stats && stats.sorted && stats.sorted.length >= 10) {
-                        probDigit = (target === '$HIGHER_PROB') ? stats.sorted[0] : stats.sorted[9];
+                    if (stats) {
+                        if (stats.sortedScores && stats.sortedScores.length >= 10) {
+                             // Novo sistema: sortedScores [{digit, prob}]
+                             probDigit = (target === '$HIGHER_PROB') ? stats.sortedScores[0].digit : stats.sortedScores[9].digit;
+                        } else if (stats.sorted && stats.sorted.length >= 10) {
+                             // Sistema legado: sorted [digit]
+                             probDigit = (target === '$HIGHER_PROB') ? stats.sorted[0] : stats.sorted[9];
+                        }
                     }
                     // Formato: 🔴 0 : 2 (ProbDigit : Limit)
                     return `${statusIcon} ${probDigit} : ${value}`;
@@ -1147,19 +1183,41 @@ class FormatGenerator {
                         }
 
                         if (resolved === null || resolved === undefined || isNaN(resolved)) {
-                            if (typeof MonitoringView !== 'undefined') {
+                                if (typeof MonitoringView !== 'undefined' || window.MonitoringServiceInstance) {
 
-                                let stats = null;
+                                    let stats = null;
 
-                                if (typeof MonitoringView.calculateProbabilities === 'function') {
-                                    stats = MonitoringView.calculateProbabilities(true);
+                                    // 1. Tentar MonitoringServiceInstance (Novo Sistema TypeScript)
+                                    if (window.MonitoringServiceInstance && typeof window.MonitoringServiceInstance.calculateProbabilities === 'function') {
+                                        const rawStats = window.MonitoringServiceInstance.calculateProbabilities(true);
+                                        if (rawStats) {
+                                            stats = rawStats;
+                                        }
+                                    }
+
+                                    // 2. Fallback para sistema legado (MonitoringView)
+                                    // if (!stats && typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
+                                    //    stats = MonitoringView.calculateProbabilities(true);
+                                    // }
+
+                                    if (stats) {
+                                        let higher = null;
+                                        let lower = null;
+
+                                        if (stats.sortedScores && stats.sortedScores.length >= 10) {
+                                            // Novo sistema: sortedScores [{digit, prob}]
+                                            higher = stats.sortedScores[0].digit;
+                                            lower = stats.sortedScores[9].digit;
+                                        } else if (stats.sorted && stats.sorted.length >= 10) {
+                                            // Sistema legado: sorted [digit]
+                                            higher = stats.sorted[0];
+                                            lower = stats.sorted[9];
+                                        }
+
+                                        if (displayValue === '$HIGHER_PROB') resolved = higher;
+                                        if (displayValue === '$LOWER_PROB') resolved = lower;
+                                    }
                                 }
-
-                                if (stats && stats.sorted && stats.sorted.length >= 10) {
-                                    if (displayValue === '$HIGHER_PROB') resolved = stats.sorted[0];
-                                    if (displayValue === '$LOWER_PROB') resolved = stats.sorted[9];
-                                }
-                            }
 
                             // 3. Aplicar valor
                             if (resolved !== null && resolved !== undefined && !isNaN(resolved)) {
@@ -1226,12 +1284,37 @@ class FormatGenerator {
                     let resolved = null;
 
                     // Não confiar apenas no Resolver que pode estar com dados Real-Time
-                    if (typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
-                        const stats = MonitoringView.calculateProbabilities(true);
-                        if (stats && stats.sorted && stats.sorted.length >= 10) {
-                            if (rValue === '$HIGHER_PROB') resolved = stats.sorted[0];
-                            if (rValue === '$LOWER_PROB') resolved = stats.sorted[9];
+                    let stats = null;
+
+                    // 1. Tentar MonitoringServiceInstance (Novo Sistema TypeScript)
+                    if (window.MonitoringServiceInstance && typeof window.MonitoringServiceInstance.calculateProbabilities === 'function') {
+                        const rawStats = window.MonitoringServiceInstance.calculateProbabilities(true);
+                        if (rawStats) {
+                            stats = rawStats;
                         }
+                    }
+
+                    // 2. Fallback para sistema legado (MonitoringView)
+                    // if (!stats && typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
+                    //    stats = MonitoringView.calculateProbabilities(true);
+                    // }
+
+                    if (stats) {
+                        let higher = null;
+                        let lower = null;
+
+                        if (stats.sortedScores && stats.sortedScores.length >= 10) {
+                            // Novo sistema: sortedScores [{digit, prob}]
+                            higher = stats.sortedScores[0].digit;
+                            lower = stats.sortedScores[9].digit;
+                        } else if (stats.sorted && stats.sorted.length >= 10) {
+                            // Sistema legado: sorted [digit]
+                            higher = stats.sorted[0];
+                            lower = stats.sorted[9];
+                        }
+
+                        if (rValue === '$HIGHER_PROB') resolved = higher;
+                        if (rValue === '$LOWER_PROB') resolved = lower;
                     }
 
                     // Fallback para o resolver comum se falhar (mas o de cima deve prevalecer)
@@ -1265,12 +1348,37 @@ class FormatGenerator {
                 if (rTarget === '$LOWER_PROB') targetText = 'Menor Chance';
 
                 // Tentar resolver o valor atual para mostrar no log (ex: "Menor Chance (7)")
-                if (typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
-                    const stats = MonitoringView.calculateProbabilities(true);
-                    if (stats && stats.sorted && stats.sorted.length >= 10) {
-                        if (rTarget === '$HIGHER_PROB') resolvedValue = stats.sorted[0];
-                        if (rTarget === '$LOWER_PROB') resolvedValue = stats.sorted[9];
+                let stats = null;
+
+                // 1. Tentar MonitoringServiceInstance (Novo Sistema TypeScript)
+                if (window.MonitoringServiceInstance && typeof window.MonitoringServiceInstance.calculateProbabilities === 'function') {
+                    const rawStats = window.MonitoringServiceInstance.calculateProbabilities(true);
+                    if (rawStats) {
+                        stats = rawStats;
                     }
+                }
+
+                // 2. Fallback para sistema legado (MonitoringView)
+                // if (!stats && typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
+                //    stats = MonitoringView.calculateProbabilities(true);
+                // }
+
+                if (stats) {
+                    let higher = null;
+                    let lower = null;
+
+                    if (stats.sortedScores && stats.sortedScores.length >= 10) {
+                        // Novo sistema: sortedScores [{digit, prob}]
+                        higher = stats.sortedScores[0].digit;
+                        lower = stats.sortedScores[9].digit;
+                    } else if (stats.sorted && stats.sorted.length >= 10) {
+                        // Sistema legado: sorted [digit]
+                        higher = stats.sorted[0];
+                        lower = stats.sorted[9];
+                    }
+
+                    if (rTarget === '$HIGHER_PROB') resolvedValue = higher;
+                    if (rTarget === '$LOWER_PROB') resolvedValue = lower;
                 }
 
                 if (resolvedValue !== null) {
@@ -1771,16 +1879,6 @@ class FormatGenerator {
                     }
                 } catch (e) {
                     console.warn('⚠️ Erro ao acessar DerivServiceInstance:', e);
-                }
-            }
-
-            // 🎯 TENTATIVA 2: Usar sistema legado (Fallback)
-            if (!history) {
-                const token = JSON.parse(localStorage.getItem('deriv_accounts'))?.[0]?.activeToken || null;
-                const marketData = getMarketDataInstance(token);
-                
-                if (marketData) {
-                    history = marketData.getHistoricalTicks(currentSymbol, count);
                 }
             }
 

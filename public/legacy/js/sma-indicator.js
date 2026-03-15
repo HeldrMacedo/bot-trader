@@ -22,25 +22,22 @@ class SMAIndicator {
         }
 
         try {
-            // Obter instância do market data
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível para SMA');
-                return null;
-            }
-
             // ✅ CORRIGIDO: Obter TODOS os dados históricos necessários DE UMA VEZ
             const requiredTicks = Math.max(period + 20, 100); // Margem mais robusta
-            const history = marketData.getHistoricalTicks(symbol, requiredTicks);
+            let history = null;
 
-            // ✅ SISTEMA DEVE TER os dados necessários - se não tem, o MarketData deve obtê-los
+            // 🎯 TENTATIVA 1: Usar DerivServiceInstance (Sistema Moderno)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                try {
+                    history = window.DerivServiceInstance.getHistoricalTicksSync(symbol, requiredTicks);
+                } catch (e) {
+                    console.warn('⚠️ [SMA] Erro ao acessar DerivServiceInstance:', e);
+                }
+            }
+
+            // ✅ SISTEMA DEVE TER os dados necessários
             if (!history || !history.prices || history.prices.length < period) {
                 console.warn(`⚠️ Histórico insuficiente para SMA(${period}): ${history?.prices?.length || 0} ticks (necessário: ${period})`);
-                // ✅ FORÇAR inicialização do histórico se necessário
-                if (marketData.initializeHistoryForSymbol) {
-
-                    marketData.initializeHistoryForSymbol(symbol);
-                }
                 return null;
             }
 
@@ -81,24 +78,19 @@ class SMAIndicator {
         }
 
         try {
-            // Obter instância do market data
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível para Suporte');
-                return null;
-            }
-
             // ✅ CORRIGIDO: Garantir que o buffer tem dados históricos suficientes
             const requiredTicks = Math.max(period + 50, 200);
+            let history = null;
 
-            // ✅ OTIMIZAÇÃO: Não aguardar, apenas agendar carga se necessário (SYNC)
-            if (marketData.ensurePriceBuffer) {
-                marketData.ensurePriceBuffer(symbol).catch(e => console.warn('Loading background history...'));
+            // 🎯 TENTATIVA 1: Usar DerivServiceInstance (Sistema Moderno)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                try {
+                    history = window.DerivServiceInstance.getHistoricalTicksSync(symbol, requiredTicks);
+                } catch (e) {
+                    console.warn('⚠️ [Support] Erro ao acessar DerivServiceInstance:', e);
+                }
             }
 
-            // ✅ USAR getAllTicks para evitar inconsistência de buffer incompleto
-            // Se o ensurePriceBuffer ainda está rodando, isso vai retornar o que tem ou vazio
-            const history = marketData.getHistoricalTicks(symbol, requiredTicks);
 
             // Se ainda não tem dados suficientes após inicialização, retornar null
             if (!history || !history.prices || history.prices.length < period) {
@@ -141,32 +133,20 @@ class SMAIndicator {
         }
 
         try {
-            // Obter instância do market data
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível para Resistência');
-                return null;
-            }
-
             // ✅ CORRIGIDO: Garantir que o buffer tem dados históricos suficientes
             const requiredTicks = Math.max(period + 50, 200);
+            let history = null;
 
-            // ✅ OTIMIZAÇÃO: Não aguardar, apenas agendar carga se necessário (SYNC)
-            if (marketData.ensurePriceBuffer) {
-                marketData.ensurePriceBuffer(symbol).catch(e => console.warn('Loading background history...'));
-            }
-
-            const history = marketData.getHistoricalTicks(symbol, requiredTicks);
-
-            // ✅ SISTEMA DEVE TER os dados necessários - se não tem, vai retornar null e tentar depois
-            if (!history || !history.prices || history.prices.length < period) {
-                // Silenciar warning durante carregamento
-                // console.warn(`⚠️ Histórico insuficiente para Resistência(${period}): ${history?.prices?.length || 0} ticks (necessário: ${period})`);
-                // ✅ FORÇAR inicialização do histórico se necessário (redundante com ensurePriceBuffer mas seguro)
-                if (marketData.initializeHistoryForSymbol) {
-
-                    marketData.initializeHistoryForSymbol(symbol).catch(e => { });
+            // 🎯 TENTATIVA 1: Usar DerivServiceInstance (Sistema Moderno)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                try {
+                    history = window.DerivServiceInstance.getHistoricalTicksSync(symbol, requiredTicks);
+                } catch (e) {
+                    console.warn('⚠️ [Resistance] Erro ao acessar DerivServiceInstance:', e);
                 }
+            }
+            
+            if (!history || !history.prices || history.prices.length < period) {
                 return null;
             }
 
@@ -195,13 +175,16 @@ class SMAIndicator {
     // Obter último tick (preço atual)
     getLastTick(symbol) {
         try {
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível para último tick');
-                return null;
-            }
+            let history = null;
 
-            const history = marketData.getHistoricalTicks(symbol, 1);
+            // 🎯 TENTATIVA 1: Usar DerivServiceInstance (Sistema Moderno)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                try {
+                    history = window.DerivServiceInstance.getHistoricalTicksSync(symbol, 1);
+                } catch (e) {
+                    console.warn('⚠️ [SMA] Erro ao acessar DerivServiceInstance para último tick:', e);
+                }
+            }
 
             if (!history || !history.prices || history.prices.length === 0) {
                 console.warn(`⚠️ Nenhum tick disponível para ${symbol}`);
@@ -413,15 +396,29 @@ class SMAIndicator {
     // 🔄 NOVO: Obter valor anterior da SMA (para detecção de cruzamento)
     getPreviousSMA(symbol, period) {
         try {
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível para SMA anterior');
-                return null;
-            }
-
             // Obter histórico estendido para calcular SMA anterior
             const requiredTicks = Math.max(period + 20, 60); // Mais dados para calcular anterior
-            const history = marketData.getHistoricalTicks(symbol, requiredTicks);
+            let history = null;
+
+            // 🎯 TENTATIVA 1: Usar DerivServiceInstance (Sistema Moderno)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getHistoricalTicksSync === 'function') {
+                try {
+                    history = window.DerivServiceInstance.getHistoricalTicksSync(symbol, requiredTicks);
+                } catch (e) {
+                    console.warn('⚠️ [SMA] Erro ao acessar DerivServiceInstance para SMA anterior:', e);
+                }
+            }
+
+            // 🎯 TENTATIVA 2: Usar sistema legado (Fallback)
+            if (!history) {
+                const marketData = getMarketDataInstance(SessionManager.getLocalToken());
+                if (marketData) {
+                    history = marketData.getHistoricalTicks(symbol, requiredTicks);
+                } else {
+                    console.error('❌ Market data instance não disponível para SMA anterior');
+                    return null;
+                }
+            }
 
             if (!history || !history.prices || history.prices.length < period + 1) {
                 console.warn(`⚠️ Histórico insuficiente para SMA anterior: ${history?.prices?.length || 0} ticks (necessário: ${period + 1})`);

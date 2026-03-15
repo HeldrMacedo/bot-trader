@@ -231,7 +231,7 @@ class GeminiAI {
 
                 if (promptManager) {
                     // addLog('⚡ Verificando templates locais...', 'info');
-
+                    console.log("strategyText:", strategyText);
                     const localMatch = promptManager.matchStrategy(strategyText);
 
                     if (localMatch) {

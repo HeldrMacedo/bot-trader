@@ -208,8 +208,15 @@ class DigitPatternRulesProcessor {
     extractLastDigit(price) {
         try {
             // Obter marketData e símbolo
+            const currentSymbol = localStorage.getItem('selectedSymbol');
+
+            // 1. Tentar DerivServiceInstance (Novo Sistema)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.extractLastDigitUnified === 'function') {
+                return window.DerivServiceInstance.extractLastDigitUnified(price, currentSymbol || undefined);
+            }
+
+            // 2. Fallback para sistema legado
             const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            const currentSymbol = window.selectedSymbol || SessionManager.getSessionData('selected_symbol');
 
             if (!marketData || !currentSymbol) {
                 console.error('❌ [DIGIT PATTERN] MarketData ou símbolo não disponível');
@@ -219,7 +226,6 @@ class DigitPatternRulesProcessor {
             // 🎯 USAR O MESMO MÉTODO QUE O RODAPÉ USA
             if (typeof marketData.extractLastDigitForAsset === 'function') {
                 const lastDigit = marketData.extractLastDigitForAsset(price, currentSymbol);
-
                 return lastDigit;
             } else {
                 console.error('❌ [DIGIT PATTERN] extractLastDigitForAsset não disponível');
@@ -923,15 +929,15 @@ class DigitPatternRulesProcessor {
     // 🎯 NOVO: Obter último dígito atual
     getLastDigit() {
         try {
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) return null;
-
-            const currentSymbol = window.selectedSymbol || SessionManager.getSessionData('selected_symbol');
+            const currentSymbol = localStorage.getItem('selectedSymbol');
             if (!currentSymbol) return null;
 
-            const history = marketData.getHistoricalTicks(currentSymbol, 1);
-            if (history && history.prices && history.prices.length > 0) {
-                return this.extractLastDigit(history.prices[history.prices.length - 1]);
+            // 1. Tentar DerivServiceInstance (Novo Sistema)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getLastTick === 'function') {
+                const tick = window.DerivServiceInstance.getLastTick(currentSymbol);
+                if (tick) {
+                    return window.DerivServiceInstance.extractLastDigitUnified(tick.quote, currentSymbol);
+                }
             }
 
             return null;
