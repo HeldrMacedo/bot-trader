@@ -352,13 +352,13 @@ export default function AiChatPanel(
                     const inputType = isPattern || isArray ? 'text' : (param.type || 'text');
                     const inputValue = isArray ? String(param.value ?? '') : String(param.value ?? '');
                     return (
-                      <div key={param.key} className="flex flex-col gap-1">
-                        <label className="text-xs text-gray-300">{param.label || param.key}</label>
+                      <div key={param.key} className="flex flex-row gap-1 items-center">
+                        <label className="text-xs text-gray-300 w-1/4">{param.label || param.key}</label>
                         <input
                           type={inputType}
                           value={inputValue}
                           onChange={(e) => handleParameterChange(param, e.target.value)}
-                          className="bg-[#13111c] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                          className="w-full bg-[#13111c] border border-gray-700 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
                           placeholder={isPattern ? 'Ex: XXOX' : undefined}
                         />
                       </div>

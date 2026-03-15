@@ -3,9 +3,44 @@ import { NextResponse } from 'next/server';
 const MODEL_URLS: Record<string, string> = {
   'gemini-2.5-flash': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
   'gemini-2.5-pro': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent',
-  'gemini-3-pro-preview': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent',
-  'gemini-2.0-flash-thinking-exp-01-21': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp-01-21:generateContent'
+  'gemini-2.0-flash': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
 };
+
+// Ordem de fallback: se o modelo solicitado falhar com 429, tentar os outros
+const FALLBACK_ORDER = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro'];
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function parseRetryDelay(data: any): number {
+  try {
+    const details = data?.error?.details;
+    if (Array.isArray(details)) {
+      for (const d of details) {
+        if (d.retryDelay) {
+          const match = d.retryDelay.match(/(\d+)/);
+          if (match) return Math.min(parseInt(match[1], 10) * 1000, 5000);
+        }
+      }
+    }
+  } catch {}
+  return 2000;
+}
+
+async function callModel(url: string, apiKey: string, contents: any, generationConfig: any) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey
+    },
+    body: JSON.stringify({ contents, generationConfig })
+  });
+
+  const data = await response.json().catch(() => null);
+  return { response, data };
+}
 
 export async function POST(req: Request) {
   try {
@@ -27,42 +62,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'contents inválido' }, { status: 400 });
     }
 
-    const response = await fetch(MODEL_URLS[modelId], {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
-      body: JSON.stringify({
-        contents,
-        generationConfig
-      })
-    });
+    // Tentar o modelo solicitado primeiro
+    let { response, data } = await callModel(MODEL_URLS[modelId], apiKey, contents, generationConfig);
 
-    let data = await response.json().catch(() => null);
-    if (!response.ok) {
-      const message = data?.error?.message || data?.message || response.statusText;
-      if (response.status === 404 && typeof message === 'string' && message.includes('v1beta')) {
-        const v1Url = MODEL_URLS[modelId].replace('/v1beta/', '/v1/');
-        const retry = await fetch(v1Url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey
-          },
-          body: JSON.stringify({
-            contents,
-            generationConfig
-          })
-        });
+    // Se 429 (rate limit), fazer retry com delay e fallback para outros modelos
+    if (response.status === 429) {
+      const retryDelay = parseRetryDelay(data);
+      console.log(`[Gemini Proxy] 429 em ${modelId}, aguardando ${retryDelay}ms...`);
+      await sleep(retryDelay);
 
-        const retryData = await retry.json().catch(() => null);
-        if (retry.ok) {
-          return NextResponse.json(retryData, { status: 200 });
+      // Retry no mesmo modelo
+      ({ response, data } = await callModel(MODEL_URLS[modelId], apiKey, contents, generationConfig));
+
+      // Se ainda 429, tentar fallback em outros modelos
+      if (response.status === 429) {
+        for (const fallbackId of FALLBACK_ORDER) {
+          if (fallbackId === modelId || !MODEL_URLS[fallbackId]) continue;
+
+          console.log(`[Gemini Proxy] Fallback para ${fallbackId}...`);
+          await sleep(1000);
+          ({ response, data } = await callModel(MODEL_URLS[fallbackId], apiKey, contents, generationConfig));
+
+          if (response.ok || response.status !== 429) break;
         }
-        return NextResponse.json(retryData || { message: retry.statusText }, { status: retry.status });
       }
+    }
 
+    // Se 404, tentar v1 em vez de v1beta
+    if (!response.ok && response.status === 404) {
+      const message = data?.error?.message || '';
+      if (typeof message === 'string' && message.includes('v1beta')) {
+        const v1Url = MODEL_URLS[modelId].replace('/v1beta/', '/v1/');
+        ({ response, data } = await callModel(v1Url, apiKey, contents, generationConfig));
+        if (response.ok) {
+          return NextResponse.json(data, { status: 200 });
+        }
+      }
+    }
+
+    if (!response.ok) {
       return NextResponse.json(data || { message: response.statusText }, { status: response.status });
     }
 
@@ -71,4 +109,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: e?.message || 'Erro interno' }, { status: 500 });
   }
 }
-

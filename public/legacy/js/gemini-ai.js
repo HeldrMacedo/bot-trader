@@ -23,28 +23,22 @@ class GeminiAI {
         // ✅ CORREÇÃO: Sistema de fallback robusto com modelos Gemini - ORDEM OTIMIZADA
         this.modelVersions = [
             {
-                name: 'versão fl 2.5 flash',
+                name: 'Gemini 2.5 Flash',
                 url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-                description: 'IA Strategy Flash - Rápido, ideal para regras simples (Limite: 128k tokens)',
-                maxTokens: 128000 // Limite de 128k para o modelo Flash inicial
+                description: 'IA Strategy Flash - Rápido, ideal para regras simples',
+                maxTokens: 1048576
             },
             {
-                name: 'versão pro 2.5 Pro',
+                name: 'Gemini 2.5 Pro',
                 url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent',
-                description: 'IA Strategy Pro - Equilíbrio entre lógica e janela de contexto (Limite: 1M tokens)',
-                maxTokens: 1000000 // Limite de 1M para a versão Pro intermediária
+                description: 'IA Strategy Pro - Equilíbrio entre lógica e janela de contexto',
+                maxTokens: 1048576
             },
             {
-                name: 'versão 3 Pro',
-                url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent',
-                description: 'IA Strategy Ultra - Máxima janela de contexto para regras gigantes',
-                maxTokens: null // Sem limite definido (suporta milhões de tokens)
-            },
-            {
-                name: 'versão 3 Pro thinking', // ✅ Raciocínio Profundo
-                url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp-01-21:generateContent',
-                description: 'IA Strategy Thinking - Máxima lógica e contexto para estratégias complexas',
-                maxTokens: null // Sem limite definido
+                name: 'Gemini 2.0 Flash',
+                url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+                description: 'IA Strategy Fallback - Modelo estável de fallback',
+                maxTokens: 1048576
             }
         ];
 
@@ -329,118 +323,89 @@ class GeminiAI {
             }
 
             // 🔄 Tentar com cada versão disponível, começando do modelo ideal
-            for (let attempt = startModelIndex; attempt < this.modelVersions.length; attempt++) {
-                try {
-                    // Atualizar para a versão atual
-                    this.currentModelIndex = attempt;
-                    this.baseUrl = this.modelVersions[attempt].url;
+            // Construir lista de tentativas: modelo ideal primeiro, depois todos os outros em ordem
+            const attemptOrder = [];
+            for (let i = startModelIndex; i < this.modelVersions.length; i++) attemptOrder.push(i);
+            for (let i = 0; i < startModelIndex; i++) attemptOrder.push(i);
 
-                    const currentModel = this.modelVersions[attempt];
+            let lastError = null;
 
-                    // 🛠️ VERIFICAÇÃO REDUNDANTE REMOVIDA: Já calculamos o modelo ideal acima
-                    // A lógica antiga de "pular" dentro do loop foi removida pois agora começamos do modelo correto
+            for (let attemptIdx = 0; attemptIdx < attemptOrder.length; attemptIdx++) {
+                const modelIndex = attemptOrder[attemptIdx];
+                const currentModel = this.modelVersions[modelIndex];
 
-                    // addLog(`🤖 Tentando com ${currentModel.name}...`, 'info');
+                // Até 2 tentativas por modelo (1 normal + 1 retry após rate limit)
+                for (let retry = 0; retry < 2; retry++) {
+                    try {
+                        this.currentModelIndex = modelIndex;
+                        this.baseUrl = currentModel.url;
 
-                    // onProgress(30 + (attempt * 10), `Enviando para ${currentModel.name}...`);
-
-                    // 🔥 CHAMAR API
-                    // addLog('📤 Enviando requisição para IA API...', 'info');
-                    const response = await this.callGeminiAPI(enrichedPrompt, isAlreadyPaid);
-
-                    // addLog('📥 Resposta recebida do IA ', 'success');
-                    // onProgress(70, 'Processando resposta...');
-
-                    // 🔍 Validar resposta
-                    // addLog('🔍 Validando estrutura da resposta...', 'info');
-                    if (!response) {
-                        throw new Error('Resposta vazia da IA');
-                    }
-
-                    let geminiJson;
-
-                    // Se callGeminiAPI já retornou um objeto JSON parseado
-                    if (typeof response === 'object' && response.groups) {
-                        // addLog('✅ JSON já parseado pela API', 'success');
-                        geminiJson = response;
-                    }
-                    // Se retornou string, precisamos extrair o JSON
-                    else if (typeof response === 'string') {
-                        // 🔍 Extrair JSON
-                        // onProgress(80, 'Extraindo JSON da resposta...');
-                        // addLog('📋 Extraindo JSON da resposta...', 'info');
-
-                        const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) ||
-                            response.match(/```\s*([\s\S]*?)\s*```/) ||
-                            response.match(/({[\s\S]*})/);
-
-                        if (!jsonMatch) {
-                            throw new Error('Não foi possível encontrar JSON na resposta');
+                        if (retry > 0) {
+                            console.log(`🔄 Retry ${retry} para ${currentModel.name} após aguardar rate limit...`);
                         }
 
-                        // addLog('✅ JSON extraído com sucesso', 'success');
+                        const response = await this.callGeminiAPI(enrichedPrompt, isAlreadyPaid);
 
-                        const jsonText = jsonMatch[1] || jsonMatch[0];
-                        geminiJson = JSON.parse(jsonText);
+                        if (!response) {
+                            throw new Error('Resposta vazia da IA');
+                        }
 
-                        // addLog('✅ JSON parseado com sucesso', 'success');
-                    }
-                    else {
-                        throw new Error('Formato de resposta inválido da IA');
-                    }
+                        let geminiJson;
 
-                    // 🔍 Formatar resposta
-                    // onProgress(90, 'Formatando regras...');
-                    // addLog('🎨 Formatando regras para o sistema...', 'info');
+                        if (typeof response === 'object' && response.groups) {
+                            geminiJson = response;
+                        } else if (typeof response === 'string') {
+                            const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) ||
+                                response.match(/```\s*([\s\S]*?)\s*```/) ||
+                                response.match(/({[\s\S]*})/);
 
-                    const formattedRules = this.formatGeminiResponse(geminiJson);
+                            if (!jsonMatch) {
+                                throw new Error('Não foi possível encontrar JSON na resposta');
+                            }
 
-                    // ✨ NOVO: Anexar prompt enriquecido para fins de exportação/debug
-                    if (formattedRules) {
-                        formattedRules._gemini_prompt = enrichedPrompt;
-                    }
+                            const jsonText = jsonMatch[1] || jsonMatch[0];
+                            geminiJson = JSON.parse(jsonText);
+                        } else {
+                            throw new Error('Formato de resposta inválido da IA');
+                        }
 
-                    // addLog(`✅ ${formattedRules.groups?.length || 0} grupo(s) formatado(s)`, 'success');
-                    // addLog('🎉 Tradução concluída com sucesso!', 'success');
+                        const formattedRules = this.formatGeminiResponse(geminiJson);
 
-                    // 🔒 LIMPAR FLAG DE PROCESSAMENTO
-                    this.isProcessing = false;
+                        if (formattedRules) {
+                            formattedRules._gemini_prompt = enrichedPrompt;
+                        }
 
-                    // onProgress(100, 'Tradução concluída!');
-                    return formattedRules;
+                        this.isProcessing = false;
+                        return formattedRules;
 
-                } catch (error) {
-                    // Se é a última tentativa, lançar erro
-                    if (attempt === this.modelVersions.length - 1) {
-                        console.error(` Erro: ${error.message}`)
-                        throw error;
-                    }
+                    } catch (error) {
+                        lastError = error;
+                        const isRateLimit = error.message && error.message.includes('Rate limit');
 
-                    const currentModel = this.modelVersions[attempt];
-                    console.error(`⚠️ Falha com ${currentModel.name}: ${error.message}`);
+                        if (typeof window !== 'undefined' && window.logConfig && typeof window.logConfig.warn === 'function') {
+                            window.logConfig.warn('gemini_api', `Falha com ${currentModel.name}: ${error.message}`);
+                        }
 
-                    // ✅ CORREÇÃO: Log seguro sem depender de logConfig.shouldLog
-                    if (typeof window !== 'undefined' && window.logConfig && typeof window.logConfig.warn === 'function') {
-                        window.logConfig.warn('gemini_api', `Falha com ${currentModel.name}: ${error.message}`);
+                        // Se for rate limit e é a primeira tentativa deste modelo, aguardar e tentar de novo
+                        if (isRateLimit && retry === 0) {
+                            const waitMs = 3000;
+                            console.warn(`⏱️ Rate limit em ${currentModel.name}. Aguardando ${waitMs}ms antes de retry...`);
+                            await new Promise(resolve => setTimeout(resolve, waitMs));
+                            continue; // retry mesmo modelo
+                        }
+
+                        // Se não é rate limit, ou já fez retry, ir para o próximo modelo
+                        console.error(`⚠️ Falha com ${currentModel.name}: ${error.message}`);
+                        break; // sai do retry loop, vai para próximo modelo
                     }
                 }
-
-                // Se não é a última tentativa, tentar próxima versão
-                if (attempt < this.modelVersions.length - 1) {
-                    // onProgress(30 + ((attempt + 1) * 10), `Tentando próximo modelo...`);
-                    // addLog('🔄 Tentando próximo modelo...', 'info');
-                    continue;
-                }
-
-                // Se todas as versões falharam
-                console.error("❌ Todas as versões da IA falharam");
-                console.error("🔍 Versões testadas:", this.modelVersions.map(m => m.name));
-
-
-                // 🔒 LIMPAR FLAG DE PROCESSAMENTO
-                this.isProcessing = false;
-                throw new Error(`Falha em todas as versões da IA. Último erro: ${error.message}`);
             }
+
+            // Se chegou aqui, todos os modelos falharam
+            console.error("❌ Todas as versões da IA falharam");
+            console.error("🔍 Versões testadas:", this.modelVersions.map(m => m.name));
+            this.isProcessing = false;
+            throw lastError || new Error('Falha em todas as versões da IA');
         } catch (error) {
             this.isProcessing = false;
             console.error(error);
@@ -1480,26 +1445,25 @@ Responda APENAS com o JSON estruturado, sem explicações adicionais.
             ? window.logConfig.shouldLog('gemini_api', 0.1) : false;
 
 
-        // 🔍 DEBUG: Log dos dados que seriam enviados ao Proxy
+        // Extrair modelId da URL (ex: "gemini-2.5-flash" de ".../models/gemini-2.5-flash:generateContent")
+        const modelIdMatch = this.baseUrl.match(/models\/([^:]+):/);
+        const modelId = modelIdMatch ? modelIdMatch[1] : null;
+
         const proxyPayload = {
-            loginId: SessionManager.getUserSessionId(),
-            token: (SessionManager.getLocalToken() || localStorage.getItem(`token_${SessionManager.getUserSessionId()}`) || localStorage.getItem(`access_token_session_${SessionManager.getUserSessionId()}`) || '').trim(),
+            modelId: modelId,
             contents: requestBody.contents,
-            generationConfig: requestBody.generationConfig,
-            modelUrl: this.baseUrl,
-            isAlreadyDebited: isAlreadyPaid
+            generationConfig: requestBody.generationConfig
         };
 
         if (shouldLog) {
-            console.log(`📡 [${callId}] Enviando requisição para o Proxy:`, {
-                loginId: proxyPayload.loginId,
-                modelUrl: proxyPayload.modelUrl,
+            console.log(`📡 [${callId}] Enviando requisição para /api/gemini:`, {
+                modelId: proxyPayload.modelId,
                 promptPreview: prompt.substring(0, 100) + '...'
             });
         }
 
         // ✅ SEGURANÇA: Chamar via Proxy no Servidor (Protege a API Key e Créditos)
-        const response = await fetch('/api/ai/proxy', {
+        const response = await fetch('/api/gemini', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
