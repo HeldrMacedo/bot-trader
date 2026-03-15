@@ -40,6 +40,8 @@ export default function AiChatPanel(
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [showJsonModal, setShowJsonModal] = useState(false);
+  const [openDropdownGroup, setOpenDropdownGroup] = useState<string | null>(null);
+  const dropdownContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -48,6 +50,16 @@ export default function AiChatPanel(
     useEffect(() => {
       scrollToBottom();
     }, [messages]);
+
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (dropdownContainerRef.current && !dropdownContainerRef.current.contains(e.target as Node)) {
+          setOpenDropdownGroup(null);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
 
     const autoResize = () => {
     const el = textareaRef.current;
@@ -139,6 +151,31 @@ export default function AiChatPanel(
       const lastToken = tokens[tokens.length - 1];
       current[lastToken as any] = value;
       return next;
+    };
+
+    const getGroupActivationConfig = (groupNum: number) => {
+      const groups = configRules?.groupActivation || {};
+      const config = groups[groupNum];
+      return {
+        initial: config?.initial ?? true,
+        winReal: config?.winReal ?? true,
+        lossReal: config?.lossReal ?? true,
+        winSimulated: config?.winSimulated ?? true,
+        lossSimulated: config?.lossSimulated ?? true,
+      };
+    };
+
+    const handleGroupActivationChange = (groupNum: number, type: string, checked: boolean) => {
+      if (!configRules) return;
+      const currentActivation = configRules.groupActivation || {};
+      const currentGroup = currentActivation[groupNum] || {
+        initial: true, winReal: true, lossReal: true, winSimulated: true, lossSimulated: true,
+      };
+      const updatedActivation = {
+        ...currentActivation,
+        [groupNum]: { ...currentGroup, [type]: checked },
+      };
+      onConfigRulesChange?.({ ...configRules, groupActivation: updatedActivation });
     };
 
     const handleParameterChange = (param: any, rawValue: string) => {
@@ -337,10 +374,68 @@ export default function AiChatPanel(
           {configRules && Object.keys(groupedParameters).sort().map((groupKey) => {
             const groupParams = groupedParameters[groupKey];
             const ruleText = getGroupRuleText(groupKey);
+            const groupMatch = groupKey.match(/Grupo (\d+)/);
+            const groupNum = groupMatch ? parseInt(groupMatch[1], 10) : 1;
+            const activationConfig = getGroupActivationConfig(groupNum);
+            const isDropdownOpen = openDropdownGroup === groupKey;
             return (
               <div key={groupKey} className="border border-gray-800 rounded-lg p-3 bg-[#0d0a18] space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm text-white font-semibold">{groupKey}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative" ref={isDropdownOpen ? dropdownContainerRef : undefined}>
+                      <button
+                        type="button"
+                        className="text-gray-400  hover:text-white text-xs px-1 py-0.5 rounded hover:bg-gray-700 transition-colors"
+                        title="Configurar ativação deste grupo"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDropdownGroup(isDropdownOpen ? null : groupKey);
+                        }}
+                      >
+                        ▼
+                      </button>
+                      {isDropdownOpen && (
+                        <div className="absolute left-0 top-full mt-1 z-50 bg-[#1e1b2e] border border-gray-700 rounded-lg shadow-xl p-3 w-[200px]">
+                          <div className="text-xs text-gray-300 font-semibold mb-2">Ativar este grupo em:</div>
+                          <div className="space-y-1.5">
+                            {/* Iniciar (Full Width) */}
+                            <label className="flex items-center gap-2 text-xs text-gray-300 hover:text-white cursor-pointer py-1">
+                                <input
+                                type="checkbox"
+                                checked={activationConfig['initial']}
+                                onChange={(e) => handleGroupActivationChange(groupNum, 'initial', e.target.checked)}
+                                className="accent-blue-500 w-3.5 h-3.5"
+                                />
+                                <span>🚀 Iniciar</span>
+                            </label>
+
+                            <div className="border-t border-gray-700 my-1.5" />
+
+                            {/* Grid 2x2 para os demais */}
+                            <div className="grid grid-cols-2 gap-x-2 mt-2 gap-y-2">
+                                {([
+                                    { key: 'winReal', label: 'Win Real' },
+                                    { key: 'lossReal', label: 'Loss Real' },
+                                    { key: 'winSimulated', label: 'Win Sim' },
+                                    { key: 'lossSimulated', label: 'Loss Sim' },
+                                ] as const).map((option) => (
+                                    <label key={option.key} className="flex items-center gap-2 text-xs text-gray-300 hover:text-white cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={activationConfig[option.key]}
+                                            onChange={(e) => handleGroupActivationChange(groupNum, option.key, e.target.checked)}
+                                            className="accent-blue-500 w-3.5 h-3.5"
+                                        />
+                                        <span className="whitespace-nowrap">{option.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm text-white font-semibold">{groupKey}</div>
+                  </div>
                   {ruleText && (
                     <div className="text-xs text-gray-400">{ruleText}</div>
                   )}
