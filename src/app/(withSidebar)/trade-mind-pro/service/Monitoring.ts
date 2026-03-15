@@ -26,6 +26,7 @@ interface Config {
   onTick?: (data: TickData) => void;
   onProbabilityUpdate?: (stats: ProbabilityStats) => void;
   onRulesVisualUpdate?: (rulesData: RulesVisualData) => void;
+  onTradeSignal?: (groupId: number | string, entryPrice: number) => void;
 }
 
 export interface RulesVisualRule {
@@ -59,6 +60,17 @@ export class MonitoringService {
   private state: string;
   private currentTranslatedRules: any = null;
   private currentRulesVisualData: RulesVisualData | null = null;
+
+  // Current tick price for trade signals
+  private currentTickPrice = 0;
+
+  // Trade execution state
+  private isExecutionActive = false;
+  private isAwaitingTrade = false;
+  private groupActivationConfig: Record<number, any> | null = null;
+  private lastTradeOutcome: { result: string; simulated: boolean } | null = null;
+  private cooldownTicksRemaining = 0;
+  private cooldownTicksTotal = 0;
   private constructor() {
     this.deriv = DerivService.getInstance();
     this.legacyBridge = LegacyBridgeService.getInstance();
@@ -363,6 +375,58 @@ export class MonitoringService {
   }
 
   /**
+   * Ativa execução de trades (o MonitoringService passa a emitir sinais)
+   */
+  public startExecution(groupActivation?: Record<number, any> | null, cooldownTicks?: number) {
+    this.isExecutionActive = true;
+    this.isAwaitingTrade = false;
+    this.groupActivationConfig = groupActivation || null;
+    this.lastTradeOutcome = null;
+    this.cooldownTicksRemaining = 0;
+    this.cooldownTicksTotal = cooldownTicks || 3;
+  }
+
+  /**
+   * Desativa execução de trades
+   */
+  public stopExecution() {
+    this.isExecutionActive = false;
+    this.isAwaitingTrade = false;
+    this.cooldownTicksRemaining = 0;
+  }
+
+  /**
+   * Notifica o resultado de um trade (chamado pelo page.tsx via interceptor)
+   */
+  public notifyTradeResult(result: 'WIN' | 'LOSS', simulated: boolean) {
+    this.lastTradeOutcome = { result, simulated };
+    this.isAwaitingTrade = false;
+    this.cooldownTicksRemaining = this.cooldownTicksTotal;
+  }
+
+  /**
+   * Retorna os IDs dos grupos ativos com base no groupActivationConfig e último resultado
+   */
+  private getActiveGroupIds(): number[] | null {
+    const cfg = this.groupActivationConfig;
+    if (!cfg) return null;
+
+    const keys = Object.keys(cfg).filter(k => k !== '_meta');
+    if (keys.length === 0) return null;
+
+    if (!this.lastTradeOutcome) {
+      // Sem trade anterior → usar flag 'initial'
+      return keys.filter(k => cfg[k]?.initial !== false).map(k => parseInt(k, 10));
+    }
+
+    const conditionKey = this.lastTradeOutcome.result === 'WIN'
+      ? (this.lastTradeOutcome.simulated ? 'winSimulated' : 'winReal')
+      : (this.lastTradeOutcome.simulated ? 'lossSimulated' : 'lossReal');
+
+    return keys.filter(k => cfg[k]?.[conditionKey] !== false).map(k => parseInt(k, 10));
+  }
+
+  /**
    * Inscreve nos ticks da Deriv
    */
   private async subscribeToTicks(): Promise<void> {
@@ -412,7 +476,8 @@ export class MonitoringService {
   private handleTick(tick: any): void {
 
     const { symbol, quote: price } = tick;
-    
+    this.currentTickPrice = price;
+
     const digit = this.extractLastDigit(price, symbol);
     
     if (digit === null || digit === undefined || isNaN(digit) || digit < 0 || digit > 9) {
@@ -867,6 +932,33 @@ export class MonitoringService {
         window.dispatchEvent(new CustomEvent('rulesUpdated', {
           detail: rulesData
         }));
+      }
+
+      // Trade signal: verificar se algum grupo ativo está satisfeito
+      if (this.isExecutionActive && !isPreview && !this.isAwaitingTrade && this.cooldownTicksRemaining <= 0) {
+        const activeGroupIds = this.getActiveGroupIds();
+
+        for (const group of rulesData.groups) {
+          const groupId = Number(group.id);
+
+          // Verificar se grupo está ativo por activation config
+          if (activeGroupIds !== null && !activeGroupIds.includes(groupId)) continue;
+
+          // Verificar se TODAS as regras do grupo estão satisfeitas (AND)
+          const allSatisfied = group.rules.every(r => r.status === 'satisfied' || r.status === 'satisfied-cooldown');
+
+          if (allSatisfied && group.rules.length > 0) {
+            this.isAwaitingTrade = true;
+            const entryPrice = this.currentTickPrice || 0;
+            this.config?.onTradeSignal?.(groupId, entryPrice);
+            break; // OR entre grupos — executa no primeiro que satisfaz
+          }
+        }
+      }
+
+      // Decrementar cooldown
+      if (this.cooldownTicksRemaining > 0) {
+        this.cooldownTicksRemaining--;
       }
     } catch (error) {
       console.error('[MonitoringService] setTranslatedRules error:', error);

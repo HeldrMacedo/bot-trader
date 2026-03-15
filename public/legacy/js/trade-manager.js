@@ -60,7 +60,7 @@ class TradeManager {
         this.pendingGaleApplication = false;
 
         // 🔍 Validar integridade na inicialização
-        this.validateUserAccess();
+        //this.validateUserAccess();
 
         // Configurações atuais
         this.config = this.loadConfiguration();

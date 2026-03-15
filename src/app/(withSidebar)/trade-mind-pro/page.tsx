@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartBarIcon, ChatBubbleLeftIcon, CodeBracketIcon, PlayIcon } from '@heroicons/react/24/solid';
+import { ChartBarIcon, ChatBubbleLeftIcon, CodeBracketIcon, PlayIcon, StopIcon } from '@heroicons/react/24/solid';
 import { toast ,ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AccountSelector from './components/AccountSelector';
@@ -13,9 +13,10 @@ import ManagementConfig, { ManagementConfigData, DEFAULT_MANAGEMENT_CONFIG } fro
 import MarketAnalysisPanel from './components/MarketAnalysisPanel';
 import TradeConfig, { TradeConfigData, DEFAULT_CONFIG as DEFAULT_TRADE_CONFIG } from './components/TradeConfig';
 import VolatilitySelector from './components/VolatilitySelector';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { DerivService } from '@/app/services/DerivService';
 import { monitoringService, RulesVisualData } from './service/Monitoring';
+import { LegacyBridgeService } from './service/LegacyBridge';
 
 export default function TradeMindPro() {
   const [loading, setLoading] = useState(true);
@@ -83,6 +84,26 @@ export default function TradeMindPro() {
   // Estado para estatísticas de mercado (do MonitoringService)
   const [marketStats, setMarketStats] = useState<any>(null);
   const [rulesVisualData, setRulesVisualData] = useState<RulesVisualData | null>(null);
+  const addLog = useCallback((msg: string) => {
+    setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
+  }, []);
+
+  const detectIsVirtualAccount = useCallback((): boolean => {
+    try {
+      const accountsStr = localStorage.getItem('deriv_accounts');
+      if (!accountsStr) return true;
+      const accounts = JSON.parse(accountsStr);
+      const account = Array.isArray(accounts) ? accounts[0] : null;
+      if (!account) return true;
+      // Check if active token belongs to a virtual account
+      const activeToken = account.activeToken;
+      const tokenInfo = account.tokens?.find((t: any) => t.token === activeToken);
+      return tokenInfo?.is_virtual ?? true;
+    } catch {
+      return true;
+    }
+  }, []);
+
   const getLoginIdFromStorage = (): string | null => {
     try {
       const accountsStr = localStorage.getItem('deriv_accounts');
@@ -140,6 +161,47 @@ export default function TradeMindPro() {
     
   }, []);
 
+  // Effect para listeners do LegacyBridge (trade results, mode changes, stop limits)
+  useEffect(() => {
+    const bridge = LegacyBridgeService.getInstance();
+
+    const handleTrade = (data: any) => {
+      setResultsList(prev => [{
+        ...data,
+        type: data.contractType,
+        target: String(data.prediction ?? data.entryPrice ?? ''),
+        exit: String(data.exitPrice ?? ''),
+      }, ...prev]);
+
+      const emoji = data.status === 'WIN' ? '✅' : '❌';
+      addLog(`${emoji} ${data.mode} Trade: ${data.contractType} | Profit: $${data.profit?.toFixed(2)}`);
+
+      monitoringService.notifyTradeResult(data.status, data.mode === 'SIMULACAO');
+    };
+
+    const handleModeChange = (data: any) => {
+      addLog(`🔄 Modo: ${data.mode} - ${data.reason}`);
+      toast.info(`Modo: ${data.mode}`);
+    };
+
+    const handleStop = (data: any) => {
+      setIsRunning(false);
+      monitoringService.stopExecution();
+      bridge.stopTradeManager();
+      addLog(`🛑 ${data.message || `Stop: ${data.type}`}`);
+    };
+
+    bridge.on('trade', handleTrade);
+    bridge.on('mode_change', handleModeChange);
+    bridge.on('stop_limit', handleStop);
+
+    return () => {
+      bridge.removeListener('trade', handleTrade);
+      bridge.removeListener('mode_change', handleModeChange);
+      bridge.removeListener('stop_limit', handleStop);
+    };
+  }, [addLog]);
+
   // Effect para iniciar monitoring quando símbolo é selecionado
   useEffect(() => {
     if (!selectedSymbol) return;
@@ -151,15 +213,21 @@ export default function TradeMindPro() {
           symbol: selectedSymbol,
           onTick: (data) => {
             // Callback quando tick é recebido
-   
           },
           onProbabilityUpdate: (stats) => {
-            // Callback quando probabilidades são atualizadas
             setMarketStats(stats);
           },
           onRulesVisualUpdate: (rulesData) => {
-            console.log("rulesData ", rulesData);
             setRulesVisualData(rulesData);
+          },
+          onTradeSignal: (groupId, entryPrice) => {
+            if (typeof window !== 'undefined' && (window as any).tradeManager) {
+              const tm = (window as any).tradeManager;
+              if (tm.isActive) {
+                addLog(`⚡ Sinal detectado! Grupo ${groupId} | Preço: ${entryPrice}`);
+                tm.executeTrade(entryPrice, groupId);
+              }
+            }
           }
         });
         
@@ -178,23 +246,75 @@ export default function TradeMindPro() {
     };
   }, [selectedSymbol]);
 
-  const saveCurrentConfiguration = () => {
-    // Combine all configurations
-    const fullConfig = {
-      ...tradeConfig,
-      ...managementConfig,
-      ...controllerConfig,
-      selectedSymbol
-    };
-    
-    // Save to localStorage with a combined key
-    localStorage.setItem('trade_config_full', JSON.stringify({
-      config: fullConfig,
-      _timestamp: Date.now(),
-      _autoSaved: true
-    }));
-    
-    toast.success('Configurações salvas com sucesso!');
+  const toggleBot = async () => {
+    if (isRunning) {
+      // STOP
+      monitoringService.stopExecution();
+      LegacyBridgeService.getInstance().stopTradeManager();
+      setIsRunning(false);
+      addLog('Bot parado pelo usuário.');
+      return;
+    }
+
+    // Validações
+    if (!selectedSymbol) { toast.warning('Selecione um símbolo'); return; }
+    if (!translatedRules) { toast.warning('Defina uma estratégia primeiro'); return; }
+
+    try {
+      setIsStarting(true);
+      const bridge = LegacyBridgeService.getInstance();
+      await bridge.loadLegacyScripts();
+
+      // Salvar config completa no localStorage
+      const fullConfig = { ...tradeConfig, ...managementConfig, ...controllerConfig, selectedSymbol };
+      localStorage.setItem('trade_config_full', JSON.stringify({
+        config: fullConfig, _timestamp: Date.now(), _autoSaved: true
+      }));
+
+      // Configurar trade manager com configs do React
+      bridge.configureTradeManager({
+        symbol: selectedSymbol,
+        contractType: tradeConfig.contractType,
+        tradeType: tradeConfig.tradeType,
+        duration: tradeConfig.duration,
+        durationUnit: tradeConfig.durationUnit,
+        prediction: tradeConfig.prediction,
+        barrier: tradeConfig.barrier,
+        stake: managementConfig.stake,
+        galeActive: managementConfig.galeMultiplier > 1,
+        galeAdjustment: managementConfig.galeMultiplier,
+        galeSplit: managementConfig.galeSplit,
+        galeSplitThreshold: managementConfig.galeSplitThreshold,
+        sorosLimit: managementConfig.sorosLimit,
+        sorosPercentage: managementConfig.sorosProfitPercentage,
+        galeRemovesSoros: managementConfig.galeRemovesSoros,
+        goal: managementConfig.goal,
+        stopLoss: managementConfig.stopLoss,
+        winReal: controllerConfig.winReal,
+        lossReal: controllerConfig.lossReal,
+        winSimulated: controllerConfig.winSimulated,
+        lossSimulated: controllerConfig.lossSimulated,
+        cooldownPeriod: controllerConfig.cooldownPeriod,
+        tradeReal: !detectIsVirtualAccount()
+      });
+
+      // Ativar execução no MonitoringService
+      monitoringService.startExecution(
+        translatedRules.groupActivation || null,
+        controllerConfig.cooldownPeriod || 3
+      );
+
+      setIsRunning(true);
+      setMainView('dashboard');
+      addLog('🚀 Bot iniciado');
+      addLog(`📊 Símbolo: ${selectedSymbol} | Stake: $${managementConfig.stake}`);
+      addLog(`📋 Modo inicial: ${detectIsVirtualAccount() ? 'SIMULACAO' : 'Aguardando...'}`);
+    } catch (error: any) {
+      toast.error('Erro ao iniciar o bot');
+      addLog(`❌ Erro: ${error.message}`);
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   const handleAiMessage = async (text: string) => {
@@ -342,11 +462,14 @@ export default function TradeMindPro() {
 
         <div className="p-4 border-t border-gray-800">
           <button
-            onClick={saveCurrentConfiguration}
-            className="w-full py-3 rounded-lg font-bold text-white shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed bg-green-600 hover:bg-green-700"
+            onClick={toggleBot}
+            disabled={isStarting}
+            className={`w-full py-3 rounded-lg font-bold text-white shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+            }`}
           >
-            <PlayIcon className="w-5 h-5" />
-            INICIAR
+            {isRunning ? <StopIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
+            {isStarting ? 'INICIANDO...' : isRunning ? 'PARAR' : 'INICIAR'}
           </button>
         </div>
       </div>

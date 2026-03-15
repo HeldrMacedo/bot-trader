@@ -50,6 +50,7 @@ declare global {
     
     // Stop & Monitor
     StopMonitor: any;
+    getTradeManagerInstance: () => any;
     getMarketDataInstance?: (token: string) => any;
     marketDataInstance?: any;
     formatGeneratorInstance?: any;
@@ -134,15 +135,15 @@ export class LegacyBridgeService extends EventEmitter {
       '/legacy/js/ai-chat-context.js',
 
       // Trade Execution (Depende de tudo acima)
-    //   '/legacy/js/trade/TradeContractSelector.js',
-    //   '/legacy/js/trade/TradeModeRiskController.js',
-    //   '/legacy/js/trade/TradeSessionConfig.js',
-    //   '/legacy/js/trade/TradeSettlementReporter.js',
-    //   '/legacy/js/trade-messages.js',
-    //   '/legacy/js/commission-tracker.js',
-    //   '/legacy/js/stop-monitor.js',
-    //   '/legacy/js/pause_manager.js',
-    //   '/legacy/js/trade-manager.js',
+      '/legacy/js/trade/TradeContractSelector.js',
+      '/legacy/js/trade/TradeModeRiskController.js',
+      '/legacy/js/trade/TradeSessionConfig.js',
+      '/legacy/js/trade/TradeSettlementReporter.js',
+      '/legacy/js/trade-messages.js',
+      '/legacy/js/commission-tracker.js',
+      '/legacy/js/stop-monitor.js',
+      '/legacy/js/pause_manager.js',
+      '/legacy/js/trade-manager.js',
     //   '/legacy/js/headless-monitoring.js',
       
        // Orquestrador headless
@@ -205,19 +206,19 @@ export class LegacyBridgeService extends EventEmitter {
   }
 
   private setupModeChangeInterceptor() {
-      // Aguardar um pouco para garantir que TradeManager foi instanciado (se aplicável)
       setTimeout(() => {
-          // Check for instance (tradeManager)
           if (typeof window.tradeManager !== 'undefined') {
               const tm = window.tradeManager;
               const originalOnModeChange = tm.onModeChange;
               const self = this;
-              
+              let previousMode = tm.currentMode || 'SIMULACAO';
+
               tm.onModeChange = function(mode: string, reason: string) {
-                  console.log(`[LegacyBridge] Mudança de modo: ${mode} (${reason})`);
-                  
-                  self.emit('mode_change', { mode, reason });
-                  
+                  console.log(`[LegacyBridge] Mudança de modo: ${previousMode} → ${mode} (${reason})`);
+
+                  self.emit('mode_change', { mode, reason, previousMode });
+                  previousMode = mode;
+
                   if (originalOnModeChange) {
                       originalOnModeChange.call(tm, mode, reason);
                   }
@@ -309,43 +310,45 @@ export class LegacyBridgeService extends EventEmitter {
   }
 
   private setupTradeMessageInterceptor() {
-      // Garantir que a classe existe antes de tentar patchear
       if (typeof window.TradeMessagesManager !== 'undefined' && window.TradeMessagesManager.prototype) {
           const originalAddTradeMessage = window.TradeMessagesManager.prototype.addTradeMessage;
           const self = this;
-          
+
           window.TradeMessagesManager.prototype.addTradeMessage = function(...args: any[]) {
-              // 1. Chamar implementação original
               const result = originalAddTradeMessage.apply(this, args);
-              
-              // 2. Emitir evento para o React
+
               try {
                   const [contractType, entryPrice, exitPrice, mode, isWin, stake, profit, galeMultiplier, prediction] = args;
-                  
+
+                  // Dados completos do trade
+                  const tm = typeof window.tradeManager !== 'undefined' ? window.tradeManager : null;
                   const tradeData = {
-                      id: Date.now() + Math.random(),
-                      tradeType: contractType,
-                      entryPrice,
-                      exitPrice,
-                      mode,
-                      status: isWin ? 'WIN' : 'LOSS',
+                      id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                      contractType,
+                      entryPrice: String(entryPrice || ''),
+                      exitPrice: String(exitPrice || ''),
+                      mode: mode || 'SIMULACAO',
+                      status: isWin ? 'WIN' as const : 'LOSS' as const,
                       stake: parseFloat(stake || 0),
                       profit: parseFloat(profit || 0),
+                      prediction: prediction !== undefined ? prediction : null,
+                      symbol: tm?.config?.symbol || window.selectedSymbol || '',
                       timestamp: new Date(),
-                      prediction
+                      payout: tm?.currentProposalPayout || null,
+                      isSimulation: mode === 'SIMULACAO' ? 'SIMULACAO' : 'REAL'
                   };
-                  
+
                   self.emit('trade', tradeData);
                   console.log('[LegacyBridge] Trade interceptado:', tradeData);
               } catch (e) {
                   console.error('[LegacyBridge] Erro ao interceptar trade:', e);
               }
-              
+
               return result;
           };
           console.log('[LegacyBridge] Interceptador de TradeMessagesManager configurado.');
       } else {
-          console.warn('[LegacyBridge] TradeMessagesManager não encontrado ou inválido para intercepção.');
+          console.warn('[LegacyBridge] TradeMessagesManager não encontrado para intercepção.');
       }
   }
 
@@ -478,6 +481,78 @@ export class LegacyBridgeService extends EventEmitter {
             }
         };
     }
+  }
+
+  /**
+   * Configura o TradeManager legado com as configurações do React
+   */
+  public configureTradeManager(config: any) {
+    let tm = window.tradeManager;
+
+    // Se não existe instância, tentar criar via factory
+    if (!tm && typeof window.getTradeManagerInstance === 'function') {
+      tm = window.getTradeManagerInstance();
+    }
+
+    if (!tm) {
+      console.error('[LegacyBridge] TradeManager não disponível para configuração.');
+      return;
+    }
+
+    // Mapear config do React → config do TradeManager legado
+    const mappedConfig: any = {};
+
+    if (config.symbol) mappedConfig.symbol = config.symbol;
+    if (config.contractType) mappedConfig.contractType = config.contractType;
+    if (config.duration !== undefined) mappedConfig.duration = config.duration;
+    if (config.durationUnit) mappedConfig.durationUnit = config.durationUnit;
+    if (config.prediction !== undefined) {
+      mappedConfig.prediction = { type: 'digit', value: config.prediction };
+    }
+    if (config.barrier !== undefined) mappedConfig.barrier = config.barrier;
+    if (config.stake !== undefined) mappedConfig.stake = config.stake;
+    if (config.galeActive !== undefined) mappedConfig.galeActive = config.galeActive;
+    if (config.galeAdjustment !== undefined) mappedConfig.galeAdjustment = config.galeAdjustment;
+    if (config.galeSplit !== undefined) mappedConfig.galeSplit = config.galeSplit;
+    if (config.galeSplitThreshold !== undefined) mappedConfig.galeSplitThreshold = config.galeSplitThreshold;
+    if (config.cooldownPeriod !== undefined) mappedConfig.cooldownPeriod = config.cooldownPeriod;
+    if (config.sorosLimit !== undefined) mappedConfig.sorosLimit = config.sorosLimit;
+    if (config.sorosPercentage !== undefined) mappedConfig.sorosPercentage = config.sorosPercentage;
+    if (config.galeRemovesSoros !== undefined) mappedConfig.galeRemovesSoros = config.galeRemovesSoros;
+
+    // Controller limits → legacy naming
+    if (config.winReal !== undefined) mappedConfig.realWinsLimit = config.winReal;
+    if (config.lossReal !== undefined) mappedConfig.realLossesLimit = config.lossReal;
+    if (config.winSimulated !== undefined) mappedConfig.simulatedWinsLimit = config.winSimulated;
+    if (config.lossSimulated !== undefined) mappedConfig.simulatedLossesLimit = config.lossSimulated;
+
+    // Management: goal/stopLoss
+    if (config.goal !== undefined) mappedConfig.goal = config.goal;
+    if (config.stopLoss !== undefined) mappedConfig.stopLoss = config.stopLoss;
+
+    // Aplicar config
+    Object.assign(tm.config, mappedConfig);
+
+    // Configurar modo real/virtual
+    if (config.tradeReal !== undefined) {
+      tm.tradeReal = config.tradeReal;
+    }
+
+    // Ativar o trade manager
+    tm.start();
+
+    console.log('[LegacyBridge] TradeManager configurado:', mappedConfig);
+  }
+
+  /**
+   * Para o TradeManager legado
+   */
+  public stopTradeManager() {
+    if (typeof window.tradeManager !== 'undefined') {
+      window.tradeManager.stop();
+      console.log('[LegacyBridge] TradeManager parado.');
+    }
+    this.emit('stop_monitoring');
   }
 
   // --- Helpers de Acesso às Instâncias ---
