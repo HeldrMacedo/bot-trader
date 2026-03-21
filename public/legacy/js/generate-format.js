@@ -873,10 +873,12 @@ class FormatGenerator {
             case 'dynamic_prediction': {
                 const params = rule.parameters || rule;
                 const predictionType = params.predictionType;
-
+                
                 const target = params.target || params.targetValue;
                 const value = params.value;
+
                 if ((target === '$LOWER_PROB' || target === '$HIGHER_PROB') && value !== undefined && typeof value === 'number') {
+                   console.log("ENTROU IF");
                     const resolver = getProbabilityResolver();
                     let stats = null;
 
@@ -887,11 +889,6 @@ class FormatGenerator {
                             stats = rawStats;
                         }
                     }
-
-                    // 2. Fallback para sistema legado (MonitoringView)
-                    // if (!stats && typeof MonitoringView !== 'undefined' && typeof MonitoringView.calculateProbabilities === 'function') {
-                    //    stats = MonitoringView.calculateProbabilities(true);
-                    // }
 
                     let probDigit = '?';
                     if (stats) {
@@ -1004,6 +1001,7 @@ class FormatGenerator {
 
                 // 🎯 NOVO: Regras com precisão (conditional_probability_accuracy)
                 if (predictionType === 'conditional_probability_accuracy') {
+                    console.log('opa');
                     const combinedRule = params.combinedRule;
                     if (combinedRule && combinedRule.probabilityAccuracyRule) {
                         const accManager = window.ProbabilityAccuracyManager ? window.ProbabilityAccuracyManager.getInstance() : null;
@@ -1096,7 +1094,6 @@ class FormatGenerator {
                             }
                         }
                     }
-
                     return `${statusIcon} ${digitsDisplay} : ${expectedDigit}`;
                 }
 

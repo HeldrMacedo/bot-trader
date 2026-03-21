@@ -762,7 +762,7 @@ export class MonitoringService {
         if (resolver) {
           const stats = this.calculateProbabilities(true);
           if (stats?.sortedScores) {
-            resolver.updateProbabilityData(stats.sortedScores);
+            resolver.updateProbabilityData(stats.sortedScores.map((s: { digit: number; prob: number }) => s.digit));
           }
 
           const hasSpecialVar = resolver.isSpecialVariable(rule.targetValue) ||
@@ -900,8 +900,11 @@ export class MonitoringService {
             if (visualFormat && typeof (window as any).getProbabilityResolver === 'function') {
               const resolver = (window as any).getProbabilityResolver();
               if (resolver) {
+                // console.log("RESOLVER", resolver);
+                // console.log("visualFormat", visualFormat);
                 if (visualFormat.includes('$LOWER_PROB')) {
                   const val = resolver.resolve('$LOWER_PROB');
+                  console.log("LOWER_PROB", val);
                   if (val !== null) visualFormat = visualFormat.replace(/\$LOWER_PROB/g, val);
                 }
                 if (visualFormat.includes('$HIGHER_PROB')) {

@@ -337,7 +337,6 @@ export default function TradeMindPro() {
           prediction: tradeConfig.prediction
         });
 
-        console.log("VALID ", validation);
         if (!validation.isValid) {
           const issueText = validation.issues.length > 0 ? `Problemas encontrados:\n- ${validation.issues.join('\n- ')}` : '';
           const tipsText = validation.tips.length > 0 ? `\n\nDicas para corrigir:\n- ${validation.tips.join('\n- ')}` : '';
@@ -356,7 +355,7 @@ export default function TradeMindPro() {
           const response = await monitoringService.translateStrategy(text, (message) => {
             setAiProgressMessage(message);
           });
-          console.log("RESPONSE ", response);
+
           if (response?.translatedRules) {
             response.translatedRules = {
               ...response.translatedRules,

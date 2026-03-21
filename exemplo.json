@@ -1,0 +1,114 @@
+{
+    "id": "g1r1",
+    "type": "dynamic_prediction",
+    "description": "entrar differ do digito menor chance",
+    "displayFormat": "Entrar DIFFER quando último dígito = menor chance",
+    "parameters": {
+        "type": "dynamic_prediction",
+        "displayFormat": "Entrar DIFFER digit = menor chance",
+        "parameters_ui": [
+            {
+                "key": "param_prob_choice_g1_r1",
+                "label": "Escolha da Chance (G1R1)",
+                "value": "$LOWER_PROB",
+                "type": "select",
+                "options": [
+                    {
+                        "value": "$LOWER_PROB",
+                        "label": "Menor Chance"
+                    },
+                    {
+                        "value": "$HIGHER_PROB",
+                        "label": "Maior Chance"
+                    }
+                ],
+                "path": "groups[0].rules[0].parameters.condition.probabilityVariable",
+                "tooltip": "Escolha se o robà´ deve entrar no dígito que menos saiu ou no que mais saiu."
+            }
+        ],
+        "predictionAction": "differ",
+        "count": 1,
+        "predictionType": "last_digit_probability_match",
+        "condition": {
+            "probabilityVariable": "$LOWER_PROB"
+        }
+    },
+    "status": "waiting",
+    "currentValue": null,
+    "predictionAction": "differ",
+    "predictionType": "last_digit_probability_match",
+    "condition": {
+        "probabilityVariable": "$LOWER_PROB"
+    },
+    "parameters_ui": [
+        {
+            "key": "param_prob_choice_g1_r1",
+            "label": "Escolha da Chance (G1R1)",
+            "value": "$LOWER_PROB",
+            "type": "select",
+            "options": [
+                {
+                    "value": "$LOWER_PROB",
+                    "label": "Menor Chance"
+                },
+                {
+                    "value": "$HIGHER_PROB",
+                    "label": "Maior Chance"
+                }
+            ],
+            "path": "groups[0].rules[0].parameters.condition.probabilityVariable",
+            "tooltip": "Escolha se o robà´ deve entrar no dígito que menos saiu ou no que mais saiu."
+        }
+    ]
+}
+
+{
+    "id": "g1r2",
+    "type": "dynamic_prediction",
+    "description": "entrar do digito = menor chance",
+    "displayFormat": "Entrar MATCH quando último dígito = menor chance",
+    "parameters": {
+        "type": "dynamic_prediction",
+        "displayFormat": "Entrar quando último dígito = menor chance",
+        "status": "waiting",
+        "currentValue": null,
+        "targetValue": "$LOWER_PROB",
+        "predictionAction": null,
+        "predictionType": "last_digit_probability_match",
+        "condition": {
+            "type": "last_digit_probability_match",
+            "probabilityVariable": "$LOWER_PROB"
+        },
+        "parameters_ui": [
+            {
+                "key": "param_count_g1_r2",
+                "label": "Qtd. Últimos Dígitos (G1R2)",
+                "value": 1,
+                "type": "number",
+                "path": "groups[0].rules[1].parameters.count",
+                "tooltip": "Quantidade de dígitos a analisar."
+            }
+        ],
+        "count": 1
+    },
+    "status": "waiting",
+    "currentValue": null,
+    "count": 1,
+    "targetValue": "$LOWER_PROB",
+    "predictionAction": null,
+    "predictionType": "last_digit_probability_match",
+    "condition": {
+        "type": "last_digit_probability_match",
+        "probabilityVariable": "$LOWER_PROB"
+    },
+    "parameters_ui": [
+        {
+            "key": "param_count_g1_r2",
+            "label": "Qtd. Últimos Dígitos (G1R2)",
+            "value": 1,
+            "type": "number",
+            "path": "groups[0].rules[1].parameters.count",
+            "tooltip": "Quantidade de dígitos a analisar."
+        }
+    ]
+}
