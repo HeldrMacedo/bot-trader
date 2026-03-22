@@ -459,6 +459,20 @@ export class LegacyBridgeService extends EventEmitter {
                     const account = accounts[0];
                     if (!account) return null;
                     return {
+                        loginid: account.loginId || account.selectedLoginId,
+                        authorize: {
+                            loginid: account.loginId || account.selectedLoginId,
+                            is_virtual: account.tokens?.some((t: any) => t.is_virtual && t.token === account.activeToken) ?? false
+                        }
+                    };
+                } catch { return null; }
+            },
+            getUserData: () => {
+                try {
+                    const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+                    const account = accounts[0];
+                    if (!account) return null;
+                    return {
                         authorize: {
                             loginid: account.loginId || account.selectedLoginId,
                             is_virtual: account.tokens?.some((t: any) => t.is_virtual && t.token === account.activeToken) ?? false
@@ -469,6 +483,7 @@ export class LegacyBridgeService extends EventEmitter {
             getSessionData: (key: string) => {
                 try { return localStorage.getItem(key); } catch { return null; }
             },
+            validateDataIntegrity: () => true,
             safeStorageOperation: (key: string, fn: () => any) => {
                 try { return fn(); } catch { return null; }
             },

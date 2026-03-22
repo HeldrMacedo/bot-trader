@@ -301,22 +301,28 @@ class CommonHelpers {
                 }
             }
 
-            // 🔄 FALLBACK: Só usar quando marketData não estiver disponível
-            console.warn(`⚠️ [UNIFIED EXTRACTION] Usando fallback para preço: ${price}`);
-            const priceStr = price.toString();
-            const decimalIndex = priceStr.indexOf('.');
+            // 🔄 FALLBACK: Usar tabela fixa de precisão por símbolo
+            // JavaScript descarta zeros à direita (5170.160 → 5170.16), então
+            // detecção dinâmica de casas decimais pode errar
+            const targetSymbol = symbol || window.selectedSymbol || '';
+            let effectiveDecimals;
 
-            let decimalPlaces = 0;
-            if (decimalIndex !== -1) {
-                decimalPlaces = priceStr.length - decimalIndex - 1;
+            if (targetSymbol === 'R_100') effectiveDecimals = 2;
+            else if (targetSymbol === 'R_25' || targetSymbol === 'R_10') effectiveDecimals = 3;
+            else if (targetSymbol === 'RDBEAR' || targetSymbol === 'RDBULL') effectiveDecimals = 4;
+            else if (targetSymbol.startsWith('JD')) effectiveDecimals = 2;
+            else if (targetSymbol.includes('1HZ')) effectiveDecimals = 2;
+            else {
+                // Fallback dinâmico para símbolos desconhecidos
+                const priceStr = price.toString();
+                const decimalIndex = priceStr.indexOf('.');
+                effectiveDecimals = decimalIndex !== -1
+                    ? Math.max(1, priceStr.length - decimalIndex - 1)
+                    : 1;
             }
 
-            // ✅ CORREÇÃO: Respeitar exatamente as casas decimais detectadas, mínimo 1
-            const effectiveDecimals = Math.max(1, decimalPlaces);
             const multiplier = Math.pow(10, effectiveDecimals);
             const processedPrice = Math.round(price * multiplier);
-
-            // Extrair último dígito do número processado
             const lastDigit = processedPrice % 10;
 
             return lastDigit;

@@ -788,6 +788,25 @@ export class DerivService {
     this.observer.emit("account.update", this.currentAccount);
   }
 
+  /**
+   * Retorna o saldo atual da conta ativa (token ativo)
+   */
+  public getCurrentBalance(): { balance: number; currency: string } | null {
+    if (!this.currentAccount) {
+      // Tentar carregar do localStorage
+      const stored = this.getStorageDerivAccount();
+      if (stored?.[0]) this.currentAccount = stored[0];
+    }
+    if (!this.currentAccount) return null;
+
+    const activeToken = this.currentAccount.activeToken;
+    const token = this.currentAccount.tokens.find(t => t.token === activeToken);
+    if (token && token.balance !== undefined) {
+      return { balance: token.balance, currency: token.cur || 'USD' };
+    }
+    return null;
+  }
+
   public get currentDigits(): number {
     this.currentAccount = this.getStorageDerivAccount()?.[0];
     const digits = this.currentAccount?.digits;
@@ -835,15 +854,27 @@ export class DerivService {
       this.tickHistory.set(symbol, []);
     }
 
-    // Detectar e armazenar casas decimais se não conhecidas
+    // Armazenar casas decimais para símbolos desconhecidos (fallback dinâmico)
     if (!this.symbolDecimals.has(symbol)) {
       const priceStr = price.toString();
       const decimalIndex = priceStr.indexOf('.');
       if (decimalIndex !== -1) {
-        const decimals = priceStr.length - decimalIndex - 1;
-        this.symbolDecimals.set(symbol, decimals);
+        // Usar o máximo entre detectado e cache anterior, pois JS descarta zeros à direita
+        const detected = priceStr.length - decimalIndex - 1;
+        this.symbolDecimals.set(symbol, detected);
       } else {
         this.symbolDecimals.set(symbol, 0);
+      }
+    } else {
+      // Atualizar se detectarmos MAIS casas decimais (corrige detecção inicial com zero final)
+      const priceStr = price.toString();
+      const decimalIndex = priceStr.indexOf('.');
+      if (decimalIndex !== -1) {
+        const detected = priceStr.length - decimalIndex - 1;
+        const current = this.symbolDecimals.get(symbol)!;
+        if (detected > current) {
+          this.symbolDecimals.set(symbol, detected);
+        }
       }
     }
     
@@ -865,27 +896,27 @@ export class DerivService {
       return null;
     }
 
-    let decimals = this.symbolDecimals.get(symbol);
-    
-    // Se não tivermos info de decimais, tentar detectar do preço atual
-    if (decimals === undefined) {
-      const priceStr = price.toString();
-      const decimalIndex = priceStr.indexOf('.');
-      if (decimalIndex !== -1) {
-        decimals = priceStr.length - decimalIndex - 1;
-        // Armazenar para uso futuro
-        this.symbolDecimals.set(symbol, decimals);
-      } else {
-        decimals = 0;
-      }
-    }
+    // Tabela fixa de precisão por símbolo — JavaScript descarta zeros à direita
+    // em numbers, então a detecção dinâmica falha quando o último dígito é 0
+    // (ex: R_10 → 5170.160 vira 5170.16 → detecta 2 casas em vez de 3)
+    const decimals = this.getSymbolPrecision(symbol);
 
-    // Garantir pelo menos 1 casa decimal para processamento correto
-    const effectiveDecimals = Math.max(1, decimals);
-    const multiplier = Math.pow(10, effectiveDecimals);
+    const multiplier = Math.pow(10, decimals);
     const processedPrice = Math.round(price * multiplier);
-    
+
     return processedPrice % 10;
+  }
+
+  private getSymbolPrecision(symbol: string): number {
+    if (symbol === 'R_100') return 2;
+    if (symbol === 'R_25' || symbol === 'R_10') return 3;
+    if (symbol === 'RDBEAR' || symbol === 'RDBULL') return 4;
+    if (symbol.startsWith('JD')) return 2;
+    if (symbol.includes('1HZ')) return 2;
+
+    // Fallback: usar cache dinâmico se existir, senão 4 (padrão)
+    const cached = this.symbolDecimals.get(symbol);
+    return cached !== undefined ? Math.max(1, cached) : 4;
   }
 
   /**

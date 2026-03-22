@@ -21,12 +21,19 @@ export interface TickData {
   timestamp: number;
 }
 
+export interface CapturedPrediction {
+  contractType: string;
+  predictionValue: number | string | null;
+  _triggerDigit?: number;
+  rule?: any;
+}
+
 interface Config {
   symbol: string;
   onTick?: (data: TickData) => void;
   onProbabilityUpdate?: (stats: ProbabilityStats) => void;
   onRulesVisualUpdate?: (rulesData: RulesVisualData) => void;
-  onTradeSignal?: (groupId: number | string, entryPrice: number) => void;
+  onTradeSignal?: (groupId: number | string, entryPrice: number, capturedPredictions: CapturedPrediction[] | null) => void;
 }
 
 export interface RulesVisualRule {
@@ -800,6 +807,76 @@ export class MonitoringService {
   }
 
   /**
+   * Extrai contractType e predictionValue das regras do grupo satisfeito.
+   * Replica o fluxo do legado monitoring.js:5773-5828
+   */
+  private extractCapturedPredictions(satisfiedGroupId: number | string): CapturedPrediction[] | null {
+    if (!this.currentTranslatedRules?.groups) return null;
+
+    const satisfiedGroup = this.currentTranslatedRules.groups.find(
+      (g: any) => g.id === satisfiedGroupId
+    );
+    if (!satisfiedGroup?.rules) return null;
+
+    const TYPE_MAP: Record<string, string> = {
+      over: 'DIGITOVER',
+      under: 'DIGITUNDER',
+      match: 'DIGITMATCH',
+      diff: 'DIGITDIFF',
+      differ: 'DIGITDIFF',
+      even: 'DIGITEVEN',
+      odd: 'DIGITODD',
+      call: 'CALL',
+      put: 'PUT',
+      rise: 'CALL',
+      fall: 'PUT',
+    };
+
+    const contractPredictions: CapturedPrediction[] = [];
+
+    for (const rule of satisfiedGroup.rules) {
+      const params = rule.parameters || {};
+
+      // Tentar obter tipo de contrato de várias fontes
+      const contractType =
+        rule.contractType || params.contractType ||
+        rule.predictionAction || params.predictionAction;
+
+      // Tentar obter previsão de várias fontes
+      const contractPrediction =
+        rule.contractPrediction !== undefined ? rule.contractPrediction :
+        params.contractPrediction !== undefined ? params.contractPrediction :
+        rule.targetValue !== undefined ? rule.targetValue :
+        params.targetValue;
+
+      if (contractType && contractPrediction !== undefined) {
+        const normalizedType =
+          TYPE_MAP[contractType.toLowerCase()] || contractType.toUpperCase();
+
+        contractPredictions.push({
+          contractType: normalizedType,
+          predictionValue: contractPrediction,
+          _triggerDigit: rule._triggerDigit,
+          rule,
+        });
+      }
+    }
+
+    if (contractPredictions.length > 0) return contractPredictions;
+
+    // Fallback: tentar getDynamicPredictionFromRules do legado
+    if (typeof window !== 'undefined' && typeof (window as any).getDynamicPredictionFromRules === 'function') {
+      const dynamicResult = (window as any).getDynamicPredictionFromRules(satisfiedGroupId, null);
+      if (dynamicResult !== null) {
+        if (Array.isArray(dynamicResult)) return dynamicResult;
+        return [{ contractType: '', predictionValue: dynamicResult }];
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Verifica se o cooldown está ativo (via legado CooldownOverlay)
    */
   private isCooldownActive(): boolean {
@@ -960,7 +1037,11 @@ export class MonitoringService {
           if (allSatisfied && group.rules.length > 0) {
             this.isAwaitingTrade = true;
             const entryPrice = this.currentTickPrice || 0;
-            this.config?.onTradeSignal?.(groupId, entryPrice);
+
+            // Extrair contractType/prediction das regras satisfeitas (igual legado)
+            const capturedPredictions = this.extractCapturedPredictions(groupId);
+
+            this.config?.onTradeSignal?.(groupId, entryPrice, capturedPredictions);
             break; // OR entre grupos — executa no primeiro que satisfaz
           }
         }

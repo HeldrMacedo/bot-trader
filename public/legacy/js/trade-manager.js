@@ -499,6 +499,49 @@ class TradeManager {
     // 🔐 Carregar configuração com segurança (isolada por usuário)
     loadConfiguration() {
         try {
+            // 🎯 PRIORIDADE 1: trade_config_full (sistema migrado trade-mind-pro)
+            const fullConfigSaved = localStorage.getItem('trade_config_full');
+            if (fullConfigSaved) {
+                try {
+                    const fullParsed = JSON.parse(fullConfigSaved);
+                    const fullCfg = fullParsed.config || fullParsed;
+                    const defaultConfig = this.getDefaultConfiguration();
+                    const finalConfig = { ...defaultConfig };
+
+                    // Mapear campos do trade_config_full → config do TradeManager
+                    if (fullCfg.contractType) finalConfig.contractType = fullCfg.contractType;
+                    if (fullCfg.tradeType && fullCfg.tradeType !== 'BOTH') finalConfig.contractType = fullCfg.tradeType;
+                    if (fullCfg.duration !== undefined) finalConfig.duration = fullCfg.duration;
+                    if (fullCfg.durationUnit) finalConfig.durationUnit = fullCfg.durationUnit;
+                    if (fullCfg.prediction !== undefined) {
+                        finalConfig.prediction = { type: 'prediction', value: fullCfg.prediction };
+                    }
+                    if (fullCfg.barrier !== undefined) finalConfig.barrier = fullCfg.barrier;
+                    if (fullCfg.stake !== undefined) finalConfig.stake = fullCfg.stake;
+                    if (fullCfg.goal !== undefined) finalConfig.goal = fullCfg.goal;
+                    if (fullCfg.stopLoss !== undefined) finalConfig.stopLoss = fullCfg.stopLoss;
+                    if (fullCfg.galeMultiplier !== undefined) finalConfig.galeAdjustment = fullCfg.galeMultiplier;
+                    if (fullCfg.galeSplit !== undefined) finalConfig.galeSplit = fullCfg.galeSplit;
+                    if (fullCfg.galeSplitThreshold !== undefined) finalConfig.galeSplitThreshold = fullCfg.galeSplitThreshold;
+                    if (fullCfg.sorosLimit !== undefined) finalConfig.sorosLimit = fullCfg.sorosLimit;
+                    if (fullCfg.sorosProfitPercentage !== undefined) finalConfig.sorosPercentage = fullCfg.sorosProfitPercentage;
+                    if (fullCfg.galeRemovesSoros !== undefined) finalConfig.galeRemovesSoros = fullCfg.galeRemovesSoros;
+                    if (fullCfg.winReal !== undefined) finalConfig.realWinsLimit = fullCfg.winReal;
+                    if (fullCfg.lossReal !== undefined) finalConfig.realLossesLimit = fullCfg.lossReal;
+                    if (fullCfg.winSimulated !== undefined) finalConfig.simulatedWinsLimit = fullCfg.winSimulated;
+                    if (fullCfg.lossSimulated !== undefined) finalConfig.simulatedLossesLimit = fullCfg.lossSimulated;
+                    if (fullCfg.cooldownPeriod !== undefined) finalConfig.cooldownPeriod = fullCfg.cooldownPeriod;
+                    if (fullCfg.tradeLimit !== undefined) finalConfig.tradeLimit = fullCfg.tradeLimit;
+                    if (fullCfg.countRepeated !== undefined) finalConfig.countRepeated = fullCfg.countRepeated;
+                    if (fullCfg.selectedSymbol) finalConfig.symbol = fullCfg.selectedSymbol;
+
+                    console.log('[TradeManager] Config carregada do trade_config_full (sistema migrado):', finalConfig);
+                    return finalConfig;
+                } catch (e) {
+                    console.warn('[TradeManager] Erro ao ler trade_config_full, usando fallback:', e);
+                }
+            }
+
             const currentUser = SessionManager.getCurrentUser();
             if (!currentUser) {
                 CommonHelpers.showWarning(i18n.t('alerts.no_user_logged'));
@@ -2548,23 +2591,42 @@ class TradeManager {
         }
     }
 
-    // 💰 NOVO: Obter saldo atual do rodapé (não do cache)
+    // 💰 Obter saldo atual via DerivService (primário) ou DOM (fallback legado)
     getCurrentFooterBalance() {
         try {
-            // Tentar diferentes seletores do rodapé conforme a estrutura atual
+            // 1️⃣ Primário: DerivService (sistema migrado)
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getCurrentBalance === 'function') {
+                const balanceInfo = window.DerivServiceInstance.getCurrentBalance();
+                if (balanceInfo && typeof balanceInfo.balance === 'number') {
+                    return balanceInfo.balance;
+                }
+            }
+
+            // 2️⃣ Fallback: deriv_accounts no localStorage
+            try {
+                const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+                const account = accounts[0];
+                if (account) {
+                    const activeToken = account.activeToken;
+                    const token = account.tokens?.find(t => t.token === activeToken);
+                    if (token && typeof token.balance === 'number') {
+                        return token.balance;
+                    }
+                }
+            } catch (e) { /* ignora erro de parse */ }
+
+            // 3️⃣ Fallback legado: seletores DOM do rodapé
             const selectors = [
-                '#header-balance-value',         // ✅ NOVO: Visor de saldo principal (Sidebar/Config)
-                '.vip-balance strong',           // Rodapé VIP
-                '.bottom-balance strong',        // Rodapé legacy
-                '.balance strong'                // Fallback genérico
+                '#header-balance-value',
+                '.vip-balance strong',
+                '.bottom-balance strong',
+                '.balance strong'
             ];
 
             for (const selector of selectors) {
                 const balanceElement = document.querySelector(selector);
                 if (balanceElement) {
                     const balanceText = balanceElement.textContent.trim();
-
-                    // Extrair apenas o número do saldo (ex: "USD 123.45" -> 123.45)
                     const balanceMatch = balanceText.match(/[\d,]+\.?\d*/);
                     if (balanceMatch) {
                         const balanceValue = parseFloat(balanceMatch[0].replace(/,/g, ''));
@@ -2610,7 +2672,8 @@ class TradeManager {
 
     // 🎯 REFATORADO: Função genérica de popup
     showPopup(title, message, icon = '⚠️', buttonText = 'Entendi', focusField = null) {
-        if (window.MonitoringView?.stopAll) window.MonitoringView.stopAll();
+        if (window.MonitoringServiceInstance?.stopExecution) window.MonitoringServiceInstance.stopExecution();
+        else if (window.MonitoringView?.stopAll) window.MonitoringView.stopAll();
         else this.stopMonitoring();
 
         const popup = document.createElement('div');
@@ -2823,13 +2886,15 @@ class TradeManager {
 
             // ✅ VERIFICAÇÃO DE SALDO: Sempre verificar saldo atual antes de trade real
             if (executionMode !== 'SIMULACAO') {
-
+                console.log("EXECUTION MODE", executionMode);
                 const currentUser = SessionManager.getCurrentUser();
+                console.log("CURRENT USER ", currentUser);
                 let currentBalance = 0;
 
                 // Tentar obter saldo do rodapé primeiro (mais atualizado)
                 const footerBalance = this.getCurrentFooterBalance();
-
+                console.log("FOOTER BALANCE ", footerBalance);
+                
                 if (footerBalance !== null) {
                     currentBalance = footerBalance;
                 } else if (currentUser?.balance?.balance) {
@@ -2837,7 +2902,7 @@ class TradeManager {
                 }
 
                 const requiredStake = this.getCurrentStakeValue();
-
+                console.log("REQUIRED STAKE ", requiredStake);
 
                 if (currentBalance < requiredStake) {
                     const errorMsg = `Saldo insuficiente: ${currentBalance.toFixed(2)} ${currentUser?.balance?.currency || 'USD'} < ${requiredStake.toFixed(2)}`;
@@ -3011,6 +3076,7 @@ class TradeManager {
 
     // Executar trade simulado
     async executeSimulatedTrade(entryPrice = null, bypassTradeLimit = false, tradeChamada = '') {
+        console.log("[EXECUTE SIMULATED TRADE] ", tradeChamada);
         // ✅ EXCEÇÃO: Trades imediatos do modal podem bypassar o limite
         if (!bypassTradeLimit && !this.canExecuteTrade()) {
             logConfig.warn('trade_manager', `⛔ [SIMULADO] Trade bloqueado - limite de ${this.getTradeLimit()} por tick atingido`);
@@ -3031,7 +3097,7 @@ class TradeManager {
         const savedNextTradeStake = this.nextTradeStake;
         const savedLastCalculatedStake = this.lastCalculatedStake;
         const savedConfigStake = this.config.stake;  // 🎯 NOVO: Salvar stake base original
-        
+        console.log('[CONFIG] ', this.config);
         // Limpar temporariamente para forçar uso de stake base
         this.nextTradeStake = null;
         this.lastCalculatedStake = null;
@@ -3192,7 +3258,7 @@ class TradeManager {
             if (isDigitContract) {
             } else {
             }
-
+            console.log("OPA");
             // 5. COMPARAR RESULTADO BASEADO NO TIPO DE NEGOCIAÇÃO
             const isWin = this.determineTradeResult(entryPriceSimulated, exitPriceSimulated);
 
@@ -3200,37 +3266,34 @@ class TradeManager {
             const tradeMode = this.tradeReal ? this.determineAccountMode() : 'SIMULACAO';
             const tradeSimulated = !this.tradeReal;
 
-            this.handleTradeResult({
-                mode: tradeMode,
-                result: isWin ? 'WIN' : 'LOSS',
-                simulated: tradeSimulated
-            });
+            // savedConfigStake foi salvo no início de executeSimulatedTrade
+            const baseStake = savedConfigStake || this.config.stake || 0.35;
+            const simulatedProfit = isWin ? baseStake : -baseStake;
 
-            this.awaitingExpiration = false;
-
-            // (para que os preços corretos sejam mostrados antes de executar próximo trade)
+            // 🎯 CRÍTICO: Disparar evento para o front ANTES de handleTradeResult
+            // handleTradeResult pode chamar transitionToRealMode/processModeChanges que
+            // podem lançar exceção se módulos legados (UIManager, MonitoringView) não existem
             if (!this.currentTradeMessageAdded) {
-
-                // savedConfigStake foi salvo no início de executeSimulatedTrade
-                const baseStake = savedConfigStake || this.config.stake || 0.35;
-                const simulatedProfit = isWin ? baseStake : -baseStake;
-
-                // 🎯 NOVO: Passar previsão usada para mensagem (se disponível)
-                this.addTradeResultMessage(
-                    this.config.contractType,
-                    entryPriceSimulated,
-                    exitPriceSimulated,
-                    'SIMULACAO',
-                    isWin,
-                    baseStake,  // ← CORRIGIDO: Usar stake base salva
-                    simulatedProfit,
-                    null, // contractId (null para simulação)
-                    usedPredictionValue // 🎯 Previsão que foi realmente usada
-                );
                 this.currentTradeMessageAdded = true;
 
+                // Tentar adicionar mensagem ao TradeMessagesManager (não-crítico)
+                try {
+                    this.addTradeResultMessage(
+                        this.config.contractType,
+                        entryPriceSimulated,
+                        exitPriceSimulated,
+                        'SIMULACAO',
+                        isWin,
+                        baseStake,
+                        simulatedProfit,
+                        null,
+                        usedPredictionValue
+                    );
+                } catch (msgError) {
+                    console.warn('⚠️ [SIMULATED] Erro ao adicionar mensagem (não-crítico):', msgError);
+                }
+
                 // 🎯 MODERNO: Disparar evento direto para o front-end (React/BotDashboard)
-                // Garante que o resultado chegue mesmo que o interceptor do LegacyBridge não esteja ativo
                 window.dispatchEvent(new CustomEvent('tradeResultFront', {
                     detail: {
                         id: `sim-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -3252,6 +3315,19 @@ class TradeManager {
                     }
                 }));
             }
+
+            // 🛡️ Processar resultado com proteção — não pode bloquear o fluxo
+            try {
+                this.handleTradeResult({
+                    mode: tradeMode,
+                    result: isWin ? 'WIN' : 'LOSS',
+                    simulated: tradeSimulated
+                });
+            } catch (handleError) {
+                console.error('⚠️ [SIMULATED] Erro em handleTradeResult (não-crítico):', handleError);
+            }
+
+            this.awaitingExpiration = false;
 
             // 8. 🎯 CRÍTICO: PROCESSAR MUDANÇA DE MODO quando Cooldown=0
             const cooldownPeriod = this.config?.cooldownPeriod ?? 3;
@@ -5080,6 +5156,7 @@ class TradeManager {
             const derivSvc = window.DerivServiceInstance;
             if (derivSvc && typeof derivSvc.extractLastDigit === 'function') {
                 const lastDigit = derivSvc.extractLastDigit(price, currentSymbol);
+                console.log(`🔍 [EXTRACT DIGIT] DerivSvc: price=${price}, symbol=${currentSymbol}, digit=${lastDigit}`);
                 if (lastDigit !== null && lastDigit !== undefined) {
                     return lastDigit;
                 }
@@ -5087,6 +5164,7 @@ class TradeManager {
 
             // ⚠️ FALLBACK: Se DerivService não disponível, usar CommonHelpers
             const result = CommonHelpers.extractLastDigitUnified(price, currentSymbol);
+            console.log(`🔍 [EXTRACT DIGIT] CommonHelpers fallback: price=${price}, digit=${result}`);
 
             if (result !== null && result !== undefined) {
                 return result;
@@ -5109,6 +5187,7 @@ class TradeManager {
             }
 
             const lastDigit = parseInt(allDigits.charAt(allDigits.length - 1));
+            console.log(`🔍 [EXTRACT DIGIT] Last fallback: price=${price}, processedPrice=${processedPrice}, digit=${lastDigit}`);
             return isNaN(lastDigit) ? 0 : lastDigit;
 
         } catch (error) {
@@ -5938,7 +6017,7 @@ class TradeManager {
         const prediction = parseInt(this.config.prediction.value);
         const digit = this.extractLastDigit(exitPrice);
         const result = digit > prediction;
-
+        console.log(`🔍 [OVER DEBUG] exitPrice=${exitPrice}, digit=${digit}, prediction=${prediction}, result=${result} (${digit} > ${prediction})`);
         return result;
     }
 
@@ -5947,7 +6026,7 @@ class TradeManager {
         const prediction = parseInt(this.config.prediction.value);
         const digit = this.extractLastDigit(exitPrice);
         const result = digit < prediction;
-
+        console.log(`🔍 [UNDER DEBUG] exitPrice=${exitPrice}, digit=${digit}, prediction=${prediction}, result=${result} (${digit} < ${prediction})`);
         return result;
     }
 
@@ -6485,12 +6564,12 @@ class TradeManager {
     }
 
     forceStopMonitoring() {
-        if (window.MonitoringView && typeof window.MonitoringView.stopAll === 'function') {
+        if (window.MonitoringServiceInstance && typeof window.MonitoringServiceInstance.stopExecution === 'function') {
+            window.MonitoringServiceInstance.stopExecution();
+        } else if (window.MonitoringView && typeof window.MonitoringView.stopAll === 'function') {
             window.MonitoringView.stopAll();
-
         } else {
             this.stopMonitoring();
-            CommonHelpers.showWarning('⚠️ [FORCE STOP] Fallback para stopMonitoring local');
         }
     }
 
@@ -6533,14 +6612,12 @@ class TradeManager {
         this.insufficientBalanceModalShown = true;
 
 
-        if (window.MonitoringView && typeof window.MonitoringView.stopMonitoring === 'function') {
-
+        if (window.MonitoringServiceInstance && typeof window.MonitoringServiceInstance.stopExecution === 'function') {
+            window.MonitoringServiceInstance.stopExecution();
+        } else if (window.MonitoringView && typeof window.MonitoringView.stopMonitoring === 'function') {
             window.MonitoringView.stopMonitoring();
         } else {
-            console.error('❌ [BALANCE] MonitoringView não encontrado ou stopMonitoring não é função', {
-                MonitoringView: !!window.MonitoringView,
-                stopMonitoring: window.MonitoringView ? typeof window.MonitoringView.stopMonitoring : 'undefined'
-            });
+            this.stopMonitoring();
         }
 
         // Criar modal personalizado com texto branco

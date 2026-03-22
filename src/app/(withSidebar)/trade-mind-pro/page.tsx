@@ -141,7 +141,8 @@ export default function TradeMindPro() {
             if (activeToken) {
                 deriv.connect(); 
                 setTimeout(() => {
-                deriv.authenticate(activeToken);
+                const response  = deriv.authenticate(activeToken);
+                console.log("authenticate response ", response);
                 },100);
                 
             } else {
@@ -248,12 +249,47 @@ export default function TradeMindPro() {
           onRulesVisualUpdate: (rulesData) => {
             setRulesVisualData(rulesData);
           },
-          onTradeSignal: (groupId, entryPrice) => {
+          onTradeSignal: (groupId, entryPrice, capturedPredictions) => {
             if (typeof window !== 'undefined' && (window as any).tradeManager) {
               const tm = (window as any).tradeManager;
               if (tm.isActive) {
                 addLog(`⚡ Sinal detectado! Grupo ${groupId} | Preço: ${entryPrice}`);
-                tm.executeTrade(entryPrice, groupId);
+
+                // Setar capturedPredictions no tradeManager (igual legado monitoring.js:6023-6037)
+                if (capturedPredictions !== null && capturedPredictions !== undefined) {
+                  if (Array.isArray(capturedPredictions)) {
+                    tm.capturedPredictionsForTrade = capturedPredictions;
+                  } else {
+                    tm.capturedPredictionsForTrade = [{ contractType: null, predictionValue: capturedPredictions }];
+                  }
+                }
+
+                // Ler config do painel via localStorage (fallback para this.config do legado)
+                try {
+                  const savedConfig = localStorage.getItem('trade_config_full');
+                  if (savedConfig) {
+                    const parsed = JSON.parse(savedConfig);
+                    const cfg = parsed.config || parsed;
+
+                    // Setar contractType do painel se não veio override da regra
+                    if (cfg.tradeType && cfg.tradeType !== 'BOTH' && cfg.tradeType.trim() !== '') {
+                      tm.config.contractType = cfg.tradeType;
+                    }
+                    // prediction do painel como fallback
+                    if (cfg.prediction !== undefined && cfg.prediction !== null) {
+                      tm.config.prediction = { type: 'prediction', value: cfg.prediction };
+                    }
+                  }
+                } catch (e) {
+                  // Silenciar — usa config já carregada no tradeManager
+                }
+
+                // Executar trade com proteção — garantir que isAwaitingTrade é resetado
+                tm.executeTrade(entryPrice, groupId).catch((err: any) => {
+                  console.error('[TradeMindPro] Erro no executeTrade:', err);
+                  // Resetar estado para permitir novos sinais
+                  monitoringService.notifyTradeResult('LOSS', true);
+                });
               }
             }
           }
