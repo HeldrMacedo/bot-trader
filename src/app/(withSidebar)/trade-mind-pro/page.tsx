@@ -161,21 +161,37 @@ export default function TradeMindPro() {
     
   }, []);
 
+  // Cache de assinaturas de trades recentes para deduplicação entre bridge e window event
+  const recentTradeKeysRef = useRef<Set<string>>(new Set());
+
   // Effect para listeners do LegacyBridge (trade results, mode changes, stop limits)
   useEffect(() => {
     const bridge = LegacyBridgeService.getInstance();
 
+    // Chave de deduplicação: type + status + exit arredondado + stake (janela de 2s)
+    const makeTradeKey = (d: any) => {
+      const exitRounded = parseFloat(d.exitPrice || d.exit || '0').toFixed(2);
+      const ts = Math.floor(Date.now() / 2000); // janela de 2 segundos
+      return `${d.contractType || d.type}|${d.status}|${exitRounded}|${d.stake}|${ts}`;
+    };
+
+    const addTradeIfNew = (entry: any, key: string) => {
+      if (recentTradeKeysRef.current.has(key)) return; // duplicata — ignorar
+      recentTradeKeysRef.current.add(key);
+      setTimeout(() => recentTradeKeysRef.current.delete(key), 4000); // limpar após 4s
+      setResultsList(prev => [entry, ...prev]);
+    };
+
     const handleTrade = (data: any) => {
-      setResultsList(prev => [{
+      const entry = {
         ...data,
         type: data.contractType,
         target: String(data.prediction ?? data.entryPrice ?? ''),
         exit: String(data.exitPrice ?? ''),
-      }, ...prev]);
-
+      };
+      addTradeIfNew(entry, makeTradeKey({ ...data, exit: data.exitPrice }));
       const emoji = data.status === 'WIN' ? '✅' : '❌';
       addLog(`${emoji} ${data.mode} Trade: ${data.contractType} | Profit: $${data.profit?.toFixed(2)}`);
-
       monitoringService.notifyTradeResult(data.status, data.mode === 'SIMULACAO');
     };
 
@@ -191,14 +207,26 @@ export default function TradeMindPro() {
       addLog(`🛑 ${data.message || `Stop: ${data.type}`}`);
     };
 
+    // Listener direto do window: fallback para quando o interceptor do LegacyBridge não captura
+    const handleTradeResultFront = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      if (!data) return;
+      addTradeIfNew(data, makeTradeKey(data));
+      const emoji = data.status === 'WIN' ? '✅' : '❌';
+      addLog(`${emoji} ${data.mode} Trade: ${data.type} | Profit: $${Number(data.profit ?? 0).toFixed(2)}`);
+      monitoringService.notifyTradeResult(data.status, data.isSimulation === 'SIMULACAO');
+    };
+
     bridge.on('trade', handleTrade);
     bridge.on('mode_change', handleModeChange);
     bridge.on('stop_limit', handleStop);
+    window.addEventListener('tradeResultFront', handleTradeResultFront);
 
     return () => {
       bridge.removeListener('trade', handleTrade);
       bridge.removeListener('mode_change', handleModeChange);
       bridge.removeListener('stop_limit', handleStop);
+      window.removeEventListener('tradeResultFront', handleTradeResultFront);
     };
   }, [addLog]);
 

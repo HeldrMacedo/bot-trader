@@ -478,6 +478,13 @@ export class MonitoringService {
     const { symbol, quote: price } = tick;
     this.currentTickPrice = price;
 
+    // Resetar contador de trades por tick (substitui monitoring.js que não está carregado)
+    // Sem esse reset, tradesExecutedInCurrentTick permanece em 1 após o primeiro trade
+    // bloqueando todos os trades seguintes via canExecuteTrade()
+    if (typeof (window as any).tradeManager?.resetTradesCounter === 'function') {
+      (window as any).tradeManager.resetTradesCounter(tick.epoch || Date.now());
+    }
+
     const digit = this.extractLastDigit(price, symbol);
     
     if (digit === null || digit === undefined || isNaN(digit) || digit < 0 || digit > 9) {

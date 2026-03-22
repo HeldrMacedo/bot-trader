@@ -239,6 +239,7 @@ class TradeManager {
     canExecuteTrade() {
         // 🛡️ FAILSAFE DE EXECUÇÃO: Se a flag isExecutingTrade estiver travada por muito tempo (ex: erro desconhecido)
         // resetar automaticamente se passou mais de 60 segundos desde o início do contrato
+        
         if (this.isExecutingTrade && this.contractStartTime) {
             const stuckDuration = Date.now() - this.contractStartTime;
             if (stuckDuration > 60000) { // 60 segundos de tolerância máxima
@@ -250,7 +251,6 @@ class TradeManager {
 
         const limit = this.getTradeLimit();
         const canExecuteInTick = this.tradesExecutedInCurrentTick < limit;
-
         if (!canExecuteInTick) {
             logConfig.debug('trade_manager', `🚫 [CONTADOR] Limite atingido: ${this.tradesExecutedInCurrentTick}/${limit} trades no tick atual`);
         }
@@ -2958,13 +2958,12 @@ class TradeManager {
                 switch (executionMode) {
                     case 'SIMULACAO':
                         // 🎯 EXECUTAR trade simulado
-
-                        result = await this.executeSimulatedTrade(entryPrice, bypassTradeLimit);
+                        result = await this.executeSimulatedTrade(entryPrice, bypassTradeLimit, 'EXECUTE TRADER SIMULATE DENTRO DO CASE');
                         break;
                     case 'REAL':
                     case 'VIRTUAL':
 
-                        result = await this.executeRealTrade(entryPrice, bypassTradeLimit);
+                        result = await this.executeRealTrade(entryPrice, bypassTradeLimit, 'EXECUTE TRADER REAL DENTRO DO CASE');
                         break;
                     default:
                         CommonHelpers.showError('🚫🚫🚫 [EXECUTE TRADE] MODO DESCONHECIDO:');
@@ -3011,8 +3010,7 @@ class TradeManager {
     }
 
     // Executar trade simulado
-    async executeSimulatedTrade(entryPrice = null, bypassTradeLimit = false) {
-
+    async executeSimulatedTrade(entryPrice = null, bypassTradeLimit = false, tradeChamada = '') {
         // ✅ EXCEÇÃO: Trades imediatos do modal podem bypassar o limite
         if (!bypassTradeLimit && !this.canExecuteTrade()) {
             logConfig.warn('trade_manager', `⛔ [SIMULADO] Trade bloqueado - limite de ${this.getTradeLimit()} por tick atingido`);
@@ -3033,7 +3031,7 @@ class TradeManager {
         const savedNextTradeStake = this.nextTradeStake;
         const savedLastCalculatedStake = this.lastCalculatedStake;
         const savedConfigStake = this.config.stake;  // 🎯 NOVO: Salvar stake base original
-
+        
         // Limpar temporariamente para forçar uso de stake base
         this.nextTradeStake = null;
         this.lastCalculatedStake = null;
@@ -3044,7 +3042,29 @@ class TradeManager {
         }
 
         try {
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
+            // 🎯 MODERNO: Shim que adapta DerivServiceInstance à interface de marketData usada
+            // por waitForNextTick / waitForTicks / waitForContractExpiration
+            const derivSvc = window.DerivServiceInstance;
+            const marketData = {
+                getCurrentPrice: (symbol) => {
+                    const hist = derivSvc && derivSvc.getHistoricalTicksSync(symbol, 1);
+                    return hist?.prices?.[0] ?? null;
+                },
+                subscribeToTicks: (symbol, callback) => {
+                    return new Promise((resolve) => {
+                        if (!derivSvc) {
+                            resolve(() => {});
+                            return;
+                        }
+                        const listenerId = derivSvc.observerInstance.on('deriv.tick', (data) => {
+                            if (data.tick && data.tick.symbol === symbol) {
+                                callback(data.tick.quote);
+                            }
+                        });
+                        resolve(() => derivSvc.observerInstance.removeById(listenerId));
+                    });
+                }
+            };
 
             // 1. 🔧 CORREÇÃO: USAR PREÇO fornecido pelo MonitoringView quando regras foram atendidas
             if (entryPrice) {
@@ -3208,6 +3228,29 @@ class TradeManager {
                     usedPredictionValue // 🎯 Previsão que foi realmente usada
                 );
                 this.currentTradeMessageAdded = true;
+
+                // 🎯 MODERNO: Disparar evento direto para o front-end (React/BotDashboard)
+                // Garante que o resultado chegue mesmo que o interceptor do LegacyBridge não esteja ativo
+                window.dispatchEvent(new CustomEvent('tradeResultFront', {
+                    detail: {
+                        id: `sim-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                        contractType: this.config.contractType,
+                        type: this.config.contractType,
+                        entryPrice: String(entryPriceSimulated || ''),
+                        exitPrice: String(exitPriceSimulated || ''),
+                        target: usedPredictionValue !== null && usedPredictionValue !== undefined
+                            ? String(usedPredictionValue)
+                            : (this.config.prediction?.value !== undefined ? String(this.config.prediction.value) : ''),
+                        exit: String(exitPriceSimulated || ''),
+                        mode: 'SIMULACAO',
+                        isSimulation: 'SIMULACAO',
+                        status: isWin ? 'WIN' : 'LOSS',
+                        stake: baseStake,
+                        profit: simulatedProfit,
+                        symbol: this.config.symbol || window.selectedSymbol || '',
+                        timestamp: new Date()
+                    }
+                }));
             }
 
             // 8. 🎯 CRÍTICO: PROCESSAR MUDANÇA DE MODO quando Cooldown=0
@@ -3997,7 +4040,8 @@ class TradeManager {
     }
 
     // Executar trade real (REAL ou VIRTUAL)
-    async executeRealTrade(entryPrice = null, bypassTradeLimit = false, options = {}) {
+    async executeRealTrade(entryPrice = null, bypassTradeLimit = false, options = {}, tradeChamada = '') {
+        console.log("REAL TRADER ", tradeChamada);
         const { suppressGlobalSideEffects = false } = options;
 
 
@@ -4019,6 +4063,14 @@ class TradeManager {
 
         let proposalId;
         let finalStake;
+
+        // 🎯 MODERNO: Usar DerivServiceInstance (TypeScript) em vez de tradingAPI (legado)
+        const derivService = window.DerivServiceInstance;
+        if (!derivService || !derivService.isConnected) {
+            logConfig.warn('trade_manager', '⛔ [REAL] DerivService não está conectado. Verifique a conexão com a corretora.');
+            this.isExecutingTrade = false;
+            return false;
+        }
 
         if (this.capturedPredictionsForTrade && Array.isArray(this.capturedPredictionsForTrade)) {
             const specificContract = this.capturedPredictionsForTrade.find(p => p.contractType !== null);
@@ -4100,15 +4152,6 @@ class TradeManager {
                 }
             } else {
 
-                // 🎯 CRÍTICO: Garantir que tradingAPI está conectado
-                if (!this.tradingAPI) {
-                    console.warn('⚠️ [REAL] TradingAPI desconectado. Tentando reconectar...');
-                    await this.initializeTradingConnection();
-                    if (!this.tradingAPI) {
-                        throw new Error('Não foi possível estabelecer conexão com API de trading.');
-                    }
-                }
-
                 // 🎰 [PROATIVO] Recalcular Gale se necessário ANTES da proposta
                 if (this.config.galeActive && (this.accumulatedLosses > 0 || (this.riskController && this.riskController.accumulatedLosses > 0))) {
                     try {
@@ -4152,21 +4195,8 @@ class TradeManager {
                     }
                 }
 
-                // 🎯 CORREÇÃO CRÍTICA: tradingAPI pode ser null, usar marketData como fallback
-                let apiToUse = this.tradingAPI;
-
-                if (!apiToUse || !apiToUse.isReady || !apiToUse.isReady()) {
-
-                    // Usar marketData existente (já conectado e autorizado)
-                    apiToUse = getMarketDataInstance(SessionManager.getLocalToken());
-
-                    if (!apiToUse || !apiToUse.isReady()) {
-                        throw new Error('Nenhuma API disponível para fazer requisição de proposta');
-                    }
-
-                }
-
-                const proposalResponse = await apiToUse.sendRequest(proposalParams);
+                // 🎯 MODERNO: Enviar proposta via DerivServiceInstance
+                const proposalResponse = await derivService.send(proposalParams);
 
                 if (proposalResponse.error) {
                     throw new Error(`Erro na proposta: ${proposalResponse.error.message}`);
@@ -4207,7 +4237,7 @@ class TradeManager {
                                 finalStake = correctedStake;
                                 proposalParams.amount = finalStake;
 
-                                const secondProposal = await apiToUse.sendRequest(proposalParams);
+                                const secondProposal = await derivService.send(proposalParams);
                                 if (!secondProposal.error) {
                                     proposalId = secondProposal.proposal.id;
                                     proposalResponse.proposal = secondProposal.proposal; // Atualizar ref para cache abaixo
@@ -4256,7 +4286,8 @@ class TradeManager {
         }
 
         const buyStartTime = Date.now();
-        const buyResponse = await this.tradingAPI.sendRequest(buyParams);
+        // 🎯 MODERNO: Executar compra via DerivServiceInstance
+        const buyResponse = await derivService.send(buyParams);
         const buyEndTime = Date.now();
         const buyDuration = buyEndTime - buyStartTime;
 
@@ -4283,7 +4314,7 @@ class TradeManager {
 
         // 🛡️ OPÇÃO: Suprimir monitoramento global se solicitado
         if (!suppressGlobalSideEffects) {
-            this.monitorContractResult(this.tradingAPI, contractId, capturedMode);
+            this.monitorContractResult(derivService, contractId, capturedMode);
         } else {
 
         }
@@ -4544,6 +4575,27 @@ class TradeManager {
                     contractData.prediction
                 );
 
+                // 🎯 MODERNO: Disparar evento direto para o front-end (React/BotDashboard)
+                window.dispatchEvent(new CustomEvent('tradeResultFront', {
+                    detail: {
+                        id: `${contractId}-${Date.now()}`,
+                        contractType: contractData.contractType,
+                        type: contractData.contractType,
+                        entryPrice: String(entryPrice || ''),
+                        exitPrice: String(exitPrice || ''),
+                        target: contractData.prediction !== null && contractData.prediction !== undefined
+                            ? String(contractData.prediction) : '',
+                        exit: String(exitPrice || ''),
+                        mode: tradeMode,
+                        isSimulation: tradeMode === 'SIMULACAO' ? 'SIMULACAO' : 'REAL',
+                        status: isWinLocal ? 'WIN' : 'LOSS',
+                        stake: stake,
+                        profit: profit,
+                        symbol: contractData.symbol || this.config.symbol || window.selectedSymbol || '',
+                        timestamp: new Date()
+                    }
+                }));
+
                 // 🎯 CRÍTICO: Salvar dados do contrato para o Soros poder acessar
                 this.lastCompletedContract = {
                     contract_id: contractId,
@@ -4598,7 +4650,8 @@ class TradeManager {
                 attempts++;
 
                 try {
-                    const contractResponse = await api.sendRequest({
+                    // 🎯 MODERNO: DerivService usa .send() em vez de .sendRequest()
+                    const contractResponse = await api.send({
                         proposal_open_contract: 1,
                         contract_id: contractId
                     });
@@ -4649,6 +4702,27 @@ class TradeManager {
                             contractId,
                             savedContract?.prediction
                         );
+
+                        // 🎯 MODERNO: Disparar evento direto para o front-end (React/BotDashboard)
+                        window.dispatchEvent(new CustomEvent('tradeResultFront', {
+                            detail: {
+                                id: `${contractId}-${Date.now()}`,
+                                contractType: correctContractType,
+                                type: correctContractType,
+                                entryPrice: String(entryPrice || ''),
+                                exitPrice: String(exitPrice || ''),
+                                target: savedContract?.prediction !== null && savedContract?.prediction !== undefined
+                                    ? String(savedContract.prediction) : '',
+                                exit: String(exitPrice || ''),
+                                mode: tradeMode,
+                                isSimulation: tradeMode === 'SIMULACAO' ? 'SIMULACAO' : 'REAL',
+                                status: isWin ? 'WIN' : 'LOSS',
+                                stake: actualStakeUsed,
+                                profit: realProfit,
+                                symbol: savedContract?.symbol || this.config.symbol || window.selectedSymbol || '',
+                                timestamp: new Date()
+                            }
+                        }));
 
                         if (this.onTradeEnd) {
                             this.onTradeEnd(this.currentMode, isWin, {
@@ -4999,21 +5073,19 @@ class TradeManager {
     }
 
     extractLastDigit(price) {
-        // 🔧 FIX: Usar método do MarketData que detecta automaticamente casas decimais por ativo
         try {
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
+            const currentSymbol = this.config.symbol || window.selectedSymbol || '';
 
-            if (marketData && typeof marketData.extractLastDigitForAsset === 'function') {
-                const currentSymbol = this.config.symbol || marketData.getCurrentSymbol();
-                const lastDigit = marketData.extractLastDigitForAsset(price, currentSymbol);
-
+            // 🎯 MODERNO: Usar DerivServiceInstance (evita instanciar DerivMarketData legado)
+            const derivSvc = window.DerivServiceInstance;
+            if (derivSvc && typeof derivSvc.extractLastDigit === 'function') {
+                const lastDigit = derivSvc.extractLastDigit(price, currentSymbol);
                 if (lastDigit !== null && lastDigit !== undefined) {
                     return lastDigit;
                 }
             }
 
-            // ⚠️ FALLBACK: Se MarketData não disponível, usar CommonHelpers
-            const currentSymbol = this.config.symbol;
+            // ⚠️ FALLBACK: Se DerivService não disponível, usar CommonHelpers
             const result = CommonHelpers.extractLastDigitUnified(price, currentSymbol);
 
             if (result !== null && result !== undefined) {
