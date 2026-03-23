@@ -5045,105 +5045,54 @@ class TradeManager {
 
     async updateAccountBalance(retryCount = 3) {
         try {
+            // 1️⃣ Primário: DerivService já mantém balance atualizado via subscription WebSocket
+            if (window.DerivServiceInstance && typeof window.DerivServiceInstance.getCurrentBalance === 'function') {
+                const balanceInfo = window.DerivServiceInstance.getCurrentBalance();
+                if (balanceInfo && typeof balanceInfo.balance === 'number') {
+                    window.dispatchEvent(new CustomEvent('balanceUpdated', {
+                        detail: {
+                            currency: balanceInfo.currency,
+                            amount: balanceInfo.balance,
+                            newBalance: balanceInfo.balance
+                        }
+                    }));
+                    return true;
+                }
+            }
 
-            // Evita criar nova conexão e re-autorizar (causa de timeouts)
+            // 2️⃣ Fallback legado: usar DerivMarketData
             const token = SessionManager.getLocalToken();
             if (!token) return false;
 
             const marketData = getMarketDataInstance(token);
-            let balanceResponse = null;
+            if (!marketData || !marketData.isReady()) return false;
 
-            if (marketData && marketData.isReady()) {
-
-                balanceResponse = await marketData.sendRequest({ "balance": 1 });
-            } else {
-
-                return false;
-            }
+            const balanceResponse = await marketData.sendRequest({ "balance": 1 });
 
             if (balanceResponse && balanceResponse.balance) {
-                // Atualizar dados do usuário
                 const userData = SessionManager.getCurrentUser();
                 if (userData) {
-                    const oldBalance = userData.balance?.balance || 0;
-                    const newBalance = parseFloat(balanceResponse.balance.balance);
-
                     userData.balance = balanceResponse.balance;
                     SessionManager.saveUserData(userData);
-
-                    if (typeof FooterUtils !== 'undefined' && typeof FooterUtils.updateBalanceElements === 'function') {
-                        FooterUtils.updateBalanceElements(balanceResponse.balance.currency, balanceResponse.balance.balance);
-                    } else {
-                        // Fallback legado caso FooterUtils não esteja disponível
-                        const balanceSelectors = [
-                            '.balance strong',
-                            '.bottom-balance strong',
-                            '.vip-balance strong'
-                        ];
-
-                        balanceSelectors.forEach(selector => {
-                            const balanceElement = document.querySelector(selector);
-                            if (balanceElement) {
-
-                                const balanceValue = balanceResponse.balance.balance;
-                                const currency = balanceResponse.balance.currency;
-                                const numericBalance = parseFloat(balanceValue);
-                                const formattedBalance = isNaN(numericBalance) ? '0.00' : numericBalance.toFixed(2);
-
-                                balanceElement.textContent = `${currency} ${formattedBalance}`;
-                            }
-                        });
-                    }
 
                     window.dispatchEvent(new CustomEvent('balanceUpdated', {
                         detail: {
                             balance: balanceResponse.balance,
                             currency: balanceResponse.balance.currency,
                             amount: balanceResponse.balance.balance,
-                            oldBalance: oldBalance,
-                            newBalance: newBalance
+                            newBalance: parseFloat(balanceResponse.balance.balance)
                         }
                     }));
-
                     return true;
                 }
             }
-
             return false;
         } catch (error) {
-            // 🎯 RETRY LOGIC: Tentar novamente se for erro de Timeout
             if (retryCount > 0 && error.message && error.message.includes('Timeout')) {
-
-
-                // Aguardar 1s antes de tentar novamente
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 return this.updateAccountBalance(retryCount - 1);
             }
-
-            // ✅ SILENCIAR ERROS durante troca de conta (são esperados)
-            if (window.accountSwitchInProgress && error.message && error.message.includes('Timeout')) {
-                console.warn('⚠️ [BALANCE] Timeout ignorado durante troca de conta (esperado).');
-                return false;
-            }
-
             console.error('❌ [BALANCE] Erro ao atualizar saldo:', error);
-
-            // Isso corrige o problema de "dados paralisados" após erro de rede
-            if (error.message && error.message.includes('Timeout')) {
-                // Não reconectar se estiver trocando de conta
-                if (window.accountSwitchInProgress) return false;
-
-                console.warn('⚠️ [BALANCE] Timeout persistente! Forçando reconexão do stream de dados...');
-                try {
-                    const token = SessionManager.getLocalToken();
-                    const marketData = getMarketDataInstance(token);
-                    if (marketData && typeof marketData.connect === 'function') {
-                        marketData.connect(); // Força reconexão do WS
-                    }
-                } catch (recError) {
-                    console.error('❌ Falha na tentativa de recuperação:', recError);
-                }
-            }
             return false;
         }
     }
