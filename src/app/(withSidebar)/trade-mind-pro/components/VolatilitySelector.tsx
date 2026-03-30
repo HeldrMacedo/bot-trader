@@ -32,18 +32,24 @@ export default function VolatilitySelector({ selectedSymbol, onSelectSymbol }: V
         });
 
         if (response.active_symbols) {
-            // Filter for Volatility Indices (synthetic_index) usually, 
+            // Filter for Volatility Indices (synthetic_index) usually,
             // but user asked for "Volatilidades", so we focus on derived/synthetic.
             // Adjust filter as per actual API response structure for Volatility Indices.
-            const volatilitySymbols = response.active_symbols.filter((s: any) => 
+            const volatilitySymbols = response.active_symbols.filter((s: any) =>
                 s.market === 'synthetic_index' && s.submarket === 'random_index'
             );
 
             setSymbols(volatilitySymbols);
-            
-            // Set default if none selected
+
+            // Verificar se há símbolo salvo no localStorage
+            const savedSymbol = localStorage.getItem('selectedSymbol');
+            const savedExists = savedSymbol && volatilitySymbols.some((s: any) => s.symbol === savedSymbol);
+
             if (!selectedSymbol && volatilitySymbols.length > 0) {
-                onSelectSymbol(volatilitySymbols[1].symbol);
+                if (savedExists) {
+                    onSelectSymbol(savedSymbol!);
+                }
+                // Nenhum padrão forçado — aguarda o usuário selecionar
             }
         }
       } catch (error) {
@@ -87,6 +93,7 @@ export default function VolatilitySelector({ selectedSymbol, onSelectSymbol }: V
                 <button
                     key={symbol.symbol}
                     onClick={() => {
+                        localStorage.setItem('selectedSymbol', symbol.symbol);
                         onSelectSymbol(symbol.symbol);
                         setIsOpen(false);
                     }}

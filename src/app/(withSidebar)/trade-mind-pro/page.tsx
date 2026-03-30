@@ -20,7 +20,12 @@ import { LegacyBridgeService } from './service/LegacyBridge';
 
 export default function TradeMindPro() {
   const [loading, setLoading] = useState(true);
-  const [selectedSymbol, setSelectedSymbol] = useState('');
+  const [selectedSymbol, setSelectedSymbol] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selectedSymbol') || '';
+    }
+    return '';
+  });
   const [messages, setMessages] = useState<any[]>([]);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [aiMode, setAiMode] = useState<'strategy' | 'chat' | 'config'>('strategy');
