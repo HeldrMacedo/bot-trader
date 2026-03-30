@@ -21,10 +21,11 @@ This is a **Next.js 16 + React 19 trading bot platform** that integrates with th
 
 | Module | Status | Description |
 |--------|--------|-------------|
-| `bot-strategy/` | **Active** | Main trading bot (React/TS migration target) |
+| `bot-strategy/` | Inactive | Main trading bot (React/TS migration target) |
 | `trade-mind-pro/` | In progress | AI-powered trading panel with Gemini integration |
-| `bot-analitico/` | Active | ML analytics with TensorFlow.js |
-| `advanced-bot/` | Legacy | Advanced bot features |
+| `bot-analitico/` | Inactive | ML analytics with TensorFlow.js |
+| `advanced-bot/` | Inactive | Advanced bot features |
+| `bottrader/` | **Active** | Bot Copy Trader |
 
 ### Core Architecture Patterns
 
