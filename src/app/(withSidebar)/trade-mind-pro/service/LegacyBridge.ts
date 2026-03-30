@@ -50,9 +50,13 @@ declare global {
     // Stop & Monitor
     StopMonitor: any;
     getTradeManagerInstance: () => any;
+    getRegrasJsonManagerInstance: () => any;
+    getRuleCompatibilityValidatorInstance: () => any;
+    rulesHistoryManager?: any;
     getMarketDataInstance?: (token: string) => any;
     marketDataInstance?: any;
     formatGeneratorInstance?: any;
+
 
     // Shims for legacy compatibility
     selectedSymbol: string;

@@ -96,18 +96,18 @@ const Sidebar = ({
       href: "/home",
       role: ["admin", "user"],
     },
-    {
-      name: "Bot Analitico",
-      icon: CpuChipIcon,
-      href: "/bot-analitico",
-      role: ["admin"],
-    },
-    {
-      name: "Bot Strategy",
-      icon: CpuChipIcon,
-      href: "/bot-strategy",
-      role: ["admin"],
-    },
+    // {
+    //   name: "Bot Analitico",
+    //   icon: CpuChipIcon,
+    //   href: "/bot-analitico",
+    //   role: ["admin"],
+    // },
+    // {
+    //   name: "Bot Strategy",
+    //   icon: CpuChipIcon,
+    //   href: "/bot-strategy",
+    //   role: ["admin"],
+    // },
     {
       name: "Trade Mind Pro",
       icon: CpuChipIcon,

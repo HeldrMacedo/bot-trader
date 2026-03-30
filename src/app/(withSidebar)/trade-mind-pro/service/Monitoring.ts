@@ -200,8 +200,8 @@ export class MonitoringService {
       if (translatedRules && regrasJsonManager?.saveCachedTranslation) {
         regrasJsonManager.saveCachedTranslation(normalized, translatedRules);
       }
-      if (window.rulesHistoryManager?.saveRule) {
-        window.rulesHistoryManager.saveRule(normalized, translatedRules);
+      if (window?.rulesHistoryManager?.saveRule) {
+        window?.rulesHistoryManager.saveRule(normalized, translatedRules);
       }
       onProgress?.('Estratégia criada com sucesso!');
       return { translatedRules, source: 'gemini', corrections: preprocessResult.corrections };

@@ -22,7 +22,6 @@ import { GeminiAIService } from './services/GeminiAIService';
 import { MarketDataService } from './services/MarketDataService';
 import { TradeContractSelector } from './services/TradeContractSelector';
 import { TradeMode } from './services/TradeModeRiskController';
-import { Monitoring } from './services/Monitoring';
 
 export default function BotStrategyPage() {
   const [loading, setLoading] = useState(true);
@@ -49,6 +48,7 @@ export default function BotStrategyPage() {
   // Configuration State (Complete with all fields from legacy system)
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [availableContractTypes, setAvailableContractTypes] = useState<string[]>([]);
+  const [saved, setSaved] = useState(null);
   const [config, setConfig] = useState({
     // Trade
     stake: 0.35,
