@@ -275,9 +275,9 @@ export default function TradeMindPro() {
                     if (cfg.tradeType && cfg.tradeType !== 'BOTH' && cfg.tradeType.trim() !== '') {
                       tm.config.contractType = cfg.tradeType;
                     }
-                    // prediction do painel como fallback
-                    if (cfg.prediction !== undefined && cfg.prediction !== null) {
-                      tm.config.prediction = { type: 'prediction', value: cfg.prediction };
+                    // prediction do painel como fallback — garantir número (barrier deve ser int 0-9)
+                    if (cfg.prediction !== undefined && cfg.prediction !== null && cfg.prediction !== '') {
+                      tm.config.prediction = { type: 'prediction', value: Number(cfg.prediction) };
                     }
                   }
                 } catch (e) {
@@ -322,7 +322,6 @@ export default function TradeMindPro() {
 
     // Validações
     if (!selectedSymbol) { toast.warning('Selecione um símbolo'); return; }
-    if (!translatedRules) { toast.warning('Defina uma estratégia primeiro'); return; }
 
     try {
       setIsStarting(true);
@@ -362,9 +361,14 @@ export default function TradeMindPro() {
         tradeReal: !detectIsVirtualAccount()
       });
 
+      // Se não há estratégia IA, usar regras vazias = modo entrada imediata (igual legado)
+      if (!translatedRules) {
+        monitoringService.setTranslatedRules({ groups: [], contract_type: null, prediction: null });
+      }
+
       // Ativar execução no MonitoringService
       monitoringService.startExecution(
-        translatedRules.groupActivation || null,
+        translatedRules?.groupActivation || null,
         controllerConfig.cooldownPeriod || 3
       );
 
@@ -372,7 +376,7 @@ export default function TradeMindPro() {
       setMainView('dashboard');
       addLog('🚀 Bot iniciado');
       addLog(`📊 Símbolo: ${selectedSymbol} | Stake: $${managementConfig.stake}`);
-      addLog(`📋 Modo inicial: ${detectIsVirtualAccount() ? 'SIMULACAO' : 'Aguardando...'}`);
+      addLog(`📋 Modo inicial: ${(window as any).tradeManager?.currentMode || (detectIsVirtualAccount() ? 'VIRTUAL' : 'REAL')}`);
     } catch (error: any) {
       toast.error('Erro ao iniciar o bot');
       addLog(`❌ Erro: ${error.message}`);

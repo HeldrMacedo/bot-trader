@@ -1023,26 +1023,32 @@ export class MonitoringService {
 
       // Trade signal: verificar se algum grupo ativo está satisfeito
       if (this.isExecutionActive && !isPreview && !this.isAwaitingTrade && this.cooldownTicksRemaining <= 0) {
-        const activeGroupIds = this.getActiveGroupIds();
+        // Modo imediato: sem grupos de regras = disparar em todo tick (igual legado groups.length === 0)
+        if (rulesData.groups.length === 0) {
+          this.isAwaitingTrade = true;
+          this.config?.onTradeSignal?.('immediate', this.currentTickPrice || 0, null);
+        } else {
+          const activeGroupIds = this.getActiveGroupIds();
 
-        for (const group of rulesData.groups) {
-          const groupId = Number(group.id);
+          for (const group of rulesData.groups) {
+            const groupId = Number(group.id);
 
-          // Verificar se grupo está ativo por activation config
-          if (activeGroupIds !== null && !activeGroupIds.includes(groupId)) continue;
+            // Verificar se grupo está ativo por activation config
+            if (activeGroupIds !== null && !activeGroupIds.includes(groupId)) continue;
 
-          // Verificar se TODAS as regras do grupo estão satisfeitas (AND)
-          const allSatisfied = group.rules.every(r => r.status === 'satisfied' || r.status === 'satisfied-cooldown');
+            // Verificar se TODAS as regras do grupo estão satisfeitas (AND)
+            const allSatisfied = group.rules.every(r => r.status === 'satisfied' || r.status === 'satisfied-cooldown');
 
-          if (allSatisfied && group.rules.length > 0) {
-            this.isAwaitingTrade = true;
-            const entryPrice = this.currentTickPrice || 0;
+            if (allSatisfied && group.rules.length > 0) {
+              this.isAwaitingTrade = true;
+              const entryPrice = this.currentTickPrice || 0;
 
-            // Extrair contractType/prediction das regras satisfeitas (igual legado)
-            const capturedPredictions = this.extractCapturedPredictions(groupId);
+              // Extrair contractType/prediction das regras satisfeitas (igual legado)
+              const capturedPredictions = this.extractCapturedPredictions(groupId);
 
-            this.config?.onTradeSignal?.(groupId, entryPrice, capturedPredictions);
-            break; // OR entre grupos — executa no primeiro que satisfaz
+              this.config?.onTradeSignal?.(groupId, entryPrice, capturedPredictions);
+              break; // OR entre grupos — executa no primeiro que satisfaz
+            }
           }
         }
       }

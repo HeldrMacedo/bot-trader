@@ -1,22 +1,17 @@
-❌ [EXTRACT DIGIT] Erro ao extrair último dígito: ReferenceError: CONFIG is not defined
-    at new DerivMarketData (deriv-market-data.js…1774124805637:25:31)
-    at getMarketDataInstance (deriv-market-data.js…74124805637:2903:25)
-    at TradeManager.extractLastDigit (trade-manager.js?v=1774124808991:5080:32)
-    at TradeManager.determineDigitOverResult (trade-manager.js?v=1774124808991:5943:28)
-    at TradeManager.determineTradeResult (trade-manager.js?v=1774124808991:5844:29)
-    at TradeManager.executeSimulatedTrade (trade-manager.js?v=1774124808991:3199:32)
-    at async TradeManager.executeTrade (trade-manager.js?v=1774124808991:2962:34)
-extractLastDigit	@	trade-manager.js?v=1774124808991:5119
-determineDigitOverResult	@	trade-manager.js?v=1774124808991:5943
-determineTradeResult	@	trade-manager.js?v=1774124808991:5844
-executeSimulatedTrade	@	trade-manager.js?v=1774124808991:3199
-await in executeSimulatedTrade		
-executeTrade	@	trade-manager.js?v=1774124808991:2962
-TradeMindPro.useEffect.startMonitoring	@	page.tsx:256
-setTranslatedRules	@	Monitoring.ts:956
-handleTick	@	Monitoring.ts:507
-(anonymous)	@	Monitoring.ts:461
-(anonymous)	@	simpleObserver.ts:21
-emit	@	simpleObserver.ts:19
-handleMessage	@	DerivService.tsx:446
-(anonymous)	@	DerivService.tsx:395
+<div class="trade-messages-display" style="margin: 20px 0px; padding: 15px; border: 1px solid rgb(224, 224, 224); border-radius: 8px; background: rgb(248, 249, 250);">
+            <div class="trade-messages-header">
+                <div class="profit-loss-display centered-display">
+                    <span class="profit-loss-label">P&amp;L:</span>
+                    <span class="profit-loss-value profit" id="profit-loss-value" style="background-color: rgb(40, 167, 69); color: white;">$0.04</span>
+                    <button class="reset-profit-loss-btn" id="reset-profit-loss-btn" title="Resetar P&amp;L">
+                        ↻
+                    </button>
+                </div>
+                <button class="clear-messages-btn" id="clear-messages-btn" title="Limpar mensagens">
+                    🗑️
+                </button>
+            </div>
+            <div id="trade-messages-container" class="trade-messages-container">
+                <div class="messages-list" id="messages-list"></div>
+            </div>
+        </div>

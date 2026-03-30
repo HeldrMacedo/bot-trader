@@ -140,7 +140,9 @@ class TradeModeRiskController {
     // 🎰 Calcular stake com Gale
     calculateGaleStake(targetContractType = null, targetBarrier = null) {
      
-
+        console.log("IsCalculatingGale ", this.isCalculatingGale);
+        console.log("this.config ", this.config);
+        console.log("lastCalculatedStake ", this.lastCalculatedStake);
         // 🔒 PROTEÇÃO CONTRA LOOP INFINITO
         if (this.isCalculatingGale) {
         
@@ -151,7 +153,6 @@ class TradeModeRiskController {
 
         try {
             const baseStake = this.config.stake || 0.35;
-
             if (!this.config.galeActive) {
                 logConfig.info('trade_risk', `🎰 Gale desativado, usando stake base: ${baseStake}`);
                 return parseFloat(baseStake.toFixed(2));
@@ -176,7 +177,7 @@ class TradeModeRiskController {
                 }
                 return parseFloat(this.lastCalculatedStakeSplitted.toFixed(2));
             }
-
+            console.log("this.accumulatedLosses ", this.accumulatedLosses);
             // 🎰 CORREÇÃO: Usar accumulatedLosses ao invés de realLossesStreak
             if (this.accumulatedLosses <= 0) {
                 logConfig.info('trade_risk', `🎰 Sem perdas acumuladas, usando stake base: ${baseStake}`);
@@ -242,6 +243,7 @@ class TradeModeRiskController {
             }
 
             // 🎰 NOVA FÓRMULA: (Perdas / (Payout-1)) × Ajuste
+            console.log(`Total Losses: ${totalLosses}, Payout: ${currentPayout}, Ajuste: ${galeAdjustment}`);
             let stakeGaleCalculated = (totalLosses / (currentPayout - 1)) * galeAdjustment;
         
             // O Split deve vir EXCLUSIVAMENTE da configuração atual (this.config.galeSplit)
@@ -265,7 +267,8 @@ class TradeModeRiskController {
                     logConfig.info('trade_risk', `🎰 [SPLIT GALE] Mantendo stake dividida (${this.pendingSplitWins} wins restantes): ${this.lastCalculatedStakeSplitted}`);
                     return parseFloat(this.lastCalculatedStakeSplitted.toFixed(2));
                 }
-
+                console.log("stakeGaleCalculated dentro if ", stakeGaleCalculated);
+                console.log("galeSplit dentro if ", galeSplit);
                 // Caso 2: Nova perda ou início da sequência -> Recalcular e Dividir
                 stakeGaleCalculated = stakeGaleCalculated / galeSplit;
 
@@ -280,7 +283,8 @@ class TradeModeRiskController {
 
                 logConfig.warn('trade_risk', `🎰 [SPLIT GALE] Valor dividido por ${galeSplit}. Wins necessários: ${galeSplit}`);
             }
-
+            console.log("stakeGaleCalculated fora if ", stakeGaleCalculated);
+            console.log("galeSplit fora if ", galeSplit);
             this.lastRealGaleValue = stakeGaleCalculated;
         
             // Se for split, já dividimos acima.

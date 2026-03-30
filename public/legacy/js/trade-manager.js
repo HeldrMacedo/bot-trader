@@ -2886,14 +2886,12 @@ class TradeManager {
 
             // ✅ VERIFICAÇÃO DE SALDO: Sempre verificar saldo atual antes de trade real
             if (executionMode !== 'SIMULACAO') {
-                console.log("EXECUTION MODE", executionMode);
+
                 const currentUser = SessionManager.getCurrentUser();
-                console.log("CURRENT USER ", currentUser);
                 let currentBalance = 0;
 
                 // Tentar obter saldo do rodapé primeiro (mais atualizado)
                 const footerBalance = this.getCurrentFooterBalance();
-                console.log("FOOTER BALANCE ", footerBalance);
                 
                 if (footerBalance !== null) {
                     currentBalance = footerBalance;
@@ -2902,7 +2900,6 @@ class TradeManager {
                 }
 
                 const requiredStake = this.getCurrentStakeValue();
-                console.log("REQUIRED STAKE ", requiredStake);
 
                 if (currentBalance < requiredStake) {
                     const errorMsg = `Saldo insuficiente: ${currentBalance.toFixed(2)} ${currentUser?.balance?.currency || 'USD'} < ${requiredStake.toFixed(2)}`;
@@ -4117,7 +4114,6 @@ class TradeManager {
 
     // Executar trade real (REAL ou VIRTUAL)
     async executeRealTrade(entryPrice = null, bypassTradeLimit = false, options = {}, tradeChamada = '') {
-        console.log("REAL TRADER ", tradeChamada);
         const { suppressGlobalSideEffects = false } = options;
 
 
@@ -4199,7 +4195,6 @@ class TradeManager {
 
         // Declarar variáveis usadas fora do try
         let barrierValue = null;
-
         try {
 
             // 🎯 CRÍTICO: Verificar se a previsão (barrier) mudou. Se mudou, NÃO usar cache!
@@ -4233,6 +4228,7 @@ class TradeManager {
                     try {
                         const targetBarrier = capturedPrediction !== null ? capturedPrediction : null;
                         this.nextTradeStake = this.calculateGaleStake(capturedContractType, targetBarrier);
+                        console.log("this.nextTradeStake", this.nextTradeStake);
                         logConfig.info('trade_manager', `🎰 [PROATIVO] Stake ajustada para ${capturedContractType} em executeRealTrade: ${this.nextTradeStake}`);
                     } catch (e) {
                         logConfig.warn('trade_manager', `⚠️ [PROATIVO] Falha no recálculo Gale: ${e.message}`);
@@ -4934,7 +4930,7 @@ class TradeManager {
 
     // 🔄 REFATORADO: Delegar para TradeModeRiskController
     calculateGaleStake(targetContractType = null, targetBarrier = null) {
-
+        console.log("riskController ", this.riskController);
         if (this.riskController) {
 
             if (this.config.galeRemovesSoros) console.log("🔍 [DEBUG GALE] Delegando cálculo para RiskController...");
@@ -4946,6 +4942,8 @@ class TradeManager {
 
         try {
             const baseStake = this.config.stake || 0.35;
+            console.log("this.config trade-manager ", this.config);
+            console.log("baseStake trade-manager ", baseStake);
             if (!this.config.galeActive) {
 
                 return parseFloat(baseStake.toFixed(2));
