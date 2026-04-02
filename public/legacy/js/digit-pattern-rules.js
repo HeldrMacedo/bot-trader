@@ -6,10 +6,11 @@ class DigitPatternRulesProcessor {
     constructor() {
         this.sessionId = SessionManager.getUserSessionId();
 
-        // Cache para otimizar cálculos
         this.patternCache = new Map();
         this.lastCacheUpdate = 0;
-        this.cacheTimeout = 1000; // 1 segundo
+        this.cacheTimeout = 1000;
+        this.predictionModalDismissed = false;
+        this.predictionModalDismissedKey = null;
     }
 
     // Processar regra de padrão de dígitos
@@ -111,11 +112,7 @@ class DigitPatternRulesProcessor {
     getDigitsForPattern(patternLength, forcedPrice = null) {
         const startTime = performance.now();
         try {
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
-            if (!marketData) {
-                console.error('❌ Market data instance não disponível');
-                return [];
-            }
+            const derivService = window.DerivServiceInstance;
 
             // ❌ REMOVIDO fallback de R_10 - usar ativo selecionado obrigatoriamente
             const currentSymbol = window.selectedSymbol || SessionManager.getSessionData('selected_symbol');
@@ -152,7 +149,25 @@ class DigitPatternRulesProcessor {
             const searchCount = (patternLength * multiplier) + 20; // Margem de segurança
 
             // Obter mais dígitos que o necessário para ter certeza
-            const history = marketData.getHistoricalTicks(currentSymbol, searchCount);
+            let history = null;
+
+            if (derivService && typeof derivService.getHistoricalTicksSync === 'function') {
+                try {
+                    history = derivService.getHistoricalTicksSync(currentSymbol, searchCount);
+                } catch (e) {
+                    console.warn('⚠️ [DIGIT PATTERN] Erro ao acessar DerivServiceInstance:', e);
+                }
+            }
+
+            if (!history || !history.prices || history.prices.length === 0) {
+                const marketData = getMarketDataInstance(SessionManager.getLocalToken());
+                if (!marketData) {
+                    console.error('❌ Market data instance não disponível');
+                    return [];
+                }
+
+                history = marketData.getHistoricalTicks(currentSymbol, searchCount);
+            }
 
             if (history && history.prices && Array.isArray(history.prices) && history.prices.length > 0) {
                 // Converter preços para últimos dígitos
@@ -330,8 +345,8 @@ class DigitPatternRulesProcessor {
 
             // Validar previsão apenas se não for contrato de paridade (Odd/Even)
             if (predictionDigit === null && !isParityContract) {
-                // 🚨 NOVO: Mostrar modal explicativo sobre compatibilidade
-                this.showPredictionRequiredModal();
+                const modalKey = this.buildPredictionRequiredModalKey(contractType, context);
+                this.showPredictionRequiredModal(modalKey);
 
                 return {
                     isMatch: false,
@@ -766,7 +781,8 @@ class DigitPatternRulesProcessor {
             if (predictionInput && predictionInput.value !== '') {
                 const prediction = parseInt(predictionInput.value, 10);
                 if (!isNaN(prediction) && prediction >= 0 && prediction <= 9) {
-
+                    this.predictionModalDismissed = false;
+                    this.predictionModalDismissedKey = null;
                     return prediction;
                 }
             }
@@ -776,6 +792,8 @@ class DigitPatternRulesProcessor {
                 window.tradeConfig.prediction !== undefined) {
                 const prediction = parseInt(window.tradeConfig.prediction, 10);
                 if (!isNaN(prediction) && prediction >= 0 && prediction <= 9) {
+                    this.predictionModalDismissed = false;
+                    this.predictionModalDismissedKey = null;
                     return prediction;
                 }
             }
@@ -976,15 +994,52 @@ class DigitPatternRulesProcessor {
         }
     }
 
-    // 🚨 NOVO: Mostrar modal explicativo sobre necessidade de previsão
-    showPredictionRequiredModal() {
-        // 🛑 CRÍTICO: Parar monitoramento para evitar loop de erros
+    closePredictionRequiredModal() {
+        const modal = document.getElementById('prediction-required-modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    buildPredictionRequiredModalKey(contractType, context = null) {
+        const contextAction = context && (context.action || context.contextAction || context.predictionAction)
+            ? String(context.action || context.contextAction || context.predictionAction)
+            : '';
+        const contextTarget = context && (context.target !== undefined && context.target !== null)
+            ? String(context.target)
+            : '';
+
+        return `${contractType || 'UNKNOWN'}|${contextAction}|${contextTarget}`;
+    }
+
+    focusPredictionInput() {
+        const predictionInput = document.getElementById('prediction-input');
+        if (predictionInput && typeof predictionInput.focus === 'function') {
+            predictionInput.focus();
+            if (typeof predictionInput.select === 'function') {
+                predictionInput.select();
+            }
+            return true;
+        }
+
+        const predictionContainer = document.getElementById('prediction-barrier-container');
+        if (predictionContainer && typeof predictionContainer.scrollIntoView === 'function') {
+            predictionContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        return false;
+    }
+
+    showPredictionRequiredModal(modalKey = 'default') {
+        if (this.predictionModalDismissed && this.predictionModalDismissedKey === modalKey) {
+            return;
+        }
+
         if (typeof MonitoringView !== 'undefined' && MonitoringView.stopMonitoring) {
             console.warn('⚠️ [MODAL ERROR] Parando monitoramento devido a erro na regra');
             MonitoringView.stopMonitoring();
         }
 
-        // Evitar múltiplos modais simultâneos
         if (document.getElementById('prediction-required-modal')) {
             return;
         }
@@ -992,131 +1047,257 @@ class DigitPatternRulesProcessor {
         const modal = document.createElement('div');
         modal.id = 'prediction-required-modal';
         modal.className = 'prediction-required-modal-overlay';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
-            z-index: 20000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            animation: fadeIn 0.3s ease-out;
-        `;
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'prediction-required-modal-title');
 
         modal.innerHTML = `
-            <div style="
-                background: white;
-                border-radius: 20px;
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                max-width: 550px;
-                width: 90%;
-                max-height: 80vh;
-                overflow-y: auto;
-                border: 3px solid #ff6b35;
-            ">
-                <div style="
-                    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-                    color: white;
-                    padding: 25px 30px;
-                    border-radius: 20px 20px 0 0;
-                    text-align: center;
-                ">
-                    <h3 style="margin: 0; font-size: 1.4em; font-weight: 700;">
-                        ⚠️ Regra de Padrão Incompatível
+            <div class="prediction-required-modal-panel">
+                <div class="prediction-required-modal-header">
+                    <div class="prediction-required-modal-badge">Previsão obrigatória</div>
+                    <h3 id="prediction-required-modal-title" class="prediction-required-modal-title">
+                        Configure a previsão para usar padrão de dígitos
                     </h3>
+                    <p class="prediction-required-modal-subtitle">
+                        O sistema migrado exige uma previsão válida para interpretar corretamente padrões como XXOX, OOOOXXO e similares.
+                    </p>
                 </div>
 
-                <div style="padding: 30px;">
-                    <div style="
-                        background: #fff3e0;
-                        border-left: 4px solid #ff6b35;
-                        padding: 20px;
-                        border-radius: 8px;
-                        margin-bottom: 25px;
-                    ">
-                        <h4 style="margin: 0 0 10px 0; color: #e65100; font-size: 1.1rem;">
-                            🎯 Problema Detectado:
-                        </h4>
-                        <p style="margin: 0; color: #bf360c; line-height: 1.5;">
-                            As regras de <strong>padrões de dígitos (XXOX, OOOOXXO, etc.)</strong> necessitam
-                            de uma previsão definida para funcionar corretamente.
+                <div class="prediction-required-modal-body">
+                    <div class="prediction-required-modal-card prediction-required-modal-card-alert">
+                        <div class="prediction-required-modal-card-title">O que está faltando</div>
+                        <p class="prediction-required-modal-text">
+                            Regras de padrão de dígitos precisam de um dígito de previsão entre 0 e 9 para calcular quais valores entram como "X" no padrão atual.
                         </p>
                     </div>
 
-                    <div style="
-                        background: #e8f5e8;
-                        border-left: 4px solid #4caf50;
-                        padding: 20px;
-                        border-radius: 8px;
-                        margin-bottom: 25px;
-                    ">
-                        <h4 style="margin: 0 0 10px 0; color: #2e7d32; font-size: 1.1rem;">
-                            💡 Como Resolver:
-                        </h4>
-                        <ul style="margin: 0; padding-left: 20px; color: #1b5e20; line-height: 1.6;">
-                            <li><strong>Configure uma previsão:</strong> Digite um dígito de 0 a 9 no campo "Previsão"</li>
-                            <li><strong>Use contratos compatíveis:</strong> Como DIGITOVER, DIGITUNDER, DIGITMATCH, etc.</li>
-                            <li><strong>Sistema inteligente:</strong> Os "dígitos perdedores" do contrato serão usados como "X" no padrão</li>
-                            <li><strong>Exemplo:</strong> OVER 3 usa dígitos 0,1,2,3 como "X" (dígitos que fazem perder)</li>
+                    <div class="prediction-required-modal-card">
+                        <div class="prediction-required-modal-card-title">Como resolver</div>
+                        <ul class="prediction-required-modal-list">
+                            <li>Preencha o campo <strong>Previsão</strong> com um dígito de 0 a 9</li>
+                            <li>Use contratos compatíveis como DIGITOVER, DIGITUNDER, DIGITMATCH ou DIGITDIFF</li>
+                            <li>O sistema usa os dígitos perdedores do contrato para montar a lógica do padrão</li>
                         </ul>
                     </div>
 
-                    <div style="
-                        background: #f3e5f5;
-                        border-left: 4px solid #9c27b0;
-                        padding: 15px;
-                        border-radius: 8px;
-                        margin-bottom: 25px;
-                        font-size: 0.9rem;
-                    ">
-                        <strong>📋 Exemplos:</strong><br>
-                        • Padrão XXOX + DIFFER previsão "7" = X pode ser apenas 7<br>
-                        • Padrão XXOX + OVER previsão "3" = X pode ser 0,1,2 ou 3<br>
-                        • Padrão XXOX + UNDER previsão "6" = X pode ser 6,7,8 ou 9
+                    <div class="prediction-required-modal-card prediction-required-modal-card-example">
+                        <div class="prediction-required-modal-card-title">Exemplos práticos</div>
+                        <div class="prediction-required-modal-examples">
+                            <div>XXOX + DIFFER previsão 7 → X pode ser apenas 7</div>
+                            <div>XXOX + OVER previsão 3 → X pode ser 0, 1, 2 ou 3</div>
+                            <div>XXOX + UNDER previsão 6 → X pode ser 6, 7, 8 ou 9</div>
+                        </div>
                     </div>
 
-                    <div style="text-align: center;">
-                        <button onclick="this.closest('.prediction-required-modal-overlay').remove()" style="
-                            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-                            color: white;
-                            border: none;
-                            padding: 15px 30px;
-                            border-radius: 10px;
-                            font-size: 1.1em;
-                            font-weight: 600;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-                        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(76, 175, 80, 0.4)';"
-                           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(76, 175, 80, 0.3)';">
-                            ✅ Entendi, vou configurar a previsão
+                    <div class="prediction-required-modal-actions">
+                        <button type="button" class="prediction-required-modal-secondary" data-action="close">
+                            Fechar
+                        </button>
+                        <button type="button" class="prediction-required-modal-primary" data-action="focus-prediction">
+                            Ir para previsão
                         </button>
                     </div>
                 </div>
             </div>
         `;
 
-        // Adicionar estilos CSS se não existirem
         if (!document.getElementById('prediction-required-modal-styles')) {
             const style = document.createElement('style');
             style.id = 'prediction-required-modal-styles';
             style.textContent = `
                 @keyframes fadeIn {
-                    from { opacity: 0; transform: scale(0.9); }
-                    to { opacity: 1; transform: scale(1); }
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                @keyframes slideUpIn {
+                    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
                 }
 
                 .prediction-required-modal-overlay {
-                    animation: fadeIn 0.3s ease-out;
+                    position: fixed;
+                    inset: 0;
+                    z-index: 20000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 24px;
+                    background: rgba(3, 7, 18, 0.82);
+                    backdrop-filter: blur(8px);
+                    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    animation: fadeIn 0.2s ease-out;
                 }
 
-                .prediction-required-modal-overlay button:active {
-                    transform: translateY(-1px) scale(1.02) !important;
+                .prediction-required-modal-panel {
+                    width: min(100%, 640px);
+                    max-height: min(88vh, 760px);
+                    overflow-y: auto;
+                    background: #0d0a18;
+                    border: 1px solid rgba(107, 114, 128, 0.45);
+                    border-radius: 20px;
+                    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+                    animation: slideUpIn 0.24s ease-out;
+                }
+
+                .prediction-required-modal-header {
+                    padding: 24px 24px 18px;
+                    background: linear-gradient(180deg, rgba(19, 17, 28, 0.98) 0%, rgba(13, 10, 24, 0.98) 100%);
+                    border-bottom: 1px solid rgba(107, 114, 128, 0.28);
+                }
+
+                .prediction-required-modal-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    padding: 6px 10px;
+                    margin-bottom: 14px;
+                    border-radius: 999px;
+                    background: rgba(37, 99, 235, 0.16);
+                    border: 1px solid rgba(59, 130, 246, 0.35);
+                    color: #93c5fd;
+                    font-size: 12px;
+                    font-weight: 700;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                }
+
+                .prediction-required-modal-title {
+                    margin: 0;
+                    color: #f9fafb;
+                    font-size: 24px;
+                    font-weight: 700;
+                    line-height: 1.25;
+                }
+
+                .prediction-required-modal-subtitle {
+                    margin: 12px 0 0;
+                    color: #9ca3af;
+                    font-size: 14px;
+                    line-height: 1.6;
+                }
+
+                .prediction-required-modal-body {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 14px;
+                    padding: 20px 24px 24px;
+                }
+
+                .prediction-required-modal-card {
+                    background: #13111c;
+                    border: 1px solid rgba(75, 85, 99, 0.55);
+                    border-radius: 14px;
+                    padding: 16px 18px;
+                }
+
+                .prediction-required-modal-card-alert {
+                    border-color: rgba(59, 130, 246, 0.35);
+                    background: linear-gradient(180deg, rgba(30, 27, 46, 0.92) 0%, rgba(19, 17, 28, 0.98) 100%);
+                }
+
+                .prediction-required-modal-card-example {
+                    background: #1e1b2e;
+                }
+
+                .prediction-required-modal-card-title {
+                    margin: 0 0 10px;
+                    color: #f9fafb;
+                    font-size: 14px;
+                    font-weight: 700;
+                }
+
+                .prediction-required-modal-text,
+                .prediction-required-modal-list,
+                .prediction-required-modal-examples {
+                    margin: 0;
+                    color: #d1d5db;
+                    font-size: 14px;
+                    line-height: 1.65;
+                }
+
+                .prediction-required-modal-list {
+                    padding-left: 18px;
+                }
+
+                .prediction-required-modal-list li + li {
+                    margin-top: 8px;
+                }
+
+                .prediction-required-modal-examples {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    color: #cbd5e1;
+                }
+
+                .prediction-required-modal-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 12px;
+                    margin-top: 4px;
+                }
+
+                .prediction-required-modal-primary,
+                .prediction-required-modal-secondary {
+                    border: none;
+                    border-radius: 10px;
+                    padding: 12px 18px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+                }
+
+                .prediction-required-modal-primary {
+                    background: #2563eb;
+                    color: #ffffff;
+                    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.28);
+                }
+
+                .prediction-required-modal-primary:hover {
+                    background: #3b82f6;
+                    transform: translateY(-1px);
+                }
+
+                .prediction-required-modal-secondary {
+                    background: #1f2937;
+                    color: #e5e7eb;
+                    border: 1px solid rgba(107, 114, 128, 0.45);
+                }
+
+                .prediction-required-modal-secondary:hover {
+                    background: #374151;
+                    transform: translateY(-1px);
+                }
+
+                .prediction-required-modal-primary:active,
+                .prediction-required-modal-secondary:active {
+                    transform: translateY(0);
+                }
+
+                @media (max-width: 640px) {
+                    .prediction-required-modal-overlay {
+                        padding: 16px;
+                    }
+
+                    .prediction-required-modal-header,
+                    .prediction-required-modal-body {
+                        padding-left: 16px;
+                        padding-right: 16px;
+                    }
+
+                    .prediction-required-modal-title {
+                        font-size: 20px;
+                    }
+
+                    .prediction-required-modal-actions {
+                        flex-direction: column-reverse;
+                    }
+
+                    .prediction-required-modal-primary,
+                    .prediction-required-modal-secondary {
+                        width: 100%;
+                    }
                 }
             `;
             document.head.appendChild(style);
@@ -1124,21 +1305,45 @@ class DigitPatternRulesProcessor {
 
         document.body.appendChild(modal);
 
-        // Fechar com ESC
+        const closeModal = () => {
+            this.predictionModalDismissed = true;
+            this.predictionModalDismissedKey = modalKey;
+            this.closePredictionRequiredModal();
+            document.removeEventListener('keydown', handleEsc);
+        };
+
+        const handlePrimaryAction = () => {
+            closeModal();
+            this.focusPredictionInput();
+        };
+
+        const primaryButton = modal.querySelector('[data-action="focus-prediction"]');
+        const secondaryButton = modal.querySelector('[data-action="close"]');
+
+        if (primaryButton) {
+            primaryButton.addEventListener('click', handlePrimaryAction);
+        }
+
+        if (secondaryButton) {
+            secondaryButton.addEventListener('click', closeModal);
+        }
+
         const handleEsc = (e) => {
             if (e.key === 'Escape') {
-                modal.remove();
-                document.removeEventListener('keydown', handleEsc);
+                closeModal();
             }
         };
         document.addEventListener('keydown', handleEsc);
 
-        // Fechar clicando fora
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                modal.remove();
+                closeModal();
             }
         });
+
+        if (primaryButton && typeof primaryButton.focus === 'function') {
+            primaryButton.focus();
+        }
     }
 }
 
