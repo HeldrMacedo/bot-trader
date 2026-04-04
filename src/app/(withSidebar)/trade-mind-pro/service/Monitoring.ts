@@ -931,6 +931,53 @@ export class MonitoringService {
         return;
       }
 
+      // Aplicar parameters[] do nível raiz nas regras antes de qualquer avaliação
+      // Espelha o comportamento do legado monitoring.js:startRealTimeAnalysis
+      if (translatedRules.parameters && translatedRules.parameters.length > 0) {
+        translatedRules.parameters.forEach((param: any) => {
+          const path: string = param.path;
+          const value = param.value;
+          if (!path) return;
+          try {
+            const pathParts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
+            let target: any = translatedRules;
+            for (let i = 0; i < pathParts.length - 1; i++) {
+              target = target[pathParts[i]];
+              if (target == null) return;
+            }
+            const finalKey = pathParts[pathParts.length - 1];
+            target[finalKey] = value;
+
+            // Compatibilidade: copiar para raiz da regra quando path aponta para parameters.value
+            if (path.includes('.parameters.value')) {
+              const rulePath = pathParts.slice(0, -2);
+              let ruleTarget: any = translatedRules;
+              for (let i = 0; i < rulePath.length; i++) ruleTarget = ruleTarget[rulePath[i]];
+              if (ruleTarget) ruleTarget.value = value;
+            }
+
+            // Compatibilidade: sincronizar targetValue e predictionAction na raiz
+            if (path.includes('.parameters.targetValue')) {
+              const rulePath = pathParts.slice(0, -2);
+              let ruleTarget: any = translatedRules;
+              for (let i = 0; i < rulePath.length; i++) ruleTarget = ruleTarget[rulePath[i]];
+              if (ruleTarget) {
+                ruleTarget.targetValue = value;
+                if (ruleTarget.parameters) ruleTarget.parameters.targetValue = value;
+                const isParityRule = typeof value === 'string' &&
+                  ['odd', 'even', 'par', 'impar', 'ímpar'].includes(String(value).toLowerCase());
+                if (isParityRule) {
+                  ruleTarget.predictionAction = value;
+                  if (ruleTarget.parameters) ruleTarget.parameters.predictionAction = value;
+                }
+              }
+            }
+          } catch (e) {
+            console.error(`[MonitoringService] Erro ao aplicar parâmetro ${param.key}:`, e);
+          }
+        });
+      }
+
       this.currentTranslatedRules = translatedRules;
       if (!isPreview) {
         this.state = 'MONITORING';

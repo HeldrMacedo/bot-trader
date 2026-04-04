@@ -345,6 +345,7 @@ class DigitPatternRulesProcessor {
 
             // Validar previsão apenas se não for contrato de paridade (Odd/Even)
             if (predictionDigit === null && !isParityContract) {
+                console.log('❌ [DIGIT PATTERN] Dígito da previsão não definido para contrato:', contractType, isParityContract);
                 const modalKey = this.buildPredictionRequiredModalKey(contractType, context);
                 this.showPredictionRequiredModal(modalKey);
 
@@ -389,7 +390,6 @@ class DigitPatternRulesProcessor {
     getLosingDigits(predictionDigit, contractTypeOverride = null) {
         try {
             const contractType = contractTypeOverride || this.getCurrentContractType();
-
             switch (contractType) {
                 case 'DIGITDIFF':
                     // DIFFER: perde apenas quando sai o dígito da previsão
@@ -444,26 +444,34 @@ class DigitPatternRulesProcessor {
     // 🎯 NOVO: Obter tipo de contrato atual
     getCurrentContractType() {
         try {
-            // 1. Tentar obter do trade type select (modo BOTH)
-            const tradeTypeSelect = document.getElementById('trade-type-select');
-            if (tradeTypeSelect && tradeTypeSelect.value && tradeTypeSelect.value !== 'BOTH') {
-                return tradeTypeSelect.value;
+            const savedConfig = localStorage.getItem('trade_config_trade');
+            const parsed = JSON.parse(savedConfig);
+            const contractType = parsed?.config?.contractType || parsed?.config?.tradeType;
+            // 1. Tentar obter do trade type select (modo BOTH) — legado
+            if (contractType && contractType !== 'BOTH') {
+                return contractType;
             }
 
-            // 2. Tentar obter do contract select
-            const contractSelect = document.getElementById('contract-select');
-            if (contractSelect && contractSelect.value) {
-                return contractSelect.value;
+            // 3. Tentar obter do localStorage do sistema migrado (trade_config_trade)
+            try {
+                
+                if (savedConfig) {
+                    
+                    if (contractType && typeof contractType === 'string' && contractType.length > 0) {
+                        return contractType;
+                    }
+                }
+            } catch (e) {
+                // ignorar erro de parse
             }
 
-            // 3. Fallback para configuração do trade manager
+            // 4. Fallback para configuração do trade manager — legado
             if (typeof window !== 'undefined' && window.tradeManagerInstance && window.tradeManagerInstance.config) {
                 return window.tradeManagerInstance.config.contractType;
             }
 
-            // 4. Último fallback
-            console.warn('⚠️ [CONTRACT TYPE] Não foi possível determinar tipo de contrato');
-            return 'DIGITDIFF'; // Fallback padrão
+            // 5. Último fallback
+            return 'DIGITDIFF';
 
         } catch (error) {
             console.error('❌ [CONTRACT TYPE] Erro ao obter tipo de contrato:', error);
@@ -475,7 +483,6 @@ class DigitPatternRulesProcessor {
     testLosingDigitsAsX(pattern, digits, losingDigits, patternStructure, effectiveContractType = null) {
         try {
             const contractType = effectiveContractType || this.getCurrentContractType();
-
 
             // 🎯 NOVA ESTRATÉGIA: Usar testDigitAsX com os dígitos perdedores CORRETOS
             const result = this.testDigitAsX(pattern, digits, losingDigits, patternStructure);
@@ -515,10 +522,11 @@ class DigitPatternRulesProcessor {
 
     // 🎯 NOVA LÓGICA: Testar se padrão é válido com dígitos perdedores específicos
     testDigitAsX(pattern, digits, losingDigitsInput = null, patternStructure) {
+        console.log("testDigitAsX ", pattern, digits, losingDigits, patternStructure);
         try {
             // 🎯 CORREÇÃO CRÍTICA: Usar os dígitos perdedores passados (que já consideram o contexto da regra)
             let losingDigits = losingDigitsInput;
-
+            
             if (!losingDigits) {
                 const predictionDigit = this.getPredictionDigit();
                 losingDigits = this.getLosingDigits(predictionDigit);
@@ -776,18 +784,37 @@ class DigitPatternRulesProcessor {
             }
 
             // PRIORIDADE 2: Tentar obter do campo de previsão na interface
-            const predictionInput = document.getElementById('prediction-input');
+            // const predictionInput = document.getElementById('prediction-input');
 
-            if (predictionInput && predictionInput.value !== '') {
-                const prediction = parseInt(predictionInput.value, 10);
-                if (!isNaN(prediction) && prediction >= 0 && prediction <= 9) {
-                    this.predictionModalDismissed = false;
-                    this.predictionModalDismissedKey = null;
-                    return prediction;
+            // if (predictionInput && predictionInput.value !== '') {
+            //     const prediction = parseInt(predictionInput.value, 10);
+            //     if (!isNaN(prediction) && prediction >= 0 && prediction <= 9) {
+            //         this.predictionModalDismissed = false;
+            //         this.predictionModalDismissedKey = null;
+            //         return prediction;
+            //     }
+            // }
+
+            // PRIORIDADE 3: Tentar obter do localStorage do sistema migrado (trade_config_trade)
+            try {
+                const savedConfig = localStorage.getItem('trade_config_trade');
+                if (savedConfig) {
+                    const parsed = JSON.parse(savedConfig);
+                    const predictionStr = parsed?.config?.prediction;
+                    if (predictionStr !== undefined && predictionStr !== null && predictionStr !== '') {
+                        const prediction = parseInt(predictionStr, 10);
+                        if (!isNaN(prediction) && prediction >= 0 && prediction <= 9) {
+                            this.predictionModalDismissed = false;
+                            this.predictionModalDismissedKey = null;
+                            return prediction;
+                        }
+                    }
                 }
+            } catch (e) {
+                // ignorar erro de parse
             }
 
-            // Fallback: tentar obter da configuração de trade
+            // Fallback: tentar obter da configuração de trade legada
             if (typeof window !== 'undefined' && window.tradeConfig &&
                 window.tradeConfig.prediction !== undefined) {
                 const prediction = parseInt(window.tradeConfig.prediction, 10);
