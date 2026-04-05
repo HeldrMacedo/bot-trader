@@ -28,8 +28,9 @@ interface Stats {
   totalValueLoss: number;
   consecutiveLoss: number;
   totalProfit: number;
+  martingaleLevel: number;
+  currentStake: number;
   // Novos campos baseados na API:
-  currentStake?: number;
   isPaused?: boolean;
   pauseEndTime?: number;
   timePause: number;
@@ -72,6 +73,8 @@ interface Configure {
   pauseTime: number;
   pauseTimeLoss: boolean;
   pauseTimeWin: boolean;
+  maxMartingale: number;
+  onMaxMartingale: 'stop' | 'reset';
 }
 
 export default function BotTraderX() {
@@ -95,6 +98,8 @@ export default function BotTraderX() {
     totalValueLoss: 0,
     totalProfit: 0,
     consecutiveLoss: 0,
+    martingaleLevel: 0,
+    currentStake: 0,
     console: [] as Console[],
     timePause: 0,
     balance: 0,
@@ -103,8 +108,8 @@ export default function BotTraderX() {
 
   const [loading, setLoading] = useState(false);
   const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
-  const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
-  //const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
+  //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
   //const [demoToken, setDemoToken] = useState("");
   //const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
@@ -118,6 +123,8 @@ export default function BotTraderX() {
     pauseTime: 0,
     pauseTimeLoss: false,
     pauseTimeWin: false,
+    maxMartingale: 0,
+    onMaxMartingale: 'reset',
   });
   const [inputStopLoss, setInputStopLoss] = useState("");
   const [inputStopWin, setInputStopWin] = useState("");
@@ -153,6 +160,8 @@ export default function BotTraderX() {
           ...prev,
           console: data.console,
           consecutiveLoss: data.consecutiveLosses,
+          martingaleLevel: data.copyTrading?.trading?.martingaleLevel || 0,
+          currentStake: data.copyTrading?.trading?.currentStake || 0,
           totalLoss: data.realAccount.totalLoss,
           totalWin: data.realAccount.totalWin,
           totalTrader: data.realAccount.transactions.length,
@@ -390,10 +399,32 @@ export default function BotTraderX() {
                     disabled={true}
                     value={stats.consecutiveLoss}
                     type="text"
-                    id="entrada-inicial"
+                    id="consecutive-loss"
                     className="w-[7rem] appearance-none rounded-md border border-gray-300 bg-gray-800  pl-8 pr-3 text-base text-gray-400 focus:border-slate-500  focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="mt-2 flex flex-col lg:flex-row">
+              <div className="w-2/5">
+                <span className="text-nowrap">Martingale</span>
+              </div>
+              <div className="w-3/5 flex items-center gap-2">
+                <div className="relative">
+                  <input
+                    disabled={true}
+                    value={configure.maxMartingale > 0 ? `${stats.martingaleLevel}/${configure.maxMartingale}` : stats.martingaleLevel}
+                    type="text"
+                    id="martingale-level"
+                    className="w-[7rem] appearance-none rounded-md border border-gray-300 bg-gray-800 pl-8 pr-3 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
+                  />
+                </div>
+                {stats.currentStake > 0 && (
+                  <span className="text-xs text-orange-400">
+                    Stake: {Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.currentStake)}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -549,6 +580,82 @@ export default function BotTraderX() {
                     className="w-[7rem] appearance-none rounded-md border border-gray-300 bg-gray-800  pl-8 pr-3 text-base text-gray-400 focus:border-slate-500  focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="mt-2 flex flex-col lg:flex-row">
+              <div className="w-2/5">
+                <span className="text-nowrap">Max Martingale</span>
+              </div>
+
+              <div className="w-3/5 flex">
+                <div className="relative">
+                  <div className="absolute inset-y-0 text-gray-700 start-0 flex items-center ps-3.5 pointer-events-none">
+                    <span className="text-gray-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5-3L16.5 18m0 0L12 13.5m4.5 4.5V6" />
+                      </svg>
+                    </span>
+                  </div>
+                  <input
+                    disabled={disabledFields}
+                    type="text"
+                    id="max-martingale"
+                    value={configure.maxMartingale || ''}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, "");
+                      setConfigure((prev) => ({
+                        ...prev,
+                        maxMartingale: Number(value),
+                      }));
+                    }}
+                    className="w-[7rem] appearance-none rounded-md border border-gray-300 bg-gray-800 pl-8 pr-3 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
+                    placeholder="0 = sem limite"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 flex flex-col lg:flex-row">
+              <div className="w-2/5">
+                <span className="text-nowrap">On Max Marting.</span>
+              </div>
+
+              <div className="w-3/5 flex gap-3">
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    disabled={disabledFields}
+                    type="radio"
+                    name="onMaxMartingale"
+                    value="reset"
+                    checked={configure.onMaxMartingale === 'reset'}
+                    onChange={() =>
+                      setConfigure((prev) => ({
+                        ...prev,
+                        onMaxMartingale: 'reset',
+                      }))
+                    }
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <span className="text-sm">Reset</span>
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    disabled={disabledFields}
+                    type="radio"
+                    name="onMaxMartingale"
+                    value="stop"
+                    checked={configure.onMaxMartingale === 'stop'}
+                    onChange={() =>
+                      setConfigure((prev) => ({
+                        ...prev,
+                        onMaxMartingale: 'stop',
+                      }))
+                    }
+                    className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <span className="text-sm">Stop</span>
+                </label>
               </div>
             </div>
 

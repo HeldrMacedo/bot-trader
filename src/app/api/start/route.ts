@@ -20,6 +20,8 @@ export async function POST(request: Request) {
       pauseTime: configure?.pauseTime || 0,
       pauseTimeLoss: configure?.pauseTimeLoss || false,
       pauseTimeWin: configure?.pauseTimeWin || false,
+      maxMartingale: configure?.maxMartingale || 0,
+      onMaxMartingale: configure?.onMaxMartingale || 'reset',
       testMode: configure?.testMode || false,
     };
     

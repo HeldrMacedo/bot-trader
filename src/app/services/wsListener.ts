@@ -36,6 +36,7 @@ export class WsListener extends EventEmitter {
       this.ws = new WebSocket(this.baseUrl);
       
       this.ws.on('open', async () => {
+        console.log('WebSocket connected');
         this.isConnected = true;
         this.emit('connected');
         await this.authenticate();
@@ -43,6 +44,7 @@ export class WsListener extends EventEmitter {
       });
 
       this.ws.on('message', (data: string) => {
+        console.log('Received message:', data);
         this.processMessage(data);
       });
 

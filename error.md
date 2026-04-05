@@ -1,17 +1,22 @@
-<div class="trade-messages-display" style="margin: 20px 0px; padding: 15px; border: 1px solid rgb(224, 224, 224); border-radius: 8px; background: rgb(248, 249, 250);">
-            <div class="trade-messages-header">
-                <div class="profit-loss-display centered-display">
-                    <span class="profit-loss-label">P&amp;L:</span>
-                    <span class="profit-loss-value profit" id="profit-loss-value" style="background-color: rgb(40, 167, 69); color: white;">$0.04</span>
-                    <button class="reset-profit-loss-btn" id="reset-profit-loss-btn" title="Resetar P&amp;L">
-                        ↻
-                    </button>
-                </div>
-                <button class="clear-messages-btn" id="clear-messages-btn" title="Limpar mensagens">
-                    🗑️
-                </button>
-            </div>
-            <div id="trade-messages-container" class="trade-messages-container">
-                <div class="messages-list" id="messages-list"></div>
-            </div>
-        </div>
+22 [DEMO] ==> - LOSE
+21 [REAL] ==> - WIN
+20 [REAL] ==> - LOSE
+19 [DEMO] ==> - LOSE
+18 [DEMO] ==> - LOSE
+17 [DEMO] ==> - WIN
+16 [DEMO] ==> - WIN
+15 [DEMO] ==> - LOSE
+14 [REAL] ==> - WIN
+13 [DEMO] ==> - LOSE
+12 [DEMO] ==> - LOSE
+11 [DEMO] ==> - WIN
+10 [DEMO] ==> - LOSE
+9 [DEMO] ==> - WIN
+8 [DEMO] ==> - LOSE
+7 [DEMO] ==> - WIN
+6 [DEMO] ==> - WIN
+5 [REAL] ==> - WIN
+4 [REAL] ==> - LOSE
+3 [REAL] ==> - LOSE
+2 [DEMO] ==> - LOSE
+1 [DEMO] ==> - LOSE

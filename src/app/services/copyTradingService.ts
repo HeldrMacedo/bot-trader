@@ -28,16 +28,20 @@ export class CopyTradingService {
   private stakeMultiple: number = 1; // Multiplicador após loss
   private pauseTimeLoss: number = 0; // Pausa após loss (segundos)
   private pauseTimeWin: number = 0; // Pausa após win (segundos)
-  private pauseTime: number = 0; 
+  private pauseTime: number = 0;
   private timePause: number = 0; // Tempo de pausa atual (segundos)
-  
+  private maxMartingale: number = 0; // 0 = sem limite
+  private onMaxMartingale: 'stop' | 'reset' = 'reset'; // Ação ao atingir limite
+
   // Estados internos
   private consecutiveLosses: number = 0;
+  private martingaleLevel: number = 0; // Nível atual de martingale
   private currentStake: number = 0;
   private totalProfit: number = 0;
   private totalLoss: number = 0;
   private isPaused: boolean = false;
   private pauseEndTime: number = 0;
+  private onTrade: boolean = false; // Guard: true enquanto um trade real está ativo (equivale a bool_89 do ZeekBot)
 
   
   // Dados das contas
@@ -69,12 +73,13 @@ export class CopyTradingService {
     this.stopWin = configure?.stopWin || 0;
     this.initialValue = configure?.initialValue || 0.35;
     this.currentStake = this.initialValue;
-    this.stakeMultiple = configure?.stakeMultiple || 1;
+    this.stakeMultiple = configure?.stakeMultiple ?? 1;
     this.pauseTime = configure?.pauseTime || 0;
     this.pauseTimeLoss = configure?.pauseTimeLoss || false;
     this.pauseTimeWin = configure?.pauseTimeWin || false;
+    this.maxMartingale = configure?.maxMartingale || 0;
+    this.onMaxMartingale = configure?.onMaxMartingale || 'reset';
 
-    
     this.setupEventHandlers();
   }
 
@@ -97,9 +102,8 @@ export class CopyTradingService {
   }
 
 
-  private processTransaction(transaction: any, isDemo: boolean) {
+  private processTransaction(transaction: any, isDemo: boolean) {    
     if (isDemo) {
-
       if (!this.shouldProcessSignal()) {
         this.console.push({...transaction, isDemo: true});
       }
@@ -108,7 +112,6 @@ export class CopyTradingService {
     } else {
       this.console.push({...transaction, isDemo: false});
       this.realTransactions.push(transaction);
-
       this.handleRealTransaction(transaction);
     }
   }
@@ -124,16 +127,17 @@ export class CopyTradingService {
   }
 
   private calculateNextStake(): number {
-    // Progressão geométrica: initialValue * (1 + stakeMultiple)^consecutiveLosses
-    const losses = this.consecutiveLosses;
+    // Progressão geométrica: initialValue * (1 + stakeMultiple)^martingaleLevel
+    // Usa martingaleLevel (não consecutiveLosses) para respeitar o reset do maxMartingale
+    const level = this.martingaleLevel;
 
-    // Para 0 perdas, retorna o valor inicial
-    if (losses === 0) {
+    // Para nível 0, retorna o valor inicial
+    if (level === 0) {
       return Number(this.initialValue.toFixed(2));
     }
 
     const ratio = 1 + this.stakeMultiple;
-    const rawStake = this.initialValue * Math.pow(ratio, losses);
+    const rawStake = this.initialValue * Math.pow(ratio, level);
 
     // Arredondamento padrão para 2 casas decimais (fiat)
     return Number(rawStake.toFixed(2));
@@ -142,32 +146,44 @@ export class CopyTradingService {
   private handleRealTransaction(transaction: any) {
     const isWin = transaction.profit > 0;
     const profit = transaction.profit;
-    //this.consecutiveLosses = 0;
+
     if (isWin) {
       this.totalProfit += profit;
-      this.consecutiveLosses = 0;
+      this.martingaleLevel = 0;
       this.currentStake = Number(this.initialValue.toFixed(2));
 
-      
       if (this.pauseTimeWin) {
         this.applyPause(this.pauseTime, 'win');
       }
-      
+
       if (this.stopWin > 0 && this.totalProfit >= this.stopWin) {
         this.stop();
         return;
       }
     } else {
       this.totalLoss += Math.abs(profit);
-      
-      //this.currentStake = this.currentStake * this.stakeMultiple; 
-      this.consecutiveLosses += 1;
-      this.currentStake = this.calculateNextStake();
+      this.martingaleLevel += 1;
+
+      // Verifica limite de martingale
+      if (this.maxMartingale > 0 && this.martingaleLevel >= this.maxMartingale) {
+        if (this.onMaxMartingale === 'stop') {
+          this.addError('warning', 'Martingale Máximo', `Nível máximo de martingale (${this.maxMartingale}) atingido. Parando bot.`, 'trading');
+          this.stop();
+          return;
+        } else {
+          // reset: volta ao valor inicial e zera o nível
+          this.addError('info', 'Martingale Reset', `Nível máximo de martingale (${this.maxMartingale}) atingido. Resetando stake para valor inicial.`, 'trading');
+          this.martingaleLevel = 0;
+          this.currentStake = Number(this.initialValue.toFixed(2));
+        }
+      } else {
+        this.currentStake = this.calculateNextStake();
+      }
 
       if (this.pauseTimeLoss) {
         this.applyPause(this.pauseTime, 'loss');
       }
-      
+
       if (this.stopLoss > 0 && this.totalLoss >= this.stopLoss) {
         this.stop();
         return;
@@ -199,51 +215,79 @@ export class CopyTradingService {
   
 
   private  setupEventHandlers(): void {
+    // Handler de sinais da conta demo — executa trade na real
     this.wsListener.on('tradeSignal', async (signal: TradeSignal) => {
       this.stats.signalsReceived++;
       this.stats.lastSignalTime = new Date();
-      
+
       try {
-        this.contract_id = null;
-        if (this.shouldProcessSignal()) {
-          await this.signalProcessor.processSignal({...signal, amount: this.currentStake});
-          this.contract_id = signal.contractId;
-          this.stats.tradesExecuted++;
-          this.stats.lastTradeTime = new Date();
-          
-          this.addError('success', 'Trade Executado', `Trade ${signal.contractType} executado com sucesso`, 'trading', {
-            symbol: signal.symbol,
-            amount: signal.amount
-          });
-        } else {
+        // Guard: bloqueia se já existe um trade real em andamento (equivale a bool_89 do ZeekBot)
+        if (this.onTrade) {
+          this.addError('info', 'Trade Bloqueado', `Sinal ignorado: trade real em andamento (contract: ${this.contract_id})`, 'trading');
+          return;
+        }
+
+        if (!this.shouldProcessSignal()) {
           if (this.isPaused) {
             this.addError('info', 'Trade Pausado', `Aguardando ${this.timePause}s para próximo trade`, 'trading');
           } else {
-           this.addError('info', 'Aguardando Losses', `Necessário ${this.quantityLoss - this.consecutiveLosses} losses consecutivos`, 'trading');
+            this.addError('info', 'Aguardando Losses', `Necessário ${this.quantityLoss - this.consecutiveLosses} losses consecutivos`, 'trading');
           }
+          return;
         }
-        
+
+        // Ativa guard ANTES de executar (como bool_89 = true no ZeekBot)
+        this.onTrade = true;
+        this.contract_id = signal.contractId;
+
+        // Reseta consecutiveLosses ao "consumir" o threshold — impede reentrada
+        // até acumular quantityLoss demo losses novamente
+        if (this.quantityLoss > 0) {
+          this.consecutiveLosses = 0;
+        }
+
+        await this.signalProcessor.processSignal({...signal, amount: this.currentStake});
+        this.stats.tradesExecuted++;
+        this.stats.lastTradeTime = new Date();
+
+        this.addError('success', 'Trade Executado', `Trade ${signal.contractType} executado com sucesso`, 'trading', {
+          symbol: signal.symbol,
+          amount: this.currentStake
+        });
+
       } catch (error) {
-       this.stats.errors++;
+        // Em caso de erro, libera o guard para permitir próximo trade
+        this.onTrade = false;
+        this.contract_id = null;
+        this.stats.errors++;
         this.addError('error', 'Erro no Trade', `Falha ao processar sinal: ${error.message}`, 'trading', error);
       }
     });
-    
+
+    // Handler de resultado do trade real — libera guard
     this.tradeExecutor.on('transaction', (transaction: any) => {
-      this.processTransaction({...transaction, amount: transaction.profit}, false); // false = isReal
+      // Libera guard APÓS resultado do trade real (como bool_89 = false no ZeekBot)
+      this.onTrade = false;
+      this.processTransaction({...transaction, amount: transaction.profit}, false);
     });
 
+    // Handler de resultado da conta demo (sell)
     this.wsListener.on('sellTransaction', (transaction: any) => {
 
       if (this.isPaused) {
         return;
       }
 
+      // Ignora sell do contrato que foi copiado para a real
       if (this.contract_id === transaction.contract_id) {
         return;
       }
-  
-      this.processTransaction(transaction, true); // true = isDemo
+
+      // Ignora sell da demo enquanto trade real está ativo
+      if (this.onTrade) {
+        return;
+      }
+      this.processTransaction(transaction, true);
     });
 
     this.tradeExecutor.on('balance', (balance) => {
@@ -251,18 +295,17 @@ export class CopyTradingService {
     });
 
     this.tradeExecutor.on('error', (error) => {
+      // Libera guard em caso de erro no executor
+      this.onTrade = false;
       this.stats.errors++;
       this.addError('error', 'Erro no Trade Executor', `Falha ao processar transação: ${error.message}`, 'trading', error);
-    })
-    // Handlers para conexão
+    });
+
     this.wsListener.on('connected', () => {
-      
     });
 
     this.wsListener.on('disconnected', () => {
-      
       if (this.isRunning) {
-        // Tenta reconectar após 5 segundos
         setTimeout(() => {
           if (this.isRunning) {
             this.wsListener.connect();
@@ -347,7 +390,10 @@ export class CopyTradingService {
     this.totalLoss = 0;
     this.isPaused = false;
     this.consecutiveLosses = 0;
+    this.martingaleLevel = 0;
     this.currentStake = 0;
+    this.onTrade = false;
+    this.contract_id = null;
   }
 
   getStats() {
@@ -356,6 +402,11 @@ export class CopyTradingService {
     timePause: this.timePause,
     trading: {
       consecutiveLosses: this.consecutiveLosses,
+      martingaleLevel: this.martingaleLevel,
+      maxMartingale: this.maxMartingale,
+      onMaxMartingale: this.onMaxMartingale,
+      currentStake: this.currentStake,
+      onTrade: this.onTrade,
     },
     realAccount: {
       transactions: this.realTransactions,

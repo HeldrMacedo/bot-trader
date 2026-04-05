@@ -38,6 +38,13 @@ interface UserStats {
     isProcessingEnabled?: boolean;
     lastSignalTime?: string;
     lastTradeTime?: string;
+    trading?: {
+      consecutiveLosses: number;
+      martingaleLevel: number;
+      maxMartingale: number;
+      onMaxMartingale: string;
+      currentStake: number;
+    };
   };
   consecutiveLosses?: number;
   realTransactions?: any[];
@@ -136,6 +143,7 @@ export class CopyTradingManager {
     },
     copyTrading: {
       isRunning: stats.isRunning,
+      trading: stats.trading,
     },
     consecutiveLosses: stats.trading.consecutiveLosses,
     console: stats.console || [],

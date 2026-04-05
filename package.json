@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-   "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
+    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack",
     "start": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next start",
     "lint": "eslint \"src/app/(withSidebar)/bot-strategy/**/*.{ts,tsx}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -46,6 +48,7 @@
     "eslint-config-next": "15.1.6",
     "postcss": "^8",
     "prisma": "^6.3.0",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "vitest": "^4.1.2"
   }
 }
