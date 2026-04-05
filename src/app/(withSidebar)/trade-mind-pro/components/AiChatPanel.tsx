@@ -87,11 +87,9 @@ export default function AiChatPanel(
     const placeholder = useMemo(() => {
         if (mode === 'strategy') {
           return (
-            'Digite aqui sua estratégia de monitoramento...\n\n' +
-            'Exemplo:\n' +
-            '- Monitorar quando o preço subir 3 pontos consecutivos\n' +
-            '- Alertar quando atingir resistência de 1.2500\n' +
-            '- Acompanhar padrão de reversão...'
+            'Digite aqui sua estratégia de monitoramento...\n' +
+            '* Entrar quando ultimo digito = 9\n' +
+            '* Entrar quando percentual de digitos impares > 60%\n'
           );
         }
         if (mode === 'config') {
@@ -335,7 +333,7 @@ export default function AiChatPanel(
             }
           }}
           placeholder={placeholder}
-          className="flex-1 bg-[#0d0a18] border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-blue-500 outline-none min-h-[100px] overflow-y-hidden resize-none"
+          className="flex-1 bg-[#0d0a18] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder:text-xs focus:border-blue-500 outline-none min-h-[100px] overflow-y-hidden resize-none"
           disabled={isProcessing}
         />
         <button 
