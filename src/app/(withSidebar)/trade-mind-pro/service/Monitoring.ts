@@ -51,6 +51,7 @@ export interface RulesVisualData {
   groups: RulesVisualGroup[];
   isPreview: boolean;
   timestamp: number;
+  activeGroupIds: number[] | null;
 }
 
 export class MonitoringService {
@@ -394,12 +395,24 @@ export class MonitoringService {
   }
 
   /**
+   * Atualiza configuração de ativação de grupos (sem reiniciar execução)
+   */
+  public updateGroupActivation(groupActivation: Record<number, any> | null) {
+    this.groupActivationConfig = groupActivation || null;
+    // Refresh visual data para atualizar locks
+    if (this.currentTranslatedRules) {
+      this.setTranslatedRules(this.currentTranslatedRules, false);
+    }
+  }
+
+  /**
    * Desativa execução de trades
    */
   public stopExecution() {
     this.isExecutionActive = false;
     this.isAwaitingTrade = false;
     this.cooldownTicksRemaining = 0;
+    
   }
 
   /**
@@ -421,16 +434,23 @@ export class MonitoringService {
     const keys = Object.keys(cfg).filter(k => k !== '_meta');
     if (keys.length === 0) return null;
 
-    if (!this.lastTradeOutcome) {
-      // Sem trade anterior → usar flag 'initial'
-      return keys.filter(k => cfg[k]?.initial !== false).map(k => parseInt(k, 10));
+    // Coletar todos os IDs de grupos existentes nas regras traduzidas
+    const allGroupIds = new Set<number>();
+    keys.forEach(k => allGroupIds.add(parseInt(k, 10)));
+    if (this.currentTranslatedRules?.groups) {
+      this.currentTranslatedRules.groups.forEach((g: any) => {
+        allGroupIds.add(Number(g.id));
+      });
     }
 
-    const conditionKey = this.lastTradeOutcome.result === 'WIN'
-      ? (this.lastTradeOutcome.simulated ? 'winSimulated' : 'winReal')
-      : (this.lastTradeOutcome.simulated ? 'lossSimulated' : 'lossReal');
+    const conditionKey = !this.lastTradeOutcome
+      ? 'initial'
+      : this.lastTradeOutcome.result === 'WIN'
+        ? (this.lastTradeOutcome.simulated ? 'winSimulated' : 'winReal')
+        : (this.lastTradeOutcome.simulated ? 'lossSimulated' : 'lossReal');
 
-    return keys.filter(k => cfg[k]?.[conditionKey] !== false).map(k => parseInt(k, 10));
+    // Grupos sem config explícita são tratados como ativos (default true)
+    return Array.from(allGroupIds).filter(id => cfg[id]?.[conditionKey] !== false);
   }
 
   /**
@@ -983,10 +1003,13 @@ export class MonitoringService {
         this.state = 'MONITORING';
       }
 
+      const activeGroupIds = (!isPreview && this.groupActivationConfig) ? this.getActiveGroupIds() : null;
+
       const rulesData: RulesVisualData = {
         groups: [],
         isPreview,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        activeGroupIds
       };
 
       translatedRules.groups.forEach((group) => {

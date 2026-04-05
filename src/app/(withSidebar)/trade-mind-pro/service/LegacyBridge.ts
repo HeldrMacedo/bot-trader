@@ -536,6 +536,24 @@ export class LegacyBridgeService extends EventEmitter {
     this.emit('stop_monitoring');
   }
 
+  /**
+   * Para monitoramento legado completo via MonitoringView.stopMonitoring()
+   */
+  public stopLegacyMonitoring() {
+    if (
+      typeof window.MonitoringView !== 'undefined' &&
+      typeof window.MonitoringView.stopMonitoring === 'function'
+    ) {
+      window.MonitoringView.stopMonitoring();
+      console.log('[LegacyBridge] MonitoringView.stopMonitoring() executado.');
+      this.emit('stop_monitoring');
+      return;
+    }
+
+    // Fallback para ambientes onde MonitoringView não está disponível
+    this.stopTradeManager();
+  }
+
   // --- Helpers de Acesso às Instâncias ---
 
   public getGeminiAI() {

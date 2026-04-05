@@ -1,4 +1,4 @@
-import { PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/16/solid";
+import { Cog6ToothIcon, CommandLineIcon, PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface Message {
@@ -207,7 +207,7 @@ export default function AiChatPanel(
       <div className="p-4 border-b border-gray-800 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <h3 className="font-bold text-white flex items-center gap-2">
-              ✨ IA Trader
+              <CommandLineIcon className="w-5 h-5" /> IA Trader
               <span className="text-xs font-normal text-gray-400 bg-gray-800 px-2 py-0.5 rounded">Gemini</span>
           </h3>
           <div className="flex bg-[#0d0a18] border border-gray-700 rounded-lg p-1">

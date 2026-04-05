@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { DerivService } from '@/app/services/DerivService';
 import { RulesVisualData } from '../service/Monitoring';
+import { ChartBarIcon } from '@heroicons/react/16/solid';
 
 interface MarketStats {
   digits: number[];
@@ -209,7 +210,7 @@ export default function MarketAnalysisPanel({ symbol, marketStats, rulesVisualDa
       {/* Header */}
       <div className="flex justify-between items-center mb-2">
         <h3 className="font-bold text-white flex items-center gap-2">
-          📊 Análise
+          <ChartBarIcon className="w-4 h-4" />Análise
           <span className="text-xs text-blue-400">{symbol}</span>
         </h3>
         <div className="flex items-center gap-2">
@@ -222,18 +223,27 @@ export default function MarketAnalysisPanel({ symbol, marketStats, rulesVisualDa
         <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider text-center">Regras em Tempo Real</div>
         <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
           {rulesVisualData?.groups?.length ? (
-            rulesVisualData.groups.map((group) => (
-              <div key={String(group.id)} className="bg-[#1e1b2e] border border-gray-700 rounded p-2">
-                <div className="text-[10px] text-blue-300 mb-1">Grupo {group.id}</div>
-                <div className="space-y-1">
-                  {group.rules.map((rule) => (
-                    <div key={String(rule.id)} className="text-xs text-gray-200 break-words">
-                      {rule.displayText}
+            rulesVisualData.groups.map((group) => {
+              const groupId = Number(group.id);
+              const isActive = rulesVisualData.activeGroupIds === null || rulesVisualData.activeGroupIds.includes(groupId);
+              return (
+                <div key={String(group.id)} className="bg-[#1e1b2e] border border-gray-700 rounded p-2 relative" style={!isActive ? { opacity: 1 } : undefined}>
+                  {!isActive && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                      <div className="text-4xl drop-shadow-[0_0_18px_rgba(255,255,255,0.65)]">🔒</div>
                     </div>
-                  ))}
+                  )}
+                  <div className="text-[10px] text-blue-300 mb-1">Grupo {group.id}</div>
+                  <div className="space-y-1" style={!isActive ? { opacity: 0.12, filter: 'grayscale(100%) blur(1px)' } : undefined}>
+                    {group.rules.map((rule) => (
+                      <div key={String(rule.id)} className="text-xs text-gray-200 break-words">
+                        {rule.displayText}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="text-xs text-gray-500 text-center py-2">Aguardando formato visual das regras...</div>
           )}

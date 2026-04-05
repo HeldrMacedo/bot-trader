@@ -17,6 +17,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { DerivService } from '@/app/services/DerivService';
 import { monitoringService, RulesVisualData } from './service/Monitoring';
 import { LegacyBridgeService } from './service/LegacyBridge';
+import { Cog6ToothIcon } from '@heroicons/react/16/solid';
 
 export default function TradeMindPro() {
   const [loading, setLoading] = useState(true);
@@ -319,7 +320,9 @@ export default function TradeMindPro() {
     if (isRunning) {
       // STOP
       monitoringService.stopExecution();
-      LegacyBridgeService.getInstance().stopTradeManager();
+      const bridge = LegacyBridgeService.getInstance();
+      bridge.stopLegacyMonitoring();
+      bridge.stopTradeManager();
       setIsRunning(false);
       addLog('Bot parado pelo usuário.');
       return;
@@ -471,7 +474,7 @@ export default function TradeMindPro() {
 
       <div className="w-80 flex flex-col bg-[#13111c] rounded-lg border border-gray-800 shadow-lg flex-shrink-0">
         <div className="p-4 border-b border-gray-800">
-          <h2 className="text-lg font-bold text-white">Configuração</h2>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2"><Cog6ToothIcon className="w-4 h-4" /> Configuração</h2>
         </div>
 
         <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
@@ -591,7 +594,10 @@ export default function TradeMindPro() {
                   progressMessage={aiProgressMessage}
                   onRequestSuggestions={requestSuggestions}
                   configRules={translatedRules}
-                  onConfigRulesChange={setTranslatedRules}
+                  onConfigRulesChange={(rules) => {
+                    setTranslatedRules(rules);
+                    monitoringService.updateGroupActivation(rules?.groupActivation || null);
+                  }}
                   draftStorageKey={(() => {
                     const loginid = getLoginIdFromStorage();
                     return loginid ? `monitoring_strategy_${loginid}` : null;
