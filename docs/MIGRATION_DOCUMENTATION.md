@@ -1,342 +1,422 @@
-# Documentação de Migração: configurations.js para React Components
+# Documentação de Migração: Componentes e Serviços do trade-mind-pro
 
-## Resumo da Análise
+Última atualização: reflete o estado real do código em produção.
 
-O arquivo original `configurations.js` (3.468 linhas) implementa uma classe `ConfigurationsView` com:
-- Gerenciamento de estado de configurações de trading
-- Validações complexas baseadas em tipos de contrato
-- Persistência em localStorage
-- Tratamento de erros e feedback ao usuário
-- Suporte a múltiplos grupos de contratos (Rise/Fall, Higher/Lower, Digits, etc.)
+---
 
-## Arquitetura Original
+## 1. TradeConfig.tsx
 
-### Estrutura de Dados
-```javascript
-config = {
-  // Trade Settings
-  symbol: string,
-  contractType: string,
-  tradeType: string,
-  duration: number,
-  durationUnit: 't'|'s'|'m'|'h',
-  prediction: string,
-  barrier: string,
-  barrierHigh: string,
-  barrierLow: string,
-  
-  // Management Settings
-  stake: number,
-  goal: number,
-  stopLoss: number,
-  galeMultiplier: number,
-  galeSplit: number,
-  galeSplitThreshold: number,
-  sorosLimit: number,
-  sorosProfitPercentage: number,
-  galeRemovesSoros: boolean,
-  
-  // Control Settings
-  winReal: number,
-  lossReal: number,
-  winSimulated: number,
-  lossSimulated: number,
-  tradeLimit: number,
-  cooldownPeriod: number,
-  pauseTime: number|null,
-  pauseTrades: number,
-  pauseOnWins: boolean,
-  countRepeated: boolean,
-  
-  // Telegram
-  telegramToken: string,
-  telegramChatId: string
-}
-```
+### Interface
 
-### Padrões de Código Utilizados
-
-1. **Static Class Methods**: Todos os métodos são estáticos para fácil acesso global
-2. **Auto-save**: Salva automaticamente no localStorage após cada alteração
-3. **Validação em tempo real**: Validações ocorrem durante a digitação
-4. **Campos condicionais**: Alguns campos só aparecem dependendo do tipo de contrato
-5. **Grupos de contratos**: Contratos organizados em grupos lógicos
-
-## Adaptações Realizadas
-
-### 1. TradeConfig.tsx
-
-#### Funcionalidades Migradas:
-- ✅ **Seleção de Contratos**: Dropdown com grupos (Over/Under, Rise/Fall, etc.)
-- ✅ **Tipo de Trade**: Sub-seleção baseada no contrato principal
-- ✅ **Duração**: Input numérico com unidades (ticks, segundos, minutos, horas)
-- ✅ **Validação de Duração**: Regras específicas por tipo de contrato
-  - Contratos de dígitos: 1-10 ticks
-  - Higher/Lower: mínimos variados por unidade (5 ticks, 15 segundos, etc.)
-- ✅ **Campos Condicionais**:
-  - **Previsão**: Apenas para contratos de dígitos (0-9)
-  - **Barreira**: Apenas para Higher/Lower (formato +0.5 ou -0.3)
-  - **Barreiras Duplas**: Para contratos como Range (superior/inferior)
-
-#### Adaptações Específicas:
-- **React Hooks**: useState para estado, useEffect para auto-save, useCallback para funções
-- **TypeScript**: Tipagem forte com interfaces
-- **Persistência**: localStorage com chave `trade_config_trade`
-- **Validação Visual**: Bordas vermelhas para erros, tooltips inline
-
-#### Validações Implementadas:
 ```typescript
-// Validação de duração mínima para Higher/Lower
-const minimumsByUnit = {
-  't': 5,   // Ticks
-  's': 15,  // Segundos
-  'm': 1,   // Minutos
-  'h': 1    // Horas
-};
-
-// Validação de formato de barreira
-const barrierRegex = /^[+-]\d+(\.\d+)?$/;
+interface TradeConfigData {
+  contractType: string;       // ex: 'Over/Under', 'Rise/Fall', 'Differ/Match', 'Even/Odd', 'Higher/Lower'
+  tradeType: string;          // subtipo dentro do grupo (ex: 'DIGITOVER', 'CALL', 'DIGITDIFF')
+  duration: number;
+  durationUnit: 't' | 's' | 'm' | 'h';
+  prediction: string | number; // 0-9 para contratos DIGIT*
+  barrier: string;             // formato: '+0.5' ou '-0.3'
+}
+// localStorage: 'trade_config_trade'
+// Carregamento: { ...DEFAULT_TRADE_CONFIG, ...parsed.config }
 ```
 
-### 2. ManagementConfig.tsx
+### Grupos de Contratos
 
-#### Funcionalidades Migradas:
-- ✅ **Stake (Valor de Entrada)**: Mínimo 0.35
-- ✅ **Goal (Take Profit)**: Meta de lucro
-- ✅ **Stop Loss**: Limite de perda
-- ✅ **Gale Multiplier**: Multiplicador de recuperação (0-5)
-- ✅ **Gale Split**: Divisão em parcelas (1-10)
-- ✅ **Gale Threshold**: Gatilho para divisão
-- ✅ **Soros**: Limite de vitórias consecutivas com reinvestimento
-- ✅ **% Lucro Soros**: Percentual reinvestido (0-100)
-- ✅ **Proteção Soros**: Checkbox para remover Soros no cálculo de Gale
+```typescript
+const CONTRACT_GROUPS = {
+  'Over/Under':    ['DIGITOVER',  'DIGITUNDER'],
+  'Rise/Fall':     ['CALL',       'PUT'],
+  'Differ/Match':  ['DIGITDIFF',  'DIGITMATCH'],
+  'Even/Odd':      ['DIGITEVEN',  'DIGITODD'],
+  'Higher/Lower':  ['CALLE',      'PUTE', 'CALLPUT'],
+};
+```
 
-#### Adaptações Específicas:
-- **Validação de Inteiros**: Remove caracteres não-numéricos automaticamente
-- **Validação de Range**: Percentual 0-100, Stake mínimo 0.35
-- **Persistência**: localStorage com chave `trade_config_management`
+### Validações
 
-#### Campos Implementados:
+```typescript
+// Duração mínima para Higher/Lower
+const minimumsByUnit = { 't': 5, 's': 15, 'm': 1, 'h': 1 };
+
+// Barreira (somente Higher/Lower)
+const barrierRegex = /^[+-]\d+(\.\d+)?$/;
+
+// Campos condicionais por tipo de contrato
+// prediction: aparece somente para contratos DIGIT*
+// barrier:    aparece somente para Higher/Lower (sem dupla barreira)
+// barreiras duplas: para Range e similares
+```
+
+---
+
+## 2. ManagementConfig.tsx
+
+### Interface
+
 ```typescript
 interface ManagementConfigData {
-  stake: number;              // Valor mínimo: 0.35
-  goal: number;               // Meta de lucro
-  stopLoss: number;           // Limite de perda
-  galeMultiplier: number;     // 0-5, step 0.1
-  galeSplit: number;          // 1-10 parcelas
-  galeSplitThreshold: number; // Gatilho em $
-  sorosLimit: number;         // 0 = desativado
-  sorosProfitPercentage: number; // 0-100%
-  galeRemovesSoros: boolean;  // Proteção
+  stake: number;                 // mínimo: 0.35, step: 0.01
+  goal: number;                  // meta de lucro (take profit)
+  stopLoss: number;              // limite de perda (negativo)
+  galeMultiplier: number;        // 0–5, step 0.1 (galeAdjustment no legado)
+  galeSplit: number;             // 1–10 parcelas
+  galeSplitThreshold: number;    // gatilho em $
+  sorosLimit: number;            // 0 = desativado
+  sorosProfitPercentage: number; // 0–100%
+  galeRemovesSoros: boolean;     // proteção: remove Soros no cálculo de Gale
 }
+// localStorage: 'trade_config_management'
 ```
 
-### 3. ControllerConfig.tsx
+### Mapeamento para TradeManager Legado
 
-#### Funcionalidades Migradas:
-- ✅ **Win/Loss Limits**: Limites de vitórias/derrotas (reais e simuladas)
-- ✅ **Trade Limit**: Limite total de trades (0 = ilimitado)
-- ✅ **Cooldown**: Delay entre trades em ticks
-- ✅ **Pausa Automática**: Configuração de pausa após N trades
-- ✅ **Contagem de Dígitos Repetidos**: Toggle on/off
+| Campo React | Campo Legado |
+|-------------|-------------|
+| `galeMultiplier` | `galeAdjustment` |
+| `sorosProfitPercentage` | `sorosPercentage` |
+| `galeMultiplier > 1` | `galeActive` (boolean) |
 
-#### Adaptações Específicas:
-- **Validação de Inteiros**: Apenas números inteiros positivos
-- **Campo Opcional**: PauseTime pode ser vazio (null)
-- **Persistência**: localStorage com chave `trade_config_controller`
+---
 
-#### Campos Implementados:
+## 3. ControllerConfig.tsx
+
+### Interface
+
 ```typescript
 interface ControllerConfigData {
-  winReal: number;           // Vitórias reais permitidas
-  lossReal: number;          // Perdas reais permitidas
-  winSimulated: number;      // Vitórias simuladas
-  lossSimulated: number;     // Perdas simuladas
+  winReal: number;           // vitórias reais → muda para SIMULADO  (→ realWinsLimit)
+  lossReal: number;          // derrotas reais → muda para SIMULADO  (→ realLossesLimit)
+  winSimulated: number;      // vitórias simuladas → muda para REAL  (→ simulatedWinsLimit)
+  lossSimulated: number;     // derrotas simuladas → continua SIM    (→ simulatedLossesLimit)
   tradeLimit: number;        // 0 = sem limite
-  cooldownPeriod: number;    // Delay em ticks
-  pauseTime: number|null;    // Minutos de pausa
-  pauseTrades: number;       // Frequência da pausa
-  pauseOnWins: boolean;      // Pausar em vitórias?
-  countRepeated: boolean;    // Contar dígitos repetidos
+  cooldownPeriod: number;    // delay em ticks entre trades
+  pauseTime: number | null;  // minutos de pausa automática
+  pauseTrades: number;       // frequência de pausa
+  pauseOnWins: boolean;      // pausar em vitórias?
+  countRepeated: boolean;    // contar dígitos repetidos
+}
+// localStorage: 'trade_config_controller'
+```
+
+### Lógica de Modo Inicial (computeStartMode no legado)
+
+```
+winSimulated = 0 E lossSimulated = 0  →  inicia em REAL
+winSimulated > 0 OU lossSimulated > 0 →  inicia em SIMULACAO
+```
+
+---
+
+## 4. AccountSelector.tsx
+
+Lê `localStorage('deriv_accounts')` para exibir saldo e tipo de conta (REAL/VIRTUAL).  
+Sem props — estado completamente local.
+
+---
+
+## 5. VolatilitySelector.tsx
+
+```typescript
+interface Props {
+  selectedSymbol: string;
+  onSelectSymbol: (symbol: string) => void;
 }
 ```
 
-### 4. IA e Estratégias (trade-mind-pro)
+Persiste símbolo selecionado em `localStorage('selectedSymbol')`.
 
-#### Funcionalidades Migradas:
-- ✅ **Validação de pré-condições**: Compatibilidade de contrato/tipo trade e modo Ambos antes da tradução
-- ✅ **Tradução de estratégia**: Resolução por cache, histórico, código embutido e Gemini
-- ✅ **Pré-processamento**: Normalização de regras com `* Entrar quando ...`
-- ✅ **Progresso no chat**: Mensagens de status durante o processamento da IA
+---
 
-#### Fluxo de Tradução:
-1. `page.tsx` valida pré-condições da estratégia
-2. `Monitoring.translateStrategy` resolve JSON por prioridade:
-   - JSON cached do histórico
-   - Código embutido na regra
-   - Histórico local
-   - Cache de traduções
-   - Gemini (fallback)
-3. Persistência no cache e histórico após sucesso
-4. Mensagens de progresso exibidas no chat
+## 6. AiChatPanel.tsx
 
-#### Mensagens de Progresso:
-- Carregando módulos da IA
-- Encontrando JSON em cache
-- Buscando código de regra
-- Verificando histórico
-- Verificando cache de traduções
-- Pré-processando estratégia
-- Gerando estratégia da IA
-- Estratégia criada com sucesso
+```typescript
+interface Props {
+  messages: any[];
+  isProcessing: boolean;
+  onSendMessage: (text: string) => void;
+  onStrategyGenerated: () => void;
+  mode: 'strategy' | 'chat' | 'config';
+  onModeChange: (mode: 'strategy' | 'chat' | 'config') => void;
+  progressMessage: string | null;           // exibido durante processamento IA
+  onRequestSuggestions: () => void;
+  configRules: any | null;                  // regras JSON traduzidas (modo config)
+  onConfigRulesChange: (rules: any) => void; // chamado ao editar JSON das regras
+  draftStorageKey: string | null;           // 'monitoring_strategy_<loginId>'
+}
+```
 
-## Mapeamento de Funções Originais
+**Modo `config`:** exibe editor JSON das regras traduzidas; alterações chamam `monitoringService.updateGroupActivation()`.
 
-### Funções de ConfigurationsView → React Hooks
+**Draft:** salva rascunho da estratégia no localStorage usando chave por `loginId`.
 
-| Função Original | Implementação React | Componente |
-|----------------|-------------------|------------|
-| `saveCurrentConfiguration()` | `useEffect` com debounce | Todos |
-| `loadSavedConfigurationIntoUI()` | `useState` initializer | Todos |
-| `applyDefaultValues()` | `DEFAULT_CONFIG` constant | Todos |
+---
+
+## 7. BotDashboard.tsx
+
+```typescript
+interface Props {
+  logs: string[];       // formato: '[HH:MM:SS] mensagem'
+  running: boolean;
+  resultsList: any[];   // cada item: { type, target, exit, stake, status, profit, mode, time }
+}
+```
+
+Exibe logs em tempo real e tabela de resultados com estatísticas de WIN/LOSS.
+
+---
+
+## 8. MarketAnalysisPanel.tsx
+
+```typescript
+interface Props {
+  symbol: string;
+  marketStats: ProbabilityStats | null;    // null até ≥ 10 ticks
+  rulesVisualData: RulesVisualData | null;
+}
+```
+
+Renderizado somente quando `selectedSymbol` definido e `mainView !== 'blockly'`.
+
+---
+
+## 9. BlocklyEditor.tsx
+
+Editor visual de estratégias baseado em Blockly. Sem props — estado completamente local.
+
+---
+
+## 10. Serviço de Monitoramento: Monitoring.ts
+
+### Ciclo de Vida Completo
+
+```typescript
+// Singleton exportado como instância
+export const monitoringService = MonitoringService.getInstance();
+
+// Iniciar (chamado quando símbolo muda)
+await monitoringService.start({
+  symbol: 'R_100',
+  onTick: (data: TickData) => {},
+  onProbabilityUpdate: (stats: ProbabilityStats) => setMarketStats(stats),
+  onRulesVisualUpdate: (rulesData: RulesVisualData) => setRulesVisualData(rulesData),
+  onTradeSignal: (groupId, entryPrice, capturedPredictions) => { /* executa trade */ }
+});
+
+// Configurar estratégia
+monitoringService.setTranslatedRules({ groups: [], contract_type: null, prediction: null });
+
+// Habilitar sinais
+monitoringService.startExecution(groupActivation, cooldownTicks);
+
+// Notificar resultado (chamado pelo page.tsx via interceptor/event)
+monitoringService.notifyTradeResult('WIN' | 'LOSS', isSimulated);
+
+// Parar sinais
+monitoringService.stopExecution();
+
+// Parar tudo (ao trocar símbolo ou desmontar componente)
+monitoringService.stop();
+```
+
+### Group Activation
+
+Grupos sem configuração explícita são tratados como **ativos por padrão** (default `true`).
+
+```typescript
+// conditionKey mapeado do último resultado:
+// sem resultado  → 'initial'
+// WIN  + REAL    → 'winReal'
+// LOSS + REAL    → 'lossReal'
+// WIN  + SIM     → 'winSimulated'
+// LOSS + SIM     → 'lossSimulated'
+
+// Grupo ativo se: cfg[id]?.[conditionKey] !== false
+```
+
+### Avaliação de Condições de Regras
+
+Delegada para `window.getFormatGeneratorInstance().checkRuleCondition(rule, null)`.
+
+**Suporte a variáveis especiais:** `$LOWER_PROB`, `$HIGHER_PROB` — resolvidas via `window.getProbabilityResolver()` antes da avaliação.
+
+**Tipos de regra que requerem marketData:** `last_digits`, `digit_repetition`, `digit_pattern`, `dynamic_prediction`, `isolated_digits` — injetam `formatGenerator.marketData = this.deriv`.
+
+### Extração de `capturedPredictions`
+
+```typescript
+// Mapeamento de tipos (case-insensitive)
+const TYPE_MAP = {
+  over: 'DIGITOVER', under: 'DIGITUNDER',
+  match: 'DIGITMATCH', diff: 'DIGITDIFF', differ: 'DIGITDIFF',
+  even: 'DIGITEVEN', odd: 'DIGITODD',
+  call: 'CALL', put: 'PUT', rise: 'CALL', fall: 'PUT',
+};
+
+// Prioridade de leitura do contractType e predictionValue:
+// rule.contractType → params.contractType → rule.predictionAction → params.predictionAction
+// rule.contractPrediction → params.contractPrediction → rule.targetValue → params.targetValue
+```
+
+---
+
+## 11. LegacyBridge.ts: Detalhes de Implementação
+
+### `loadScript(src)` — Força Reload
+
+```typescript
+// Remove script existente antes de reinserir
+existingScript?.remove();
+script.src = `${src}?v=${Date.now()}`; // anti-cache
+script.async = false;                  // mantém ordem de carregamento
+```
+
+### `SessionManager` Shim (Novo)
+
+Necessário para `gemini-ai.js` autenticar via backend:
+
+```typescript
+window.SessionManager = {
+  getUserSessionId()   → localStorage('deriv_accounts')[0].loginId
+  getLocalToken()      → localStorage('deriv_accounts')[0].activeToken
+  getCurrentUser()     → { loginid, authorize: { loginid, is_virtual } }
+  getUserData()        → { authorize: { loginid, is_virtual } }
+  getSessionData(key)  → localStorage.getItem(key)
+  getTokenByLoginId(id) → tokens.find(t => t.acct === id)?.token
+}
+```
+
+### Fluxo de Stop
+
+```
+bridge.stopLegacyMonitoring()
+  → MonitoringView.stopMonitoring()  (se disponível)
+  → fallback: stopTradeManager()
+
+bridge.stopTradeManager()
+  → window.tradeManager.stop()
+  → emit('stop_monitoring')
+
+bridge.stopAllMonitoring()
+  → MonitoringView.stopAll()         (se disponível)
+  → fallback: window.tradeManager.stop()
+  → emit('stop_monitoring')
+```
+
+---
+
+## 12. Chaves LocalStorage
+
+| Chave | Componente/Serviço | Conteúdo |
+|-------|-------------------|---------|
+| `deriv_accounts` | page.tsx | Contas e tokens Deriv |
+| `selectedSymbol` | VolatilitySelector | Símbolo ativo |
+| `trade_config_trade` | TradeConfig | `{ config: TradeConfigData, _timestamp }` |
+| `trade_config_management` | ManagementConfig | `{ config: ManagementConfigData, _timestamp }` |
+| `trade_config_controller` | ControllerConfig | `{ config: ControllerConfigData, _timestamp }` |
+| `trade_config_full` | page.tsx (toggleBot) | Config completa mesclada no início |
+| `strategy_cache_global` | regras-json.js | Cache de regras traduzidas |
+| `rules_history_<loginId>` | rules-history-manager.js | Histórico de regras por usuário |
+| `monitoring_strategy_<loginId>` | AiChatPanel | Draft da estratégia em edição |
+| `prob_accuracy_topN` | Monitoring.ts | Top-N dígitos (1–10, default 5) |
+
+---
+
+## 13. Deduplicação de Resultados (page.tsx)
+
+Evita registros duplicados quando o evento `tradeResultFront` e o interceptor `bridge.on('trade', ...)` disparam para o mesmo trade:
+
+```typescript
+const makeTradeKey = (d: any) =>
+  `${contractType}|${status}|${exitPrice.toFixed(2)}|${stake}|${Math.floor(Date.now() / 2000)}`;
+
+// Se chave já existe no Set → ignora
+// Caso contrário → adiciona ao Set + agenda remoção em 4s
+```
+
+---
+
+## 14. Mapeamento: Funções Legadas → React
+
+| Função Original (JS) | Implementação React/TS | Localização |
+|---------------------|----------------------|-------------|
+| `ConfigurationsView.saveCurrentConfiguration()` | `useEffect` com debounce 300ms | Todos os *Config |
+| `ConfigurationsView.loadSavedConfigurationIntoUI()` | `useState` initializer | Todos os *Config |
+| `ConfigurationsView.applyDefaultValues()` | constante `DEFAULT_*_CONFIG` | Todos os *Config |
 | `validateAndSaveDuration()` | `validateDuration()` callback | TradeConfig |
 | `validateAndSaveBarrier()` | `validateBarrier()` callback | TradeConfig |
 | `addIntegerValidation()` | `validateInteger()` callback | Management/Controller |
-| `updateDurationOptions()` | `getAllowedDurationUnits()` | TradeConfig |
 | `updateTradeTypeDropdown()` | `getAvailableTradeTypes()` | TradeConfig |
-| `updatePredictionBarrierFields()` | Condicional no JSX | TradeConfig |
-| `populateSplitDropdown()` | `<select>` com opções 1-10 | ManagementConfig |
+| `monitoring.js calculateProbabilities()` | `MonitoringService.calculateProbabilities()` | Monitoring.ts |
+| `trade-manager.js start()/stop()` | `bridge.configureTradeManager()` / `stopTradeManager()` | LegacyBridge.ts |
+| `stop-monitor.js showStopTradePopup()` | `bridge.emit('stop_limit', ...)` | LegacyBridge.ts |
+| `gemini-ai.js translateStrategy()` | `MonitoringService.translateStrategy()` | Monitoring.ts |
+| `rule-compatibility-validator.js` | `MonitoringService._validatePreconditions()` | Monitoring.ts |
+| `generate-format.js checkRuleCondition()` | `MonitoringService.checkRuleCondition()` | Monitoring.ts |
 
-## Adaptações para React/TypeScript
+---
 
-### 1. Estado vs Static Properties
-**Original:**
-```javascript
-static availableContracts = [];
-static availableSymbols = [];
-```
+## 15. Status de Campos Migrados por Componente
 
-**Adaptado:**
-```typescript
-const [config, setConfig] = useState<TradeConfigData>(DEFAULT_CONFIG);
-const [errors, setErrors] = useState<Record<string, string>>({});
-```
+### TradeConfig.tsx — ✅ 100%
+- Grupos de contratos (Over/Under, Rise/Fall, Differ/Match, Even/Odd, Higher/Lower)
+- Subtipo (tradeType) dentro de cada grupo
+- Duração + unidades com validação mínima
+- Campos condicionais: prediction, barrier, dupla barreira
 
-### 2. Auto-save Pattern
-**Original:**
-```javascript
-onchange="ConfigurationsView.saveCurrentConfiguration();"
-```
+### ManagementConfig.tsx — ✅ 100%
+- Stake (mín 0.35), Goal, StopLoss
+- Gale: multiplier (0-5), split (1-10), threshold, galeRemovesSoros
+- Soros: limit, profit percentage (0-100%)
 
-**Adaptado:**
+### ControllerConfig.tsx — ✅ 100% (campos), ⚠️ parcial (lógica)
+- Todos os campos presentes: winReal, lossReal, winSimulated, lossSimulated
+- tradeLimit, cooldownPeriod, pauseTime, pauseTrades, pauseOnWins
+- `countRepeated`: campo presente, lógica não implementada no novo monitoramento
+
+### Integração de Execução — ✅ Ativo
+- `window.tradeManager.executeTrade()` funcional
+- Interceptação de resultados via EventEmitter + window event fallback
+- Deduplicação de trades por janela de 2s
+
+### Campos NÃO Migrados
+- Telegram (token/chatId): requer integração externa
+- Monitoramento headless completo (`MonitoringView` do legado)
+- Dashboard avançado de performance
+
+---
+
+## 16. Padrões de Código Estabelecidos
+
+### Auto-save com debounce
 ```typescript
 useEffect(() => {
-  const timeoutId = setTimeout(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ config, _timestamp: Date.now() }));
+  const timeout = setTimeout(() => {
+    localStorage.setItem(KEY, JSON.stringify({ config, _timestamp: Date.now() }));
   }, 300);
-  return () => clearTimeout(timeoutId);
+  return () => clearTimeout(timeout);
 }, [config]);
 ```
 
-### 3. Validação em Tempo Real
-**Original:**
-```javascript
-oninput="this.value = Math.floor(Math.abs(this.value)); ConfigurationsView.saveCurrentConfiguration();"
-```
-
-**Adaptado:**
+### Carregamento seguro do localStorage
 ```typescript
-const handleConfigChange = useCallback((field, value) => {
-  setConfig(prev => {
-    const validated = validateInteger(value);
-    return { ...prev, [field]: validated };
-  });
-}, [validateInteger]);
+const [config, setConfig] = useState<T>(() => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_CONFIG, ...parsed.config };
+      } catch (e) { /* fallback silencioso */ }
+    }
+  }
+  return DEFAULT_CONFIG;
+});
 ```
 
-### 4. Campos Condicionais
-**Original:**
-```javascript
-if (isHigherLower && !isRiseFallContract) {
-  container.style.display = 'flex';
-  container.innerHTML = `...barreira...`;
-}
+### Validação de inteiros
+```typescript
+// Remove não-numéricos, floor, abs
+const validateInteger = (v: string | number) =>
+  Math.floor(Math.abs(parseInt(String(v)) || 0));
 ```
-
-**Adaptado:**
-```tsx
-{needsBarrier(contractType) && !needsDoubleBarriers(contractType) && (
-  <div>
-    <label>Barreira</label>
-    <input ... />
-  </div>
-)}
-```
-
-## Chaves de LocalStorage
-
-| Componente | Chave | Descrição |
-|-----------|-------|-----------|
-| TradeConfig | `trade_config_trade` | Contrato, duração, barreiras |
-| ManagementConfig | `trade_config_management` | Stake, stop loss, gale, soros |
-| ControllerConfig | `trade_config_controller` | Limites, cooldown, pausa |
-
-## Validações Preservadas
-
-### 1. Validação de Duração (Higher/Lower)
-- Ticks: mínimo 5
-- Segundos: mínimo 15
-- Minutos/Horas: mínimo 1
-
-### 2. Validação de Stake
-- Mínimo: 0.35
-- Step: 0.01
-
-### 3. Validação de Barreira
-- Formato obrigatório: `+0.5` ou `-0.3`
-- Regex: `/^[+-]\d+(\.\d+)?$/`
-
-### 4. Validação de Inteiros
-- Remove caracteres não-numéricos
-- Math.floor(Math.abs(value))
-
-### 5. Validação de Percentual
-- Soros: 0-100%
-- Alerta visual se fora do range
-
-## Otimizações Realizadas
-
-1. **Debounce no Auto-save**: 300ms para evitar writes excessivos
-2. **Memoização**: `useCallback` para funções de validação
-3. **Type Safety**: TypeScript com interfaces definidas
-4. **Separação de Responsabilidades**: 3 componentes especializados
-5. **Feedback Visual**: Bordas coloridas para validação
-
-## Campos NÃO Migrados (Fora do Escopo)
-
-Os seguintes campos do original não foram incluídos pois requerem integração com APIs externas:
-
-- **Telegram Token/Chat ID**: Integração com bot Telegram
-- **Account Selection**: Seleção de contas Deriv
-- **Balance Display**: Visor de saldo em tempo real
-- **Symbol Selection**: Seleção de ativos (requer API)
-- **Contract Loading**: Carregamento dinâmico de contratos
-
-## Benefícios da Nova Arquitetura
-
-1. **Componentização**: Cada domínio em seu componente
-2. **Type Safety**: Erros em tempo de compilação
-3. **Testabilidade**: Componentes isolados e testáveis
-4. **Manutenibilidade**: Código mais limpo e organizado
-5. **Reatividade**: Atualizações automáticas da UI
-6. **Performance**: Memoização e otimizações React
-
-## Considerações Finais
-
-A migração preservou **100% da lógica de negócio** do arquivo original, adaptando apenas:
-- Paradigma: Classes estáticas → Hooks React
-- Persistência: localStorage com chaves separadas
-- UI: HTML dinâmico → JSX condicional
-- Validação: Inline → Callbacks reutilizáveis
-
-Todos os valores padrão, validações e comportamentos foram mantidos para garantir compatibilidade funcional.

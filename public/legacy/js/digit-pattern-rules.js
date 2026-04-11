@@ -481,6 +481,7 @@ class DigitPatternRulesProcessor {
 
     // 🎯 NOVO: Testar dígitos perdedores como "X" no padrão (LÓGICA FLEXÍVEL)
     testLosingDigitsAsX(pattern, digits, losingDigits, patternStructure, effectiveContractType = null) {
+        console.log("testLosingDigitsAsX ", pattern, digits, losingDigits, patternStructure, effectiveContractType);
         try {
             const contractType = effectiveContractType || this.getCurrentContractType();
 
@@ -522,7 +523,7 @@ class DigitPatternRulesProcessor {
 
     // 🎯 NOVA LÓGICA: Testar se padrão é válido com dígitos perdedores específicos
     testDigitAsX(pattern, digits, losingDigitsInput = null, patternStructure) {
-        console.log("testDigitAsX ", pattern, digits, losingDigits, patternStructure);
+        console.log("testDigitAsX ", pattern, digits, losingDigitsInput, patternStructure);
         try {
             // 🎯 CORREÇÃO CRÍTICA: Usar os dígitos perdedores passados (que já consideram o contexto da regra)
             let losingDigits = losingDigitsInput;

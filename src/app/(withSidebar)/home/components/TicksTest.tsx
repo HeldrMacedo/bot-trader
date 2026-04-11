@@ -1,7 +1,7 @@
 "use client";
 
 import DerivAPI from "@deriv/deriv-api";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, memo } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
 import { ChevronDownIcon, CpuChipIcon } from "@heroicons/react/16/solid";
@@ -17,21 +17,124 @@ interface AccountSelectorProps {
   onAccountChange: (accountInfo: any) => void;
 }
 
+const SYMBOLS = [
+  "R_100",
+  "R_75",
+  "R_50",
+  "R_25",
+  "R_10",
+  "RDBEAR",
+  "RDBULL",
+  "JD10",
+  "JD25",
+  "JD50",
+  "JD75",
+  "JD100",
+] as const;
+
+const MAX_VISIBLE_TICKS = 40;
+const TICK_BUFFER_SIZE = 100; // margem para gráficos, mas muito menor que 500
+
+const SYMBOL_LABELS: Record<string, string> = {
+  RDBEAR: "Bear Market Index",
+  RDBULL: "Bull Market Index",
+  JD10: "Jump 10 Index",
+  JD25: "Jump 25 Index",
+  JD50: "Jump 50 Index",
+  JD75: "Jump 75 Index",
+  JD100: "Jump 100 Index",
+};
+
+function getSymbolLabel(symbol: string): string {
+  return SYMBOL_LABELS[symbol] || `Índice de volatilidade ${symbol.split("_")[1]}`;
+}
+
+function getDecimalPlaces(symbol: string): number {
+  if (symbol === "R_100") return 2;
+  if (symbol === "R_25" || symbol === "R_10") return 3;
+  if (symbol === "RDBEAR" || symbol === "RDBULL") return 4;
+  if (symbol.startsWith("JD")) return 2;
+  return 4;
+}
+
+function extractDigit(quote: number, symbol: string): number {
+  return parseInt(quote.toFixed(getDecimalPlaces(symbol)).toString().slice(-1));
+}
+
+// Componente memoizado para cada linha de símbolo - só re-renderiza quando seus props mudam
+const SymbolRow = memo(function SymbolRow({
+  symbol,
+  digits,
+  isSelected,
+  onSelect,
+  hoveredTradeType,
+  activeDigit,
+}: {
+  symbol: string;
+  digits: number[];
+  isSelected: boolean;
+  onSelect: (symbol: string) => void;
+  hoveredTradeType: "above" | "below" | "even" | "odd" | "diff" | null;
+  activeDigit: number | null;
+}) {
+  const visibleDigits = digits.slice(-MAX_VISIBLE_TICKS);
+  const textColor = isSelected ? "#FFF" : "oklch(92.9% 0.013 255.508)";
+
+  return (
+    <div
+      onClick={() => onSelect(symbol)}
+      className="relative flex flex-col min-w-0 wrap-break-word mb-1 p-2 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
+      style={{
+        cursor: "pointer",
+        border: isSelected ? "1px solid #111827" : "",
+        borderColor: isSelected ? "#d1d5db" : "",
+        color: textColor,
+      }}
+    >
+      <div className="flex-auto flex-col px-3">
+        <div className="flex mb-1 items-center justify-start text-sm">
+          <span>{getSymbolLabel(symbol)}</span>
+        </div>
+        <div className="mx-auto overflow-hidden w-full">
+          <div
+            className="flex justify-end"
+            style={{ transition: "transform 0.2s" }}
+          >
+            {visibleDigits.map((digit, index) => {
+              const shouldHighlight =
+                activeDigit !== null &&
+                ((hoveredTradeType === "above" && digit > activeDigit) ||
+                  (hoveredTradeType === "below" && digit < activeDigit) ||
+                  (hoveredTradeType === "even" && digit % 2 === 0) ||
+                  (hoveredTradeType === "odd" && digit % 2 !== 0) ||
+                  (hoveredTradeType === "diff" && digit !== activeDigit));
+
+              return (
+                <div
+                  key={index}
+                  className={`px-1 py-mx-[1px] text-[12px] border ${
+                    shouldHighlight
+                      ? "bg-slate-500 text-gray-800 border-slate-500"
+                      : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-500"
+                  }`}
+                  style={{ color: textColor }}
+                >
+                  {digit}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const INITIAL_TICKS: Record<string, number[]> = {};
+for (const s of SYMBOLS) INITIAL_TICKS[s] = [];
+
 export const TicksTest = () => {
-  const [ticks, setTicks] = useState({
-    R_100: [],
-    R_75: [],
-    R_50: [],
-    R_25: [],
-    R_10: [],
-    RDBEAR: [],
-    RDBULL: [],
-    JD10: [],
-    JD25: [],
-    JD50: [],
-    JD75: [],
-    JD100: [],
-  });
+  const [ticks, setTicks] = useState<Record<string, number[]>>(INITIAL_TICKS);
   const [volatility, setVolatility] = useState("R_100");
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -188,52 +291,65 @@ export const TicksTest = () => {
     }
   };
 
-  const fetchTicks = async (symbol, api) => {
+  // Ref para acumular ticks entre frames — evita re-render a cada mensagem WebSocket
+  const ticksBufferRef = useRef<Record<string, number[]>>({});
+  const rafIdRef = useRef<number>(0);
+  const pendingUpdateRef = useRef(false);
+
+  const flushTicksBuffer = useCallback(() => {
+    pendingUpdateRef.current = false;
+    const buffer = ticksBufferRef.current;
+    if (Object.keys(buffer).length === 0) return;
+
+    setTicks((prev) => {
+      const next = { ...prev };
+      for (const symbol in buffer) {
+        next[symbol] = buffer[symbol];
+      }
+      return next;
+    });
+    ticksBufferRef.current = {};
+  }, []);
+
+  const scheduleFlush = useCallback(() => {
+    if (!pendingUpdateRef.current) {
+      pendingUpdateRef.current = true;
+      rafIdRef.current = requestAnimationFrame(flushTicksBuffer);
+    }
+  }, [flushTicksBuffer]);
+
+  const fetchTicks = async (symbol: string, api: any) => {
     const ticksStream = await api.ticks(symbol);
     const listTicksReturn = await ticksStream.history({
-      count: 500,
+      count: TICK_BUFFER_SIZE,
       end: new Date(),
     });
-    const listTicks = listTicksReturn.map((tick) =>
-      parseInt(
-        tick.raw.quote
-          .toFixed(
-            symbol == "R_100"
-              ? 2
-              : symbol == "R_25" || symbol == "R_10"
-                ? 3
-                : symbol == "RDBEAR" || symbol == "RDBULL"
-                  ? 4
-                  : symbol.startsWith("JD")
-                    ? 2
-                    : 4
-          )
-          .toString()
-          .slice(-1)
-      )
+    const listTicks = listTicksReturn.map((tick: any) =>
+      extractDigit(tick.raw.quote, symbol)
     );
-    setTicks((prev) => ({ ...prev, [symbol]: listTicks }));
-    ticksStream.onUpdate((tick) => {
-      const lastDigit = parseInt(
-        tick.raw.quote
-          .toFixed(
-            symbol == "R_100"
-              ? 2
-              : symbol == "R_25" || symbol == "R_10"
-                ? 3
-                : symbol == "RDBEAR" || symbol == "RDBULL"
-                  ? 4
-                  : symbol.startsWith("JD")
-                    ? 2
-                    : 4
-          )
-          .toString()
-          .slice(-1)
-      );
-      setTicks((prev) => ({
-        ...prev,
-        [symbol]: [...prev[symbol], lastDigit].slice(-500),
-      }));
+
+    // Histórico inicial — update direto
+    ticksBufferRef.current[symbol] = listTicks;
+    scheduleFlush();
+
+    ticksStream.onUpdate((tick: any) => {
+      const lastDigit = extractDigit(tick.raw.quote, symbol);
+      // Acumula no buffer ref (sem causar re-render)
+      const current = ticksBufferRef.current[symbol];
+      if (current) {
+        current.push(lastDigit);
+        if (current.length > TICK_BUFFER_SIZE) {
+          ticksBufferRef.current[symbol] = current.slice(-TICK_BUFFER_SIZE);
+        }
+      } else {
+        // Pega do state atual via closure
+        setTicks((prev) => {
+          const updated = [...prev[symbol], lastDigit].slice(-TICK_BUFFER_SIZE);
+          ticksBufferRef.current[symbol] = updated;
+          return prev; // NÃO atualiza o state aqui, deixa o RAF fazer
+        });
+      }
+      scheduleFlush();
     });
   };
 
@@ -247,25 +363,14 @@ export const TicksTest = () => {
     );
     const api = new DerivAPI({ connection });
 
-    const symbols = [
-      "R_100",
-      "R_75",
-      "R_50",
-      "R_25",
-      "R_10",
-      "RDBEAR",
-      "RDBULL",
-      "JD10",
-      "JD25",
-      "JD50",
-      "JD75",
-      "JD100",
-    ];
-
-    symbols.forEach((symbol) => {
+    SYMBOLS.forEach((symbol) => {
       fetchTicks(symbol, api);
     });
-    return () => connection.close();
+
+    return () => {
+      cancelAnimationFrame(rafIdRef.current);
+      connection.close();
+    };
   }, []);
 
   return (
@@ -566,96 +671,16 @@ export const TicksTest = () => {
 
         <div className="w-full md:w-1/3 space-y-4 md:pl-1 md:pr-2 md:mt-0 mt-2">
           <div className="bg-[#454a58] rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            {[
-              "R_100",
-              "R_75",
-              "R_50",
-              "R_25",
-              "R_10",
-              "RDBEAR",
-              "RDBULL",
-              "JD10",
-              "JD25",
-              "JD50",
-              "JD75",
-              "JD100",
-            ].map((symbol) => (
-              <div
+            {SYMBOLS.map((symbol) => (
+              <SymbolRow
                 key={symbol}
-                onClick={() => setVolatility(symbol)}
-                className=" relative flex flex-col min-w-0 wrap-break-word mb-1 p-2 rounded-md shadow-md border-b-[4px] border-b-[#111827]"
-                style={{
-                  cursor: "pointer",
-                  border: volatility === symbol ? "1px solid #111827" : "",
-                  borderColor: volatility === symbol ? "#d1d5db" : "",
-                  color:
-                    volatility === symbol
-                      ? "#FFF"
-                      : "oklch(92.9% 0.013 255.508)",
-                }}
-              >
-                <div className="flex-auto flex-col px-3">
-                  <div className="flex mb-1 items-center justify-start text-sm">
-                    <span>
-                      {symbol === "RDBEAR"
-                        ? "Bear Market Index"
-                        : symbol === "RDBULL"
-                          ? "Bull Market Index"
-                          : symbol === "JD10"
-                            ? "Jump 10 Index"
-                            : symbol === "JD25"
-                              ? "Jump 25 Index"
-                              : symbol === "JD50"
-                                ? "Jump 50 Index"
-                                : symbol === "JD75"
-                                  ? "Jump 75 Index"
-                                  : symbol === "JD100"
-                                    ? "Jump 100 Index"
-                                    : `Índice de volatilidade ${symbol.split("_")[1]}`}
-                    </span>
-                  </div>
-                  <div className="mx-auto overflow-hidden w-full">
-                    <div
-                      className="flex justify-end"
-                      style={{
-                        transition: "transform 0.2s",
-                      }}
-                    >
-                      {ticks[symbol].slice(-40).map((digit, index) => {
-                        const shouldHighlight =
-                          activeDigit !== null &&
-                          ((hoveredTradeType === "above" &&
-                            digit > activeDigit) ||
-                            (hoveredTradeType === "below" &&
-                              digit < activeDigit) ||
-                            (hoveredTradeType === "even" && digit % 2 === 0) ||
-                            (hoveredTradeType === "odd" && digit % 2 !== 0) ||
-                            (hoveredTradeType === "diff" &&
-                              digit !== activeDigit));
-
-                        return (
-                          <div
-                            key={index}
-                            className={`px-1 py-mx-[1px] text-[12px] border ${
-                              shouldHighlight
-                                ? "bg-slate-500 text-gray-800 border-slate-500"
-                                : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)]  border-gray-500"
-                            }`}
-                            style={{
-                              color:
-                                volatility === symbol
-                                  ? "#FFF"
-                                  : "oklch(92.9% 0.013 255.508)",
-                            }}
-                          >
-                            {digit}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                symbol={symbol}
+                digits={ticks[symbol]}
+                isSelected={volatility === symbol}
+                onSelect={setVolatility}
+                hoveredTradeType={hoveredTradeType}
+                activeDigit={activeDigit}
+              />
             ))}
           </div>
         </div>
