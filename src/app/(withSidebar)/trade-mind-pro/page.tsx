@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import AccountSelector from './components/AccountSelector';
 import AiChatPanel from './components/AiChatPanel';
 import AiSuggestionsModal from './components/AiSuggestionsModal';
+import StrategyValidationModal, { StrategyValidationResult } from './components/StrategyValidationModal';
 import BlocklyEditor from './components/BlocklyEditor';
 import BotDashboard from './components/BotDashboard';
 import ControllerConfig, { ControllerConfigData, DEFAULT_CONTROLLER_CONFIG } from './components/ControllerConfig';
@@ -37,6 +38,13 @@ export default function TradeMindPro() {
   const [logs, setLogs] = useState<string[]>([]);
   const [resultsList, setResultsList] = useState<any[]>([]);
   
+  // Modal de validação de estratégia
+  const [validationModal, setValidationModal] = useState<{
+    result: StrategyValidationResult;
+    pendingText: string;
+  } | null>(null);
+  const pendingStrategyRef = useRef<{ text: string; proceed: () => void } | null>(null);
+
   // Tab navigation state
   const [activeTab, setActiveTab] = useState<'trade' | 'management' | 'controller'>('trade');
   const [mainView, setMainView] = useState<'dashboard' | 'chat' | 'blockly'>('chat');
@@ -393,66 +401,96 @@ export default function TradeMindPro() {
     }
   };
 
-  const handleAiMessage = async (text: string) => {
-    const userMsg = {
-      id: Date.now().toString(), 
-      role: 'user', 
-      content: text, 
-      timestamp: new Date() 
-    }
+  /** Executa a tradução da estratégia (chamada após aprovação de todas as validações) */
+  const executeStrategyTranslation = async (text: string) => {
+    setAiProgressMessage('Iniciando processamento...');
+    try {
+      const response = await monitoringService.translateStrategy(text, (message) => {
+        setAiProgressMessage(message);
+      });
 
-    setMessages(prev => [...prev, userMsg]);
+      if (response?.translatedRules) {
+        response.translatedRules = { ...response.translatedRules, originalText: text };
+        setTranslatedRules(response.translatedRules);
+        monitoringService.setTranslatedRules(response.translatedRules);
+        setAiMode('config');
+      }
+      if (response?.source === 'gemini') {
+        setAiProgressMessage('Estratégia criada com sucesso!');
+      }
+      setTimeout(() => setAiProgressMessage(null), 1200);
+    } catch (e) {
+      console.warn('Erro ao traduzir estratégia:', e);
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
+  const handleAiMessage = async (text: string) => {
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      role: 'user',
+      content: text,
+      timestamp: new Date(),
+    }]);
     setIsAiProcessing(true);
     setAiProgressMessage(null);
 
     try {
-      if (aiMode === 'strategy') {
-        const validation = await monitoringService._validatePreconditions(text, {
-          contractType: tradeConfig.contractType,
-          tradeType: tradeConfig.tradeType,
-          prediction: tradeConfig.prediction
+      if (aiMode !== 'strategy') return;
+
+      // ── 1. Validação de pré-condições (formato básico + compatibilidade contrato/trade-type) ──
+      const precondition = await monitoringService._validatePreconditions(text, {
+        contractType: tradeConfig.contractType,
+        tradeType: tradeConfig.tradeType,
+        prediction: tradeConfig.prediction,
+      });
+
+      if (!precondition.isValid) {
+        setIsAiProcessing(false);
+        setAiProgressMessage(null);
+        setValidationModal({
+          result: {
+            valid: false,
+            isCritical: true,
+            issues: precondition.issues,
+            suggestions: precondition.tips,
+            warnings: [],
+            source: 'precondition',
+          },
+          pendingText: text,
         });
-
-        if (!validation.isValid) {
-          const issueText = validation.issues.length > 0 ? `Problemas encontrados:\n- ${validation.issues.join('\n- ')}` : '';
-          const tipsText = validation.tips.length > 0 ? `\n\nDicas para corrigir:\n- ${validation.tips.join('\n- ')}` : '';
-          const aiMsg = {
-            id: `${Date.now()}-ai`,
-            role: 'ai',
-            content: `⚠️ Estratégia incompatível com a configuração atual.\n\n${issueText}${tipsText}`.trim(),
-            timestamp: new Date()
-          };
-          setMessages(prev => [...prev, aiMsg]);
-          setIsAiProcessing(false);
-          setAiProgressMessage(null);
-          return;
-        } else {
-          setAiProgressMessage('Iniciando processamento...');
-          const response = await monitoringService.translateStrategy(text, (message) => {
-            setAiProgressMessage(message);
-          });
-
-          if (response?.translatedRules) {
-            response.translatedRules = {
-              ...response.translatedRules,
-              originalText: text
-            }
-            setTranslatedRules(response.translatedRules);
-            monitoringService.setTranslatedRules(response.translatedRules);
-            setAiMode('config');
-          }
-          if (response?.source === 'gemini') {
-            setAiProgressMessage('Estratégia criada com sucesso!');
-          }
-          setTimeout(() => setAiProgressMessage(null), 1200);
-        }
+        return;
       }
+
+      // ── 2. Validação pré-Gemini (semântica: termos vagos, valores fora de limites, etc.) ──
+      const preGemini = await monitoringService.validateStrategyForGemini(text);
+
+      if (!preGemini.valid || preGemini.issues.length > 0) {
+        setIsAiProcessing(false);
+        setAiProgressMessage(null);
+        // Guarda callback para o caso do usuário escolher "continuar mesmo assim"
+        pendingStrategyRef.current = {
+          text,
+          proceed: () => executeStrategyTranslation(text),
+        };
+        setValidationModal({
+          result: {
+            ...preGemini,
+            source: 'pregemini',
+          },
+          pendingText: text,
+        });
+        return;
+      }
+
+      // ── 3. Tudo ok — traduzir ──
+      await executeStrategyTranslation(text);
     } catch (e) {
       console.warn('Erro ao enviar mensagem para o bot:', e);
-    } finally {
       setIsAiProcessing(false);
     }
-  }
+  };
 
   const requestSuggestions = async () => {}
 
@@ -468,9 +506,35 @@ export default function TradeMindPro() {
     );
   }
 
+  /** Usuário clicou em "Continuar mesmo assim" no modal de avisos pré-Gemini */
+  const handleValidationContinue = () => {
+    setValidationModal(null);
+    const pending = pendingStrategyRef.current;
+    pendingStrategyRef.current = null;
+    if (!pending) return;
+    setIsAiProcessing(true);
+    pending.proceed();
+  };
+
+  /** Usuário clicou em "Editar estratégia" ou "Entendi, vou corrigir" */
+  const handleValidationEdit = () => {
+    setValidationModal(null);
+    pendingStrategyRef.current = null;
+    setIsAiProcessing(false);
+  };
+
   return (
     <div className="flex h-[calc(100vh-80px)] bg-[#0d0a18] p-4 gap-4">
       <ToastContainer theme="dark" />
+
+      {/* Modal de validação de estratégia */}
+      {validationModal && (
+        <StrategyValidationModal
+          result={validationModal.result}
+          onContinue={handleValidationContinue}
+          onEdit={handleValidationEdit}
+        />
+      )}
 
       <div className="w-80 flex flex-col bg-[#13111c] rounded-lg border border-gray-800 shadow-lg flex-shrink-0">
         <div className="p-4 border-b border-gray-800">

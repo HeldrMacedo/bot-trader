@@ -296,6 +296,51 @@ export class MonitoringService {
   }
   
 
+  /**
+   * Valida a estratégia com o GeminiStrategyValidator (pré-IA) antes de enviar para o Gemini.
+   * Retorna problemas semânticos: termos vagos, valores fora de limites, contradições, etc.
+   */
+  public async validateStrategyForGemini(strategyText: string): Promise<{
+    valid: boolean;
+    isCritical: boolean;
+    issues: string[];
+    suggestions: string[];
+    warnings: string[];
+  }> {
+    const empty = { valid: true, isCritical: false, issues: [], suggestions: [], warnings: [] };
+    const normalized = (strategyText || '').trim();
+    if (!normalized) return empty;
+
+    try {
+      await this.legacyBridge.loadLegacyScripts();
+    } catch {
+      return empty;
+    }
+
+    if (
+      typeof window === 'undefined' ||
+      typeof (window as any).getGeminiStrategyValidatorInstance !== 'function'
+    ) {
+      return empty;
+    }
+
+    const validator = (window as any).getGeminiStrategyValidatorInstance();
+    const result = validator.validate(normalized);
+
+    const criticalKeywords = ['contraditório', 'fora dos limites', 'vazia'];
+    const isCritical = (result.issues || []).some((issue: string) =>
+      criticalKeywords.some((kw) => issue.toLowerCase().includes(kw))
+    );
+
+    return {
+      valid: !!result.valid,
+      isCritical,
+      issues: result.issues || [],
+      suggestions: result.suggestions || [],
+      warnings: result.warnings || [],
+    };
+  }
+
   public async _validatePreconditions(strategyText: string, config: { contractType: string; tradeType: string; prediction?: string | number }) {
     const issues: string[] = [];
     const tips: string[] = [];
