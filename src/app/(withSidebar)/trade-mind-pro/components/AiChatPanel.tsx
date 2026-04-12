@@ -1,4 +1,5 @@
 import { Cog6ToothIcon, CommandLineIcon, PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/16/solid";
+import { Bars3Icon } from "@heroicons/react/24/solid";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface Message {
@@ -42,6 +43,9 @@ export default function AiChatPanel(
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [openDropdownGroup, setOpenDropdownGroup] = useState<string | null>(null);
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
+  const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
+  const [showExamplesModal, setShowExamplesModal] = useState(false);
+  const hamburgerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,6 +59,9 @@ export default function AiChatPanel(
       const handleClickOutside = (e: MouseEvent) => {
         if (dropdownContainerRef.current && !dropdownContainerRef.current.contains(e.target as Node)) {
           setOpenDropdownGroup(null);
+        }
+        if (hamburgerRef.current && !hamburgerRef.current.contains(e.target as Node)) {
+          setShowHamburgerMenu(false);
         }
       };
       document.addEventListener('click', handleClickOutside);
@@ -237,16 +244,37 @@ export default function AiChatPanel(
             </button>
           </div>
         </div>
-        {onRequestSuggestions && (
+        <div className="relative" ref={hamburgerRef}>
           <button
             type="button"
-            onClick={onRequestSuggestions}
-            disabled={isProcessing}
-            className="text-xs px-3 py-1.5 rounded bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white"
+            onClick={(e) => { e.stopPropagation(); setShowHamburgerMenu(prev => !prev); }}
+            className="flex items-center justify-center w-8 h-8 rounded text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+            title="Menu"
           >
-            Sugestões
+            <Bars3Icon className="w-5 h-5" />
           </button>
-        )}
+          {showHamburgerMenu && (
+            <div className="absolute right-0 top-full mt-1 z-50 bg-[#1e1b2e] border border-gray-700 rounded-lg shadow-xl py-1 w-52">
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 hover:text-white transition-colors"
+                onClick={() => { setShowHamburgerMenu(false); setShowExamplesModal(true); }}
+              >
+                Modelos de Estratégias
+              </button>
+              {onRequestSuggestions && (
+                <button
+                  type="button"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 hover:text-white transition-colors"
+                  disabled={isProcessing}
+                  onClick={() => { setShowHamburgerMenu(false); onRequestSuggestions(); }}
+                >
+                  Sugestões IA
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       {mode !== 'config' && (
       <>
@@ -500,6 +528,137 @@ export default function AiChatPanel(
               </div>
             </div>
           )}
+        </div>
+      )}
+      {showExamplesModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowExamplesModal(false)}
+        >
+          <div
+            className="w-full max-w-3xl !h-[70vh] !min-h-[70vh] !max-h-[70vh] bg-[#0d0a18] border border-gray-700 rounded-lg overflow-hidden flex flex-col"
+            style={{ height: '70vh', minHeight: '70vh', maxHeight: '70vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-[#13111c]">
+              <div className="text-sm font-semibold text-white">Modelos de Estratégias</div>
+              <button
+                type="button"
+                onClick={() => setShowExamplesModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              {[
+                {
+                  title: 'Regras de Dígitos',
+                  items: [
+                    { label: 'Últimos 3 dígitos maiores que 8', code: '* Entrar quando os ultimos 3 digitos > 8' },
+                    { label: 'Sequência de dígitos pares', code: '* Entrar quando os ultimos 5 digitos forem todos pares' },
+                    { label: 'Dígito específico', code: '* Entrar quando ultimo digito = 9' },
+                  ],
+                },
+                {
+                  title: 'Padrões de Dígitos (XO)',
+                  items: [
+                    { label: 'Padrão XXOX (3 iguais-diferente-igual)', code: '* Entrar quando o padrão dos digitos for XXOX' },
+                    { label: 'Padrão XOXO (alternado)', code: '* Entrar quando o padrão dos digitos for XOXO' },
+                    { label: 'Padrão XXXO (3 iguais + diferente)', code: '* Entrar quando o padrão dos digitos for XXXO' },
+                    { label: 'Padrão OXXX (diferente + 3 iguais)', code: '* Entrar quando o padrão dos digitos for OXXX' },
+                    { label: 'Padrão XOXOX (5 dígitos alternados)', code: '* Entrar quando o padrão dos digitos for XOXOX' },
+                    { label: 'Padrão OXOXO (5 dígitos alternados)', code: '* Entrar quando o padrão dos digitos for OXOXO' },
+                    { label: 'Padrão XXOO (2 iguais + 2 diferentes)', code: '* Entrar quando o padrão dos digitos for XXOO' },
+                    { label: 'Padrão OOXX (2 diferentes + 2 iguais)', code: '* Entrar quando o padrão dos digitos for OOXX' },
+                    { label: 'Padrão XXXXOO (4 iguais + 2 diferentes)', code: '* Entrar quando o padrão dos digitos for XXXXOO' },
+                    { label: 'Padrão OOXXXX (2 diferentes + 4 iguais)', code: '* Entrar quando o padrão dos digitos for OOXXXX' },
+                    { label: 'Padrão OOOOXXO (sequência complexa)', code: '* Entrar quando o padrão dos digitos for OOOOXXO' },
+                  ],
+                },
+                {
+                  title: 'Regras com RSI',
+                  items: [
+                    { label: 'RSI Sobrecomprado', code: '* Entrar quando RSI > 70' },
+                    { label: 'RSI Sobrevendido', code: '* Entrar quando RSI < 30' },
+                    { label: 'RSI entre níveis', code: '* Entrar quando RSI > 50 e RSI < 60' },
+                  ],
+                },
+                {
+                  title: 'Regras com SMA',
+                  items: [
+                    { label: 'Preço acima da média', code: '* Entrar quando preço > SMA 20' },
+                    { label: 'Cruzamento de médias', code: '* Entrar quando SMA 10 > SMA 20' },
+                    { label: 'SMA com suporte', code: '* Entrar quando SMA 14 > suporte' },
+                  ],
+                },
+                {
+                  title: 'Regras de Suporte e Resistência',
+                  items: [
+                    { label: 'Quebra de resistência', code: '* Entrar quando preço > resistencia' },
+                    { label: 'Teste de suporte', code: '* Entrar quando preço < suporte' },
+                    { label: 'Entre níveis', code: '* Entrar quando preço > suporte e preço < resistencia' },
+                  ],
+                },
+                {
+                  title: 'Regras com Percentuais',
+                  items: [
+                    { label: 'Variação percentual', code: '* Entrar quando os dígitos inferiores a 4 > 50%' },
+                    { label: 'Dígitos ímpares', code: '* Entrar quando percentual de digitos impares > 60%' },
+                    { label: 'Dígitos baixos', code: '* Entrar quando percentual de digitos abaixo de 3 > 40%' },
+                  ],
+                },
+                {
+                  title: 'Regras com Preço',
+                  items: [
+                    { label: 'Preço acima da resistência', code: '* Entrar quando ultimo tick > resistencia' },
+                    { label: 'Movimento percentual', code: '* Entrar quando preco subiu 0.5%' },
+                    { label: 'Sequência de dígitos', code: '* Entrar quando 3 ticks consecutivos subindo' },
+                  ],
+                },
+                {
+                  title: 'Trader Ambos (Múltiplas Entradas)',
+                  items: [
+                    { label: 'Entradas individuais', code: '* Entrar Higher quando RSI > 70, * Entrar Lower quando RSI < 30' },
+                    { label: 'Entradas simultâneas', code: '* Entrar Higher e Lower quando preço > SMA 20 e RSI > 50' },
+                    { label: 'Combinação complexa', code: '* Entrar quando ultimo digito > 7 e RSI > 60, * Entrar quando SMA 10 > SMA 20' },
+                  ],
+                },
+                {
+                  title: 'Estratégias Combinadas',
+                  items: [
+                    { label: 'Dígito + RSI', code: '* Entrar quando ultimo digito é par e RSI > 50' },
+                    { label: 'Preço + Percentual', code: '* Entrar quando preço > 1.2400 e variação % > 0.3%' },
+                    { label: 'Múltiplas condições', code: '* Entrar quando RSI > 70 e SMA(10) > SMA(20) e ultimo digito > 5' },
+                  ],
+                },
+              ].map((category) => (
+                <div key={category.title} className="border border-gray-800 rounded-lg p-3 bg-[#13111c]">
+                  <h4 className="text-sm font-semibold text-white mb-2">{category.title}</h4>
+                  <div className="space-y-2">
+                    {category.items.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        className="w-full text-left p-2 rounded bg-[#0d0a18] border border-gray-700 hover:border-blue-500 hover:bg-[#1a1730] transition-colors group"
+                        onClick={() => {
+                          setInput(item.code);
+                          setShowExamplesModal(false);
+                          onModeChange('strategy');
+                        }}
+                      >
+                        <div className="text-xs font-medium text-gray-200 group-hover:text-white">{item.label}</div>
+                        <code className="text-xs text-blue-400 mt-1 block">{item.code}</code>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <p className="text-xs text-gray-500 text-center pb-2">
+                Clique em qualquer exemplo para aplicá-lo ao campo de estratégia.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
