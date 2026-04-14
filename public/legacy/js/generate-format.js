@@ -1610,6 +1610,7 @@ class FormatGenerator {
             case 'support':
             case 'resistance':
                 // Validar período para suporte/resistência
+                console.log(params);
                 if (!params.period || typeof params.period !== 'number' || params.period < 1 || params.period > 1000) {
                     console.warn(`⚠️ Período ${params.type} inválido: ${params.period}. Usando padrão: 100`);
                     params.period = 100;
@@ -3020,10 +3021,18 @@ class FormatGenerator {
             const requiredCount = params.count;
             const direction = params.direction;
             const currentSymbol = this.getSelectedSymbol();
-            const marketData = getMarketDataInstance(SessionManager.getLocalToken());
+            // Obter histórico suficiente para análise sequencial via DerivService (sistema moderno)
+            const derivService = window.DerivServiceInstance;
+            const historyCount = Math.max(requiredCount + 20, 30);
+            let history = null;
 
-            // Obter histórico suficiente para análise sequencial
-            const history = marketData.getHistoricalTicks(currentSymbol, Math.max(requiredCount + 20, 30));
+            if (derivService && typeof derivService.getHistoricalTicksSync === 'function') {
+                try {
+                    history = derivService.getHistoricalTicksSync(currentSymbol, historyCount);
+                } catch (e) {
+                    console.warn('⚠️ [SEQUENCE] Erro ao acessar DerivServiceInstance:', e);
+                }
+            }
 
             if (!history || !history.prices || history.prices.length < 2) {
                 rule.currentValue = 0;

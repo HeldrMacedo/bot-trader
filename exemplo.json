@@ -1,34 +1,19 @@
-trade_config_full:{
-    "config": {
-        "contractType": "DIGITOVER",
-        "tradeType": "DIGITOVER",
-        "duration": 1,
-        "durationUnit": "t",
-        "prediction": "2",
-        "barrier": "+1",
-        "barrierHigh": "0.001",
-        "barrierLow": "-0.001",
-        "stake": 0.36,
-        "goal": 1,
-        "stopLoss": 100,
-        "galeMultiplier": 1,
-        "galeSplit": 1,
-        "galeSplitThreshold": 0,
-        "sorosLimit": 0,
-        "sorosProfitPercentage": 100,
-        "galeRemovesSoros": false,
-        "winReal": 1,
-        "lossReal": 1,
-        "winSimulated": 0,
-        "lossSimulated": 0,
-        "tradeLimit": 0,
-        "cooldownPeriod": 3,
-        "pauseTime": null,
-        "pauseTrades": 2,
-        "pauseOnWins": false,
-        "countRepeated": false,
-        "selectedSymbol": "R_10"
-    },
-    "_timestamp": 1774798054699,
-    "_autoSaved": true
+{
+    "type": "resistance",
+    "displayFormat": "Último tick >= Resistência(100)",
+    "period": 100,
+    "status": "waiting",
+    "currentValue": null,
+    "contractType": null,
+    "contractPrediction": null,
+    "parameters_ui": [
+        {
+            "key": "param_period_g1_r1",
+            "label": "Período Resistência (G1R1)",
+            "value": 100,
+            "type": "number",
+            "path": "groups[0].rules[0].parameters.period"
+        }
+    ],
+    "operator": ">="
 }
