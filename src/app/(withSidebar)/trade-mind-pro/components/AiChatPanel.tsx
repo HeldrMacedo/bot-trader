@@ -1,6 +1,17 @@
-import { Cog6ToothIcon, CommandLineIcon, PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/16/solid";
+import { CommandLineIcon, PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import { Bars3Icon } from "@heroicons/react/24/solid";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import HelpManualModal from "./HelpManualModal";
+
+interface RuleHistoryItem {
+  rule: string;
+  timestamp: number;
+  usageCount: number;
+  hasJson: boolean;
+  geminiJson: any | null;
+  ruleCode?: string | null;
+  loadedFromFile?: boolean;
+}
 
 interface Message {
   id: string;
@@ -45,6 +56,10 @@ export default function AiChatPanel(
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
   const [showExamplesModal, setShowExamplesModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [historyRules, setHistoryRules] = useState<RuleHistoryItem[]>([]);
+  const historyFileInputRef = useRef<HTMLInputElement>(null);
   const hamburgerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -209,6 +224,111 @@ export default function AiChatPanel(
       }
       onConfigRulesChange?.(updatedRules);
     };
+
+    const getLoginId = (): string | null => {
+      try {
+        const accounts = JSON.parse(localStorage.getItem('deriv_accounts') || '[]');
+        const a = Array.isArray(accounts) ? accounts[0] : null;
+        return a?.selectedLoginId || a?.loginId || a?.tokens?.[0]?.loginid || null;
+      } catch { return null; }
+    };
+
+    const loadHistory = useCallback((): RuleHistoryItem[] => {
+      try {
+        const loginId = getLoginId();
+        if (!loginId) return [];
+        const data = localStorage.getItem(`rules_history_${loginId}`);
+        if (!data) return [];
+        const parsed = JSON.parse(data);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.sort((a, b) => b.timestamp - a.timestamp);
+      } catch { return []; }
+    }, []);
+
+    const openHistoryModal = () => {
+      setHistoryRules(loadHistory());
+      setShowHistoryModal(true);
+      setShowHamburgerMenu(false);
+    };
+
+    const deleteHistoryRule = (index: number) => {
+      try {
+        const loginId = getLoginId();
+        if (!loginId) return;
+        const key = `rules_history_${loginId}`;
+        const current = JSON.parse(localStorage.getItem(key) || '[]') as RuleHistoryItem[];
+        current.splice(index, 1);
+        localStorage.setItem(key, JSON.stringify(current));
+        setHistoryRules(loadHistory());
+      } catch { /* ignore */ }
+    };
+
+    const clearAllHistory = () => {
+      try {
+        const loginId = getLoginId();
+        if (!loginId) return;
+        localStorage.removeItem(`rules_history_${loginId}`);
+        setHistoryRules([]);
+      } catch { /* ignore */ }
+    };
+
+    const applyHistoryRule = (item: RuleHistoryItem, useInstant: boolean) => {
+      setInput(item.rule);
+      onModeChange('strategy');
+      setShowHistoryModal(false);
+      if (useInstant && item.hasJson && item.geminiJson) {
+        onStrategyGenerated(item.geminiJson);
+      }
+    };
+
+    const handleHistoryFileLoad = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []).filter(f => f.name.endsWith('.json'));
+      if (!files.length) return;
+      const loginId = getLoginId();
+      if (!loginId) return;
+      const key = `rules_history_${loginId}`;
+
+      Promise.all(files.map(file => file.text())).then(contents => {
+        let current: RuleHistoryItem[] = [];
+        try { current = JSON.parse(localStorage.getItem(key) || '[]'); } catch { /* ignore */ }
+
+        contents.forEach(content => {
+          try {
+            const data = JSON.parse(content);
+            if (!data.rule) return;
+            const normalized = data.rule.toLowerCase().replace(/\s+/g, ' ').trim();
+            const existing = current.findIndex(r => r.rule.toLowerCase().replace(/\s+/g, ' ').trim() === normalized);
+            const item: RuleHistoryItem = {
+              rule: data.rule,
+              timestamp: data.timestamp || Date.now(),
+              usageCount: 1,
+              hasJson: !!data.geminiJson,
+              geminiJson: data.geminiJson || null,
+              loadedFromFile: true,
+            };
+            if (existing === -1) { current.unshift(item); }
+            else { current[existing] = { ...current[existing], ...item, usageCount: current[existing].usageCount + 1 }; current.unshift(current.splice(existing, 1)[0]); }
+          } catch { /* ignore */ }
+        });
+
+        localStorage.setItem(key, JSON.stringify(current));
+        setHistoryRules(loadHistory());
+        if (e.target) e.target.value = '';
+      });
+    };
+
+    const generateRulePreview = (ruleText: string) => {
+      const lines = ruleText.split('\n').filter(l => l.trim());
+      if (lines.length === 0) return <span className="text-gray-500 italic">vazia</span>;
+      if (lines.length === 1) return <span>{lines[0]}</span>;
+      return (
+        <>
+          {lines.slice(0, 3).map((l, i) => <div key={i} className="truncate">{l}</div>)}
+          {lines.length > 3 && <div className="text-gray-500 text-xs">... e mais {lines.length - 3} linha(s)</div>}
+        </>
+      );
+    };
+
   return (
     <div className="flex flex-col h-full bg-[#13111c] border border-gray-800 rounded-lg">
       <div className="p-4 border-b border-gray-800 flex justify-between items-center">
@@ -261,6 +381,20 @@ export default function AiChatPanel(
                 onClick={() => { setShowHamburgerMenu(false); setShowExamplesModal(true); }}
               >
                 Modelos de Estratégias
+              </button>
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 hover:text-white transition-colors"
+                onClick={openHistoryModal}
+              >
+                Histórico de Regras
+              </button>
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 hover:text-white transition-colors"
+                onClick={() => { setShowHamburgerMenu(false); setShowHelpModal(true); }}
+              >
+                Manual de Instruções
               </button>
               {onRequestSuggestions && (
                 <button
@@ -661,6 +795,139 @@ export default function AiChatPanel(
           </div>
         </div>
       )}
+      {showHistoryModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowHistoryModal(false)}
+        >
+          <div
+            className="w-full max-w-3xl bg-[#0d0a18] border border-gray-700 rounded-lg overflow-hidden flex flex-col"
+            style={{ height: '75vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-[#13111c]">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => historyFileInputRef.current?.click()}
+                  className="text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-white transition-colors"
+                  title="Carregar regras de arquivo JSON"
+                >
+                  Carregar
+                </button>
+                <button
+                  type="button"
+                  onClick={clearAllHistory}
+                  disabled={historyRules.length === 0}
+                  className="text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+                  title="Limpar todo o histórico"
+                >
+                  Limpar
+                </button>
+              </div>
+              <div className="text-sm font-semibold text-white">
+                Histórico de Regras ({historyRules.length})
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHistoryModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+              {historyRules.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 space-y-2">
+                  <div className="text-3xl">📝</div>
+                  <div className="text-sm font-semibold text-gray-400">Nenhuma Regra Salva</div>
+                  <p className="text-xs max-w-xs">
+                    Você ainda não executou nenhuma estratégia. Quando iniciar o monitoramento, suas regras serão salvas automaticamente aqui.
+                  </p>
+                </div>
+              ) : (
+                historyRules.map((item, index) => {
+                  const date = new Date(item.timestamp).toLocaleString('pt-BR');
+                  const usageText = item.usageCount > 1 ? ` • Usada ${item.usageCount}x` : '';
+                  return (
+                    <div
+                      key={index}
+                      className={`border rounded-lg p-3 bg-[#13111c] cursor-pointer hover:border-blue-500 transition-colors ${item.hasJson ? 'border-blue-900/60' : 'border-gray-800'}`}
+                      onClick={() => applyHistoryRule(item, false)}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-gray-500 font-mono">#{index + 1}</span>
+                          {item.hasJson && (
+                            <span className="text-yellow-400 text-xs" title="Tem JSON cached — monitoramento instantâneo">⚡</span>
+                          )}
+                          {item.loadedFromFile && (
+                            <span className="text-xs text-gray-400" title="Carregada de arquivo">📁</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">{date}{usageText}</span>
+                      </div>
+                      <div className="text-xs text-gray-300 mb-2 font-mono leading-relaxed">
+                        {generateRulePreview(item.rule)}
+                      </div>
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        {item.hasJson && item.geminiJson ? (
+                          <button
+                            type="button"
+                            className="text-xs px-2.5 py-1 rounded bg-blue-700 hover:bg-blue-600 text-white transition-colors"
+                            onClick={() => applyHistoryRule(item, true)}
+                            title="Usar com JSON cached — sem re-tradução"
+                          >
+                            ⚡ Usar Instant
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-xs px-2.5 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white transition-colors"
+                            onClick={() => applyHistoryRule(item, false)}
+                          >
+                            Usar
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="text-xs px-2.5 py-1 rounded bg-gray-800 hover:bg-red-900/60 hover:text-red-400 text-gray-400 transition-colors"
+                          onClick={() => deleteHistoryRule(index)}
+                          title="Remover esta regra"
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            {historyRules.length > 0 && (
+              <div className="px-4 py-2 border-t border-gray-800 bg-[#13111c]">
+                <p className="text-xs text-gray-500">
+                  Clique em qualquer regra para aplicá-la ao campo de estratégia.
+                  {' '}Regras com ⚡ têm JSON cached para monitoramento instantâneo.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      <input
+        ref={historyFileInputRef}
+        type="file"
+        accept=".json"
+        multiple
+        className="hidden"
+        onChange={handleHistoryFileLoad}
+      />
+      {showHelpModal && <HelpManualModal onClose={() => setShowHelpModal(false)} />}
     </div>
   );
 }
