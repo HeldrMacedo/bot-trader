@@ -2,6 +2,7 @@ import { CommandLineIcon, PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/
 import { Bars3Icon } from "@heroicons/react/24/solid";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HelpManualModal from "./HelpManualModal";
+import { DeleteIcon } from "lucide-react";
 
 interface RuleHistoryItem {
   rule: string;
@@ -25,6 +26,7 @@ interface AiChatPanelProps {
   onStrategyGenerated: (strategy: any) => void;
   isProcessing: boolean;
   onSendMessage: (text: string, image?: ImageData) => void;
+  onClearMessages?: () => void;
   messages: Message[];
   mode: 'strategy' | 'chat' | 'config';
   onModeChange: (mode: 'strategy' | 'chat' | 'config') => void;
@@ -39,6 +41,7 @@ export default function AiChatPanel(
     onStrategyGenerated, 
     isProcessing, 
     onSendMessage, 
+    onClearMessages,
     messages, 
     mode, 
     onModeChange, 
@@ -329,6 +332,18 @@ export default function AiChatPanel(
       );
     };
 
+    const clearChat = () => {
+      onClearMessages?.();
+      setInput('');
+      if (draftStorageKey) {
+        try {
+          localStorage.setItem(draftStorageKey, '');
+        } catch {
+        }
+      }
+      setShowHamburgerMenu(false);
+    };
+
   return (
     <div className="flex flex-col h-full bg-[#13111c] border border-gray-800 rounded-lg">
       <div className="p-4 border-b border-gray-800 flex justify-between items-center">
@@ -498,6 +513,15 @@ export default function AiChatPanel(
           className="flex-1 bg-[#0d0a18] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder:text-xs focus:border-blue-500 outline-none min-h-[100px] overflow-y-hidden resize-none"
           disabled={isProcessing}
         />
+        <button
+                type="button"
+                title="Limpar Chat"
+                className="bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
+                onClick={clearChat}
+                disabled={messages.length === 0 || isProcessing}
+              >
+                <DeleteIcon className="w-5 h-5" />
+              </button>
         <button 
             type="submit"
             disabled={(!input.trim()) || isProcessing}

@@ -401,6 +401,76 @@ export default function TradeMindPro() {
     }
   };
 
+  /** Responde perguntas de mercado no modo Chat com contexto real dos últimos 50 dígitos */
+  const handleChatMessage = async (text: string) => {
+    try {
+      setAiProgressMessage('Coletando dados de mercado...');
+
+      const digits = monitoringService.getProbabilityHistory().slice(-50);
+      const stats = monitoringService.getCurrentStats();
+      const symbol = selectedSymbol || localStorage.getItem('selectedSymbol') || 'N/A';
+
+      const probLines = stats
+        ? Array.from({ length: 10 }, (_, d) => {
+            const pct = (stats.probabilities[d] * 100).toFixed(1);
+            const marker = d === stats.mostProbable ? ' ← maior' : d === stats.leastProbable ? ' ← menor' : '';
+            return `  ${d}: ${pct}%${marker}`;
+          }).join('\n')
+        : '  (dados insuficientes — aguardando ticks)';
+
+      const digitsLine = digits.length > 0 ? digits.join(' - ') : '(aguardando ticks)';
+
+      const prompt =
+        `Você é um analista de mercado especializado em trading de dígitos na plataforma Deriv.
+
+INSTRUÇÕES:
+- Responda SEMPRE em português.
+- Vá direto ao ponto: use os dados abaixo para responder com números e percentuais concretos.
+- NÃO repita os dados brutos de volta — analise-os e dê a resposta.
+- Seja conciso: no máximo 3-4 parágrafos curtos.
+
+=== DADOS DE MERCADO ===
+Símbolo: ${symbol}
+Últimos ${digits.length} dígitos (cronológico, mais recente à direita): ${digitsLine}
+
+Probabilidades por dígito (histórico ponderado):
+${probLines}
+
+=== PERGUNTA ===
+${text}`;
+
+      setAiProgressMessage('Consultando IA...');
+
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelId: 'gemini-2.5-flash',
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 4096 },
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+      const rawText =
+        data?.text ||
+        data?.message ||
+        data?.response ||
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        null;
+
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: rawText?.trim() || 'Desculpe, não consegui obter uma resposta. Tente novamente.',
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setIsAiProcessing(false);
+      setAiProgressMessage(null);
+    }
+  };
+
   /** Executa a tradução da estratégia (chamada após aprovação de todas as validações) */
   const executeStrategyTranslation = async (text: string) => {
     setAiProgressMessage('Iniciando processamento...');
@@ -437,6 +507,10 @@ export default function TradeMindPro() {
     setAiProgressMessage(null);
 
     try {
+      if (aiMode === 'chat') {
+        await handleChatMessage(text);
+        return;
+      }
       if (aiMode !== 'strategy') return;
 
       // ── 1. Validação de pré-condições (formato básico + compatibilidade contrato/trade-type) ──
@@ -493,6 +567,11 @@ export default function TradeMindPro() {
   };
 
   const requestSuggestions = async () => {}
+
+  const clearChatMessages = () => {
+    setMessages([]);
+    setAiProgressMessage(null);
+  };
 
   if (loading) {
     return (
@@ -652,6 +731,7 @@ export default function TradeMindPro() {
                   messages={messages}
                   isProcessing={isAiProcessing}
                   onSendMessage={handleAiMessage}
+                  onClearMessages={clearChatMessages}
                   onStrategyGenerated={() => {}}
                   mode={aiMode}
                   onModeChange={setAiMode}
