@@ -1102,4 +1102,108 @@ Sequências máximas:
 Últimos 10 preços: [${analysis.lastPrices.map((p: number) => p.toFixed(5)).join(', ')}]
 `;
     }
+
+    async translateAdvancedStrategy(
+        strategyText: string,
+        onProgress: (msg: string) => void = () => {}
+    ): Promise<{ success: boolean; rulesJson: any | null; error?: string }> {
+        if (this.isProcessing) {
+            return { success: false, rulesJson: null, error: 'Outra solicitação já está em andamento.' };
+        }
+        this.isProcessing = true;
+        try {
+            onProgress('Construindo prompt avançado...');
+            const prompt = this.buildAdvancedPrompt(strategyText);
+            onProgress('Consultando IA (modo avançado)...');
+            const response = await this.callGeminiAPI(
+                this.modelVersions[1].id,
+                prompt,
+                { temperature: 0.2, topK: 40, topP: 0.95, maxOutputTokens: 4096 }
+            );
+            if (!response.success) {
+                return { success: false, rulesJson: null, error: response.error || 'Falha na resposta da IA' };
+            }
+            const rulesJson = response.strategy;
+            if (!rulesJson || !rulesJson.conditions || !rulesJson.event) {
+                return { success: false, rulesJson: null, error: 'A IA não retornou JSON válido no formato json-rules-engine. Tente reformular a estratégia.' };
+            }
+            onProgress('Regras avançadas geradas com sucesso!');
+            return { success: true, rulesJson };
+        } catch (e: any) {
+            return { success: false, rulesJson: null, error: e.message };
+        } finally {
+            this.isProcessing = false;
+        }
+    }
+
+    private buildAdvancedPrompt(strategyText: string): string {
+        return `Você é um especialista em trading de dígitos na plataforma Deriv. Converta a estratégia abaixo para o formato JSON do json-rules-engine.
+
+FACTS DISPONÍVEIS (dados calculados em tempo real a partir dos ticks):
+
+Facts simples (sem parâmetros):
+- "lastDigit" → number (0-9): Último dígito do tick atual
+- "secondLastDigit" → number (0-9): Penúltimo dígito
+- "twoLastDifferent" → boolean: true se os 2 últimos dígitos são DIFERENTES entre si
+- "consecutiveSame" → number: Quantidade de dígitos iguais consecutivos no final da sequência
+- "tickCount" → number: Total de ticks coletados até agora
+
+Facts com parâmetros (use o campo "params" na condição):
+- "digitCount" → number: Contagem de um dígito nos últimos N ticks
+  params: { "n": 10, "digit": 3 } → quantas vezes o dígito 3 apareceu nos últimos 10 ticks
+
+- "mostFrequentDigit" → number (0-9): Dígito mais frequente nos últimos N ticks (desempate: mais recente vence)
+  params: { "n": 10 }
+
+- "mostFrequentCount" → number: Quantidade de aparições do dígito mais frequente
+  params: { "n": 10 }
+
+- "digitNotInLastN" → boolean: true se o dígito NÃO apareceu nos últimos N ticks
+  params: { "n": 5, "digit": 3 }
+
+OPERADORES DISPONÍVEIS:
+"equal", "notEqual", "lessThan", "lessThanInclusive", "greaterThan", "greaterThanInclusive", "in", "notIn"
+
+LÓGICA DE CONDIÇÕES:
+- "all": AND (todas devem ser verdadeiras)
+- "any": OR (pelo menos uma deve ser verdadeira)
+- Pode aninhar "all" dentro de "any" e vice-versa
+
+TIPOS DE CONTRATO (contractType no event.params):
+- "DIGITOVER" + prediction (0-9): próximo dígito MAIOR que prediction
+- "DIGITUNDER" + prediction (0-9): próximo dígito MENOR que prediction
+- "DIGITMATCH" + prediction (0-9): próximo dígito IGUAL a prediction
+- "DIGITDIFF" + prediction (0-9): próximo dígito DIFERENTE de prediction
+- "DIGITEVEN": próximo dígito PAR (prediction: null)
+- "DIGITODD": próximo dígito ÍMPAR (prediction: null)
+- "CALL": preço SOBE (prediction: null)
+- "PUT": preço CAI (prediction: null)
+
+PREDIÇÃO DINÂMICA: Se a prediction deve ser o dígito mais frequente (ou outro fact), use:
+  "predictionFact": "mostFrequentDigit",
+  "predictionFactParams": { "n": 10 }
+ao invés de "prediction".
+
+FORMATO DE SAÍDA (retorne APENAS o JSON, sem markdown, sem explicações):
+{
+  "name": "Descrição breve da estratégia",
+  "conditions": {
+    "all": [
+      { "fact": "twoLastDifferent", "operator": "equal", "value": true },
+      { "fact": "mostFrequentCount", "params": { "n": 10 }, "operator": "greaterThanInclusive", "value": 3 }
+    ]
+  },
+  "event": {
+    "type": "trade",
+    "params": {
+      "contractType": "DIGITOVER",
+      "predictionFact": "mostFrequentDigit",
+      "predictionFactParams": { "n": 10 }
+    }
+  }
+}
+
+ESTRATÉGIA A CONVERTER:
+${strategyText}`;
+    }
 }

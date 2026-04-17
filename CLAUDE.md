@@ -21,8 +21,8 @@ This is a **Next.js 16 + React 19 trading bot platform** that integrates with th
 
 | Module | Status | Description |
 |--------|--------|-------------|
-| `bot-strategy/` | Inactive | Main trading bot (React/TS migration target) |
-| `trade-mind-pro/` | In progress | AI-powered trading panel with Gemini integration |
+| `bot-strategy/` | **Discontinued** | Legacy trading bot — não usar, módulo descontinuado |
+| `trade-mind-pro/` | **Active** | AI-powered trading panel with Gemini integration |
 | `bot-analitico/` | Inactive | ML analytics with TensorFlow.js |
 | `advanced-bot/` | Inactive | Advanced bot features |
 | `bottrader/` | **Active** | Bot Copy Trader |
@@ -43,8 +43,11 @@ Singleton with a 5-period weighted probability algorithm:
 **Strategy Translation Flow:**
 `translateStrategy()` resolves in order: JSON cached → rule code → history → translation cache → Gemini AI fallback. Results are saved to `strategy_cache_global` and `rules_history_*` in localStorage.
 
-**AI Integration (`bot-strategy/services/GeminiAIService.ts`):**
-Google Gemini AI for strategy generation and validation. `GeminiStrategyValidator.ts` validates preconditions before execution.
+**AI Integration (`trade-mind-pro/service/AdvancedGeminiService.ts` e `/api/gemini/route.ts`):**
+Google Gemini AI para geração e validação de estratégias. O módulo `bot-strategy` está descontinuado — toda integração com IA deve passar pelo endpoint `/api/gemini` diretamente. `GeminiStrategyValidator.ts` valida pré-condições no modo Estratégia padrão.
+
+**Modo Avançado (`trade-mind-pro`) — json-rules-engine:**
+Quarto modo do AiChatPanel que aceita estratégias complexas em linguagem natural. A IA gera JSON no formato `json-rules-engine` com facts computados dinamicamente a cada tick (contagem de dígitos, sequências, frequência, ausência). O `AdvancedRulesEngine` subscreve `deriv.tick`, mantém rolling buffer de 200 ticks e avalia as regras. Ao bater uma condição, chama `window.tradeManager.executeTrade()`. Ver `docs/ADVANCED_MODE.md` para documentação completa, facts disponíveis e exemplos de estratégias.
 
 ### Digit Precision by Symbol
 
@@ -82,3 +85,4 @@ Turbopack is explicitly disabled. The `next.config.mjs` has special webpack rule
 - Telegram integration
 
 See `docs/MIGRATION_ARCHITECTURE.md` and `docs/MIGRATION_DOCUMENTATION.md` for detailed migration guidance.
+See `docs/ADVANCED_MODE.md` for the trade-mind-pro Advanced Mode (json-rules-engine) documentation.

@@ -18,6 +18,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { DerivService } from '@/app/services/DerivService';
 import { monitoringService, RulesVisualData } from './service/Monitoring';
 import { LegacyBridgeService } from './service/LegacyBridge';
+import { AdvancedGeminiService } from './service/AdvancedGeminiService';
+import { AdvancedRulesEngine } from './service/AdvancedRulesEngine';
 import { Cog6ToothIcon } from '@heroicons/react/16/solid';
 
 export default function TradeMindPro() {
@@ -30,7 +32,10 @@ export default function TradeMindPro() {
   });
   const [messages, setMessages] = useState<any[]>([]);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [aiMode, setAiMode] = useState<'strategy' | 'chat' | 'config'>('strategy');
+  const [aiMode, setAiMode] = useState<'strategy' | 'chat' | 'config' | 'advanced'>('strategy');
+  const [advancedRules, setAdvancedRules] = useState<any | null>(null);
+  const advancedEngineRef = useRef<AdvancedRulesEngine | null>(null);
+  const advancedGeminiRef = useRef(new AdvancedGeminiService());
   const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
   const [translatedRules, setTranslatedRules] = useState<any | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -208,6 +213,7 @@ export default function TradeMindPro() {
       const emoji = data.status === 'WIN' ? '✅' : '❌';
       addLog(`${emoji} ${data.mode} Trade: ${data.contractType} | Profit: $${data.profit?.toFixed(2)}`);
       monitoringService.notifyTradeResult(data.status, data.mode === 'SIMULACAO');
+      advancedEngineRef.current?.notifyTradeResult();
     };
 
     const handleModeChange = (data: any) => {
@@ -230,6 +236,7 @@ export default function TradeMindPro() {
       const emoji = data.status === 'WIN' ? '✅' : '❌';
       addLog(`${emoji} ${data.mode} Trade: ${data.type} | Profit: $${Number(data.profit ?? 0).toFixed(2)}`);
       monitoringService.notifyTradeResult(data.status, data.isSimulation === 'SIMULACAO');
+      advancedEngineRef.current?.notifyTradeResult();
     };
 
     bridge.on('trade', handleTrade);
@@ -327,6 +334,9 @@ export default function TradeMindPro() {
   const toggleBot = async () => {
     if (isRunning) {
       // STOP
+      if (advancedEngineRef.current) {
+        advancedEngineRef.current.stop();
+      }
       monitoringService.stopExecution();
       const bridge = LegacyBridgeService.getInstance();
       bridge.stopLegacyMonitoring();
@@ -377,16 +387,21 @@ export default function TradeMindPro() {
         tradeReal: !detectIsVirtualAccount()
       });
 
-      // Se não há estratégia IA, usar regras vazias = modo entrada imediata (igual legado)
-      if (!translatedRules) {
+      if (aiMode === 'advanced' && advancedEngineRef.current?.getRulesLoaded()) {
+        // Modo avançado: o AdvancedRulesEngine faz a avaliação de regras e dispara trades
         monitoringService.setTranslatedRules({ groups: [], contract_type: null, prediction: null });
+        advancedEngineRef.current.start();
+        addLog('Motor avançado (json-rules-engine) iniciado.');
+      } else {
+        // Modo normal: monitoringService avalia as regras
+        if (!translatedRules) {
+          monitoringService.setTranslatedRules({ groups: [], contract_type: null, prediction: null });
+        }
+        monitoringService.startExecution(
+          translatedRules?.groupActivation || null,
+          controllerConfig.cooldownPeriod || 3
+        );
       }
-
-      // Ativar execução no MonitoringService
-      monitoringService.startExecution(
-        translatedRules?.groupActivation || null,
-        controllerConfig.cooldownPeriod || 3
-      );
 
       setIsRunning(true);
       setMainView('dashboard');
@@ -496,6 +511,59 @@ ${text}`;
     }
   };
 
+  /** Traduz estratégia avançada via AdvancedGeminiService e carrega no AdvancedRulesEngine */
+  const executeAdvancedStrategyTranslation = async (text: string) => {
+    setAiProgressMessage('Iniciando modo avançado...');
+    try {
+      const result = await advancedGeminiRef.current.translateAdvancedStrategy(text, (msg) => {
+        setAiProgressMessage(msg);
+      });
+
+      if (!result.success || !result.rulesJson) {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: 'ai',
+          content: `Erro ao gerar regras avançadas: ${result.error || 'Resposta inválida da IA. Tente reformular a estratégia.'}`,
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+
+      setAdvancedRules(result.rulesJson);
+
+      // Criar / recriar o engine com as novas regras
+      const engine = new AdvancedRulesEngine({
+        symbol: selectedSymbol || localStorage.getItem('selectedSymbol') || 'R_100',
+        onTradeSignal: (contractType, prediction) => {
+          if (typeof window !== 'undefined' && (window as any).tradeManager?.isActive) {
+            const tm = (window as any).tradeManager;
+            tm.capturedPredictionsForTrade = [{ contractType, predictionValue: prediction }];
+            tm.executeTrade(null, 'advanced').catch((err: any) => {
+              console.error('[AdvancedEngine] Erro no executeTrade:', err);
+              engine.notifyTradeResult();
+            });
+          }
+        },
+        onStatusChange: (msg) => addLog(`[Motor Avançado] ${msg}`),
+      });
+      engine.loadRules(result.rulesJson);
+      advancedEngineRef.current = engine;
+
+      const ruleName = result.rulesJson.name || 'Regras avançadas';
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: `Regras carregadas no motor avançado: "${ruleName}". Clique em INICIAR para começar.`,
+        timestamp: new Date(),
+      }]);
+      setTimeout(() => setAiProgressMessage(null), 1500);
+    } catch (e: any) {
+      console.warn('[AdvancedMode] Erro:', e);
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
   const handleAiMessage = async (text: string) => {
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
@@ -509,6 +577,10 @@ ${text}`;
     try {
       if (aiMode === 'chat') {
         await handleChatMessage(text);
+        return;
+      }
+      if (aiMode === 'advanced') {
+        await executeAdvancedStrategyTranslation(text);
         return;
       }
       if (aiMode !== 'strategy') return;
@@ -734,7 +806,8 @@ ${text}`;
                   onClearMessages={clearChatMessages}
                   onStrategyGenerated={() => {}}
                   mode={aiMode}
-                  onModeChange={setAiMode}
+                  onModeChange={(m) => setAiMode(m)}
+                  advancedRulesLoaded={!!advancedRules}
                   progressMessage={aiProgressMessage}
                   onRequestSuggestions={requestSuggestions}
                   configRules={translatedRules}

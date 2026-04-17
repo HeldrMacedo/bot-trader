@@ -28,28 +28,30 @@ interface AiChatPanelProps {
   onSendMessage: (text: string, image?: ImageData) => void;
   onClearMessages?: () => void;
   messages: Message[];
-  mode: 'strategy' | 'chat' | 'config';
-  onModeChange: (mode: 'strategy' | 'chat' | 'config') => void;
+  mode: 'strategy' | 'chat' | 'config' | 'advanced';
+  onModeChange: (mode: 'strategy' | 'chat' | 'config' | 'advanced') => void;
   progressMessage?: string | null;
   onRequestSuggestions?: () => void;
   draftStorageKey?: string | null;
   configRules?: any | null;
   onConfigRulesChange?: (rules: any) => void;
+  advancedRulesLoaded?: boolean;
 }
 export default function AiChatPanel(
-  { 
-    onStrategyGenerated, 
-    isProcessing, 
-    onSendMessage, 
+  {
+    onStrategyGenerated,
+    isProcessing,
+    onSendMessage,
     onClearMessages,
-    messages, 
-    mode, 
-    onModeChange, 
-    progressMessage, 
-    onRequestSuggestions, 
+    messages,
+    mode,
+    onModeChange,
+    progressMessage,
+    onRequestSuggestions,
     draftStorageKey,
     configRules,
-    onConfigRulesChange }: AiChatPanelProps) {
+    onConfigRulesChange,
+    advancedRulesLoaded }: AiChatPanelProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,6 +117,14 @@ export default function AiChatPanel(
             'Digite aqui sua estratégia de monitoramento...\n' +
             '* Entrar quando ultimo digito = 9\n' +
             '* Entrar quando percentual de digitos impares > 60%\n'
+          );
+        }
+        if (mode === 'advanced') {
+          return (
+            'Descreva sua estratégia avançada em linguagem natural...\n' +
+            '* Contar dígitos nos últimos 10 ticks\n' +
+            '* Escolher o mais frequente com desempate por recência\n' +
+            '* Só operar se os 2 últimos dígitos forem diferentes\n'
           );
         }
         if (mode === 'config') {
@@ -377,6 +387,16 @@ export default function AiChatPanel(
             >
               Chat
             </button>
+            <button
+              type="button"
+              onClick={() => onModeChange('advanced')}
+              className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${mode === 'advanced' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:text-white'}`}
+              disabled={isProcessing}
+              title="Modo avançado: estratégias complexas com json-rules-engine"
+            >
+              Avançado
+              {advancedRulesLoaded && <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />}
+            </button>
           </div>
         </div>
         <div className="relative" ref={hamburgerRef}>
@@ -421,7 +441,13 @@ export default function AiChatPanel(
         {messages.length === 0 &&  (
             <div className="text-center text-gray-500 mt-10">
                 <p>Olá! Eu sou a IA Trader.</p>
-                <p className="text-sm mt-2">{mode === 'strategy' ? 'Descreva sua estratégia e eu a configurarei para você.' : 'Faça perguntas sobre mercado, dígitos, preços e indicadores.'}</p>
+                <p className="text-sm mt-2">
+                  {mode === 'strategy'
+                    ? 'Descreva sua estratégia e eu a configurarei para você.'
+                    : mode === 'advanced'
+                    ? 'Descreva uma estratégia complexa em linguagem natural — eu gero as regras no motor avançado.'
+                    : 'Faça perguntas sobre mercado, dígitos, preços e indicadores.'}
+                </p>
                 <div className="mt-4 text-xs bg-gray-800/50 p-3 rounded-lg inline-block text-left">
                     <p className="font-bold mb-1">Exemplos:</p>
                     <ul className="list-disc list-inside space-y-1">
@@ -430,6 +456,12 @@ export default function AiChatPanel(
                             <li>&quot;Compre CALL se o RSI for menor que 30&quot;</li>
                             <li>&quot;Se o último dígito for par, compre DIGITOVER 5&quot;</li>
                             <li>&quot;Use Martingale fator 2 com stop loss de $50&quot;</li>
+                          </>
+                        ) : mode === 'advanced' ? (
+                          <>
+                            <li>&quot;Contar dígitos nos últimos 10 ticks, operar no mais frequente&quot;</li>
+                            <li>&quot;Só operar se os 2 últimos dígitos forem diferentes entre si&quot;</li>
+                            <li>&quot;Se dígito 3 apareceu 3+ vezes nos últimos 10, entrar DIGITDIFF 3&quot;</li>
                           </>
                         ) : (
                           <>
@@ -440,6 +472,11 @@ export default function AiChatPanel(
                         )}
                     </ul>
                 </div>
+                {mode === 'advanced' && advancedRulesLoaded && (
+                  <div className="mt-3 text-xs bg-green-900/30 border border-green-700/40 text-green-400 px-3 py-2 rounded-lg">
+                    Regras avançadas carregadas. Clique em INICIAR para começar.
+                  </div>
+                )}
             </div>
         )}
         
