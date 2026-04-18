@@ -1,11 +1,13 @@
 'use client';
 
-import { Engine, RuleProperties } from 'json-rules-engine';
+import { Engine, RuleProperties, RuleResult } from 'json-rules-engine';
+import { RulesVisualData, RulesVisualRule } from './Monitoring';
 
 export interface AdvancedEngineConfig {
   symbol: string;
   onTradeSignal: (contractType: string, prediction: number | null) => void;
   onStatusChange?: (msg: string) => void;
+  onRulesVisualUpdate?: (data: RulesVisualData) => void;
 }
 
 export class AdvancedRulesEngine {
@@ -25,6 +27,7 @@ export class AdvancedRulesEngine {
   loadRules(rulesJson: RuleProperties | RuleProperties[]): void {
     this.rulesJson = Array.isArray(rulesJson) ? rulesJson : [rulesJson];
     this.rebuildEngine();
+    this.emitPreview();
   }
 
   start(): void {
@@ -55,7 +58,11 @@ export class AdvancedRulesEngine {
       if (this.isAwaitingTrade || this.tickHistory.length < 5) return;
 
       try {
-        const { events } = await this.engine.run({});
+        const { events, results, failureResults } = await this.engine.run({});
+
+        // Emitir dados visuais a cada tick
+        this.emitVisualData(results, failureResults);
+
         if (events.length > 0) {
           const event = events[0];
           const params = (event as any).params || {};
@@ -179,6 +186,137 @@ export class AdvancedRulesEngine {
     if (factName === 'lastDigit') return this.tickHistory[this.tickHistory.length - 1] ?? null;
     if (factName === 'secondLastDigit') return this.tickHistory[this.tickHistory.length - 2] ?? null;
     return null;
+  }
+
+  // ── Visualização ──
+
+  private static readonly OPERATOR_SYMBOLS: Record<string, string> = {
+    equal: '=', notEqual: '≠',
+    lessThan: '<', lessThanInclusive: '≤',
+    greaterThan: '>', greaterThanInclusive: '≥',
+    in: '∈', notIn: '∉',
+  };
+
+  private static readonly FACT_LABELS: Record<string, string> = {
+    lastDigit: 'Último dígito',
+    secondLastDigit: 'Penúltimo dígito',
+    twoLastDifferent: '2 últimos diferentes',
+    consecutiveSame: 'Consecutivos iguais',
+    tickCount: 'Total de ticks',
+    digitCount: 'Contagem dígito',
+    mostFrequentDigit: 'Dígito mais frequente',
+    mostFrequentCount: 'Freq. do mais comum',
+    digitNotInLastN: 'Dígito ausente',
+  };
+
+  private formatFactLabel(fact: string, params?: Record<string, any>): string {
+    const base = AdvancedRulesEngine.FACT_LABELS[fact] || fact;
+    if (!params || Object.keys(params).length === 0) return base;
+    const parts = Object.entries(params).map(([k, v]) => `${k}:${v}`);
+    return `${base}(${parts.join(', ')})`;
+  }
+
+  private formatOperator(op: string): string {
+    return AdvancedRulesEngine.OPERATOR_SYMBOLS[op] || op;
+  }
+
+  private formatValue(val: unknown): string {
+    if (val === true) return 'true';
+    if (val === false) return 'false';
+    if (val === null || val === undefined) return '-';
+    if (Array.isArray(val)) return `[${val.join(', ')}]`;
+    return String(val);
+  }
+
+  /** Percorre a árvore de condições e retorna lista flat de RulesVisualRule */
+  private flattenConditions(conditions: any, prefix = ''): RulesVisualRule[] {
+    const rules: RulesVisualRule[] = [];
+
+    if ('all' in conditions && Array.isArray(conditions.all)) {
+      if (prefix) rules.push({ id: `label-all-${Date.now()}`, displayText: `${prefix}(TODAS):`, status: 'label' });
+      for (const cond of conditions.all) {
+        rules.push(...this.flattenConditions(cond, ''));
+      }
+    } else if ('any' in conditions && Array.isArray(conditions.any)) {
+      if (prefix) rules.push({ id: `label-any-${Date.now()}`, displayText: `${prefix}(QUALQUER):`, status: 'label' });
+      for (const cond of conditions.any) {
+        rules.push(...this.flattenConditions(cond, ''));
+      }
+    } else if ('fact' in conditions) {
+      // Condição folha
+      const passed = conditions.result === true;
+      const icon = passed ? '🟢' : '🔴';
+      const factLabel = this.formatFactLabel(conditions.fact, conditions.params);
+      const op = this.formatOperator(conditions.operator);
+      const expected = this.formatValue(conditions.value);
+      const actual = conditions.factResult !== undefined ? this.formatValue(conditions.factResult) : '?';
+      rules.push({
+        id: `${conditions.fact}-${conditions.operator}-${Date.now()}`,
+        displayText: `${icon} ${factLabel} ${op} ${expected} (atual: ${actual})`,
+        status: passed ? 'satisfied' : 'failed',
+      });
+    }
+
+    return rules;
+  }
+
+  /** Percorre a árvore de condições SEM resultado (para preview) */
+  private flattenConditionsPreview(conditions: any): RulesVisualRule[] {
+    const rules: RulesVisualRule[] = [];
+
+    if ('all' in conditions && Array.isArray(conditions.all)) {
+      for (const cond of conditions.all) {
+        rules.push(...this.flattenConditionsPreview(cond));
+      }
+    } else if ('any' in conditions && Array.isArray(conditions.any)) {
+      for (const cond of conditions.any) {
+        rules.push(...this.flattenConditionsPreview(cond));
+      }
+    } else if ('fact' in conditions) {
+      const factLabel = this.formatFactLabel(conditions.fact, conditions.params);
+      const op = this.formatOperator(conditions.operator);
+      const expected = this.formatValue(conditions.value);
+      rules.push({
+        id: `${conditions.fact}-${conditions.operator}-preview`,
+        displayText: `⚪ ${factLabel} ${op} ${expected}`,
+        status: 'waiting',
+      });
+    }
+
+    return rules;
+  }
+
+  private emitVisualData(results: RuleResult[], failureResults: RuleResult[]): void {
+    if (!this.config.onRulesVisualUpdate) return;
+    const allResults = [...results, ...failureResults];
+
+    const visualData: RulesVisualData = {
+      groups: allResults.map((ruleResult, idx) => ({
+        id: (ruleResult as any).name || `rule-${idx}`,
+        rules: this.flattenConditions(ruleResult.conditions),
+      })),
+      isPreview: false,
+      timestamp: Date.now(),
+      activeGroupIds: null,
+    };
+
+    this.config.onRulesVisualUpdate(visualData);
+  }
+
+  private emitPreview(): void {
+    if (!this.config.onRulesVisualUpdate) return;
+
+    const visualData: RulesVisualData = {
+      groups: this.rulesJson.map((rule, idx) => ({
+        id: (rule as any).name || `rule-${idx}`,
+        rules: this.flattenConditionsPreview((rule as any).conditions || {}),
+      })),
+      isPreview: true,
+      timestamp: Date.now(),
+      activeGroupIds: null,
+    };
+
+    this.config.onRulesVisualUpdate(visualData);
   }
 
   private extractDigit(price: number): number {

@@ -397,9 +397,12 @@ export default function MarketAnalysisPanel({ symbol, marketStats, rulesVisualDa
           {last25Digits.slice().reverse().map((digit, index) => {
             const colorClass = digit % 2 === 0 ? 'text-blue-400' : 'text-orange-400';
             return (
-              <span key={index} className={`text-lg font-bold ${colorClass} w-6 text-center`}>
-                {digit}
-              </span>
+              <div key={index} className="w-6 flex flex-col items-center">
+                <span className="text-[10px] leading-none text-gray-500 mb-0.5">{index + 1}</span>
+                <span className={`text-lg font-bold ${colorClass} text-center leading-none`}>
+                  {digit}
+                </span>
+              </div>
             );
           })}
         </div>

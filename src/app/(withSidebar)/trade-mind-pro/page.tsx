@@ -545,6 +545,7 @@ ${text}`;
           }
         },
         onStatusChange: (msg) => addLog(`[Motor Avançado] ${msg}`),
+        onRulesVisualUpdate: (data) => setRulesVisualData(data),
       });
       engine.loadRules(result.rulesJson);
       advancedEngineRef.current = engine;
