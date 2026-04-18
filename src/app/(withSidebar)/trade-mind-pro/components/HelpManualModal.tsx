@@ -428,6 +428,75 @@ const SECTIONS: Array<{ id: string; title: string; highlight?: boolean; warning?
     ),
   },
   {
+    id: 'modo-avancado',
+    title: '🧠 Modo Avançado (linguagem natural)',
+    highlight: true,
+    content: (
+      <>
+        <P>O <strong>Modo Avançado</strong> permite expressar estratégias complexas em linguagem natural para a IA. Um motor dedicado avalia as regras a cada tick e executa trades automaticamente.</P>
+
+        <H4>Por que usar o Modo Avançado?</H4>
+        <P>O modo Estratégia padrão suporta tipos fixos de regra (percentual, padrão XO, RSI, etc.). O Modo Avançado permite lógica que não é possível no modo padrão:</P>
+        <UL items={[
+          '"Conte os últimos 10 dígitos e aposte no mais frequente"',
+          '"Só opere se os 2 últimos dígitos forem diferentes"',
+          '"Se o dígito 9 não apareceu nos últimos 10 ticks, aposte nele"',
+          '"Se o mesmo dígito repetiu 4 vezes, aposte em DIFERENTE"',
+        ]} />
+
+        <H4>Como Funciona:</H4>
+        <OL items={[
+          'Selecione a aba "Avançado" no chat',
+          'Descreva sua estratégia em linguagem natural',
+          'A IA gera as regras no formato json',
+          'As regras aparecem no painel "Regras em Tempo Real"',
+          'Clique em INICIAR — o motor avalia a cada tick',
+          'Quando as condições batem, o trade é executado automaticamente',
+        ]} />
+
+        <H4>Facts Disponíveis (dados em tempo real):</H4>
+        <div className="space-y-2">
+          <div className="bg-[#0b0913] rounded p-2 border border-gray-800">
+            <div className="text-xs font-semibold text-gray-200 mb-1">Simples:</div>
+            <Code>{'lastDigit         → Último dígito (0-9)\nsecondLastDigit    → Penúltimo dígito (0-9)\ntwoLastDifferent   → 2 últimos são diferentes? (true/false)\nconsecutiveSame    → Quantos iguais consecutivos no final\ntickCount          → Total de ticks acumulados'}</Code>
+          </div>
+          <div className="bg-[#0b0913] rounded p-2 border border-gray-800">
+            <div className="text-xs font-semibold text-gray-200 mb-1">Com parâmetros (n, digit):</div>
+            <Code>{'digitCount(n, digit)      → Contagem de dígito nos últimos N ticks\nmostFrequentDigit(n)     → Dígito mais frequente nos últimos N\nmostFrequentCount(n)     → Quantas vezes o mais frequente apareceu\ndigitNotInLastN(n, digit) → Dígito ausente nos últimos N? (true/false)'}</Code>
+          </div>
+        </div>
+
+        <H4>Tipos de Contrato Suportados:</H4>
+        <Code>{'DIGITMATCH  → Próximo dígito IGUAL a prediction\nDIGITDIFF   → Próximo dígito DIFERENTE de prediction\nDIGITOVER   → Próximo dígito MAIOR que prediction\nDIGITUNDER  → Próximo dígito MENOR que prediction\nDIGITEVEN   → Próximo dígito PAR\nDIGITODD    → Próximo dígito ÍMPAR\nCALL        → Preço SOBE\nPUT         → Preço CAI'}</Code>
+
+        <H4>Predição Dinâmica:</H4>
+        <P>Quando a predição depende dos ticks (ex: "apostar no mais frequente"), a IA usa <code className="text-blue-400">predictionFact</code> em vez de um número fixo. Facts suportados: <code className="text-blue-400">mostFrequentDigit</code>, <code className="text-blue-400">lastDigit</code>, <code className="text-blue-400">secondLastDigit</code>.</P>
+
+        <H4>Operadores:</H4>
+        <Code>{'equal (=)    notEqual (≠)    lessThan (<)    lessThanInclusive (≤)\ngreaterThan (>)    greaterThanInclusive (≥)    in (∈)    notIn (∉)'}</Code>
+
+        <H4>Visualização em Tempo Real:</H4>
+        <P>No painel "Regras em Tempo Real", cada condição mostra:</P>
+        <Code>{'⚪ Aguardando (regras carregadas, bot não iniciado)\n🟢 Condição satisfeita (atual: valor do fact)\n🔴 Condição não satisfeita (atual: valor do fact)'}</Code>
+
+        <H4>Comportamento durante execução:</H4>
+        <UL items={[
+          <><strong>Cooldown:</strong> Após um trade, o motor ignora os próximos 3 ticks</>,
+          <><strong>Aguardando resultado:</strong> Não dispara novo trade até receber resultado do anterior</>,
+          <><strong>Buffer:</strong> Mantém histórico de até 200 ticks para análise</>,
+        ]} />
+
+        <H4>O que NÃO é suportado no Modo Avançado:</H4>
+        <UL items={[
+          'RSI, SMA, Bandas de Bollinger ou indicadores técnicos de preço',
+          'Análise de tendência ou suporte/resistência',
+          'Estratégias baseadas no valor absoluto do preço (apenas último dígito)',
+          'Histórico além dos últimos 200 ticks',
+        ]} />
+      </>
+    ),
+  },
+  {
     id: 'boas-praticas',
     title: '📝 Como Escrever Boas Regras',
     content: (

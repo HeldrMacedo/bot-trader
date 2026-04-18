@@ -392,7 +392,7 @@ export default function AiChatPanel(
               onClick={() => onModeChange('advanced')}
               className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${mode === 'advanced' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:text-white'}`}
               disabled={isProcessing}
-              title="Modo avançado: estratégias complexas com json-rules-engine"
+              title="Modo avançado: estratégias complexas com linguagem natural"
             >
               Avançado
               {advancedRulesLoaded && <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />}
@@ -726,7 +726,7 @@ export default function AiChatPanel(
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-[#13111c]">
-              <div className="text-sm font-semibold text-white">Modelos de Estratégias</div>
+              <div className="text-sm font-semibold text-white">{mode === 'advanced' ? 'Modelos de Estratégias Avançadas' : 'Modelos de Estratégias'}</div>
               <button
                 type="button"
                 onClick={() => setShowExamplesModal(false)}
@@ -737,6 +737,49 @@ export default function AiChatPanel(
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 custom-scrollbar">
               {[
+                ...(mode === 'advanced' ? [
+                  {
+                    title: '🧠 Frequência de Dígitos',
+                    items: [
+                      { label: 'Dígito dominante com confiança', code: 'Nos últimos 15 ticks, se um dígito apareceu 5 vezes ou mais, aposte que ele vai aparecer novamente' },
+                      { label: 'Dígito saturado — apostar contra', code: 'Se o dígito mais frequente nos últimos 10 ticks apareceu 4 ou mais vezes, aposte que o próximo será DIFERENTE dele' },
+                      { label: 'Dígito em falta', code: 'Se o dígito 9 não apareceu nos últimos 10 ticks, aposte que ele vai aparecer agora' },
+                      { label: 'Dígito raro — apostar na aparição', code: 'Se o dígito 3 não apareceu nos últimos 12 ticks, aposte DIGITMATCH 3' },
+                    ],
+                  },
+                  {
+                    title: '🧠 Sequências e Repetições',
+                    items: [
+                      { label: 'Quebra de sequência', code: 'Se os últimos 3 dígitos são iguais, aposte que o próximo será diferente' },
+                      { label: 'Alternância confirmada', code: 'Se os últimos 2 dígitos são diferentes entre si, e o dígito mais frequente nos últimos 10 apareceu 3 ou mais vezes, aposte nesse dígito mais frequente' },
+                      { label: 'Série longa — reversão', code: 'Se o mesmo dígito se repetiu 4 vezes consecutivas, aposte em DIFERENTE dele' },
+                      { label: 'Repetição curta', code: 'Se os últimos 2 dígitos são iguais, aposte que o próximo será diferente' },
+                    ],
+                  },
+                  {
+                    title: '🧠 Par / Ímpar',
+                    items: [
+                      { label: 'Após sequência par — apostar ímpar', code: 'Se os últimos 2 dígitos foram pares, aposte no próximo como ímpar' },
+                      { label: 'Após sequência ímpar — apostar par', code: 'Se os últimos 3 dígitos foram ímpares, aposte em par' },
+                    ],
+                  },
+                  {
+                    title: '🧠 Faixas (Over/Under)',
+                    items: [
+                      { label: 'Dígitos baixos — apostar alto', code: 'Se os últimos 3 dígitos foram todos menores que 3, aposte DIGITOVER 5' },
+                      { label: 'Pressão para cima', code: 'Se o dígito mais frequente nos últimos 10 é menor que 4, aposte DIGITOVER 4' },
+                      { label: 'Dígitos altos — apostar baixo', code: 'Se os últimos 3 dígitos foram todos maiores que 6, aposte DIGITUNDER 4' },
+                    ],
+                  },
+                  {
+                    title: '🧠 Condições Compostas (AND + OR)',
+                    items: [
+                      { label: 'Dois critérios juntos', code: 'Os últimos 2 dígitos são diferentes E o dígito 7 não apareceu nos últimos 8 ticks — apostar DIGITMATCH 7' },
+                      { label: 'Qualquer um de dois cenários', code: 'Se o dígito 0 apareceu 3 ou mais vezes nos últimos 10 ticks OU se houve 4 ou mais dígitos iguais consecutivos, aposte DIGITOVER 5' },
+                      { label: 'Dois dígitos em falta', code: 'Se o dígito 3 não apareceu nos últimos 8 ticks OU o dígito 7 não apareceu nos últimos 8 ticks, aposte DIGITOVER 2' },
+                    ],
+                  },
+                ] : [
                 {
                   title: 'Regras de Dígitos',
                   items: [
@@ -817,7 +860,7 @@ export default function AiChatPanel(
                     { label: 'Múltiplas condições', code: '* Entrar quando RSI > 70 e SMA(10) > SMA(20) e ultimo digito > 5' },
                   ],
                 },
-              ].map((category) => (
+              ])].map((category) => (
                 <div key={category.title} className="border border-gray-800 rounded-lg p-3 bg-[#13111c]">
                   <h4 className="text-sm font-semibold text-white mb-2">{category.title}</h4>
                   <div className="space-y-2">
@@ -829,7 +872,7 @@ export default function AiChatPanel(
                         onClick={() => {
                           setInput(item.code);
                           setShowExamplesModal(false);
-                          onModeChange('strategy');
+                          onModeChange(mode === 'advanced' ? 'advanced' : 'strategy');
                         }}
                       >
                         <div className="text-xs font-medium text-gray-200 group-hover:text-white">{item.label}</div>
