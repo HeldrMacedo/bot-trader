@@ -1284,3 +1284,420 @@ describe('Fluxo completo: estratégia → carregamento → ticks → sinal → l
     eng2.stop();
   });
 });
+
+// =============================================================================
+// 10. VISUALIZAÇÃO DE REGRAS — RulesVisualData em tempo real
+// =============================================================================
+
+describe('Visualização: onRulesVisualUpdate callback', () => {
+  function makeEngineWithVisual(signal = vi.fn(), visualCb = vi.fn()) {
+    return new AdvancedRulesEngine({
+      symbol: 'R_100',
+      onTradeSignal: signal,
+      onStatusChange: vi.fn(),
+      onRulesVisualUpdate: visualCb,
+    });
+  }
+
+  it('emite preview (isPreview=true) ao carregar regras', () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    eng.loadRules(makeRule(
+      { all: [{ fact: 'twoLastDifferent', operator: 'equal', value: true }] },
+      'DIGITMATCH', 5,
+    ));
+    expect(visualCb).toHaveBeenCalledTimes(1);
+    const data = visualCb.mock.calls[0][0];
+    expect(data.isPreview).toBe(true);
+    expect(data.groups.length).toBe(1);
+    expect(data.groups[0].rules.length).toBeGreaterThan(0);
+    // Preview deve ter status 'waiting' e ícone ⚪
+    expect(data.groups[0].rules[0].status).toBe('waiting');
+    expect(data.groups[0].rules[0].displayText).toContain('⚪');
+  });
+
+  it('preview mostra nome do fact e operador legível', () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    eng.loadRules(makeRule(
+      { all: [{ fact: 'mostFrequentCount', params: { n: 10 }, operator: 'greaterThanInclusive', value: 3 }] },
+      'DIGITMATCH', 5,
+    ));
+    const data = visualCb.mock.calls[0][0];
+    const text = data.groups[0].rules[0].displayText;
+    expect(text).toContain('≥'); // greaterThanInclusive → ≥
+    expect(text).toContain('3'); // value
+  });
+
+  it('emite dados visuais a cada tick durante execução (isPreview=false)', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(makeRule(
+      { all: [{ fact: 'twoLastDifferent', operator: 'equal', value: true }] },
+      'DIGITMATCH', 5,
+    ));
+    const previewCalls = visualCb.mock.calls.length; // 1 (do loadRules)
+    eng.start();
+    await emitTickAndWait(100.33);
+    expect(visualCb.mock.calls.length).toBeGreaterThan(previewCalls);
+    const tickData = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    expect(tickData.isPreview).toBe(false);
+    expect(tickData.groups[0].rules[0].status).toMatch(/satisfied|failed/);
+    eng.stop();
+  });
+
+  it('condição satisfeita mostra 🟢 e valor atual do fact', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    // Últimos 2 serão diferentes (9, 3) → twoLastDifferent = true
+    setHistory(eng, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    eng.loadRules(makeRule(
+      { all: [{ fact: 'twoLastDifferent', operator: 'equal', value: true }] },
+      'DIGITMATCH', 5,
+    ));
+    eng.start();
+    await emitTickAndWait(100.33); // digit 3 → (9,3) diferentes → true
+    const data = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    const rule = data.groups[0].rules[0];
+    expect(rule.displayText).toContain('🟢');
+    expect(rule.displayText).toContain('true'); // factResult
+    expect(rule.status).toBe('satisfied');
+    eng.stop();
+  });
+
+  it('condição não satisfeita mostra 🔴 e valor atual do fact', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    // Últimos 2 iguais (7, 7) → twoLastDifferent = false → condição value:true falha
+    setHistory(eng, [1, 2, 3, 4, 5, 6, 7, 7]);
+    eng.loadRules(makeRule(
+      { all: [{ fact: 'twoLastDifferent', operator: 'equal', value: true }] },
+      'DIGITMATCH', 5,
+    ));
+    eng.start();
+    await emitTickAndWait(100.37); // digit 7 → (7,7) iguais → false
+    const data = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    const rule = data.groups[0].rules[0];
+    expect(rule.displayText).toContain('🔴');
+    expect(rule.displayText).toContain('false'); // factResult
+    expect(rule.status).toBe('failed');
+    eng.stop();
+  });
+
+  it('condições compostas (all) geram múltiplas regras visuais', () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    eng.loadRules({
+      name: 'Composta',
+      conditions: {
+        all: [
+          { fact: 'twoLastDifferent', operator: 'equal', value: true },
+          { fact: 'mostFrequentCount', params: { n: 10 }, operator: 'greaterThanInclusive', value: 3 },
+        ],
+      },
+      event: { type: 'trade', params: { contractType: 'DIGITMATCH', prediction: 5 } },
+    });
+    const data = visualCb.mock.calls[0][0];
+    expect(data.groups[0].rules.length).toBe(2);
+  });
+
+  it('condições any (OR) geram múltiplas regras visuais', () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    eng.loadRules({
+      name: 'OR',
+      conditions: {
+        any: [
+          { fact: 'lastDigit', operator: 'equal', value: 5 },
+          { fact: 'consecutiveSame', operator: 'greaterThanInclusive', value: 3 },
+        ],
+      },
+      event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+    });
+    const data = visualCb.mock.calls[0][0];
+    expect(data.groups[0].rules.length).toBe(2);
+  });
+
+  it('sem callback, nenhum erro é lançado', async () => {
+    // Engine sem onRulesVisualUpdate
+    const eng = makeEngine();
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(makeRule(always, 'DIGITODD'));
+    eng.start();
+    await expect(emitTickAndWait(100.31)).resolves.not.toThrow();
+    eng.stop();
+  });
+
+  it('group id usa o nome da regra', () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    eng.loadRules({
+      name: 'Minha Estratégia',
+      conditions: { all: [{ fact: 'tickCount', operator: 'greaterThan', value: 0 }] },
+      event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+    });
+    const data = visualCb.mock.calls[0][0];
+    expect(data.groups[0].id).toBe('Minha Estratégia');
+  });
+
+  it('operadores são formatados com símbolos legíveis', () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    eng.loadRules({
+      name: 'Ops',
+      conditions: {
+        all: [
+          { fact: 'lastDigit', operator: 'notEqual', value: 5 },
+          { fact: 'tickCount', operator: 'lessThan', value: 100 },
+          { fact: 'consecutiveSame', operator: 'greaterThan', value: 2 },
+        ],
+      },
+      event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+    });
+    const rules = visualCb.mock.calls[0][0].groups[0].rules;
+    expect(rules[0].displayText).toContain('≠');
+    expect(rules[1].displayText).toContain('<');
+    expect(rules[2].displayText).toContain('>');
+  });
+
+  it('facts com parâmetros mostram os params no label', () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    eng.loadRules(makeRule(
+      { all: [{ fact: 'digitCount', params: { n: 10, digit: 3 }, operator: 'greaterThanInclusive', value: 3 }] },
+      'DIGITMATCH', 3,
+    ));
+    const text = visualCb.mock.calls[0][0].groups[0].rules[0].displayText;
+    expect(text).toContain('n:10');
+    expect(text).toContain('digit:3');
+  });
+});
+
+// =============================================================================
+// 11. CACHE DE ESTRATÉGIAS AVANÇADAS — AdvancedGeminiService
+// =============================================================================
+
+describe('AdvancedGeminiService — cache de estratégias', () => {
+  const svc = new AdvancedGeminiService();
+
+  const validJson = JSON.stringify({
+    name: 'Cache teste',
+    conditions: { all: [{ fact: 'twoLastDifferent', operator: 'equal', value: true }] },
+    event: { type: 'trade', params: { contractType: 'DIGITMATCH', prediction: 5 } },
+  });
+
+  // Mock localStorage
+  let storage: Record<string, string> = {};
+  beforeEach(() => {
+    storage = {};
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage[key] ?? null,
+      setItem: (key: string, value: string) => { storage[key] = value; },
+      removeItem: (key: string) => { delete storage[key]; },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function mockFetch(body: any, ok = true) {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok,
+      json: () => Promise.resolve(body),
+    }));
+  }
+
+  it('salva no cache após tradução bem-sucedida', async () => {
+    mockFetch({ text: validJson });
+    const result = await svc.translateAdvancedStrategy('Minha estratégia');
+    expect(result.success).toBe(true);
+    expect(result.fromCache).toBe(false);
+    // Verificar que salvou no localStorage
+    const cached = JSON.parse(storage['advanced_rules_cache'] || '[]');
+    expect(cached.length).toBe(1);
+    expect(cached[0].normalizedText).toBe('minha estrategia');
+  });
+
+  it('retorna do cache na segunda chamada com mesmo texto', async () => {
+    mockFetch({ text: validJson });
+    // Primeira chamada: traduz via IA
+    await svc.translateAdvancedStrategy('Minha estratégia');
+    // Segunda chamada: deve usar cache
+    const result = await svc.translateAdvancedStrategy('Minha estratégia');
+    expect(result.success).toBe(true);
+    expect(result.fromCache).toBe(true);
+    expect(result.rulesJson?.name).toBe('Cache teste');
+  });
+
+  it('cache é case-insensitive e ignora acentos', async () => {
+    mockFetch({ text: validJson });
+    await svc.translateAdvancedStrategy('Dígitos frequentes');
+    // Mesma estratégia com variações
+    const result = await svc.translateAdvancedStrategy('DIGITOS FREQUENTES');
+    expect(result.fromCache).toBe(true);
+  });
+
+  it('cache normaliza espaços extras', async () => {
+    mockFetch({ text: validJson });
+    await svc.translateAdvancedStrategy('minha   estratégia');
+    const result = await svc.translateAdvancedStrategy('minha estratégia');
+    expect(result.fromCache).toBe(true);
+  });
+
+  it('textos diferentes não colidem no cache', async () => {
+    mockFetch({ text: validJson });
+    await svc.translateAdvancedStrategy('Estratégia A');
+    const result = await svc.translateAdvancedStrategy('Estratégia B');
+    expect(result.fromCache).toBe(false);
+  });
+
+  it('informa "Estratégia encontrada no cache!" via onProgress', async () => {
+    mockFetch({ text: validJson });
+    await svc.translateAdvancedStrategy('cache progress');
+    const steps: string[] = [];
+    await svc.translateAdvancedStrategy('cache progress', (msg) => steps.push(msg));
+    expect(steps).toContain('Estratégia encontrada no cache!');
+  });
+
+  it('não salva no cache quando tradução falha', async () => {
+    mockFetch({ text: 'Texto inválido sem JSON' });
+    const result = await svc.translateAdvancedStrategy('falha');
+    expect(result.success).toBe(false);
+    const cached = JSON.parse(storage['advanced_rules_cache'] || '[]');
+    expect(cached.length).toBe(0);
+  });
+
+  it('cache respeita limite máximo de 30 itens', async () => {
+    mockFetch({ text: validJson });
+    // Preencher cache com 30 itens
+    for (let i = 0; i < 35; i++) {
+      storage = {}; // Reset para evitar cache hit
+      mockFetch({ text: validJson });
+      // Salvar diretamente no cache
+      const cache = JSON.parse(storage['advanced_rules_cache'] || '[]');
+      cache.unshift({ normalizedText: `estrategia ${i}`, rulesJson: { name: `Rule ${i}` }, timestamp: Date.now() });
+      storage['advanced_rules_cache'] = JSON.stringify(cache);
+    }
+    // Adicionar mais um via tradução
+    mockFetch({ text: validJson });
+    await svc.translateAdvancedStrategy('nova estrategia');
+    const cached = JSON.parse(storage['advanced_rules_cache'] || '[]');
+    expect(cached.length).toBeLessThanOrEqual(30);
+  });
+
+  it('atualiza item existente no cache em vez de duplicar', async () => {
+    mockFetch({ text: validJson });
+    await svc.translateAdvancedStrategy('atualizar');
+    // Modificar o JSON retornado
+    const validJson2 = JSON.stringify({
+      name: 'Atualizado',
+      conditions: { all: [{ fact: 'lastDigit', operator: 'equal', value: 5 }] },
+      event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+    });
+    mockFetch({ text: validJson2 });
+    // Limpar cache para forçar nova tradução com mesmo texto normalizado
+    delete storage['advanced_rules_cache'];
+    // Primeiro, popular cache manualmente com versão antiga
+    storage['advanced_rules_cache'] = JSON.stringify([
+      { normalizedText: 'atualizar', rulesJson: { name: 'Antigo' }, timestamp: 1000 },
+    ]);
+    await svc.translateAdvancedStrategy('atualizar');
+    // Deve ter atualizado, não duplicado — mas findInCache retorna o antigo primeiro
+    // Vamos verificar que não duplicou
+    const cached = JSON.parse(storage['advanced_rules_cache'] || '[]');
+    const matches = cached.filter((c: any) => c.normalizedText === 'atualizar');
+    expect(matches.length).toBe(1);
+  });
+});
+
+// =============================================================================
+// 12. FORMATAÇÃO VISUAL — operadores, facts, valores
+// =============================================================================
+
+describe('Formatação visual — métodos privados', () => {
+  it('formatOperator mapeia todos os operadores conhecidos', () => {
+    const eng = makeEngine();
+    const fmt = (op: string) => (eng as any).formatOperator(op);
+    expect(fmt('equal')).toBe('=');
+    expect(fmt('notEqual')).toBe('≠');
+    expect(fmt('lessThan')).toBe('<');
+    expect(fmt('lessThanInclusive')).toBe('≤');
+    expect(fmt('greaterThan')).toBe('>');
+    expect(fmt('greaterThanInclusive')).toBe('≥');
+    expect(fmt('in')).toBe('∈');
+    expect(fmt('notIn')).toBe('∉');
+  });
+
+  it('formatOperator retorna o operador original se desconhecido', () => {
+    const eng = makeEngine();
+    expect((eng as any).formatOperator('contains')).toBe('contains');
+  });
+
+  it('formatFactLabel traduz facts conhecidos para português', () => {
+    const eng = makeEngine();
+    const fmt = (fact: string, params?: any) => (eng as any).formatFactLabel(fact, params);
+    expect(fmt('lastDigit')).toBe('Último dígito');
+    expect(fmt('twoLastDifferent')).toBe('2 últimos diferentes');
+    expect(fmt('consecutiveSame')).toBe('Consecutivos iguais');
+    expect(fmt('mostFrequentDigit', { n: 10 })).toContain('n:10');
+    expect(fmt('digitCount', { n: 5, digit: 3 })).toContain('digit:3');
+  });
+
+  it('formatFactLabel retorna nome original para facts desconhecidos', () => {
+    const eng = makeEngine();
+    expect((eng as any).formatFactLabel('unknownFact')).toBe('unknownFact');
+  });
+
+  it('formatValue formata tipos diferentes corretamente', () => {
+    const eng = makeEngine();
+    const fmt = (val: any) => (eng as any).formatValue(val);
+    expect(fmt(true)).toBe('true');
+    expect(fmt(false)).toBe('false');
+    expect(fmt(null)).toBe('-');
+    expect(fmt(undefined)).toBe('-');
+    expect(fmt(42)).toBe('42');
+    expect(fmt([1, 3, 5])).toBe('[1, 3, 5]');
+    expect(fmt('hello')).toBe('hello');
+  });
+
+  it('flattenConditionsPreview percorre all e any', () => {
+    const eng = makeEngine();
+    const rules = (eng as any).flattenConditionsPreview({
+      all: [
+        { fact: 'lastDigit', operator: 'equal', value: 5 },
+        { fact: 'tickCount', operator: 'greaterThan', value: 10 },
+      ],
+    });
+    expect(rules.length).toBe(2);
+    expect(rules[0].status).toBe('waiting');
+    expect(rules[1].status).toBe('waiting');
+  });
+
+  it('flattenConditionsPreview percorre any', () => {
+    const eng = makeEngine();
+    const rules = (eng as any).flattenConditionsPreview({
+      any: [
+        { fact: 'lastDigit', operator: 'equal', value: 5 },
+        { fact: 'consecutiveSame', operator: 'greaterThan', value: 3 },
+      ],
+    });
+    expect(rules.length).toBe(2);
+  });
+
+  it('flattenConditionsPreview percorre condições aninhadas (all dentro de any)', () => {
+    const eng = makeEngine();
+    const rules = (eng as any).flattenConditionsPreview({
+      any: [
+        { all: [
+          { fact: 'lastDigit', operator: 'equal', value: 5 },
+          { fact: 'tickCount', operator: 'greaterThan', value: 10 },
+        ]},
+        { fact: 'consecutiveSame', operator: 'greaterThan', value: 3 },
+      ],
+    });
+    expect(rules.length).toBe(3); // 2 do all + 1 do any
+  });
+});

@@ -12,6 +12,7 @@ interface RuleHistoryItem {
   geminiJson: any | null;
   ruleCode?: string | null;
   loadedFromFile?: boolean;
+  isAdvanced?: boolean;
 }
 
 interface Message {
@@ -287,10 +288,16 @@ export default function AiChatPanel(
 
     const applyHistoryRule = (item: RuleHistoryItem, useInstant: boolean) => {
       setInput(item.rule);
-      onModeChange('strategy');
+      onModeChange(item.isAdvanced ? 'advanced' : 'strategy');
       setShowHistoryModal(false);
       if (useInstant && item.hasJson && item.geminiJson) {
-        onStrategyGenerated(item.geminiJson);
+        if (item.isAdvanced) {
+          // No modo avançado, enviar a mensagem diretamente para o motor
+          // O cache do AdvancedGeminiService vai resolver sem chamar a IA
+          onSendMessage(item.rule);
+        } else {
+          onStrategyGenerated(item.geminiJson);
+        }
       }
     };
 
@@ -957,6 +964,9 @@ export default function AiChatPanel(
                           <span className="text-xs text-gray-500 font-mono">#{index + 1}</span>
                           {item.hasJson && (
                             <span className="text-yellow-400 text-xs" title="Tem JSON cached — monitoramento instantâneo">⚡</span>
+                          )}
+                          {item.isAdvanced && (
+                            <span className="text-xs text-purple-400" title="Estratégia avançada (json-rules-engine)">🧠</span>
                           )}
                           {item.loadedFromFile && (
                             <span className="text-xs text-gray-400" title="Carregada de arquivo">📁</span>

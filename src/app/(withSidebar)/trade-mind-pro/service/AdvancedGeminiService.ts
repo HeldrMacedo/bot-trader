@@ -4,7 +4,17 @@ export interface AdvancedGeminiResult {
   success: boolean;
   rulesJson: any | null;
   error?: string;
+  fromCache?: boolean;
 }
+
+interface AdvancedCacheItem {
+  normalizedText: string;
+  rulesJson: any;
+  timestamp: number;
+}
+
+const ADVANCED_CACHE_KEY = 'advanced_rules_cache';
+const ADVANCED_CACHE_MAX = 30;
 
 export class AdvancedGeminiService {
   async translateAdvancedStrategy(
@@ -12,6 +22,13 @@ export class AdvancedGeminiService {
     onProgress: (msg: string) => void = () => {}
   ): Promise<AdvancedGeminiResult> {
     try {
+      // Verificar cache antes de chamar IA
+      const cached = this.findInCache(strategyText);
+      if (cached) {
+        onProgress('Estratégia encontrada no cache!');
+        return { success: true, rulesJson: cached, fromCache: true };
+      }
+
       onProgress('Construindo prompt avançado...');
       const prompt = this.buildPrompt(strategyText);
 
@@ -45,8 +62,11 @@ export class AdvancedGeminiService {
         return { success: false, rulesJson: null, error: 'JSON gerado não tem o formato json-rules-engine esperado (falta "conditions" ou "event").' };
       }
 
+      // Salvar no cache
+      this.saveToCache(strategyText, parsed);
+
       onProgress('Regras avançadas geradas com sucesso!');
-      return { success: true, rulesJson: parsed };
+      return { success: true, rulesJson: parsed, fromCache: false };
     } catch (e: any) {
       return { success: false, rulesJson: null, error: e.message };
     }
@@ -69,6 +89,52 @@ export class AdvancedGeminiService {
     const match = target.match(/\{[\s\S]*\}/);
     const jsonStr = (match ? match[0] : target).trim();
     try { return JSON.parse(jsonStr); } catch { return null; }
+  }
+
+  private normalizeText(text: string): string {
+    return (text || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private findInCache(strategyText: string): any | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(ADVANCED_CACHE_KEY);
+      if (!data) return null;
+      const cache: AdvancedCacheItem[] = JSON.parse(data);
+      if (!Array.isArray(cache)) return null;
+      const normalized = this.normalizeText(strategyText);
+      const found = cache.find(item => item.normalizedText === normalized);
+      return found?.rulesJson ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private saveToCache(strategyText: string, rulesJson: any): void {
+    if (typeof window === 'undefined') return;
+    try {
+      let cache: AdvancedCacheItem[] = [];
+      try { cache = JSON.parse(localStorage.getItem(ADVANCED_CACHE_KEY) || '[]'); } catch { /* ignore */ }
+      if (!Array.isArray(cache)) cache = [];
+
+      const normalized = this.normalizeText(strategyText);
+      const existingIdx = cache.findIndex(item => item.normalizedText === normalized);
+      if (existingIdx !== -1) {
+        cache[existingIdx].rulesJson = rulesJson;
+        cache[existingIdx].timestamp = Date.now();
+      } else {
+        cache.unshift({ normalizedText: normalized, rulesJson, timestamp: Date.now() });
+        if (cache.length > ADVANCED_CACHE_MAX) cache = cache.slice(0, ADVANCED_CACHE_MAX);
+      }
+      localStorage.setItem(ADVANCED_CACHE_KEY, JSON.stringify(cache));
+    } catch {
+      // Silenciar erros de localStorage
+    }
   }
 
   private buildPrompt(strategyText: string): string {

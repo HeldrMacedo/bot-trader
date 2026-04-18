@@ -391,7 +391,7 @@ export default function TradeMindPro() {
         // Modo avançado: o AdvancedRulesEngine faz a avaliação de regras e dispara trades
         monitoringService.setTranslatedRules({ groups: [], contract_type: null, prediction: null });
         advancedEngineRef.current.start();
-        addLog('Motor avançado (json-rules-engine) iniciado.');
+        addLog('Motor avançado iniciado.');
       } else {
         // Modo normal: monitoringService avalia as regras
         if (!translatedRules) {
@@ -511,6 +511,52 @@ ${text}`;
     }
   };
 
+  /** Salva estratégia avançada no histórico (rules_history_{loginId}) */
+  const saveAdvancedToHistory = (text: string, rulesJson: any) => {
+    try {
+      const loginId = getLoginIdFromStorage();
+      if (!loginId) return;
+      const key = `rules_history_${loginId}`;
+      let history: any[] = [];
+      try { history = JSON.parse(localStorage.getItem(key) || '[]'); } catch { /* ignore */ }
+      if (!Array.isArray(history)) history = [];
+
+      const normalized = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+      const existingIdx = history.findIndex((item: any) => {
+        const n = (item.rule || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+        return n === normalized;
+      });
+
+      const item = {
+        rule: text.trim(),
+        timestamp: Date.now(),
+        usageCount: 1,
+        hasJson: true,
+        geminiJson: rulesJson,
+        ruleCode: null,
+        isAdvanced: true,
+      };
+
+      if (existingIdx !== -1) {
+        history[existingIdx].usageCount = (history[existingIdx].usageCount || 0) + 1;
+        history[existingIdx].timestamp = Date.now();
+        history[existingIdx].geminiJson = rulesJson;
+        history[existingIdx].hasJson = true;
+        history[existingIdx].isAdvanced = true;
+        // Mover para o topo
+        const [moved] = history.splice(existingIdx, 1);
+        history.unshift(moved);
+      } else {
+        history.unshift(item);
+        if (history.length > 50) history = history.slice(0, 50);
+      }
+
+      localStorage.setItem(key, JSON.stringify(history));
+    } catch (e) {
+      console.warn('[AdvancedMode] Erro ao salvar histórico:', e);
+    }
+  };
+
   /** Traduz estratégia avançada via AdvancedGeminiService e carrega no AdvancedRulesEngine */
   const executeAdvancedStrategyTranslation = async (text: string) => {
     setAiProgressMessage('Iniciando modo avançado...');
@@ -550,18 +596,29 @@ ${text}`;
       engine.loadRules(result.rulesJson);
       advancedEngineRef.current = engine;
 
+      // Salvar no histórico
+      saveAdvancedToHistory(text, result.rulesJson);
+
       const ruleName = result.rulesJson.name || 'Regras avançadas';
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        content: `Regras carregadas no motor avançado: "${ruleName}". Clique em INICIAR para começar.`,
+        content: result.fromCache
+          ? `Regras carregadas do cache: "${ruleName}". Clique em INICIAR para começar.`
+          : `Regras carregadas no motor avançado: "${ruleName}". Clique em INICIAR para começar.`,
         timestamp: new Date(),
       }]);
-      setTimeout(() => setAiProgressMessage(null), 1500);
     } catch (e: any) {
       console.warn('[AdvancedMode] Erro:', e);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: `Erro inesperado no modo avançado: ${e.message || 'Erro desconhecido'}. Tente novamente.`,
+        timestamp: new Date(),
+      }]);
     } finally {
       setIsAiProcessing(false);
+      setAiProgressMessage(null);
     }
   };
 
