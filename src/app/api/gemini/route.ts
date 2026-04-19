@@ -153,15 +153,21 @@ async function callExternalProvider(
 
 export async function POST(req: Request) {
   try {
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-    if (!geminiKey) {
-      return NextResponse.json({ message: 'GEMINI_API_KEY não configurada' }, { status: 500 });
-    }
-
     const body = await req.json();
     const modelId = body?.modelId as string | undefined;
     const contents = body?.contents;
     const generationConfig = body?.generationConfig;
+
+    // Chaves do cliente têm prioridade sobre as variáveis de ambiente
+    const clientKeys = body?.clientKeys as { gemini?: string; cerebras?: string; groq?: string } | undefined;
+    const geminiKey =
+      clientKeys?.gemini?.trim() ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_GEMINI_API_KEY;
+
+    if (!geminiKey) {
+      return NextResponse.json({ message: 'GEMINI_API_KEY não configurada' }, { status: 500 });
+    }
 
     if (!modelId || !MODEL_URLS[modelId]) {
       return NextResponse.json({ message: 'modelId inválido' }, { status: 400 });
@@ -198,7 +204,8 @@ export async function POST(req: Request) {
     // ── Fase 3: fallback para provedores externos gratuitos ──────────────────
     if (response.status === 429) {
       for (const provider of EXTERNAL_PROVIDERS) {
-        const externalKey = process.env[provider.envKey];
+        const clientKey = provider.envKey === 'CEREBRAS_API_KEY' ? clientKeys?.cerebras : clientKeys?.groq;
+        const externalKey = clientKey?.trim() || process.env[provider.envKey];
         if (!externalKey) continue;
 
         console.log(`[Gemini Proxy] Fallback externo → ${provider.name} (${provider.model})...`);

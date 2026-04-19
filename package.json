@@ -15,7 +15,6 @@
     "@deriv/deriv-api": "^1.0.15",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.3.0",
-    "@rolldown/binding-win32-x64-msvc": "^1.0.0-rc.16",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-cpu": "^4.22.0",
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",

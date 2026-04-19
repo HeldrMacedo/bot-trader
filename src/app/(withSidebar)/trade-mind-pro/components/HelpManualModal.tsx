@@ -519,33 +519,6 @@ const SECTIONS: Array<{ id: string; title: string; highlight?: boolean; warning?
     ),
   },
   {
-    id: 'creditos',
-    title: '💸 Créditos e Custos',
-    content: (
-      <>
-        <div className="space-y-2">
-          {[
-            { title: 'Tradução de Estratégias', desc: '1 crédito fixo por tradução bem-sucedida. Fallback automático = 0 créditos.' },
-            { title: 'Análise de Risco com IA', desc: 'Incluído no sistema, sem custo adicional.' },
-            { title: 'Execução de Trades', desc: 'Gratuito — créditos cobrados apenas na tradução.' },
-            { title: 'Créditos Iniciais', desc: '10 créditos de boas-vindas ao se registrar.' },
-            { title: 'Cache de Traduções', desc: 'Reutilizar a mesma estratégia não cobra créditos!' },
-          ].map(c => (
-            <div key={c.title} className="flex gap-2 bg-[#0b0913] border border-gray-800 rounded p-2">
-              <div><span className="text-xs font-semibold text-gray-200">{c.title}: </span><span className="text-xs text-gray-400">{c.desc}</span></div>
-            </div>
-          ))}
-        </div>
-        <H4>💡 Dicas para Economizar:</H4>
-        <UL items={[
-          'Reutilize estratégias já traduzidas (cache automático)',
-          'Use o Histórico de Regras para evitar re-traduções',
-          'Teste em simulação antes de traduzir',
-        ]} />
-      </>
-    ),
-  },
-  {
     id: 'troubleshooting',
     title: '❓ Troubleshooting Comum',
     content: (

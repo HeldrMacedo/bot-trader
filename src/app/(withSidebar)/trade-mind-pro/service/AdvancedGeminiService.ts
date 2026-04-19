@@ -1,5 +1,7 @@
 'use client';
 
+import { loadClientApiKeys } from '../components/ApiKeyModal';
+
 export interface AdvancedGeminiResult {
   success: boolean;
   rulesJson: any | null;
@@ -40,6 +42,7 @@ export class AdvancedGeminiService {
           modelId: 'gemini-2.5-flash',
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.2, topK: 40, topP: 0.95, maxOutputTokens: 4096 },
+          clientKeys: loadClientApiKeys(),
         }),
       });
 

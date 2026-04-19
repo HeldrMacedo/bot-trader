@@ -1,4 +1,5 @@
 import { AccountInfo, DerivService } from '@/app/services/DerivService';
+import { CurrencyDollarIcon } from '@heroicons/react/16/solid';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
 import { useEffect, useState } from 'react';
 
@@ -149,7 +150,7 @@ export default function AccountSelector() {
          {/* Balance Display */}
          <div className="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between px-2">
              <div className="flex items-center gap-2 text-gray-300">
-                 <span className="text-lg">💰</span>
+                 <span className="text-lg"><CurrencyDollarIcon className="w-4 h-4" /></span>
                  <div className="text-xs font-medium">Saldo da Conta</div>
              </div>
              <div className="text-right">

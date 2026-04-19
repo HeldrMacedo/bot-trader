@@ -2,6 +2,7 @@ import { CommandLineIcon, PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/
 import { Bars3Icon } from "@heroicons/react/24/solid";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HelpManualModal from "./HelpManualModal";
+import ApiKeyModal from "./ApiKeyModal";
 import { DeleteIcon } from "lucide-react";
 
 interface RuleHistoryItem {
@@ -64,6 +65,7 @@ export default function AiChatPanel(
   const [showExamplesModal, setShowExamplesModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [historyRules, setHistoryRules] = useState<RuleHistoryItem[]>([]);
   const historyFileInputRef = useRef<HTMLInputElement>(null);
   const hamburgerRef = useRef<HTMLDivElement>(null);
@@ -437,6 +439,14 @@ export default function AiChatPanel(
                 onClick={() => { setShowHamburgerMenu(false); setShowHelpModal(true); }}
               >
                 Manual de Instruções
+              </button>
+              <div className="border-t border-gray-700 my-1" />
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 hover:text-white transition-colors"
+                onClick={() => { setShowHamburgerMenu(false); setShowApiKeyModal(true); }}
+              >
+                Adicionar API Key
               </button>
             </div>
           )}
@@ -1032,6 +1042,7 @@ export default function AiChatPanel(
         onChange={handleHistoryFileLoad}
       />
       {showHelpModal && <HelpManualModal onClose={() => setShowHelpModal(false)} />}
+      {showApiKeyModal && <ApiKeyModal onClose={() => setShowApiKeyModal(false)} />}
     </div>
   );
 }

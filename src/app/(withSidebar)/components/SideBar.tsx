@@ -16,11 +16,14 @@ import {
   UserGroupIcon,
   UserIcon,
   XMarkIcon,
+  DocumentTextIcon,
+  CubeTransparentIcon,
 } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
 import ProfileModal from "@/app/(withSidebar)/profile/ProfileModal";
 import { toast } from "react-toastify";
+
 
 const Sidebar = ({
   children,
@@ -35,6 +38,9 @@ const Sidebar = ({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [accountInfo, setAccountInfo] = useState<TokenData | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // const derivService = DerivService.getInstance();
 
@@ -89,9 +95,17 @@ const Sidebar = ({
     }
   };
 
-  const navigation = [
+  type NavigationItem = {
+    name: string;
+    icon: any;
+    href?: string;
+    role: string[];
+    children?: NavigationItem[];
+  };
+
+  const navigation: NavigationItem[] = [
     {
-      name: "Dashboard",
+      name: "Operação Manual",
       icon: HomeIcon,
       href: "/home",
       role: ["admin", "user"],
@@ -109,8 +123,39 @@ const Sidebar = ({
     //   role: ["admin"],
     // },
     {
+      name: "Relatórios",
+      icon: DocumentChartBarIcon,
+      role: ["admin", "user"],
+      children: [
+        {
+          name: "Meu Histórico",
+          icon: DocumentTextIcon,
+          href: "/history",
+          role: ["user", "admin"],
+        },
+        {
+          name: "Markup Detalhes",
+          icon: DocumentTextIcon,
+          href: "/reports/markup-details",
+          role: ["admin"],
+        },
+        {
+          name: "Markup Estatísticas",
+          icon: DocumentTextIcon,
+          href: "/reports/markup-statistics",
+          role: ["admin"],
+        },
+        {
+          name: "Operações",
+          icon: DocumentTextIcon,
+          href: "/operations",
+          role: ["admin"],
+        },
+      ],
+    },
+    {
       name: "Trade Mind Pro",
-      icon: CpuChipIcon,
+      icon: CubeTransparentIcon,
       href: "/trade-mind-pro",
       role: ["admin"]
     },
@@ -133,36 +178,31 @@ const Sidebar = ({
       role: ["admin"],
     },
     {
-      name: "Meu Histórico",
-      icon: DocumentChartBarIcon,
-      href: "/history",
-      role: ["user", "admin"],
-    },
-    {
-      name: "Markup Detalhes",
-      icon: UserGroupIcon,
-      href: "/reports/markup-details",
-      role: ["admin"],
-    },
-    {
-      name: "Markup Estatísticas",
-      icon: UserGroupIcon,
-      href: "/reports/markup-statistics",
-      role: ["admin"],
-    },
-    {
-      name: "Operações",
-      icon: UserGroupIcon,
-      href: "/operations",
-      role: ["admin"],
-    },
-    {
       name: "Sair",
       icon: ArrowLeftStartOnRectangleIcon,
       href: "/login",
       role: ["admin", "user"],
     },
   ];
+
+  const handleNavigationClick = (
+    itemName: string,
+    e: React.MouseEvent<HTMLAnchorElement>
+  ) => {
+    if (itemName === "Minha Conta") {
+      e.preventDefault();
+      setIsProfileModalOpen(true);
+      setIsProfileOpen(false);
+    } else if (itemName === "Sair") {
+      localStorage.removeItem("access_token");
+    }
+  };
+
+  const isItemVisible = (item: NavigationItem) => {
+    if (!item.role.includes(auth?.role)) return false;
+    if (!item.children?.length) return true;
+    return item.children.some((child) => child.role.includes(auth?.role));
+  };
 
   return (
     <div className="min-h-screen bg-[#0d0a18] w-full">
@@ -202,29 +242,73 @@ const Sidebar = ({
 
         {/* Navigation */}
         <nav className="mt-6 px-4 space-y-1">
-          {navigation.map(
-            (item) =>
-              item?.role.includes(auth?.role) && (
+          {navigation.map((item) => {
+            if (!isItemVisible(item)) return null;
+
+            const hasChildren = !!item.children?.length;
+            const visibleChildren =
+              item.children?.filter((child) => child.role.includes(auth?.role)) ??
+              [];
+            const isDropdownOpen = !!openDropdowns[item.name];
+
+            if (hasChildren) {
+              return (
+                <div key={item.name}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenDropdowns((prev) => ({
+                        ...prev,
+                        [item.name]: !prev[item.name],
+                      }))
+                    }
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-md
+                hover:bg-gray-800 hover:text-white group transition-colors"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <item.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                      <span>{item.name}</span>
+                    </div>
+                    <ChevronDownIcon
+                      className={`w-4 h-4 text-gray-400 group-hover:text-white transition-transform ${
+                        isDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isDropdownOpen && (
+                    <div className="mt-1 ml-6 space-y-1">
+                      {visibleChildren.map((child) => (
+                        <a
+                          key={child.name}
+                          href={child.href}
+                          onClick={(e) => handleNavigationClick(child.name, e)}
+                          className="flex items-center space-x-3 px-3 py-2 rounded-md
+                hover:bg-gray-800 hover:text-white group transition-colors"
+                        >
+                          <child.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                          <span>{child.name}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
                 <a
                   key={item.name}
                   href={item.href}
-                  onClick={(e) => {
-                    if (item.name === "Minha Conta") {
-                      e.preventDefault();
-                      setIsProfileModalOpen(true);
-                      setIsProfileOpen(false);
-                    } else if (item.name === "Sair") {
-                      localStorage.removeItem("access_token");
-                    }
-                  }}
+                  onClick={(e) => handleNavigationClick(item.name, e)}
                   className="flex items-center space-x-3 px-3 py-2 rounded-md
                 hover:bg-gray-800 hover:text-white group transition-colors"
                 >
                   <item.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
                   <span>{item.name}</span>
                 </a>
-              )
-          )}
+              );
+          })}
         </nav>
       </aside>
       {/* Main Content */}

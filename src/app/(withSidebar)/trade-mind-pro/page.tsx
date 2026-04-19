@@ -18,6 +18,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { DerivService } from '@/app/services/DerivService';
 import { monitoringService, RulesVisualData } from './service/Monitoring';
 import { LegacyBridgeService } from './service/LegacyBridge';
+import { loadClientApiKeys } from './components/ApiKeyModal';
 import { AdvancedGeminiService } from './service/AdvancedGeminiService';
 import { AdvancedRulesEngine } from './service/AdvancedRulesEngine';
 import { Cog6ToothIcon } from '@heroicons/react/16/solid';
@@ -463,6 +464,7 @@ ${text}`;
           modelId: 'gemini-2.5-flash',
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 4096 },
+          clientKeys: loadClientApiKeys(),
         }),
       });
 
