@@ -58,7 +58,7 @@ export async function createUser(
 ) {
   const isAdmin = await verifyAdminToken(token);
   if (!isAdmin) return { error: true };
-  const hashedPassword = await bcrypt.hash(data.password, 10);
+  const hashedPassword = await bcrypt.hash(data.password, 12);
 
   const prismaResp = await prisma.user.create({
     data: {
@@ -99,7 +99,7 @@ export async function updateUser(
   };
 
   if (data.password) {
-    updateData.password = await bcrypt.hash(data.password, 10);
+    updateData.password = await bcrypt.hash(data.password, 12);
   }
 
   // Atualizar usuário e módulos em uma transação

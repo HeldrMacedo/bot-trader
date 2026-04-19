@@ -30,19 +30,38 @@ const nextConfig = {
     return config;
   },
 
-  // Headers para WebAssembly (necessário para TensorFlow.js)
+  // Headers de segurança + WebAssembly (necessário para TensorFlow.js)
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
+          // WebAssembly / TensorFlow.js
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+          // Segurança geral
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
           },
           {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob:",
+              "font-src 'self'",
+              // WebSocket para Deriv
+              "connect-src 'self' wss://ws.binaryws.com wss://*.binaryws.com https://*.binaryws.com https://*.deriv.com wss://*.deriv.com",
+              "frame-src 'none'",
+              "object-src 'none'",
+              "base-uri 'self'",
+            ].join('; '),
           },
         ],
       },

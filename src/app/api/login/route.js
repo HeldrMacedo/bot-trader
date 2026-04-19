@@ -1,41 +1,55 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
+import { signToken } from "../../lib/auth.js";
+import { checkRateLimit } from "../../lib/rateLimiter.js";
 
 const prisma = new PrismaClient();
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function getClientIp(request) {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
 export async function POST(request) {
   try {
-    const { email, password } = await request.json();
+    const ip = getClientIp(request);
+    const rateCheck = checkRateLimit(`login:${ip}`, { max: 5, windowMs: 15 * 60 * 1000 });
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { message: `Muitas tentativas. Tente novamente em ${rateCheck.retryAfter}s.` },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfter) } }
+      );
+    }
+
+    const body = await request.json().catch(() => null);
+    const { email, password } = body ?? {};
+
+    if (!email || !EMAIL_REGEX.test(email)) {
+      return NextResponse.json({ message: "Email inválido" }, { status: 400 });
+    }
+    if (!password || password.length < 6) {
+      return NextResponse.json({ message: "Senha inválida" }, { status: 400 });
+    }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return NextResponse.json(
-        { message: "Credenciais inválidas" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Credenciais inválidas" }, { status: 401 });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return NextResponse.json(
-        { message: "Credenciais inválidas" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Credenciais inválidas" }, { status: 401 });
     }
 
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET
-      // ,{expiresIn: "1h"}
-    );
-
+    const token = signToken(user.id);
     return NextResponse.json({ token }, { status: 200 });
   } catch (error) {
-    return NextResponse.json(
-      { message: "Erro no servidor", error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Erro no servidor" }, { status: 500 });
   }
 }
