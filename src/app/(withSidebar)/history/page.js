@@ -86,10 +86,10 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center z-50 bg-white bg-opacity-75">
+       <div className="fixed inset-0 flex items-center justify-center z-50">
         <div className="flex flex-col items-center">
           <div className="w-12 h-12 border-4 border-t-transparent border-blue-500 rounded-full animate-spin mb-4"></div>
-          <p className="text-black text-lg">
+          <p className="text-white text-lg">
             Carregando histórico de negociações...
           </p>
         </div>

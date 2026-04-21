@@ -746,7 +746,7 @@ ${text}`;
       <div className="flex h-screen items-center justify-center bg-[#0d0a18]">
         <div className="flex flex-col items-center">
             <div className="w-16 h-16 border-4 border-t-transparent border-blue-500 rounded-full animate-spin mb-4"></div>
-            <h2 className="text-xl font-semibold text-white">Inicializando Bot Strategy...</h2>
+            <h2 className="text-xl font-semibold text-white">Inicializando Bot Trade Mind Pro...</h2>
             <p className="text-gray-400 mt-2">Verificando credenciais e conexões</p>
         </div>
       </div>

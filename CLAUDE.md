@@ -87,6 +87,7 @@ Turbopack is explicitly disabled. The `next.config.mjs` has special webpack rule
 See `docs/MIGRATION_ARCHITECTURE.md` and `docs/MIGRATION_DOCUMENTATION.md` for detailed migration guidance.
 See `docs/ADVANCED_MODE.md` for the trade-mind-pro Advanced Mode (json-rules-engine) documentation.
 See `docs/AUTH_ROUTES.md` for authentication and route protection documentation.
+See `docs/BOTTRADER.md` for the BotTrader (Copy Trader) module documentation.
 
 ### Authentication & Route Protection
 
@@ -97,6 +98,16 @@ See `docs/AUTH_ROUTES.md` for authentication and route protection documentation.
 **Fluxo de login:** `POST /api/login` → gera JWT → seta cookie `auth_token` (HttpOnly, 8h) + `localStorage.access_token`
 
 **Logout:** sempre usar `logout()` de `userService.js` — limpa localStorage **e** cookie via `POST /api/logout`
+
+### BotTrader (Copy Trader)
+
+**Arquitetura server-side:** `CopyTradingManager` (singleton) → `CopyTradingService` (por usuário) → `WsListener` (demo WS) + `TradeExecutor` (real WS)
+
+**Modo Quantity Loss:** `quantityLoss=N` faz o bot aguardar N losses consecutivos na demo antes de entrar na real. Uma vez ativado (`isInRealMode=true`), permanece operando na real até sair um **win** — só então volta ao modo demo. Ver `docs/BOTTRADER.md`.
+
+**Martingale:** `stake(level) = initialValue × (1 + stakeMultiple)^level`. Win reseta nível; `maxMartingale` limita com ação `reset` (volta ao inicial) ou `stop` (encerra bot).
+
+**Guard onTrade:** previne dois trades reais simultâneos — equivalente ao `bool_89` do ZeekBot original.
 
 **Rotas públicas:** `/login`, `/api/login`, `/api/register`, `/api/forgot-password`, `/api/reset-password`, `/api/logout`
 

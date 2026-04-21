@@ -34,7 +34,6 @@ export const checkToken = async () => {
     if (response.ok) {
       return data.user;
     } else {
-      console.error("Erro:", data.message);
       localStorage.removeItem("access_token");
       return false;
     }

@@ -42,6 +42,7 @@ export class CopyTradingService {
   private isPaused: boolean = false;
   private pauseEndTime: number = 0;
   private onTrade: boolean = false; // Guard: true enquanto um trade real está ativo (equivale a bool_89 do ZeekBot)
+  private isInRealMode: boolean = false; // true quando consecutiveLosses >= quantityLoss — permanece até sair win na real
 
   
   // Dados das contas
@@ -152,6 +153,10 @@ export class CopyTradingService {
       this.martingaleLevel = 0;
       this.currentStake = Number(this.initialValue.toFixed(2));
 
+      // Sai do modo real: volta a aguardar sequência de losses na demo
+      this.isInRealMode = false;
+      this.consecutiveLosses = 0;
+
       if (this.pauseTimeWin) {
         this.applyPause(this.pauseTime, 'win');
       }
@@ -231,7 +236,8 @@ export class CopyTradingService {
           if (this.isPaused) {
             this.addError('info', 'Trade Pausado', `Aguardando ${this.timePause}s para próximo trade`, 'trading');
           } else {
-            this.addError('info', 'Aguardando Losses', `Necessário ${this.quantityLoss - this.consecutiveLosses} losses consecutivos`, 'trading');
+            const remaining = this.quantityLoss - this.consecutiveLosses;
+            this.addError('info', 'Aguardando Losses', `Necessário ${remaining} loss${remaining !== 1 ? 'es' : ''} consecutivo${remaining !== 1 ? 's' : ''} na demo`, 'trading');
           }
           return;
         }
@@ -240,10 +246,9 @@ export class CopyTradingService {
         this.onTrade = true;
         this.contract_id = signal.contractId;
 
-        // Reseta consecutiveLosses ao "consumir" o threshold — impede reentrada
-        // até acumular quantityLoss demo losses novamente
+        // Entra no modo real: permanece fazendo entradas na real até sair um win
         if (this.quantityLoss > 0) {
-          this.consecutiveLosses = 0;
+          this.isInRealMode = true;
         }
 
         await this.signalProcessor.processSignal({...signal, amount: this.currentStake});
@@ -322,17 +327,22 @@ export class CopyTradingService {
   }
 
   private shouldProcessSignal(): boolean {
-  
+
     if (this.isPaused) {
       return false;
     }
-    
+
     // Se quantityLoss é 0, sempre processa o sinal
     if (this.quantityLoss === 0) {
       return true;
     }
 
-    // Se quantityLoss > 0, só processa após atingir a sequência de losses
+    // Modo real ativo: continua operando na real até sair um win
+    if (this.isInRealMode) {
+      return true;
+    }
+
+    // Modo demo: aguarda atingir a sequência de losses configurada
     return this.consecutiveLosses >= this.quantityLoss;
   }
 
@@ -394,6 +404,7 @@ export class CopyTradingService {
     this.currentStake = 0;
     this.onTrade = false;
     this.contract_id = null;
+    this.isInRealMode = false;
   }
 
   getStats() {
@@ -407,6 +418,7 @@ export class CopyTradingService {
       onMaxMartingale: this.onMaxMartingale,
       currentStake: this.currentStake,
       onTrade: this.onTrade,
+      isInRealMode: this.isInRealMode,
     },
     realAccount: {
       transactions: this.realTransactions,

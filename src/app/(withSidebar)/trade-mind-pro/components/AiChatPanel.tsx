@@ -372,22 +372,32 @@ export default function AiChatPanel(
               <span className="text-xs font-normal text-gray-400 bg-gray-800 px-2 py-0.5 rounded">Gemini</span>
           </h3>
           <div className="flex bg-[#0d0a18] border border-gray-700 rounded-lg p-1">
-            <button
+              <button
+              type="button"
+              onClick={() => onModeChange('advanced')}
+              className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${mode === 'advanced' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:text-white'}`}
+              disabled={isProcessing}
+              title="Modo avançado: estratégias complexas com linguagem natural"
+            >
+              Estratégia
+              {advancedRulesLoaded && <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />}
+            </button>
+            {/* <button
               type="button"
               onClick={() => onModeChange('strategy')}
               className={`px-2 py-1 text-xs rounded ${mode === 'strategy' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'}`}
               disabled={isProcessing}
             >
               Estratégia
-            </button>
-            <button
+            </button> */}
+            {/* <button
               type="button"
               onClick={() => onModeChange('config')}
               className={`px-2 py-1 text-xs rounded ${mode === 'config' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'}`}
               disabled={isProcessing}
             >
               Configuração
-            </button>
+            </button> */}
             <button
               type="button"
               onClick={() => onModeChange('chat')}
@@ -396,16 +406,7 @@ export default function AiChatPanel(
             >
               Chat
             </button>
-            <button
-              type="button"
-              onClick={() => onModeChange('advanced')}
-              className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${mode === 'advanced' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:text-white'}`}
-              disabled={isProcessing}
-              title="Modo avançado: estratégias complexas com linguagem natural"
-            >
-              Avançado
-              {advancedRulesLoaded && <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />}
-            </button>
+          
           </div>
         </div>
         <div className="relative" ref={hamburgerRef}>

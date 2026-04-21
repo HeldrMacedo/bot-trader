@@ -205,16 +205,18 @@ describe('handleRealTransaction — Win', () => {
     expect(internal.totalProfit).toBeCloseTo(0.80, 2);
   });
 
-  it('reseta martingaleLevel ao ganhar (consecutiveLosses nao é alterado — é exclusivo da demo)', () => {
+  it('reseta martingaleLevel e sai do modo real ao ganhar', () => {
     const { internal } = createService({ initialValue: 0.35 });
     internal.consecutiveLosses = 4;
     internal.martingaleLevel = 4;
     internal.currentStake = 5.60;
+    internal.isInRealMode = true;
 
     internal.handleRealTransaction({ profit: 0.30 });
 
-    // consecutiveLosses NAO é resetado por resultado real — é controlado apenas pela demo
-    expect(internal.consecutiveLosses).toBe(4);
+    // Win na real: sai do modo real e reseta consecutiveLosses para voltar ao ciclo demo
+    expect(internal.isInRealMode).toBe(false);
+    expect(internal.consecutiveLosses).toBe(0);
     expect(internal.martingaleLevel).toBe(0);
     expect(internal.currentStake).toBe(0.35);
   });
@@ -522,7 +524,7 @@ describe('Fluxo completo — cenário típico ZeekBot', () => {
     expect(internal.shouldProcessSignal()).toBe(false);
   });
 
-  it('sequência completa: demo losses -> real trade win -> consecutiveLosses preservado', () => {
+  it('sequência completa: demo losses -> real trade win -> volta ao modo demo', () => {
     const { internal } = createService({
       quantityLoss: 2,
       initialValue: 0.35,
@@ -537,12 +539,14 @@ describe('Fluxo completo — cenário típico ZeekBot', () => {
     expect(internal.shouldProcessSignal()).toBe(true);
     expect(internal.consecutiveLosses).toBe(2);
 
-    // Fase 2: Trade real executado — win
-    // Nota: consecutiveLosses NÃO é resetado pelo resultado real
-    // O reset acontece no handler de tradeSignal (ao consumir o threshold)
+    // Simula entrada no modo real (feito pelo handler de tradeSignal)
+    internal.isInRealMode = true;
+
+    // Fase 2: Trade real executado — win → sai do modo real
     internal.handleRealTransaction({ profit: 0.30 });
     expect(internal.totalProfit).toBe(0.30);
-    expect(internal.consecutiveLosses).toBe(2); // preservado — só demo altera
+    expect(internal.isInRealMode).toBe(false);   // voltou ao modo demo
+    expect(internal.consecutiveLosses).toBe(0);  // resetado para aguardar novo ciclo
     expect(internal.martingaleLevel).toBe(0);
     expect(internal.currentStake).toBe(0.35);
   });
@@ -611,7 +615,7 @@ describe('getStats', () => {
 // 13. clearAllDados
 // =============================================================================
 describe('clearAllDados', () => {
-  it('reseta todos os estados internos', () => {
+  it('reseta todos os estados internos incluindo isInRealMode', () => {
     const { internal } = createService({ initialValue: 0.35, stakeMultiple: 1 });
 
     // Simula estado sujo
@@ -621,6 +625,7 @@ describe('clearAllDados', () => {
     internal.consecutiveLosses = 4;
     internal.martingaleLevel = 4;
     internal.currentStake = 5.60;
+    internal.isInRealMode = true;
 
     internal.clearAllDados();
 
@@ -630,6 +635,111 @@ describe('clearAllDados', () => {
     expect(internal.consecutiveLosses).toBe(0);
     expect(internal.martingaleLevel).toBe(0);
     expect(internal.currentStake).toBe(0);
+    expect(internal.isInRealMode).toBe(false);
+  });
+});
+
+// =============================================================================
+// 19. isInRealMode — modo real ativo até sair win
+// =============================================================================
+describe('isInRealMode — permanece na real até win', () => {
+  it('inicia como false', () => {
+    const { internal } = createService({ quantityLoss: 2 });
+    expect(internal.isInRealMode).toBe(false);
+  });
+
+  it('shouldProcessSignal retorna true quando isInRealMode=true, independente de consecutiveLosses', () => {
+    const { internal } = createService({ quantityLoss: 3 });
+    internal.consecutiveLosses = 0; // abaixo do threshold
+    internal.isInRealMode = true;
+    internal.isPaused = false;
+
+    expect(internal.shouldProcessSignal()).toBe(true);
+  });
+
+  it('real loss mantém isInRealMode=true', () => {
+    const { internal } = createService({ quantityLoss: 2 });
+    internal.isInRealMode = true;
+
+    internal.handleRealTransaction({ profit: -0.35 });
+
+    expect(internal.isInRealMode).toBe(true);
+  });
+
+  it('real win desativa isInRealMode e reseta consecutiveLosses', () => {
+    const { internal } = createService({ quantityLoss: 2 });
+    internal.isInRealMode = true;
+    internal.consecutiveLosses = 3;
+
+    internal.handleRealTransaction({ profit: 0.50 });
+
+    expect(internal.isInRealMode).toBe(false);
+    expect(internal.consecutiveLosses).toBe(0);
+  });
+
+  it('getStats expõe isInRealMode', () => {
+    const { internal } = createService({ quantityLoss: 2 });
+    internal.isInRealMode = true;
+
+    const stats = internal.getStats();
+    expect(stats.trading.isInRealMode).toBe(true);
+  });
+
+  it('isPaused sobrepõe isInRealMode — trade bloqueado mesmo em modo real', () => {
+    const { internal } = createService({ quantityLoss: 2 });
+    internal.isInRealMode = true;
+    internal.isPaused = true;
+
+    expect(internal.shouldProcessSignal()).toBe(false);
+  });
+
+  it('cenário: 3 losses na real antes do win (trades #1, #2, #3 executados, #4 bloqueado)', async () => {
+    const { internal } = createService({ quantityLoss: 1, initialValue: 0.35, stakeMultiple: 1 });
+
+    const handlers: Record<string, Function[]> = {};
+    vi.spyOn(internal.wsListener, 'on').mockImplementation((event: string, handler: Function) => {
+      if (!handlers[event]) handlers[event] = [];
+      handlers[event].push(handler);
+      return internal.wsListener;
+    });
+    const teHandlers: Record<string, Function[]> = {};
+    vi.spyOn(internal.tradeExecutor, 'on').mockImplementation((event: string, handler: Function) => {
+      if (!teHandlers[event]) teHandlers[event] = [];
+      teHandlers[event].push(handler);
+      return internal.tradeExecutor;
+    });
+
+    internal.setupEventHandlers();
+    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(undefined);
+
+    const makeSignal = (id: string) => ({
+      symbol: 'R_100', contractType: 'CALL', amount: 0.35,
+      duration: 5, durationUnit: 't', contractId: id,
+      timestamp: new Date().toISOString(), longcode: 'test', isForex: false,
+    });
+    const emit = (sig: any) => Promise.all((handlers['tradeSignal'] || []).map(h => h(sig)));
+    const result = (tx: any) => (teHandlers['transaction'] || []).forEach(h => h(tx));
+
+    // 1 demo loss → entra no modo real
+    internal.handleDemoTransaction({ amount: -1 });
+    await emit(makeSignal('c1'));
+    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(1);
+
+    result({ profit: -0.35 }); // real loss #1
+    await emit(makeSignal('c2'));
+    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(2);
+
+    result({ profit: -0.70 }); // real loss #2
+    await emit(makeSignal('c3'));
+    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(3);
+
+    // Real WIN → sai do modo real
+    result({ profit: 1.05 });
+    expect(internal.isInRealMode).toBe(false);
+
+    // Próximo sinal: bloqueado (precisa de nova sequência demo)
+    await emit(makeSignal('c4'));
+    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(3); // ainda 3
   });
 });
 
@@ -1020,10 +1130,9 @@ describe('Reprodução bug: dois trades reais consecutivos', () => {
 // =============================================================================
 describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
 
-  it('consecutiveLosses é resetado quando tradeSignal consome o threshold', async () => {
+  it('isInRealMode é ativado quando tradeSignal consome o threshold', async () => {
     const { internal } = createService({ quantityLoss: 2, initialValue: 0.35, stakeMultiple: 1 });
 
-    // Captura handlers
     const handlers: Record<string, Function[]> = {};
     vi.spyOn(internal.wsListener, 'on').mockImplementation((event: string, handler: Function) => {
       if (!handlers[event]) handlers[event] = [];
@@ -1040,13 +1149,13 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
     internal.setupEventHandlers();
     internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(undefined);
 
-    // Fase 1: 2 losses na demo → threshold atingido
+    // 2 losses na demo → threshold atingido
     internal.handleDemoTransaction({ amount: -1 });
     internal.handleDemoTransaction({ amount: -1 });
     expect(internal.consecutiveLosses).toBe(2);
     expect(internal.shouldProcessSignal()).toBe(true);
 
-    // Fase 2: tradeSignal dispara → entra na real
+    // tradeSignal dispara → entra no modo real
     const signal = {
       symbol: 'R_100', contractType: 'CALL', amount: 0.35,
       duration: 5, durationUnit: 't', contractId: 'c1',
@@ -1054,16 +1163,16 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
     };
     await Promise.all((handlers['tradeSignal'] || []).map(h => h(signal)));
 
-    // consecutiveLosses DEVE ter sido resetado ao consumir threshold
-    expect(internal.consecutiveLosses).toBe(0);
+    // isInRealMode ativado; consecutiveLosses mantido (não é resetado aqui)
+    expect(internal.isInRealMode).toBe(true);
+    expect(internal.consecutiveLosses).toBe(2);
     expect(internal.onTrade).toBe(true);
     expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(1);
   });
 
-  it('após real loss, shouldProcessSignal retorna false (precisa de mais 2 demo losses)', async () => {
+  it('após real loss, shouldProcessSignal retorna true (modo real ativo até sair win)', async () => {
     const { internal } = createService({ quantityLoss: 2, initialValue: 0.35, stakeMultiple: 1 });
 
-    // Captura handlers
     const handlers: Record<string, Function[]> = {};
     vi.spyOn(internal.wsListener, 'on').mockImplementation((event: string, handler: Function) => {
       if (!handlers[event]) handlers[event] = [];
@@ -1086,28 +1195,28 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
       timestamp: new Date().toISOString(), longcode: 'test', isForex: false,
     });
 
-    // 2 demo losses → entra na real
+    // 2 demo losses → entra na real (isInRealMode=true)
     internal.handleDemoTransaction({ amount: -1 });
     internal.handleDemoTransaction({ amount: -1 });
     await Promise.all((handlers['tradeSignal'] || []).map(h => h(makeSignal('c1'))));
     expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(1);
+    expect(internal.isInRealMode).toBe(true);
 
-    // Real loss chega → libera guard
+    // Real loss chega → libera guard, mas permanece no modo real
     const txHandlers = teHandlers['transaction'] || [];
     txHandlers.forEach(h => h({ profit: -0.35 }));
     expect(internal.onTrade).toBe(false);
+    expect(internal.isInRealMode).toBe(true); // ainda no modo real
 
-    // AGORA: consecutiveLosses deve ser 0 (foi resetado ao entrar na real)
-    expect(internal.consecutiveLosses).toBe(0);
-    // shouldProcessSignal deve ser false — precisa de mais 2 demo losses
-    expect(internal.shouldProcessSignal()).toBe(false);
+    // shouldProcessSignal deve ser true — continua operando na real
+    expect(internal.shouldProcessSignal()).toBe(true);
 
-    // Novo sinal NÃO deve entrar na real
+    // Próximo sinal DEVE entrar na real (sem precisar de mais demo losses)
     await Promise.all((handlers['tradeSignal'] || []).map(h => h(makeSignal('c2'))));
-    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(1); // ainda 1, não 2
+    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(2); // executou novamente
   });
 
-  it('simulação completa error.md: DEMO LOSE, DEMO LOSE, REAL, resultado, DEMO LOSE, DEMO LOSE, REAL', async () => {
+  it('simulação completa: DEMO LOSE x2 → REAL LOSE → REAL LOSE → REAL WIN → volta demo', async () => {
     const { internal } = createService({ quantityLoss: 2, initialValue: 0.35, stakeMultiple: 1 });
 
     const handlers: Record<string, Function[]> = {};
@@ -1134,59 +1243,66 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
     const emitTradeSignal = (sig: any) => Promise.all((handlers['tradeSignal'] || []).map(h => h(sig)));
     const emitRealResult = (tx: any) => (teHandlers['transaction'] || []).forEach(h => h(tx));
 
-    // === Ciclo 1 ===
-    // 2 demo losses
+    // === Fase 1: aguarda 2 demo losses ===
     internal.handleDemoTransaction({ amount: -1 });
     internal.handleDemoTransaction({ amount: -1 });
     expect(internal.consecutiveLosses).toBe(2);
+    expect(internal.isInRealMode).toBe(false);
 
-    // Trade signal → entra na real (1x)
+    // Trade signal → entra no modo real (trade #1)
     await emitTradeSignal(makeSignal('c1'));
     expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(1);
-    expect(internal.consecutiveLosses).toBe(0); // resetado
+    expect(internal.isInRealMode).toBe(true);
 
-    // Real result: LOSE
+    // === Fase 2: Real LOSE → permanece no modo real ===
     emitRealResult({ profit: -0.35 });
     expect(internal.onTrade).toBe(false);
-    expect(internal.consecutiveLosses).toBe(0); // permanece 0
+    expect(internal.isInRealMode).toBe(true); // continua no modo real
 
-    // Novo sinal chega → NÃO deve entrar (consecutiveLosses=0 < 2)
+    // Próximo sinal → entra na real sem precisar de mais demo losses (trade #2)
     await emitTradeSignal(makeSignal('c2'));
-    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(1); // ainda 1!
-
-    // === Ciclo 2 ===
-    // Mais 2 demo losses
-    internal.handleDemoTransaction({ amount: -1 });
-    expect(internal.consecutiveLosses).toBe(1);
-    internal.handleDemoTransaction({ amount: -1 });
-    expect(internal.consecutiveLosses).toBe(2);
-
-    // Trade signal → entra na real (2x)
-    await emitTradeSignal(makeSignal('c3'));
     expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(2);
-    expect(internal.consecutiveLosses).toBe(0); // resetado de novo
+    expect(internal.isInRealMode).toBe(true);
 
-    // Real result: WIN
-    emitRealResult({ profit: 0.30 });
+    // === Fase 3: Real LOSE novamente → ainda no modo real ===
+    emitRealResult({ profit: -0.70 });
+    expect(internal.isInRealMode).toBe(true);
+
+    // Próximo sinal → entra na real (trade #3)
+    await emitTradeSignal(makeSignal('c3'));
+    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(3);
+
+    // === Fase 4: Real WIN → sai do modo real, volta ao ciclo demo ===
+    emitRealResult({ profit: 1.20 });
     expect(internal.onTrade).toBe(false);
+    expect(internal.isInRealMode).toBe(false);  // modo real encerrado
+    expect(internal.consecutiveLosses).toBe(0); // resetado para novo ciclo
     expect(internal.martingaleLevel).toBe(0);
+
+    // Próximo sinal NÃO deve entrar (precisa de 2 demo losses novamente)
+    await emitTradeSignal(makeSignal('c4'));
+    expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(3); // ainda 3
   });
 
-  it('handleRealTransaction NAO altera consecutiveLosses em nenhum cenário', () => {
+  it('handleRealTransaction: loss mantém consecutiveLosses, win reseta para 0', () => {
     const { internal } = createService({ quantityLoss: 2, initialValue: 0.35, stakeMultiple: 1 });
     internal.consecutiveLosses = 5;
+    internal.isInRealMode = true;
 
-    // Real loss → consecutiveLosses intocado
+    // Real loss → consecutiveLosses intocado, modo real persiste
     internal.handleRealTransaction({ profit: -0.35 });
     expect(internal.consecutiveLosses).toBe(5);
+    expect(internal.isInRealMode).toBe(true);
 
-    // Real win → consecutiveLosses intocado
+    // Real win → consecutiveLosses resetado, sai do modo real
     internal.handleRealTransaction({ profit: 0.30 });
-    expect(internal.consecutiveLosses).toBe(5);
+    expect(internal.consecutiveLosses).toBe(0);
+    expect(internal.isInRealMode).toBe(false);
 
-    // Real profit=0 → consecutiveLosses intocado
+    // Real profit=0 (tratado como loss) → consecutiveLosses intocado
+    internal.consecutiveLosses = 3;
     internal.handleRealTransaction({ profit: 0 });
-    expect(internal.consecutiveLosses).toBe(5);
+    expect(internal.consecutiveLosses).toBe(3);
   });
 
   it('com quantityLoss=0, consecutiveLosses nao é resetado no tradeSignal (modo direto)', async () => {
