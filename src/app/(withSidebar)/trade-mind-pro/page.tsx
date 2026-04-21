@@ -22,8 +22,11 @@ import { loadClientApiKeys } from './components/ApiKeyModal';
 import { AdvancedGeminiService } from './service/AdvancedGeminiService';
 import { AdvancedRulesEngine } from './service/AdvancedRulesEngine';
 import { Cog6ToothIcon } from '@heroicons/react/16/solid';
+import { useModuleAccess } from '@/app/hooks/useModuleAccess';
+import HasAcessComponet from '../bottrader/hasAccessComponent';
 
 export default function TradeMindPro() {
+  const { hasAccess, loading: accessLoading } = useModuleAccess('TradeMindPro');
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState<string>(() => {
     if (typeof window !== 'undefined') {
@@ -137,6 +140,9 @@ export default function TradeMindPro() {
   };
   // Effect para inicialização da conexão Deriv
   useEffect(() => {
+    console.log("hasAccess", hasAccess, accessLoading);
+    if (accessLoading || !hasAccess) return;
+    
     const init = async() => {
       setLoading(true);
       try {
@@ -180,13 +186,15 @@ export default function TradeMindPro() {
     }
     init();
     
-  }, []);
+  }, [accessLoading, hasAccess]);
 
   // Cache de assinaturas de trades recentes para deduplicação entre bridge e window event
   const recentTradeKeysRef = useRef<Set<string>>(new Set());
 
   // Effect para listeners do LegacyBridge (trade results, mode changes, stop limits)
   useEffect(() => {
+    if (accessLoading || !hasAccess) return;
+
     const bridge = LegacyBridgeService.getInstance();
 
     // Chave de deduplicação: type + status + exit arredondado + stake (janela de 2s)
@@ -251,10 +259,11 @@ export default function TradeMindPro() {
       bridge.removeListener('stop_limit', handleStop);
       window.removeEventListener('tradeResultFront', handleTradeResultFront);
     };
-  }, [addLog]);
+  }, [addLog, accessLoading, hasAccess]);
 
   // Effect para iniciar monitoring quando símbolo é selecionado
   useEffect(() => {
+    if (accessLoading || !hasAccess) return;
     if (!selectedSymbol) return;
 
     const startMonitoring = async () => {
@@ -330,7 +339,7 @@ export default function TradeMindPro() {
     return () => {
       monitoringService.stop();
     };
-  }, [selectedSymbol]);
+  }, [selectedSymbol, accessLoading, hasAccess]);
 
   const toggleBot = async () => {
     if (isRunning) {
@@ -704,6 +713,33 @@ ${text}`;
     setMessages([]);
     setAiProgressMessage(null);
   };
+
+  if (accessLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="flex space-x-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+            <div
+              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0.1s" }}
+            ></div>
+            <div
+              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0.2s" }}
+            ></div>
+          </div>
+          <p className="text-blue-500 text-sm font-medium">
+            Verificando permissões...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return <HasAcessComponet />;
+  }
 
   if (loading) {
     return (

@@ -7,7 +7,7 @@ export default function HasAcessComponet(){
           </h2>
           <p className="text-gray-500">
             {/*Você não tem permissão para acessar o módulo BotTrader.*/}
-            Módulo em desenvolvimento.
+            Você não tem permissão para acessar este módulo.
           </p>
         </div>
       </div>

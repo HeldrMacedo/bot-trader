@@ -23,7 +23,9 @@ export function useModuleAccess(moduleName: string) {
 
       try {
         const token = localStorage.getItem("access_token") || "";
-        const response = await fetch(`/api/user-modules?userId=${user.id}&token=${token}`);
+        const response = await fetch(`/api/user-modules?userId=${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const data = await response.json();
         
         if (data.userModules) {

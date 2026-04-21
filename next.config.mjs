@@ -37,8 +37,9 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           // WebAssembly / TensorFlow.js
+          // credentialless permite CDNs externas (rsms.me, etc.) sem exigir CORP header
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
           // Segurança geral
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -53,11 +54,11 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline' https://rsms.me",
               "img-src 'self' data: blob:",
-              "font-src 'self'",
-              // WebSocket para Deriv
-              "connect-src 'self' wss://ws.binaryws.com wss://*.binaryws.com https://*.binaryws.com https://*.deriv.com wss://*.deriv.com",
+              "font-src 'self' https://rsms.me",
+              // WebSocket Deriv + HMR dev + OAuth
+              "connect-src 'self' ws://localhost:* wss://localhost:* wss://ws.derivws.com wss://ws.binaryws.com wss://*.binaryws.com https://*.binaryws.com https://*.deriv.com wss://*.deriv.com https://oauth.deriv.com",
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",
