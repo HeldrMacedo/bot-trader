@@ -48,7 +48,15 @@ export async function POST(request) {
     }
 
     const token = signToken(user.id);
-    return NextResponse.json({ token }, { status: 200 });
+    const response = NextResponse.json({ token }, { status: 200 });
+    response.cookies.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 8 * 60 * 60, // 8 horas, igual ao JWT
+    });
+    return response;
   } catch (error) {
     return NextResponse.json({ message: "Erro no servidor" }, { status: 500 });
   }

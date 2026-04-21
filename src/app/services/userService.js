@@ -35,7 +35,7 @@ export const checkToken = async () => {
       return data.user;
     } else {
       console.error("Erro:", data.message);
-      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
       return false;
     }
   } catch (error) {
@@ -46,4 +46,13 @@ export const checkToken = async () => {
 export const getUser = async () => {
   const user = await checkToken();
   return user;
-}
+};
+
+export const logout = async () => {
+  localStorage.removeItem('access_token');
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch {
+    // falha silenciosa — cookie será expirado pelo middleware na próxima requisição
+  }
+};

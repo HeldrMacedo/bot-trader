@@ -1,19 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "./components/SideBar";
 import { getUser } from "@/app/services/userService";
 
 export default function HomeLayout({ children }) {
   const [auth, setAuth] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
       const user = await getUser();
-      if (user) setAuth(user);
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+      setAuth(user);
     };
     fetchUser();
-  }, []);
+  }, [router]);
 
   return (
     <div className="flex min-h-screen bg-[#0d0a18]">

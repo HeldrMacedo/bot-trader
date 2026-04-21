@@ -9,9 +9,9 @@ npm run dev       # Start dev server (allocates 4GB RAM for TensorFlow.js)
 npm run build     # Production build (uses webpack, not Turbopack)
 npm run start     # Start production server
 npm run lint      # ESLint (scoped to bot-strategy module only)
+npm test          # Run test suite (vitest)
+npm run test:watch # Watch mode for tests
 ```
-
-No test suite is configured.
 
 ## Architecture Overview
 
@@ -86,3 +86,18 @@ Turbopack is explicitly disabled. The `next.config.mjs` has special webpack rule
 
 See `docs/MIGRATION_ARCHITECTURE.md` and `docs/MIGRATION_DOCUMENTATION.md` for detailed migration guidance.
 See `docs/ADVANCED_MODE.md` for the trade-mind-pro Advanced Mode (json-rules-engine) documentation.
+See `docs/AUTH_ROUTES.md` for authentication and route protection documentation.
+
+### Authentication & Route Protection
+
+**Dupla camada de proteção:**
+- `src/middleware.ts` — proteção server-side via cookie HttpOnly `auth_token` (Edge Runtime, usa `jose`)
+- `src/app/(withSidebar)/layout.js` — barreira client-side, redireciona para `/login` se `getUser()` falhar
+
+**Fluxo de login:** `POST /api/login` → gera JWT → seta cookie `auth_token` (HttpOnly, 8h) + `localStorage.access_token`
+
+**Logout:** sempre usar `logout()` de `userService.js` — limpa localStorage **e** cookie via `POST /api/logout`
+
+**Rotas públicas:** `/login`, `/api/login`, `/api/register`, `/api/forgot-password`, `/api/reset-password`, `/api/logout`
+
+**Runtime:** middleware usa `jose` (Edge-compatible); rotas de API usam `jsonwebtoken` (Node.js)

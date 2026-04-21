@@ -4,7 +4,7 @@ import {
   TokenData
 } from "@/app/services/DerivService";
 import { updateUserProfile } from "@/app/services/profileService";
-import { getUser } from "@/app/services/userService";
+import { getUser, logout } from "@/app/services/userService";
 import {
   ArrowLeftStartOnRectangleIcon,
   Bars3Icon,
@@ -194,7 +194,7 @@ const Sidebar = ({
       setIsProfileModalOpen(true);
       setIsProfileOpen(false);
     } else if (itemName === "Sair") {
-      localStorage.removeItem("access_token");
+      logout();
     }
   };
 
