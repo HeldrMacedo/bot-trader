@@ -30,8 +30,8 @@ interface AiChatPanelProps {
   onSendMessage: (text: string, image?: ImageData) => void;
   onClearMessages?: () => void;
   messages: Message[];
-  mode: 'strategy' | 'chat' | 'config' | 'advanced';
-  onModeChange: (mode: 'strategy' | 'chat' | 'config' | 'advanced') => void;
+  mode: 'advanced' | 'chat' | 'config' | 'strategy';
+  onModeChange: (mode:'advanced' | 'chat' | 'config' | 'strategy') => void;
   progressMessage?: string | null;
   onRequestSuggestions?: () => void;
   draftStorageKey?: string | null;

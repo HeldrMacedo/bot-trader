@@ -36,7 +36,7 @@ export default function TradeMindPro() {
   });
   const [messages, setMessages] = useState<any[]>([]);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [aiMode, setAiMode] = useState<'strategy' | 'chat' | 'config' | 'advanced'>('strategy');
+  const [aiMode, setAiMode] = useState<'advanced' | 'chat' | 'config' | 'strategy'>('advanced');
   const [advancedRules, setAdvancedRules] = useState<any | null>(null);
   const advancedEngineRef = useRef<AdvancedRulesEngine | null>(null);
   const advancedGeminiRef = useRef(new AdvancedGeminiService());
