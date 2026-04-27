@@ -1193,6 +1193,95 @@ describe('AdvancedGeminiService — parsing da resposta da IA', () => {
     expect(result.success).toBe(true);
     expect(result.rulesJson?.event?.params?.predictionFact).toBe('mostFrequentDigit');
   });
+
+  it('aceita array de regras como resposta da IA', async () => {
+    const arrayJson = JSON.stringify([
+      {
+        name: 'Ímpar → par',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [1, 3, 5, 7, 9] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+      },
+      {
+        name: 'Par → ímpar',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [0, 2, 4, 6, 8] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+      },
+    ]);
+    mockFetch({ text: arrayJson });
+    const result = await svc.translateAdvancedStrategy('teste');
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.rulesJson)).toBe(true);
+    expect(result.rulesJson.length).toBe(2);
+    expect(result.rulesJson[0].event.params.contractType).toBe('DIGITEVEN');
+    expect(result.rulesJson[1].event.params.contractType).toBe('DIGITODD');
+  });
+
+  it('aceita array de regras em bloco markdown', async () => {
+    const arrayJson = JSON.stringify([
+      {
+        name: 'Regra 1',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [1, 3, 5, 7, 9] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+      },
+    ]);
+    const fenced = '```json\n' + arrayJson + '\n```';
+    mockFetch({ text: fenced });
+    const result = await svc.translateAdvancedStrategy('teste');
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.rulesJson)).toBe(true);
+  });
+
+  it('aceita array de regras embutido em texto livre da IA', async () => {
+    const arrayJson = JSON.stringify([
+      {
+        name: 'Regra A',
+        conditions: { all: [{ fact: 'consecutiveSame', operator: 'greaterThanInclusive', value: 3 }] },
+        event: { type: 'trade', params: { contractType: 'DIGITDIFF', prediction: 5 } },
+      },
+    ]);
+    const withText = 'Aqui estão as regras geradas:\n' + arrayJson + '\nEspero que ajude!';
+    mockFetch({ text: withText });
+    const result = await svc.translateAdvancedStrategy('teste');
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.rulesJson)).toBe(true);
+  });
+
+  it('retorna erro quando array tem regra sem "conditions"', async () => {
+    const invalidArray = JSON.stringify([
+      {
+        name: 'Válida',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'equal', value: 5 }] },
+        event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+      },
+      {
+        name: 'Inválida — sem conditions',
+        event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+      },
+    ]);
+    mockFetch({ text: invalidArray });
+    const result = await svc.translateAdvancedStrategy('teste');
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/conditions/i);
+  });
+
+  it('retorna erro quando array tem regra sem "event"', async () => {
+    const invalidArray = JSON.stringify([
+      {
+        name: 'Sem event',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'equal', value: 5 }] },
+      },
+    ]);
+    mockFetch({ text: invalidArray });
+    const result = await svc.translateAdvancedStrategy('teste');
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/event/i);
+  });
+
+  it('retorna erro quando array está vazio', async () => {
+    mockFetch({ text: '[]' });
+    const result = await svc.translateAdvancedStrategy('teste');
+    expect(result.success).toBe(false);
+  });
 });
 
 // =============================================================================
@@ -1471,6 +1560,312 @@ describe('Visualização: onRulesVisualUpdate callback', () => {
     const text = visualCb.mock.calls[0][0].groups[0].rules[0].displayText;
     expect(text).toContain('n:10');
     expect(text).toContain('digit:3');
+  });
+});
+
+// =============================================================================
+// 13. CAMINHOS MUTUAMENTE EXCLUSIVOS — array de 2 regras ("OU com ações diferentes")
+// Padrão: "se ímpar → DIGITEVEN OU se par → DIGITODD"
+// Não usa `any` (que exige mesmo contrato); usa array de regras independentes.
+// =============================================================================
+
+describe('Estratégia: ímpar → DIGITEVEN / par → DIGITODD (array de 2 regras)', () => {
+  const rules = [
+    {
+      name: 'Ímpar → aposte par',
+      conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [1, 3, 5, 7, 9] }] },
+      event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+    },
+    {
+      name: 'Par → aposte ímpar',
+      conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [0, 2, 4, 6, 8] }] },
+      event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+    },
+  ];
+
+  it('dígito ímpar (3) → dispara DIGITEVEN', async () => {
+    const signal = vi.fn();
+    const eng = makeEngine(signal);
+    setHistory(eng, HISTORY_10); // termina em 0 (par)
+    eng.loadRules(rules);
+    eng.start();
+    await emitTickAndWait(100.33); // digit 3 (ímpar) → lastDigit=3 ∈ [1,3,5,7,9]
+    expect(signal).toHaveBeenCalledWith('DIGITEVEN', null);
+    eng.stop();
+  });
+
+  it('dígito par (6) → dispara DIGITODD', async () => {
+    const signal = vi.fn();
+    const eng = makeEngine(signal);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(rules);
+    eng.start();
+    await emitTickAndWait(100.36); // digit 6 (par) → lastDigit=6 ∈ [0,2,4,6,8]
+    expect(signal).toHaveBeenCalledWith('DIGITODD', null);
+    eng.stop();
+  });
+
+  it('dispara exatamente 1 sinal por tick — condições são mutuamente exclusivas', async () => {
+    const signal = vi.fn();
+    const eng = makeEngine(signal);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(rules);
+    eng.start();
+    await emitTickAndWait(100.35); // digit 5 (ímpar)
+    expect(signal).toHaveBeenCalledTimes(1);
+    expect(signal).toHaveBeenCalledWith('DIGITEVEN', null);
+    eng.stop();
+  });
+
+  it('dois ticks consecutivos (ímpar → par) disparam contratos alternados', async () => {
+    const signal = vi.fn();
+    const eng = makeEngine(signal);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(rules);
+    eng.start();
+
+    // Tick 1: digit 3 (ímpar) → DIGITEVEN
+    await emitTickAndWait(100.33);
+    expect(signal).toHaveBeenNthCalledWith(1, 'DIGITEVEN', null);
+
+    // Libera cooldown e awaiting
+    (eng as any).cooldownTicks = 0;
+    eng.notifyTradeResult();
+
+    // Tick 2: digit 6 (par) → DIGITODD
+    await emitTickAndWait(100.36);
+    expect(signal).toHaveBeenNthCalledWith(2, 'DIGITODD', null);
+
+    eng.stop();
+  });
+
+  it('dígito 0 (par) → dispara DIGITODD', async () => {
+    const signal = vi.fn();
+    const eng = makeEngine(signal);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(rules);
+    eng.start();
+    await emitTickAndWait(100.30); // digit 0 (par) → DIGITODD
+    expect(signal).toHaveBeenCalledWith('DIGITODD', null);
+    eng.stop();
+  });
+
+  it('dígito 9 (ímpar) → dispara DIGITEVEN', async () => {
+    const signal = vi.fn();
+    const eng = makeEngine(signal);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(rules);
+    eng.start();
+    await emitTickAndWait(100.39); // digit 9 (ímpar) → DIGITEVEN
+    expect(signal).toHaveBeenCalledWith('DIGITEVEN', null);
+    eng.stop();
+  });
+
+  it('visualização: loadRules com array cria 2 grupos distintos no preview', () => {
+    const visualCb = vi.fn();
+    const eng = new AdvancedRulesEngine({
+      symbol: 'R_100',
+      onTradeSignal: vi.fn(),
+      onStatusChange: vi.fn(),
+      onRulesVisualUpdate: visualCb,
+    });
+    eng.loadRules(rules);
+    const data = visualCb.mock.calls[0][0];
+    expect(data.isPreview).toBe(true);
+    expect(data.groups.length).toBe(2);
+    expect(data.groups[0].id).toBe('Ímpar → aposte par');
+    expect(data.groups[1].id).toBe('Par → aposte ímpar');
+  });
+});
+
+// =============================================================================
+// 14. ACTIVE GROUP IDS — destaque visual da regra que disparou
+// =============================================================================
+
+describe('Visualização: activeGroupIds — destaque da regra que disparou', () => {
+  function makeEngineWithVisual(signal = vi.fn(), visualCb = vi.fn()) {
+    return new AdvancedRulesEngine({
+      symbol: 'R_100',
+      onTradeSignal: signal,
+      onStatusChange: vi.fn(),
+      onRulesVisualUpdate: visualCb,
+    });
+  }
+
+  it('regra única que dispara: activeGroupIds é null (nenhum lock)', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(makeRule(always, 'DIGITODD'));
+    eng.start();
+    await emitTickAndWait(100.33);
+    const data = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    // Com regra única, activeGroupIds = null independente de disparar ou não
+    expect(data.activeGroupIds).toBeNull();
+    eng.stop();
+  });
+
+  it('regra única que NÃO dispara: activeGroupIds é null', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules(makeRule(
+      { all: [{ fact: 'tickCount', operator: 'equal', value: 99999 }] },
+      'DIGITODD',
+    ));
+    eng.start();
+    await emitTickAndWait(100.33);
+    const data = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    expect(data.activeGroupIds).toBeNull();
+    eng.stop();
+  });
+
+  it('com 2 regras, activeGroupIds contém apenas o id da regra que disparou', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules([
+      {
+        name: 'Ímpar → aposte par',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [1, 3, 5, 7, 9] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+      },
+      {
+        name: 'Par → aposte ímpar',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [0, 2, 4, 6, 8] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+      },
+    ]);
+    eng.start();
+    await emitTickAndWait(100.33); // digit 3 (ímpar) → só "Ímpar → aposte par" dispara
+    const data = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    expect(data.activeGroupIds).toEqual(['Ímpar → aposte par']);
+    eng.stop();
+  });
+
+  it('com 2 regras, a que não disparou NÃO está em activeGroupIds', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules([
+      {
+        name: 'Ímpar → aposte par',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [1, 3, 5, 7, 9] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+      },
+      {
+        name: 'Par → aposte ímpar',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [0, 2, 4, 6, 8] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+      },
+    ]);
+    eng.start();
+    await emitTickAndWait(100.33); // digit 3 → "Par → aposte ímpar" NÃO dispara
+    const data = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    expect(data.activeGroupIds).not.toContain('Par → aposte ímpar');
+    eng.stop();
+  });
+
+  it('ordem dos grupos é estável independente de qual regra disparou', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    setHistory(eng, HISTORY_10);
+    const rules = [
+      {
+        name: 'Regra A',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [1, 3, 5, 7, 9] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+      },
+      {
+        name: 'Regra B',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [0, 2, 4, 6, 8] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+      },
+    ];
+    eng.loadRules(rules);
+    eng.start();
+
+    // Tick 1: Regra A dispara (ímpar)
+    await emitTickAndWait(100.33);
+    const data1 = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    expect(data1.groups[0].id).toBe('Regra A');
+    expect(data1.groups[1].id).toBe('Regra B');
+
+    (eng as any).cooldownTicks = 0;
+    eng.notifyTradeResult();
+
+    // Tick 2: Regra B dispara (par) — ordem deve ser a mesma
+    await emitTickAndWait(100.36);
+    const data2 = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    expect(data2.groups[0].id).toBe('Regra A');
+    expect(data2.groups[1].id).toBe('Regra B');
+
+    eng.stop();
+  });
+
+  it('quando nenhuma regra de 2 dispara, activeGroupIds é null (nenhum lock)', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules([
+      {
+        name: 'Regra Impossível A',
+        conditions: { all: [{ fact: 'tickCount', operator: 'equal', value: 99998 }] },
+        event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+      },
+      {
+        name: 'Regra Impossível B',
+        conditions: { all: [{ fact: 'tickCount', operator: 'equal', value: 99999 }] },
+        event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+      },
+    ]);
+    eng.start();
+    await emitTickAndWait(100.33);
+    const data = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    expect(data.activeGroupIds).toBeNull();
+    eng.stop();
+  });
+
+  it('preview sempre tem activeGroupIds null (sem estado de match)', () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    eng.loadRules([
+      makeRule(always, 'DIGITEVEN'),
+      makeRule(always, 'DIGITODD'),
+    ]);
+    const previewData = visualCb.mock.calls[0][0];
+    expect(previewData.isPreview).toBe(true);
+    expect(previewData.activeGroupIds).toBeNull();
+  });
+
+  it('condição satisfeita no grupo ativo mostra 🟢; no grupo inativo mostra condições reais', async () => {
+    const visualCb = vi.fn();
+    const eng = makeEngineWithVisual(vi.fn(), visualCb);
+    setHistory(eng, HISTORY_10);
+    eng.loadRules([
+      {
+        name: 'Ímpar',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [1, 3, 5, 7, 9] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITEVEN', prediction: null } },
+      },
+      {
+        name: 'Par',
+        conditions: { all: [{ fact: 'lastDigit', operator: 'in', value: [0, 2, 4, 6, 8] }] },
+        event: { type: 'trade', params: { contractType: 'DIGITODD', prediction: null } },
+      },
+    ]);
+    eng.start();
+    await emitTickAndWait(100.33); // digit 3 (ímpar) → grupo "Ímpar" dispara
+    const data = visualCb.mock.calls[visualCb.mock.calls.length - 1][0];
+    const imparGroup = data.groups.find((g: any) => g.id === 'Ímpar');
+    const parGroup = data.groups.find((g: any) => g.id === 'Par');
+    // Grupo que disparou: condição verde
+    expect(imparGroup.rules[0].status).toBe('satisfied');
+    expect(imparGroup.rules[0].displayText).toContain('🟢');
+    // Grupo que não disparou: condição vermelha
+    expect(parGroup.rules[0].status).toBe('failed');
+    expect(parGroup.rules[0].displayText).toContain('🔴');
+    eng.stop();
   });
 });
 

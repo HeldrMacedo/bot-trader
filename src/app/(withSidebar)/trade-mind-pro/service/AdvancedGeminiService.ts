@@ -61,7 +61,12 @@ export class AdvancedGeminiService {
       if (!parsed) {
         return { success: false, rulesJson: null, error: 'A IA não retornou JSON válido. Tente reformular a estratégia.' };
       }
-      if (!parsed.conditions || !parsed.event) {
+      const isValidRule = (r: any) => r?.conditions && r?.event;
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 0 || !parsed.every(isValidRule)) {
+          return { success: false, rulesJson: null, error: 'JSON gerado não tem o formato json-rules-engine esperado (cada regra do array precisa de "conditions" e "event").' };
+        }
+      } else if (!parsed.conditions || !parsed.event) {
         return { success: false, rulesJson: null, error: 'JSON gerado não tem o formato json-rules-engine esperado (falta "conditions" ou "event").' };
       }
 
@@ -89,8 +94,26 @@ export class AdvancedGeminiService {
     const clean = rawText.replace(/```json/gi, '```').trim();
     const fenced = clean.match(/```[\s\S]*?```/);
     const target = fenced ? fenced[0].replace(/```/g, '').trim() : clean;
-    const match = target.match(/\{[\s\S]*\}/);
-    const jsonStr = (match ? match[0] : target).trim();
+
+    // Try direct parse first (handles clean JSON — both object and array)
+    try { return JSON.parse(target); } catch { /* continue */ }
+
+    // Use relative positions to pick the outermost structure from embedded text.
+    // `[{` before `{` means the root is an array of objects (multi-rule response);
+    // `{` before `[{` means the root is a single object (standard rule).
+    const objectPos = target.indexOf('{');
+    const arrayPos = target.indexOf('[{');
+
+    if (arrayPos !== -1 && (objectPos === -1 || arrayPos < objectPos)) {
+      const arrayMatch = target.slice(arrayPos).match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        try { return JSON.parse(arrayMatch[0]); } catch { /* continue */ }
+      }
+    }
+
+    // Fall back to single object extraction
+    const objectMatch = target.match(/\{[\s\S]*\}/);
+    const jsonStr = (objectMatch ? objectMatch[0] : target).trim();
     try { return JSON.parse(jsonStr); } catch { return null; }
   }
 
@@ -189,7 +212,7 @@ Se a prediction deve ser calculada a partir dos ticks (ex: "o dígito mais frequ
   "predictionFactParams": { "n": 10 }
 no lugar de "prediction" dentro de event.params.
 
-FORMATO DE SAÍDA (retorne APENAS o JSON, sem markdown, sem explicações):
+FORMATO DE SAÍDA — REGRA ÚNICA (retorne APENAS o JSON, sem markdown, sem explicações):
 {
   "name": "Descrição breve da estratégia",
   "conditions": {
@@ -207,6 +230,28 @@ FORMATO DE SAÍDA (retorne APENAS o JSON, sem markdown, sem explicações):
     }
   }
 }
+
+QUANDO USAR "any" (OR dentro de uma regra):
+Use "any" quando condições alternativas levam ao MESMO contrato.
+Exemplo: "se consecutiveSame >= 4 OU se dígito 9 ausente nos últimos 10 → DIGITMATCH 9"
+
+QUANDO RETORNAR ARRAY DE REGRAS (múltiplos caminhos com contratos DIFERENTES):
+Use um array quando a estratégia tem condições mutuamente exclusivas que levam a TIPOS DE CONTRATO diferentes.
+Exemplo: "se o último dígito é ímpar → DIGITEVEN" OU "se o último dígito é par → DIGITODD"
+Nesse caso retorne um JSON array com múltiplas regras:
+[
+  {
+    "name": "Ímpar → aposte par",
+    "conditions": { "all": [{ "fact": "lastDigit", "operator": "in", "value": [1,3,5,7,9] }] },
+    "event": { "type": "trade", "params": { "contractType": "DIGITEVEN", "prediction": null } }
+  },
+  {
+    "name": "Par → aposte ímpar",
+    "conditions": { "all": [{ "fact": "lastDigit", "operator": "in", "value": [0,2,4,6,8] }] },
+    "event": { "type": "trade", "params": { "contractType": "DIGITODD", "prediction": null } }
+  }
+]
+Regra: use array quando ações são diferentes; use "any" quando ação é a mesma.
 
 ESTRATÉGIA A CONVERTER:
 ${strategyText}`;

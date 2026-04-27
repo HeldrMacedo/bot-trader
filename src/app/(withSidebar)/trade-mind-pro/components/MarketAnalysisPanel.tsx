@@ -224,8 +224,7 @@ export default function MarketAnalysisPanel({ symbol, marketStats, rulesVisualDa
         <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
           {rulesVisualData?.groups?.length ? (
             rulesVisualData.groups.map((group) => {
-              const groupId = Number(group.id);
-              const isActive = rulesVisualData.activeGroupIds === null || rulesVisualData.activeGroupIds.includes(groupId);
+              const isActive = rulesVisualData.activeGroupIds === null || rulesVisualData.activeGroupIds.includes(group.id);
               return (
                 <div key={String(group.id)} className="bg-[#1e1b2e] border border-gray-700 rounded p-2 relative" style={!isActive ? { opacity: 1 } : undefined}>
                   {!isActive && (
