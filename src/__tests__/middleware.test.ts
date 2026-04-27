@@ -35,6 +35,7 @@ const { middleware, config } = await import('../middleware');
 describe('middleware — rotas públicas', () => {
   const publicPaths = [
     '/login',
+    '/img/form-login.png',
     '/api/login',
     '/api/register',
     '/api/forgot-password',
@@ -105,5 +106,6 @@ describe('middleware — matcher', () => {
     expect(pattern).toContain('_next/static');
     expect(pattern).toContain('_next/image');
     expect(pattern).toContain('favicon.ico');
+    expect(pattern).toContain('img/');
   });
 });
