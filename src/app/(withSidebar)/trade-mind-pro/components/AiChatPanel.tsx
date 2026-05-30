@@ -3,6 +3,7 @@ import { Bars3Icon } from "@heroicons/react/24/solid";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HelpManualModal from "./HelpManualModal";
 import ApiKeyModal from "./ApiKeyModal";
+import SharedRulesModal from "./SharedRulesModal";
 import { DeleteIcon } from "lucide-react";
 
 interface RuleHistoryItem {
@@ -66,6 +67,7 @@ export default function AiChatPanel(
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showCommunityModal, setShowCommunityModal] = useState(false);
   const [historyRules, setHistoryRules] = useState<RuleHistoryItem[]>([]);
   const historyFileInputRef = useRef<HTMLInputElement>(null);
   const hamburgerRef = useRef<HTMLDivElement>(null);
@@ -437,6 +439,13 @@ export default function AiChatPanel(
               <button
                 type="button"
                 className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 hover:text-white transition-colors"
+                onClick={() => { setShowHamburgerMenu(false); setShowCommunityModal(true); }}
+              >
+                🌐 Estratégias da Comunidade
+              </button>
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 hover:text-white transition-colors"
                 onClick={() => { setShowHamburgerMenu(false); setShowHelpModal(true); }}
               >
                 Manual de Instruções
@@ -797,6 +806,42 @@ export default function AiChatPanel(
                       { label: 'Dois dígitos em falta', code: 'Se o dígito 3 não apareceu nos últimos 8 ticks OU o dígito 7 não apareceu nos últimos 8 ticks, aposte DIGITOVER 2' },
                     ],
                   },
+                  {
+                    title: '🧠 Penúltimo Dígito',
+                    items: [
+                      { label: 'Penúltimo par, último ímpar → apostar ímpar', code: 'Se o penúltimo dígito é par e o último dígito é ímpar, aposte DIGITODD' },
+                      { label: 'Penúltimo e último diferentes e ambos baixos', code: 'Se os últimos 2 dígitos são diferentes entre si e o penúltimo é menor que 5 e o último é menor que 5, aposte DIGITUNDER 4' },
+                      { label: 'Penúltimo alto → esperar dígito alto de novo', code: 'Se o penúltimo dígito é maior que 7 e os últimos 2 dígitos são diferentes, aposte DIGITOVER 7' },
+                      { label: 'Penúltimo igual ao último → reversão', code: 'Se o penúltimo dígito é igual ao último dígito e houve 2 repetições consecutivas, aposte que o próximo será DIFERENTE' },
+                    ],
+                  },
+                  {
+                    title: '🧠 Contagem de Dígito Específico',
+                    items: [
+                      { label: 'Dígito 5 frequente — apostar nele', code: 'Se o dígito 5 apareceu 3 ou mais vezes nos últimos 10 ticks, aposte DIGITMATCH 5' },
+                      { label: 'Dígito 0 saturado — apostar acima', code: 'Se o dígito 0 apareceu 4 ou mais vezes nos últimos 10 ticks, aposte DIGITOVER 1' },
+                      { label: 'Dígito 7 raro na janela curta', code: 'Se o dígito 7 apareceu apenas 1 vez nos últimos 8 ticks e os últimos 2 são diferentes, aposte DIGITMATCH 7' },
+                      { label: 'Nenhuma ocorrência de dígito baixo', code: 'Se o dígito 1 apareceu 0 vezes nos últimos 12 ticks, aposte DIGITMATCH 1' },
+                    ],
+                  },
+                  {
+                    title: '🧠 Ausência de Dígitos — Janelas Variadas',
+                    items: [
+                      { label: 'Dígito 9 ausente na janela curta (5 ticks)', code: 'Se o dígito 9 não apareceu nos últimos 5 ticks e os 2 últimos dígitos são diferentes, aposte DIGITMATCH 9' },
+                      { label: 'Dígito 0 ausente na janela longa (15 ticks)', code: 'Se o dígito 0 não apareceu nos últimos 15 ticks, aposte DIGITMATCH 0' },
+                      { label: 'Dois dígitos ausentes — ambas condições juntas', code: 'Se o dígito 9 não apareceu nos últimos 5 ticks E o dígito 8 não apareceu nos últimos 5 ticks, aposte DIGITOVER 7' },
+                      { label: 'Dígito alto ausente com alternância', code: 'Se o dígito 6 não apareceu nos últimos 8 ticks E os últimos 2 dígitos são diferentes, aposte DIGITMATCH 6' },
+                    ],
+                  },
+                  {
+                    title: '🧠 Sequências Consecutivas Avançadas',
+                    items: [
+                      { label: 'Série de 3 + dígito alto → reversão baixa', code: 'Se o mesmo dígito se repetiu 3 vezes consecutivas e esse dígito é maior que 5, aposte DIGITUNDER 5' },
+                      { label: 'Série longa OU dígito dominante — duplo gatilho', code: 'Se houve 5 ou mais repetições consecutivas do mesmo dígito OU o dígito mais frequente nos últimos 10 apareceu 4 ou mais vezes, aposte DIGITDIFF' },
+                      { label: 'Série de 4 com contagem confirmada', code: 'Se o mesmo dígito se repetiu 4 vezes consecutivas E esse dígito apareceu 4 ou mais vezes nos últimos 10 ticks, aposte DIGITDIFF' },
+                      { label: 'Fim de sequência + alternância imediata', code: 'Se houve 3 dígitos iguais consecutivos e agora os últimos 2 são diferentes, aposte no dígito mais frequente dos últimos 10' },
+                    ],
+                  },
                 ] : [
                 {
                   title: 'Regras de Dígitos',
@@ -1044,6 +1089,18 @@ export default function AiChatPanel(
       />
       {showHelpModal && <HelpManualModal onClose={() => setShowHelpModal(false)} />}
       {showApiKeyModal && <ApiKeyModal onClose={() => setShowApiKeyModal(false)} />}
+      {showCommunityModal && (
+        <SharedRulesModal
+          onClose={() => setShowCommunityModal(false)}
+          currentMode={mode}
+          currentInput={input}
+          onUseRule={(ruleText, isAdvanced) => {
+            setInput(ruleText);
+            onModeChange(isAdvanced ? 'advanced' : 'strategy');
+            setShowCommunityModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -21,11 +21,24 @@ model User {
   role      String   @default("user")
   operations  Operation[]
   userModules UserModule[]
+  sharedRules SharedRule[]
   passwordToken   String?
   tokenSentAt     DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
+}
+
+model SharedRule {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(200)
+  ruleText    String   @db.Text
+  isAdvanced  Boolean  @default(false)
+  usageCount  Int      @default(0)
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Operation {

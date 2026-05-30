@@ -288,16 +288,25 @@ export class AdvancedRulesEngine {
 
   private emitVisualData(results: RuleResult[], failureResults: RuleResult[]): void {
     if (!this.config.onRulesVisualUpdate) return;
-    const allResults = [...results, ...failureResults];
+
+    // IDs of rules that actually fired (conditions all satisfied)
+    const firedIds = results.map((r, i) => (r as any).name ?? `rule-${i}`);
+
+    // Keep groups in the same order as rulesJson to avoid flickering
+    const ruleNames = this.rulesJson.map((r, i) => (r as any).name ?? `rule-${i}`);
+    const allResults = [...results, ...failureResults].sort(
+      (a, b) => ruleNames.indexOf((a as any).name) - ruleNames.indexOf((b as any).name),
+    );
 
     const visualData: RulesVisualData = {
       groups: allResults.map((ruleResult, idx) => ({
-        id: (ruleResult as any).name || `rule-${idx}`,
+        id: (ruleResult as any).name ?? `rule-${idx}`,
         rules: this.flattenConditions(ruleResult.conditions),
       })),
       isPreview: false,
       timestamp: Date.now(),
-      activeGroupIds: null,
+      // null = no filter (nothing fired or single rule); array = highlight which groups fired
+      activeGroupIds: firedIds.length > 0 && allResults.length > 1 ? firedIds : null,
     };
 
     this.config.onRulesVisualUpdate(visualData);

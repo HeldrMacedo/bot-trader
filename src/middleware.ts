@@ -4,6 +4,7 @@ import { jwtVerify } from 'jose';
 // Rotas públicas que não exigem autenticação
 const PUBLIC_PATHS = [
   '/login',
+  '/img',
   '/api/login',
   '/api/register',
   '/api/forgot-password',
@@ -41,6 +42,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Executa em todas as rotas exceto assets estáticos do Next.js
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons/|images/).*)'],
+  // Executa em todas as rotas exceto assets estáticos do Next.js e do /public
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons/|images/|img/|legacy/).*)'],
 };

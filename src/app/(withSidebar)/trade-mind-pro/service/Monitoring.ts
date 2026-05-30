@@ -51,7 +51,7 @@ export interface RulesVisualData {
   groups: RulesVisualGroup[];
   isPreview: boolean;
   timestamp: number;
-  activeGroupIds: number[] | null;
+  activeGroupIds: (string | number)[] | null;
 }
 
 export class MonitoringService {
