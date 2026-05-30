@@ -79,7 +79,7 @@ export class DerivService {
   private currentAccount: AccountInfo | null = null;
   private balanceSubscriptionId: string | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
-  
+
   // Histórico de ticks em memória para acesso síncrono
   private tickHistory = new Map<string, { price: number; time: number }[]>();
   private symbolDecimals = new Map<string, number>();
@@ -125,13 +125,21 @@ export class DerivService {
     (window as any).DerivServiceInstance = this;
 
     if (window.location.search) {
-      const tokens = this.parseQueryTokens(window.location.search.substring(1));
-      if (tokens.length > 0) {
-        localStorage.setItem(
-          `${this.derivTokenScope}token_list`,
-          JSON.stringify(tokens)
-        );
-        window.location.search = "";
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get('code');
+      const state = searchParams.get('state');
+
+      if (code && state) {
+        this.handleOAuthCallback(code, state);
+      } else {
+        const tokens = this.parseQueryTokens(window.location.search.substring(1));
+        if (tokens.length > 0) {
+          localStorage.setItem(
+            `${this.derivTokenScope}token_list`,
+            JSON.stringify(tokens)
+          );
+          window.location.search = "";
+        }
       }
     }
 
@@ -149,46 +157,46 @@ export class DerivService {
     });
 
     this.observer.on("deriv.balance", (data) => {
-  if (this.currentAccount) {
-    this.currentAccount.tokens.forEach((token) => {
-      if (data.balance?.accounts) {
-        Object.keys(data.balance.accounts).forEach(accounts => {
-          let isDemo = Boolean(data.balance.accounts[accounts].demo_account);
-          if (token.is_virtual === isDemo) {              
-            token.balance = data.balance.accounts[accounts].balance;
+      if (this.currentAccount) {
+        this.currentAccount.tokens.forEach((token) => {
+          if (data.balance?.accounts) {
+            Object.keys(data.balance.accounts).forEach(accounts => {
+              let isDemo = Boolean(data.balance.accounts[accounts].demo_account);
+              if (token.is_virtual === isDemo) {
+                token.balance = data.balance.accounts[accounts].balance;
+                this.setAccountData(this.currentAccount);
+              }
+            });
+          } else {
+            // Verificar se loginid existe antes de acessar
+            if (data.balance?.loginid && token.acct == data.balance.loginid) {
+              token.balance = data.balance.balance;
               this.setAccountData(this.currentAccount);
+            }
           }
+
         });
-      } else {
-        // Verificar se loginid existe antes de acessar
-        if (data.balance?.loginid && token.acct == data.balance.loginid) {
-          token.balance = data.balance.balance;
-          this.setAccountData(this.currentAccount);
-        }
+        this.saveAccount(this.currentAccount);
       }
-      
     });
-    this.saveAccount(this.currentAccount);
-  }
-});
   }
 
   private setupBalanceMonitoring() {
     if (this.balanceSubscriptionId) {
-    return;
-  }
-  
-  this.subscribe({ balance: 1, account: "all" })
-    .then((subscription) => {
-      this.balanceSubscriptionId = subscription.subscription.id;
-    })
-    .catch((error) => {
-      if (error.code === 'AlreadySubscribed') {
+      return;
+    }
 
-      } else {
-        7
-      }
-    });
+    this.subscribe({ balance: 1, account: "all" })
+      .then((subscription) => {
+        this.balanceSubscriptionId = subscription.subscription.id;
+      })
+      .catch((error) => {
+        if (error.code === 'AlreadySubscribed') {
+
+        } else {
+          7
+        }
+      });
     // setInterval(async () => {
     //   if (this.currentAccount) {
     //     await Promise.all(
@@ -197,7 +205,7 @@ export class DerivService {
     //           balance: 1,
     //           account: token.acct,
     //         });
-            
+
     //       })
     //     );
     //   }
@@ -220,25 +228,25 @@ export class DerivService {
 
     const tokens = this.getTokens();
     if (!tokens || tokens.length == 0) return;
-    
+
     try {
       let accountVRT, accountCRT, userVRT, userCRT;
-      
+
       accountVRT = tokens.find(t => t.is_virtual);
       accountCRT = tokens.find(t => !t.is_virtual);
-      
+
       const authPromises = [];
       if (accountCRT) authPromises.push(this.authenticate(accountCRT.token));
       if (accountVRT) authPromises.push(this.authenticate(accountVRT.token));
-      
-      
+
+
       const authResults = await Promise.all(authPromises);
-      
+
       // Atribuir resultados da autenticação
       if (accountCRT) userCRT = authResults.shift();
       if (accountVRT) userVRT = authResults.shift();
-      
-      
+
+
       // Criar estrutura de conta com os tokens disponíveis
       const newAccount = this.createAccountStructureDynamic(
         accountVRT,
@@ -299,14 +307,14 @@ export class DerivService {
     const activeToken = vrt?.token || crt?.token;
 
     const userInfo = userVRT || userCRT;
-    
+
     if (vrt && userVRT) vrt.balance = userVRT.balance;
     if (crt && userCRT) crt.balance = userCRT.balance;
-    
+
     const tokens = [];
     if (vrt) tokens.push(vrt);
     if (crt) tokens.push(crt);
-    
+
     return {
       activeToken: activeToken,
       amount: 0.35,
@@ -325,6 +333,25 @@ export class DerivService {
   }
 
   public async authenticate(token: string): Promise<UserInfo> {
+    if (token && token.startsWith('oauth:')) {
+      const parts = token.split(':');
+      const accessToken = parts[1];
+      const accountId = parts[2];
+
+      const accounts = this.getStorageDerivAccount();
+      const currentAcc = accounts?.[0];
+      const activeTokenInfo = currentAcc?.tokens.find(t => t.token === token);
+
+      this.isAuthorized = true;
+
+      return {
+        balance: activeTokenInfo?.balance ?? 0,
+        fullname: currentAcc?.name || "Conta Deriv",
+        loginid: accountId,
+        currency: activeTokenInfo?.cur || "USD"
+      };
+    }
+
     const response = await this.send({ authorize: token });
 
     if (response.error) {
@@ -338,6 +365,116 @@ export class DerivService {
       currency: response.authorize.currency,
     };
   }
+
+  private async generatePKCE() {
+    const array = window.crypto.getRandomValues(new Uint8Array(64));
+    const codeVerifier = Array.from(array)
+      .map((v) => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"[v % 66])
+      .join("");
+
+    const hash = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
+    const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hash)))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    const state = window.crypto.getRandomValues(new Uint8Array(16))
+      .reduce((s, b) => s + b.toString(16).padStart(2, "0"), "");
+
+    sessionStorage.setItem("pkce_code_verifier", codeVerifier);
+    sessionStorage.setItem("oauth_state", state);
+
+    return { codeChallenge, state };
+  }
+
+  private async handleOAuthCallback(code: string, state: string) {
+    const storedState = sessionStorage.getItem('oauth_state');
+    const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+
+    if (state !== storedState) {
+      console.error('State mismatch. Potential CSRF attack.');
+      toast.error('Erro de autenticação: CSRF detectado.');
+      window.location.search = "";
+      return;
+    }
+
+    if (!codeVerifier) {
+      console.error('Code verifier not found in session.');
+      toast.error('Erro de autenticação: PKCE inválido.');
+      window.location.search = "";
+      return;
+    }
+
+    try {
+      // O redirect_uri deve ser EXATAMENTE igual ao enviado na autorização
+      const redirectUri = window.location.origin + "/home";
+      const response = await fetch('/api/deriv-auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code,
+          codeVerifier,
+          redirectUri,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to exchange code for tokens');
+      }
+
+      const { accessToken, accounts } = await response.json();
+
+      sessionStorage.removeItem('pkce_code_verifier');
+      sessionStorage.removeItem('oauth_state');
+
+      const tokenList: TokenData[] = accounts.map((acc: any) => ({
+        token: `oauth:${accessToken}:${acc.account_id}`,
+        is_virtual: acc.account_type === 'demo',
+        cur: acc.currency,
+        acct: acc.account_id,
+        loginid: acc.account_id,
+        balance: acc.balance,
+      }));
+
+      if (tokenList.length > 0) {
+        localStorage.setItem(
+          `${this.derivTokenScope}token_list`,
+          JSON.stringify(tokenList)
+        );
+
+        const demoAccount = tokenList.find(t => t.is_virtual) || tokenList[0];
+        const newAccount: AccountInfo = {
+          activeToken: demoAccount.token,
+          amount: 0.35,
+          barrier: "",
+          digits: 3,
+          volatility: "R_100",
+          finishedTradeList: [],
+          lastTrade: null,
+          name: "Conta Deriv",
+          openTradeId: null,
+          results: { loss: 0, result: 0, wins: 0 },
+          selectedLoginId: demoAccount.loginid,
+          loginId: demoAccount.loginid,
+          tokens: tokenList,
+        };
+
+        this.saveAccount(newAccount);
+        this.setAccountData(newAccount);
+
+        await this.reconnect();
+      }
+
+      window.location.href = window.location.origin + window.location.pathname;
+    } catch (error) {
+      console.error('Error handling OAuth callback:', error);
+      toast.error('Erro na autenticação com a Deriv');
+      window.location.search = "";
+    }
+  }
+
 
   public getTokenDemo() {
     return this.currentAccount?.tokens.find(t => t.is_virtual)?.token;
@@ -370,6 +507,8 @@ export class DerivService {
   }
 
   public connect(): void {
+    if (typeof window === 'undefined') return;
+
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
@@ -385,9 +524,42 @@ export class DerivService {
       return;
     }
 
-    const ws = new WebSocket(
-      `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`
-    );
+    const activeToken = this.getToken();
+    if (activeToken && activeToken.startsWith('oauth:')) {
+      const parts = activeToken.split(':');
+      const accessToken = parts[1];
+      const accountId = parts[2];
+
+      fetch('/api/deriv-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accessToken, accountId }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to get OTP');
+          return res.json();
+        })
+        .then((otpData) => {
+          if (otpData.websocket_url) {
+            this.establishWebSocketConnection(otpData.websocket_url);
+          } else {
+            this.establishWebSocketConnection();
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to get OTP WebSocket URL:', err);
+          this.establishWebSocketConnection();
+        });
+    } else {
+      this.establishWebSocketConnection();
+    }
+  }
+
+  private establishWebSocketConnection(url?: string): void {
+    const wsUrl = url || `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`;
+    const ws = new WebSocket(wsUrl);
 
     this.ws = ws;
 
@@ -404,8 +576,12 @@ export class DerivService {
 
     this.observer.emit("open", undefined);
 
-    if (this.authorizeToken) {
+    if (this.authorizeToken && !this.authorizeToken.startsWith('oauth:')) {
       this.send({ authorize: this.authorizeToken });
+    } else if (this.authorizeToken && this.authorizeToken.startsWith('oauth:')) {
+      this.isAuthorized = true;
+      this.dispatchPendingRequests();
+      this.dispatchPendingResubscribes();
     }
 
     this.dispatchPendingRequests();
@@ -477,12 +653,12 @@ export class DerivService {
 
   public disconnect(): void {
     this.manualClose = true;
-    
+
     // Cancelar todas as subscriptions
-    const forgetPromises = Array.from(this.subscribes.keys()).map(id => 
+    const forgetPromises = Array.from(this.subscribes.keys()).map(id =>
       this.send({ forget: id }).catch(error => console.error('Forget error:', error))
     );
-    
+
     Promise.all(forgetPromises).finally(() => {
       if (this.ws) {
         this.ws.close();
@@ -491,29 +667,29 @@ export class DerivService {
       this.cleanup();
     });
   }
-  
-  public cleanup() {
-  this.subscribes.clear();
-  this.balanceSubscriptionId = null; // Reset para permitir nova subscription
-  this.isAuthorized = false;
-  this.ws = null;
 
-  if (this.pingInterval) {
-    clearInterval(this.pingInterval);
-    this.pingInterval = null;
+  public cleanup() {
+    this.subscribes.clear();
+    this.balanceSubscriptionId = null; // Reset para permitir nova subscription
+    this.isAuthorized = false;
+    this.ws = null;
+
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+
+    // Limpar requests pendentes
+    this.pendingRequests.forEach(request => {
+      if (request.timeToCancel) {
+        clearTimeout(request.timeToCancel);
+      }
+      if (request.reject) {
+        request.reject(new Error('Connection closed'));
+      }
+    });
+    this.pendingRequests = [];
   }
-  
-  // Limpar requests pendentes
-  this.pendingRequests.forEach(request => {
-    if (request.timeToCancel) {
-      clearTimeout(request.timeToCancel);
-    }
-    if (request.reject) {
-      request.reject(new Error('Connection closed'));
-    }
-  });
-  this.pendingRequests = [];
-}
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
     return new Promise((resolve, reject) => {
@@ -539,70 +715,87 @@ export class DerivService {
 
   public async handleDemoAccountChange() {
     const tokenDemo = this.getTokenDemo() || "";
-    
+
     if (!tokenDemo) {
       throw new Error("Token demo não encontrado");
     }
 
     this.authorizeToken = tokenDemo;
-    const authResponse = await this.send({ authorize: tokenDemo });
+
+    let loginId = "";
+    let balance = 0;
+
+    if (tokenDemo.startsWith('oauth:')) {
+      const parts = tokenDemo.split(':');
+      loginId = parts[2];
+
+      this.disconnect();
+      await this.connect();
+
+      const accounts = this.getStorageDerivAccount();
+      const demoTokenInfo = accounts?.[0]?.tokens.find(t => t.token === tokenDemo);
+      balance = demoTokenInfo?.balance || 0;
+    } else {
+      const authResponse = await this.send({ authorize: tokenDemo });
+      loginId = authResponse.authorize.loginid;
+      balance = authResponse.authorize.balance;
+    }
 
     const updatedAccount = {
       ...this.getStorageDerivAccount()[0],
       activeToken: tokenDemo,
-      selectedLoginId: authResponse.authorize.loginid,
+      selectedLoginId: loginId,
+    };
 
-    } 
-    
     localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
     this.setAccountData(updatedAccount);
   }
 
   private queueRequest(
-  payload: Record<string, any>,
-  reqId: number,
-  needAuthorize: boolean,
-  resolve: (value: any) => void,
-  reject: (reason?: any) => void
-) {
-  const timeToCancel = setTimeout(() => {
-    // Remover da lista de pendentes
-    const index = this.pendingRequests.findIndex(req => req.resolve === resolve);
-    if (index > -1) {
-      this.pendingRequests.splice(index, 1);
-    }
-    reject({ code: "Timeout", message: "Limite de tempo expirado, sem resposta da corretora" });
-    toast.error("Limite de tempo expirado, sem resposta da corretora");
-  }, 20000);
-
-  const pendingRequest: PendingRequest = {
-    needAuthorize,
-    cancelled: false,
-    timeToCancel,
-    resolve,
-    reject,
-    send: () => {
-      if (!pendingRequest.cancelled) {
-        clearTimeout(timeToCancel);
-        this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
+    payload: Record<string, any>,
+    reqId: number,
+    needAuthorize: boolean,
+    resolve: (value: any) => void,
+    reject: (reason?: any) => void
+  ) {
+    const timeToCancel = setTimeout(() => {
+      // Remover da lista de pendentes
+      const index = this.pendingRequests.findIndex(req => req.resolve === resolve);
+      if (index > -1) {
+        this.pendingRequests.splice(index, 1);
       }
-    },
-  };
+      reject({ code: "Timeout", message: "Limite de tempo expirado, sem resposta da corretora" });
+      toast.error("Limite de tempo expirado, sem resposta da corretora");
+    }, 20000);
 
-  this.pendingRequests.push(pendingRequest);
-}
+    const pendingRequest: PendingRequest = {
+      needAuthorize,
+      cancelled: false,
+      timeToCancel,
+      resolve,
+      reject,
+      send: () => {
+        if (!pendingRequest.cancelled) {
+          clearTimeout(timeToCancel);
+          this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
+        }
+      },
+    };
+
+    this.pendingRequests.push(pendingRequest);
+  }
 
   public subscribe(payload: Record<string, any>): Promise<any> {
     // Verificar se já existe uma subscription similar
     const existingSubscription = Array.from(this.subscribes.values())
       .find(sub => JSON.stringify(sub) === JSON.stringify(payload));
-    
+
     if (existingSubscription) {
       return Promise.resolve({ subscription: { id: 'existing' } });
     }
-    
+
     return this.send({ ...payload, subscribe: 1 })
-      .then((response) => {  
+      .then((response) => {
         if (response.subscription?.id) {
           this.subscribes.set(response.subscription.id, payload);
         }
@@ -751,8 +944,33 @@ export class DerivService {
     return this.observer;
   }
 
-  public loginDeriv() {
-    window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${this.appId}`;
+  public async loginDeriv() {
+    const { codeChallenge, state } = await this.generatePKCE();
+    const clientId = process.env.NEXT_PUBLIC_DERIV_CLIENT_ID || this.appId || "";
+
+    // O redirect_uri deve ser EXATAMENTE o que está registrado na Deriv.
+    // Usamos dinamicamente a origem atual para suportar tanto localhost quanto devtunnels.
+    const redirectUri = window.location.origin + "/home";
+
+    console.log("Iniciando login OAuth Deriv. Parametros PKCE gerados:", { state, clientId, redirectUri, appId: this.appId });
+
+    // Usar a interface URL para garantir que todos os parâmetros sejam codificados corretamente,
+    // evitando erros de caracteres inválidos que disparam o Cloudflare (Access Denied).
+    const authUrl = new URL("https://auth.deriv.com/oauth2/auth");
+    authUrl.searchParams.append("response_type", "code");
+    authUrl.searchParams.append("client_id", clientId);
+    authUrl.searchParams.append("redirect_uri", redirectUri);
+    authUrl.searchParams.append("scope", "trade account_manage");
+    authUrl.searchParams.append("state", state);
+    authUrl.searchParams.append("code_challenge", codeChallenge);
+    authUrl.searchParams.append("code_challenge_method", "S256");
+
+    // Se você estiver mantendo suporte à API legada, passa o app_id original
+    if (this.appId) {
+      authUrl.searchParams.append("app_id", this.appId);
+    }
+
+    window.location.href = authUrl.toString();
   }
 
   public updateBarrier(value: string): void {
@@ -877,10 +1095,10 @@ export class DerivService {
         }
       }
     }
-    
+
     const history = this.tickHistory.get(symbol)!;
     history.push({ price, time });
-    
+
     if (history.length > this.MAX_HISTORY_SIZE) {
       history.shift();
     }

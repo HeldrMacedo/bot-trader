@@ -31,9 +31,39 @@ export class WsListener extends EventEmitter {
 
   }
 
-  connect(): void {
+  async connect(): Promise<void> {
     try {
-      this.ws = new WebSocket(this.baseUrl);
+      let wsUrl = this.baseUrl;
+
+      if (this.token && this.token.startsWith('oauth:')) {
+        try {
+          const parts = this.token.split(':');
+          const accessToken = parts[1];
+          const accountId = parts[2];
+          const appId = process.env.NEXT_PUBLIC_APPID || '';
+
+          const response = await fetch(`https://api.derivws.com/trading/v1/options/accounts/${accountId}/otp`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Deriv-App-ID': appId,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.data && data.data.websocket_url) {
+              wsUrl = data.data.websocket_url;
+            }
+          } else {
+            console.error('Failed to fetch OTP from Deriv:', await response.text());
+          }
+        } catch (error) {
+          console.error('Error fetching OTP WebSocket URL:', error);
+        }
+      }
+
+      this.ws = new WebSocket(wsUrl);
       
       this.ws.on('open', async () => {
         console.log('WebSocket connected');
@@ -57,25 +87,30 @@ export class WsListener extends EventEmitter {
         this.emit('error', error);
       });
     } catch (error) {
-
+      this.emit('error', error);
     }
   }
   private async authenticate(): Promise<void> {
-  return new Promise((resolve) => {
-    if (this.ws && this.token) {
-      const authMessage = { authorize: this.token };
-      this.ws.send(JSON.stringify(authMessage));
+    return new Promise((resolve) => {
+      if (this.token && this.token.startsWith('oauth:')) {
+        // Already authenticated via OTP URL
+        resolve();
+        return;
+      }
 
-      this.ws.on('message', (data: string) => {
-        const message = JSON.parse(data);
-        if (message.authorize) {
-          resolve();
-        }
+      if (this.ws && this.token) {
+        const authMessage = { authorize: this.token };
+        this.ws.send(JSON.stringify(authMessage));
 
-      });
-    }
-  });
-}
+        this.ws.on('message', (data: string) => {
+          const message = JSON.parse(data);
+          if (message.authorize) {
+            resolve();
+          }
+        });
+      }
+    });
+  }
 
   private subscribeToTransactions(): void {
     if (this.ws && this.isConnected) {

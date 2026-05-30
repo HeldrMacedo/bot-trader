@@ -46,9 +46,39 @@ export class TradeExecutor extends EventEmitter {
 
 
   async connectToMaster(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
-        this.wsMaster = new WebSocket(this.baseUrl);
+        let wsUrl = this.baseUrl;
+
+        if (this.token && this.token.startsWith('oauth:')) {
+          try {
+            const parts = this.token.split(':');
+            const accessToken = parts[1];
+            const accountId = parts[2];
+            const appId = process.env.NEXT_PUBLIC_APPID || '';
+
+            const response = await fetch(`https://api.derivws.com/trading/v1/options/accounts/${accountId}/otp`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Deriv-App-ID': appId,
+              },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.data && data.data.websocket_url) {
+                wsUrl = data.data.websocket_url;
+              }
+            } else {
+              console.error('Failed to fetch OTP from Deriv:', await response.text());
+            }
+          } catch (error) {
+            console.error('Error fetching OTP WebSocket URL:', error);
+          }
+        }
+
+        this.wsMaster = new WebSocket(wsUrl);
         
         this.wsMaster.on('open', () => {
           //console.log('Connected to master account (real trading)');
@@ -103,6 +133,11 @@ export class TradeExecutor extends EventEmitter {
   }
 
   private authenticateReal(): void {
+    if (this.token && this.token.startsWith('oauth:')) {
+      this.balanceSubscribe();
+      return;
+    }
+
     if (this.wsMaster && this.token) {
       const authMessage = {
         authorize: this.token
