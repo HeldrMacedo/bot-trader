@@ -1,6 +1,5 @@
 "use client";
 
-import DerivAPI from "@deriv/deriv-api";
 import { useEffect, useState, useRef, useCallback, memo } from "react";
 import TicksGraph from "./TicksGraph";
 import Authentication, { AuthenticationHandle } from "./Authentication";
@@ -112,11 +111,10 @@ const SymbolRow = memo(function SymbolRow({
               return (
                 <div
                   key={index}
-                  className={`px-1 py-mx-[1px] text-[12px] border ${
-                    shouldHighlight
-                      ? "bg-slate-500 text-gray-800 border-slate-500"
-                      : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-500"
-                  }`}
+                  className={`px-1 py-mx-[1px] text-[12px] border ${shouldHighlight
+                    ? "bg-slate-500 text-gray-800 border-slate-500"
+                    : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-500"
+                    }`}
                   style={{ color: textColor }}
                 >
                   {digit}
@@ -169,7 +167,7 @@ export const TicksTest = () => {
       if (!user) return;
       setUserData(user);
     } catch (error) {
-      
+
     }
   }, []);
 
@@ -196,7 +194,7 @@ export const TicksTest = () => {
   useEffect(() => {
     const fethUser = async () => {
       const user = await getUser();
-      
+
       if (!user) return;
       setUserData(user);
     };
@@ -236,7 +234,7 @@ export const TicksTest = () => {
       deriv.setAccountData(updatedAccount);
       setValorEntrada(updatedAccount.amount.toString());
     } catch (error) {
-     
+
     }
     setIsVirtual(accountInfo.tokens.find((t) => t.token === token)?.is_virtual);
     setLoading(false);
@@ -295,6 +293,8 @@ export const TicksTest = () => {
   const ticksBufferRef = useRef<Record<string, number[]>>({});
   const rafIdRef = useRef<number>(0);
   const pendingUpdateRef = useRef(false);
+  // Armazena IDs de subscriptions para cancelar no cleanup
+  const subscriptionIdsRef = useRef<string[]>([]);
 
   const flushTicksBuffer = useCallback(() => {
     pendingUpdateRef.current = false;
@@ -318,58 +318,104 @@ export const TicksTest = () => {
     }
   }, [flushTicksBuffer]);
 
-  const fetchTicks = async (symbol: string, api: any) => {
-    const ticksStream = await api.ticks(symbol);
-    const listTicksReturn = await ticksStream.history({
-      count: TICK_BUFFER_SIZE,
-      end: new Date(),
-    });
-    const listTicks = listTicksReturn.map((tick: any) =>
-      extractDigit(tick.raw.quote, symbol)
-    );
+  // Busca histórico de ticks via ticks_history e se inscreve para updates via subscribe:1
+  const fetchTicksHistory = useCallback(async (symbol: string) => {
+    try {
+      // Usa ticks_history com subscribe:1 para obter histórico + streaming em tempo real
+      const response = await deriv.send({
+        ticks_history: symbol,
+        adjust_start_time: 1,
+        count: TICK_BUFFER_SIZE,
+        end: "latest",
+        style: "ticks",
+        subscribe: 1,
+      });
 
-    // Histórico inicial — update direto
-    ticksBufferRef.current[symbol] = listTicks;
-    scheduleFlush();
-
-    ticksStream.onUpdate((tick: any) => {
-      const lastDigit = extractDigit(tick.raw.quote, symbol);
-      // Acumula no buffer ref (sem causar re-render)
-      const current = ticksBufferRef.current[symbol];
-      if (current) {
-        current.push(lastDigit);
-        if (current.length > TICK_BUFFER_SIZE) {
-          ticksBufferRef.current[symbol] = current.slice(-TICK_BUFFER_SIZE);
-        }
-      } else {
-        // Pega do state atual via closure
-        setTicks((prev) => {
-          const updated = [...prev[symbol], lastDigit].slice(-TICK_BUFFER_SIZE);
-          ticksBufferRef.current[symbol] = updated;
-          return prev; // NÃO atualiza o state aqui, deixa o RAF fazer
-        });
+      // Processar histórico inicial da resposta
+      if (response.history) {
+        const { prices } = response.history;
+        const digits = prices.map((price: number) => extractDigit(price, symbol));
+        ticksBufferRef.current[symbol] = digits;
+        scheduleFlush();
       }
-      scheduleFlush();
-    });
-  };
+
+      // Guardar subscription ID para cleanup
+      if (response.subscription?.id) {
+        subscriptionIdsRef.current.push(response.subscription.id);
+      }
+    } catch (error) {
+      console.error(`Erro ao buscar ticks para ${symbol}:`, error);
+    }
+  }, [deriv, scheduleFlush]);
 
   useEffect(() => {
     formatInputMoney(valorEntrada);
   }, [multiplicador, valorEntrada]);
 
+  // Efeito principal: busca histórico e escuta ticks em tempo real via DerivService
   useEffect(() => {
-    const connection = new WebSocket(
-      `wss://ws.derivws.com/websockets/v3?app_id=${process.env.NEXT_PUBLIC_APPID}`
-    );
-    const api = new DerivAPI({ connection });
+    let isMounted = true;
 
-    SYMBOLS.forEach((symbol) => {
-      fetchTicks(symbol, api);
+    const startTickSubscriptions = async () => {
+      if (!isMounted) return;
+      // Limpar subscriptions antigas (stale após reconnect)
+      subscriptionIdsRef.current = [];
+      // Buscar histórico + subscribe para cada símbolo
+      for (const symbol of SYMBOLS) {
+        if (!isMounted) return;
+        await fetchTicksHistory(symbol);
+      }
+    };
+
+    // Escutar evento "open" para saber quando a conexão está pronta
+    // Também trata reconexões automáticas (a cada open, re-subscriba)
+    const openListenerId = deriv.observerInstance.on("open", () => {
+      startTickSubscriptions();
+    });
+
+    // Se já está conectado, iniciar imediatamente
+    if (deriv.isConnected) {
+      startTickSubscriptions();
+    }
+
+    // Escutar ticks em tempo real via observer do DerivService
+    // O subscribe:1 no ticks_history faz com que novos ticks venham como msg_type "tick"
+    const tickListenerId = deriv.observerInstance.on("deriv.tick", (data: any) => {
+      if (data.tick) {
+        const { symbol, quote } = data.tick;
+        // Verificar se é um símbolo que estamos monitorando
+        if (SYMBOLS.includes(symbol as any)) {
+          const lastDigit = extractDigit(quote, symbol);
+          // Acumula no buffer ref (sem causar re-render)
+          const current = ticksBufferRef.current[symbol];
+          if (current) {
+            current.push(lastDigit);
+            if (current.length > TICK_BUFFER_SIZE) {
+              ticksBufferRef.current[symbol] = current.slice(-TICK_BUFFER_SIZE);
+            }
+          } else {
+            // Pega do state atual via closure
+            setTicks((prev) => {
+              const updated = [...(prev[symbol] || []), lastDigit].slice(-TICK_BUFFER_SIZE);
+              ticksBufferRef.current[symbol] = updated;
+              return prev; // NÃO atualiza o state aqui, deixa o RAF fazer
+            });
+          }
+          scheduleFlush();
+        }
+      }
     });
 
     return () => {
+      isMounted = false;
       cancelAnimationFrame(rafIdRef.current);
-      connection.close();
+      deriv.observerInstance.removeById(openListenerId);
+      deriv.observerInstance.removeById(tickListenerId);
+      // Cancelar todas as subscriptions de ticks
+      subscriptionIdsRef.current.forEach((id) => {
+        deriv.send({ forget: id }).catch(() => { });
+      });
+      subscriptionIdsRef.current = [];
     };
   }, []);
 
@@ -498,11 +544,10 @@ export const TicksTest = () => {
                     Loss: {accountInfo.results.loss ?? 0}
                   </div>
                   <div
-                    className={`${
-                      accountInfo.results.result > 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    } border-r-[2px] pr-2 text-sm text-nowrap`}
+                    className={`${accountInfo.results.result > 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                      } border-r-[2px] pr-2 text-sm text-nowrap`}
                   >
                     Resultado:{" "}
                     {new Intl.NumberFormat("en-US", {
@@ -555,7 +600,6 @@ export const TicksTest = () => {
                       value={accountInfo.activeToken}
                       onChange={(e) => handleAccountChange(e.target.value)}
                       disabled={loading}
-                      defaultValue={accountInfo.activeToken}
                       className=" col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-gray-800 py-1.5 pl-3 pr-8 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
                     >
                       {accountInfo.tokens.map((token) => (
@@ -641,11 +685,10 @@ export const TicksTest = () => {
                     }).format(accountInfo.lastTrade.amount)}
                   </div>
                   <div
-                    className={`${
-                      accountInfo.lastTrade.profit > 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
+                    className={`${accountInfo.lastTrade.profit > 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                      }`}
                   >
                     Resultado:{" "}
                     {new Intl.NumberFormat("en-US", {

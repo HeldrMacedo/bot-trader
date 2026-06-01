@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { accessToken, accountId } = await request.json();
-    const appId = process.env.NEXT_PUBLIC_APPID;
-
+    const appId = process.env.NEXT_PUBLIC_DERIV_CLIENT_ID;
+    console.log("accessToken", accessToken);
+    console.log("accountId", accountId);
+    console.log("appId", appId);
     if (!accessToken || !accountId) {
       return NextResponse.json({ error: 'AccessToken and AccountId are required' }, { status: 400 });
     }
@@ -23,7 +25,8 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    return NextResponse.json({ websocket_url: data.data.websocket_url });
+    console.log("OTP Response:", JSON.stringify(data));
+    return NextResponse.json({ websocket_url: data.data.url });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

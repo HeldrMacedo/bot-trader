@@ -79,6 +79,8 @@ export class DerivService {
   private currentAccount: AccountInfo | null = null;
   private balanceSubscriptionId: string | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private reconnectAttempts = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 5;
 
   // Histórico de ticks em memória para acesso síncrono
   private tickHistory = new Map<string, { price: number; time: number }[]>();
@@ -529,7 +531,7 @@ export class DerivService {
       const parts = activeToken.split(':');
       const accessToken = parts[1];
       const accountId = parts[2];
-
+      console.log(accessToken, accountId);
       fetch('/api/deriv-otp', {
         method: 'POST',
         headers: {
@@ -573,6 +575,9 @@ export class DerivService {
     if (this.ws !== ws || ws.readyState !== WebSocket.OPEN) {
       return;
     }
+
+    // Conexão bem-sucedida: resetar contador de reconexão
+    this.reconnectAttempts = 0;
 
     this.observer.emit("open", undefined);
 
@@ -848,6 +853,13 @@ export class DerivService {
       return;
     }
 
+    // Limitar tentativas para evitar loop infinito (ex: CSP bloqueando)
+    this.reconnectAttempts++;
+    if (this.reconnectAttempts > this.MAX_RECONNECT_ATTEMPTS) {
+      console.error(`Máximo de tentativas de reconexão (${this.MAX_RECONNECT_ATTEMPTS}) atingido. Parando.`);
+      return;
+    }
+
     this.subscribes.forEach((payload, id) => {
       this.pendingResubscribes.set(id, payload);
     });
@@ -860,10 +872,14 @@ export class DerivService {
     } catch {
     }
 
+    // Backoff exponencial: 1s, 2s, 4s, 8s, 16s
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 16000);
+    console.log(`Reconectando em ${delay / 1000}s (tentativa ${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS})...`);
+
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
       this.connect();
-    }, 1000);
+    }, delay);
   }
 
   public destroy() {
