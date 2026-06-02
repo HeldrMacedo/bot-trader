@@ -145,9 +145,9 @@ export class DerivService {
       }
     }
 
-    this.observer.on("open", () => {
-      this.processAuthenticatedUserData();
-      this.setupBalanceMonitoring();
+    this.observer.on("open", async () => {
+      await this.processAuthenticatedUserData();
+      await this.setupBalanceMonitoring();
     });
 
     // Monitorar ticks para manter histórico
@@ -161,34 +161,22 @@ export class DerivService {
     this.observer.on("deriv.balance", (data) => {
       if (this.currentAccount) {
         this.currentAccount.tokens.forEach((token) => {
-          if (data.balance?.accounts) {
-            Object.keys(data.balance.accounts).forEach(accounts => {
-              let isDemo = Boolean(data.balance.accounts[accounts].demo_account);
-              if (token.is_virtual === isDemo) {
-                token.balance = data.balance.accounts[accounts].balance;
-                this.setAccountData(this.currentAccount);
-              }
-            });
-          } else {
-            // Verificar se loginid existe antes de acessar
-            if (data.balance?.loginid && token.acct == data.balance.loginid) {
-              token.balance = data.balance.balance;
-              this.setAccountData(this.currentAccount);
-            }
+          if (data.balance?.loginid && token.acct == data.balance.loginid) {
+            token.balance = data.balance.balance;
+            this.setAccountData(this.currentAccount);
           }
-
         });
         this.saveAccount(this.currentAccount);
       }
     });
   }
 
-  private setupBalanceMonitoring() {
+  private async setupBalanceMonitoring() {
     if (this.balanceSubscriptionId) {
       return;
     }
 
-    this.subscribe({ balance: 1, account: "all" })
+    await this.subscribe({ balance: 1 })
       .then((subscription) => {
         this.balanceSubscriptionId = subscription.subscription.id;
       })
@@ -279,7 +267,6 @@ export class DerivService {
   }
 
   private handleAuthError(error: any) {
-    console.error("Erro na autenticação:", error);
     this.observer.emit("auth.error", {
       code: "AUTH_FAILED",
       message: error.message,
@@ -343,7 +330,6 @@ export class DerivService {
       const accounts = this.getStorageDerivAccount();
       const currentAcc = accounts?.[0];
       const activeTokenInfo = currentAcc?.tokens.find(t => t.token === token);
-
       this.isAuthorized = true;
 
       return {
@@ -531,7 +517,7 @@ export class DerivService {
       const parts = activeToken.split(':');
       const accessToken = parts[1];
       const accountId = parts[2];
-      console.log(accessToken, accountId);
+
       fetch('/api/deriv-otp', {
         method: 'POST',
         headers: {
@@ -616,7 +602,7 @@ export class DerivService {
       if (data.msg_type === "forget") {
         this.subscribes.delete(data.forget);
       } else if (data.msg_type === "authorize") {
-        this.isAuthorized = !data.error;
+        //this.isAuthorized = !data.error;
         if (this.isAuthorized) {
           this.dispatchPendingResubscribes();
           this.dispatchPendingRequests();
@@ -697,6 +683,7 @@ export class DerivService {
   }
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
+
     return new Promise((resolve, reject) => {
       const reqId = this.reqId++;
       payload.req_id = reqId;
@@ -709,6 +696,7 @@ export class DerivService {
           data.error ? reject(data.error) : resolve(data);
         }
       });
+
 
       if (this.isConnected && (!needAuthorize || this.isAuthorized)) {
         this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
@@ -967,8 +955,6 @@ export class DerivService {
     // O redirect_uri deve ser EXATAMENTE o que está registrado na Deriv.
     // Usamos dinamicamente a origem atual para suportar tanto localhost quanto devtunnels.
     const redirectUri = window.location.origin + "/home";
-
-    console.log("Iniciando login OAuth Deriv. Parametros PKCE gerados:", { state, clientId, redirectUri, appId: this.appId });
 
     // Usar a interface URL para garantir que todos os parâmetros sejam codificados corretamente,
     // evitando erros de caracteres inválidos que disparam o Cloudflare (Access Denied).

@@ -52,7 +52,7 @@ const BuyTable = ({
             const accounts = derivService.getStorageDerivAccount();
             const account = accounts && accounts[0];
             if (!account) return;
-
+            console.log("data.proposal_open_contract", data);
             const finishedTradeList = {
               amount: data.proposal_open_contract.buy_price,
               barrier: handleBarrieType(data.proposal_open_contract),
@@ -62,7 +62,7 @@ const BuyTable = ({
               market: data.proposal_open_contract.underlying,
               profit: data.proposal_open_contract.profit,
               resultBarrier:
-                data.proposal_open_contract.exit_tick_display_value.slice(-1),
+                data.proposal_open_contract.exit_spot?.slice(-1) ?? "",
               status: status,
             };
 
@@ -81,7 +81,7 @@ const BuyTable = ({
             const isWin = data.proposal_open_contract.profit > 0;
             account.results.wins += isWin ? 1 : 0;
             account.results.loss += isWin ? 0 : 1;
-            account.results.result += data.proposal_open_contract.profit;
+            account.results.result += parseFloat(data.proposal_open_contract.profit);
             account.lastTrade = finishedTradeList;
 
             derivService.setAccountData(account);
@@ -147,8 +147,8 @@ const BuyTable = ({
           currency: "USD",
           duration: 1,
           duration_unit: "t",
-          symbol: accountInfo.volatility,
-          ...(tradeType !== 2 && { barrier: accountInfo.digits }),
+          underlying_symbol: accountInfo.volatility,
+          ...(tradeType !== 2 && { barrier: String(accountInfo.digits) }),
         },
       };
 
@@ -250,11 +250,10 @@ const BuyTable = ({
             transition-colors 
             font-medium 
             nowrap
-            ${
-              selected === number
-                ? "bg-slate-400 text-white border-slate-500"
-                : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
-            }
+            ${selected === number
+                  ? "bg-slate-400 text-white border-slate-500"
+                  : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
+                }
           `}
               aria-pressed={selected === number}
               role="button"
@@ -276,11 +275,10 @@ const BuyTable = ({
             transition-colors 
             font-medium 
             nowrap
-            ${
-              selected === number
-                ? "bg-slate-400 text-white border-slate-500"
-                : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
-            }
+            ${selected === number
+                  ? "bg-slate-400 text-white border-slate-500"
+                  : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
+                }
           `}
               aria-pressed={selected === number}
               role="button"
@@ -302,11 +300,10 @@ const BuyTable = ({
             transition-colors 
             font-medium 
             nowrap
-            ${
-              selected === number
-                 ? "bg-slate-400 text-white border-slate-500"
-                : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
-            }
+            ${selected === number
+                  ? "bg-slate-400 text-white border-slate-500"
+                  : "bg-[#454a58] text-[oklch(92.9% 0.013 255.508)] border-gray-300 hover:bg-slate-400 hover:text-white"
+                }
           `}
               aria-pressed={selected === number}
               role="button"
@@ -354,10 +351,10 @@ const BuyTable = ({
               <span className="text-sm">Tipo de Trade</span>
               <div className="grid grid-cols-1">
                 <select
-                value={String(tradeType)}
+                  value={String(tradeType)}
                   onChange={(e) => onChangeTradeType(Number(e.target.value))}
                   className="col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-gray-800 py-1.5 pl-3 pr-8 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
-                
+
                 >
                   <option>Selecione um tipo</option>
                   <option value={1}>Acima/Abaixo</option>

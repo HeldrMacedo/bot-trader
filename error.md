@@ -1,22 +1,11 @@
-22 [DEMO] ==> - LOSE
-21 [REAL] ==> - WIN
-20 [REAL] ==> - LOSE
-19 [DEMO] ==> - LOSE
-18 [DEMO] ==> - LOSE
-17 [DEMO] ==> - WIN
-16 [DEMO] ==> - WIN
-15 [DEMO] ==> - LOSE
-14 [REAL] ==> - WIN
-13 [DEMO] ==> - LOSE
-12 [DEMO] ==> - LOSE
-11 [DEMO] ==> - WIN
-10 [DEMO] ==> - LOSE
-9 [DEMO] ==> - WIN
-8 [DEMO] ==> - LOSE
-7 [DEMO] ==> - WIN
-6 [DEMO] ==> - WIN
-5 [REAL] ==> - WIN
-4 [REAL] ==> - LOSE
-3 [REAL] ==> - LOSE
-2 [DEMO] ==> - LOSE
-1 [DEMO] ==> - LOSE
+simpleObserver.ts:23 Error in deriv.proposal_open_contract listener: TypeError: Cannot read properties of undefined (reading 'slice')
+    at BuyTable.useEffect.contractListener (buyTable.tsx:65:69)
+    at simpleObserver.ts:21:21
+    at Map.forEach (<anonymous>)
+    at Observer.emit (simpleObserver.ts:19:37)
+    at DerivService.handleMessage (DerivService.tsx:627:23)
+    at WebSocket.<anonymous> (DerivService.tsx:569:52)
+(anonymous)	@	simpleObserver.ts:23
+emit	@	simpleObserver.ts:19
+handleMessage	@	DerivService.tsx:627
+(anonymous)	@	DerivService.tsx:569

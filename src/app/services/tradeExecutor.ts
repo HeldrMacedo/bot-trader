@@ -194,7 +194,7 @@ export class TradeExecutor extends EventEmitter {
   private buildBuyRequest(signal: TradeSignal, requestId: number): BuyRequest {
     // Implementa lógica avançada baseada no method_220 do ZeeX
     const parameters: any = {
-      symbol: signal.symbol,
+      underlying_symbol: signal.symbol,
       contract_type: signal.contractType,
       duration: signal.duration,
       duration_unit: signal.durationUnit || 't',

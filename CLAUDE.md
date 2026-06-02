@@ -85,6 +85,7 @@ Turbopack is explicitly disabled. The `next.config.mjs` has special webpack rule
 - Telegram integration
 
 See `docs/MIGRATION_ARCHITECTURE.md` and `docs/MIGRATION_DOCUMENTATION.md` for detailed migration guidance.
+See `docs/DERIV_OAUTH_MIGRATION.md` for details on the new OAuth 2.0 PKCE authentication and unified WebSocket data layer.
 See `docs/ADVANCED_MODE.md` for the trade-mind-pro Advanced Mode (json-rules-engine) documentation.
 See `docs/AUTH_ROUTES.md` for authentication and route protection documentation.
 See `docs/BOTTRADER.md` for the BotTrader (Copy Trader) module documentation.
