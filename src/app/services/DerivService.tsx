@@ -3,6 +3,7 @@ import { Observer } from "./simpleObserver";
 
 type DerivEventMap = {
   open: void;
+  "market.open": void;
   close: CloseEvent;
   error: Event;
   message: any;
@@ -28,6 +29,7 @@ export interface TokenData {
 
 interface PendingRequest {
   needAuthorize: boolean;
+  isMarket: boolean;
   cancelled: boolean;
   timeToCancel: NodeJS.Timeout | null;
   send: () => void;
@@ -66,21 +68,27 @@ export class DerivService {
   private static instance: DerivService;
   private observer = new Observer<DerivEventMap>();
   private ws: WebSocket | null = null;
+  private marketWs: WebSocket | null = null;
   private appId = process.env.NEXT_PUBLIC_APPID;
   private derivTokenScope = "";
   private reqId = 1;
   private isAuthorized = false;
   private authorizeToken: string | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
+  private marketPingInterval: NodeJS.Timeout | null = null;
   private manualClose = false;
   private pendingRequests: PendingRequest[] = [];
   private subscribes = new Map<string, any>();
+  private marketSubscribes = new Map<string, any>();
   private pendingResubscribes = new Map<string, any>();
   private currentAccount: AccountInfo | null = null;
   private balanceSubscriptionId: string | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private marketReconnectTimeout: NodeJS.Timeout | null = null;
   private reconnectAttempts = 0;
+  private marketReconnectAttempts = 0;
   private readonly MAX_RECONNECT_ATTEMPTS = 5;
+  private readonly MAX_MARKET_RECONNECT_ATTEMPTS = 10;
 
   // Histórico de ticks em memória para acesso síncrono
   private tickHistory = new Map<string, { price: number; time: number }[]>();
@@ -497,6 +505,13 @@ export class DerivService {
   public connect(): void {
     if (typeof window === 'undefined') return;
 
+    // Conectar o canal público de mercado
+    this.connectMarketWs();
+
+    if (!this.getStorageDerivAccount() || this.getStorageDerivAccount()?.length === 0) {
+      return;
+    }
+
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
@@ -555,6 +570,136 @@ export class DerivService {
     ws.addEventListener("message", (event) => this.handleMessage(ws, event));
     ws.addEventListener("error", (event) => this.handleError(ws, event));
     ws.addEventListener("close", (event) => this.handleClose(ws, event));
+  }
+
+  public get isMarketConnected(): boolean {
+    return this.marketWs !== null && this.marketWs.readyState === WebSocket.OPEN;
+  }
+
+  private connectMarketWs(): void {
+    if (typeof window === 'undefined') return;
+
+    if (this.marketReconnectTimeout) {
+      clearTimeout(this.marketReconnectTimeout);
+      this.marketReconnectTimeout = null;
+    }
+
+    if (
+      this.marketWs &&
+      (this.marketWs.readyState === WebSocket.OPEN ||
+        this.marketWs.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
+
+    const wsUrl = `wss://ws.derivws.com/websockets/v3?l=pt&app_id=1089`;
+    const ws = new WebSocket(wsUrl);
+
+    this.marketWs = ws;
+
+    ws.addEventListener("open", () => this.handleMarketOpen(ws));
+    ws.addEventListener("message", (event) => this.handleMarketMessage(ws, event));
+    ws.addEventListener("error", (event) => this.handleMarketError(ws, event));
+    ws.addEventListener("close", (event) => this.handleMarketClose(ws, event));
+  }
+
+  public handleMarketOpen(ws: WebSocket) {
+    if (this.marketWs !== ws || ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    this.marketReconnectAttempts = 0;
+    this.observer.emit("market.open" as any, undefined);
+
+    this.dispatchMarketPendingResubscribes();
+    this.dispatchPendingRequests();
+
+    if (this.marketPingInterval) {
+      clearInterval(this.marketPingInterval);
+    }
+
+    this.marketPingInterval = setInterval(() => {
+      if (this.marketWs === ws && ws.readyState === WebSocket.OPEN) {
+        ws.send('{ "ping": 1 }');
+      }
+    }, 25000);
+  }
+
+  public handleMarketMessage(ws: WebSocket, event: MessageEvent) {
+    if (this.marketWs !== ws) {
+      return;
+    }
+
+    try {
+      const data = JSON.parse(event.data);
+
+      this.observer.emit("message", data);
+
+      if (data.msg_type === "forget") {
+        this.marketSubscribes.delete(data.forget);
+      }
+
+      if (data.msg_type) {
+        this.observer.emit(
+          `deriv.${data.msg_type}` as keyof DerivEventMap,
+          data
+        );
+      }
+    } catch (error) {
+      console.error("Error parsing market message:", error);
+    }
+  }
+
+  private handleMarketError(ws: WebSocket, event: Event) {
+    if (this.marketWs !== ws) {
+      return;
+    }
+    this.reconnectMarketWs();
+  }
+
+  private handleMarketClose(ws: WebSocket, event: CloseEvent) {
+    if (this.marketWs !== ws) {
+      return;
+    }
+    this.cleanupMarketWs();
+    this.reconnectMarketWs();
+  }
+
+  public cleanupMarketWs() {
+    this.marketSubscribes.clear();
+    this.marketWs = null;
+    if (this.marketPingInterval) {
+      clearInterval(this.marketPingInterval);
+      this.marketPingInterval = null;
+    }
+  }
+
+  public reconnectMarketWs() {
+    if (this.marketReconnectTimeout) {
+      return;
+    }
+
+    this.marketReconnectAttempts++;
+    if (this.marketReconnectAttempts > this.MAX_MARKET_RECONNECT_ATTEMPTS) {
+      console.error(`Máximo de tentativas de reconexão do canal de mercado atingido.`);
+      return;
+    }
+
+    const delay = Math.min(1000 * Math.pow(2, this.marketReconnectAttempts - 1), 16000);
+    console.log(`Reconectando canal de mercado em ${delay / 1000}s (tentativa ${this.marketReconnectAttempts}/${this.MAX_MARKET_RECONNECT_ATTEMPTS})...`);
+
+    this.marketReconnectTimeout = setTimeout(() => {
+      this.marketReconnectTimeout = null;
+      this.connectMarketWs();
+    }, delay);
+  }
+
+  private dispatchMarketPendingResubscribes() {
+    this.marketSubscribes.forEach((payload, id) => {
+      this.subscribe(payload).then(() => {
+        // Sucesso
+      });
+    });
   }
 
   public handleOpen(ws: WebSocket) {
@@ -645,17 +790,27 @@ export class DerivService {
   public disconnect(): void {
     this.manualClose = true;
 
-    // Cancelar todas as subscriptions
+    // Cancelar todas as subscriptions do ws principal
     const forgetPromises = Array.from(this.subscribes.keys()).map(id =>
       this.send({ forget: id }).catch(error => console.error('Forget error:', error))
     );
 
-    Promise.all(forgetPromises).finally(() => {
+    // Cancelar todas as subscriptions do ws de mercado
+    const forgetMarketPromises = Array.from(this.marketSubscribes.keys()).map(id =>
+      this.send({ forget: id }).catch(error => console.error('Forget market error:', error))
+    );
+
+    Promise.all([...forgetPromises, ...forgetMarketPromises]).finally(() => {
       if (this.ws) {
         this.ws.close();
         this.ws = null;
       }
+      if (this.marketWs) {
+        this.marketWs.close();
+        this.marketWs = null;
+      }
       this.cleanup();
+      this.cleanupMarketWs();
     });
   }
 
@@ -688,6 +843,7 @@ export class DerivService {
       const reqId = this.reqId++;
       payload.req_id = reqId;
       const needAuthorize = this.checkNeedAuthorize(payload);
+      const isMarket = this.isMarketRequest(payload);
 
       const listenerId = this.observer.on("message", (data) => {
 
@@ -697,11 +853,18 @@ export class DerivService {
         }
       });
 
-
-      if (this.isConnected && (!needAuthorize || this.isAuthorized)) {
-        this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
+      if (isMarket) {
+        if (this.isMarketConnected) {
+          this.marketWs!.send(JSON.stringify({ ...payload, req_id: reqId }));
+        } else {
+          this.queueRequest(payload, reqId, false, resolve, reject);
+        }
       } else {
-        this.queueRequest(payload, reqId, needAuthorize, resolve, reject);
+        if (this.isConnected && (!needAuthorize || this.isAuthorized)) {
+          this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
+        } else {
+          this.queueRequest(payload, reqId, needAuthorize, resolve, reject);
+        }
       }
     });
   }
@@ -744,6 +907,67 @@ export class DerivService {
     this.setAccountData(updatedAccount);
   }
 
+  public async switchAccount(token: string): Promise<any> {
+    if (!token) {
+      throw new Error("Token inválido");
+    }
+
+    // Atualizar token ativo
+    this.setToken(token);
+
+    let loginId = "";
+    let balance = 0;
+
+    if (token.startsWith('oauth:')) {
+      const parts = token.split(':');
+      loginId = parts[2];
+
+      // Desconecta apenas o ws principal de trade e reconecta
+      if (this.ws) {
+        try {
+          this.ws.close();
+        } catch {}
+        this.ws = null;
+      }
+      this.cleanup(); // Limpa as subscriptions do socket de trade, pendentes, etc.
+      
+      this.connect(); // Dispara nova conexão que vai buscar o OTP da conta correspondente
+
+      // Aguardar conexão estar ativa
+      await this.waitForConnection();
+
+      // Autorizar e obter saldos
+      const authResult = await this.authenticate(token);
+      loginId = authResult.loginid;
+      balance = authResult.balance;
+    } else {
+      // Fluxo legado
+      const authResponse = await this.send({ authorize: token });
+      if (authResponse.error) {
+        throw new Error(authResponse.error.message);
+      }
+      loginId = authResponse.authorize.loginid;
+      balance = authResponse.authorize.balance;
+    }
+
+    const accounts = this.getStorageDerivAccount();
+    if (accounts && accounts.length > 0) {
+      const currentAcc = accounts[0];
+      currentAcc.activeToken = token;
+      currentAcc.selectedLoginId = loginId;
+      currentAcc.loginId = loginId;
+      currentAcc.tokens = currentAcc.tokens.map(t => {
+        if (t.token === token) {
+          return { ...t, balance };
+        }
+        return t;
+      });
+
+      this.saveAccount(currentAcc);
+      this.setAccountData(currentAcc);
+    }
+  }
+
   private queueRequest(
     payload: Record<string, any>,
     reqId: number,
@@ -751,6 +975,7 @@ export class DerivService {
     resolve: (value: any) => void,
     reject: (reason?: any) => void
   ) {
+    const isMarket = this.isMarketRequest(payload);
     const timeToCancel = setTimeout(() => {
       // Remover da lista de pendentes
       const index = this.pendingRequests.findIndex(req => req.resolve === resolve);
@@ -763,6 +988,7 @@ export class DerivService {
 
     const pendingRequest: PendingRequest = {
       needAuthorize,
+      isMarket,
       cancelled: false,
       timeToCancel,
       resolve,
@@ -770,7 +996,10 @@ export class DerivService {
       send: () => {
         if (!pendingRequest.cancelled) {
           clearTimeout(timeToCancel);
-          this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
+          const targetWs = isMarket ? this.marketWs : this.ws;
+          if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+            targetWs.send(JSON.stringify({ ...payload, req_id: reqId }));
+          }
         }
       },
     };
@@ -779,8 +1008,11 @@ export class DerivService {
   }
 
   public subscribe(payload: Record<string, any>): Promise<any> {
+    const isMarket = this.isMarketRequest(payload);
+    const subMap = isMarket ? this.marketSubscribes : this.subscribes;
+
     // Verificar se já existe uma subscription similar
-    const existingSubscription = Array.from(this.subscribes.values())
+    const existingSubscription = Array.from(subMap.values())
       .find(sub => JSON.stringify(sub) === JSON.stringify(payload));
 
     if (existingSubscription) {
@@ -790,7 +1022,7 @@ export class DerivService {
     return this.send({ ...payload, subscribe: 1 })
       .then((response) => {
         if (response.subscription?.id) {
-          this.subscribes.set(response.subscription.id, payload);
+          subMap.set(response.subscription.id, payload);
         }
         return response;
       })
@@ -802,24 +1034,38 @@ export class DerivService {
       });
   }
 
+  private isMarketRequest(payload: Record<string, any>): boolean {
+    if (payload.hasOwnProperty("ticks") || payload.hasOwnProperty("ticks_history") || payload.hasOwnProperty("active_symbols")) {
+      return true;
+    }
+    if (payload.hasOwnProperty("forget")) {
+      const subscriptionId = payload.forget;
+      return this.marketSubscribes.has(subscriptionId);
+    }
+    return false;
+  }
+
   private checkNeedAuthorize(payload: Record<string, any>): boolean {
     return this.needAuthorize.some((key) => payload.hasOwnProperty(key));
   }
 
   private dispatchPendingRequests() {
-    const ws = this.ws;
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
     const pending = [...this.pendingRequests];
     this.pendingRequests = [];
 
     pending.forEach((request) => {
-      if ((request.needAuthorize && this.isAuthorized) || !request.needAuthorize) {
-        request.send();
+      if (request.isMarket) {
+        if (this.isMarketConnected) {
+          request.send();
+        } else {
+          this.pendingRequests.push(request);
+        }
       } else {
-        this.pendingRequests.push(request);
+        if (this.isConnected && ((request.needAuthorize && this.isAuthorized) || !request.needAuthorize)) {
+          request.send();
+        } else {
+          this.pendingRequests.push(request);
+        }
       }
     });
   }

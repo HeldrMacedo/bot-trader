@@ -1,33 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
 
 const TicksGraph = ({ ticksProp, selectedLastTicksProp }) => {
-  const [ticks, setTicks] = useState([]);
-  const [digitPercentages, setDigitPercentages] = useState([]);
   const [selectedLastTicks, setSelectedLastTicks] = useState(
     selectedLastTicksProp
   );
 
-  useEffect(() => {
-    setTicks(ticksProp);
-  }, [ticksProp]);
+  const ticks = ticksProp || [];
+  const digitCounts = Array(10).fill(0);
 
-  useEffect(() => {
-    const digitCounts = Array(10).fill(0);
+  ticks.slice(-selectedLastTicks).forEach((digit) => {
+    digitCounts[digit]++;
+  });
 
-    ticks.slice(-selectedLastTicks).forEach((digit) => {
-      digitCounts[digit]++;
-    });
-
-    const percentagesArray = digitCounts.map((count, digit) => ({
-      digit,
-      percentage: (count / selectedLastTicks) * 100 || 0,
-    }));
-
-    setDigitPercentages(percentagesArray);
-  }, [ticks, selectedLastTicks]);
+  const digitPercentages = digitCounts.map((count, digit) => ({
+    digit,
+    percentage: (count / selectedLastTicks) * 100 || 0,
+  }));
 
   const getBarColor = (percentage) => {
     if (percentage < 10) return "red";

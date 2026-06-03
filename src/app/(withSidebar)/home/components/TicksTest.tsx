@@ -220,24 +220,16 @@ export const TicksTest = () => {
 
     setLoading(true);
     try {
-      const authResponse = await deriv.send({ authorize: token });
-      const updatedAccount: AccountInfo = {
-        ...accountInfo,
-        activeToken: token,
-        selectedLoginId: authResponse?.authorize?.loginid ?? "",
-        tokens: accountInfo.tokens.map((t) => ({
-          ...t,
-          balance:
-            t.token === token ? authResponse.authorize.balance : t.balance,
-        })),
-      };
-      localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
-      deriv.setAccountData(updatedAccount);
-      setValorEntrada(updatedAccount.amount.toString());
+      await deriv.switchAccount(token);
+      const accounts = deriv.getStorageDerivAccount();
+      if (accounts && accounts.length > 0) {
+        setAccountInfo(accounts[0]);
+        setValorEntrada(accounts[0].amount.toString());
+        setIsVirtual(accounts[0].tokens.find((t) => t.token === token)?.is_virtual ?? true);
+      }
     } catch (error) {
-
+      console.error("Erro ao trocar de conta:", error);
     }
-    setIsVirtual(accountInfo.tokens.find((t) => t.token === token)?.is_virtual);
     setLoading(false);
   };
 
@@ -368,14 +360,14 @@ export const TicksTest = () => {
       }
     };
 
-    // Escutar evento "open" para saber quando a conexão está pronta
-    // Também trata reconexões automáticas (a cada open, re-subscriba)
-    const openListenerId = deriv.observerInstance.on("open", () => {
+    // Escutar evento "market.open" para saber quando a conexão está pronta
+    // Também trata reconexões automáticas (a cada market.open, re-subscriba)
+    const marketOpenListenerId = deriv.observerInstance.on("market.open", () => {
       startTickSubscriptions();
     });
 
     // Se já está conectado, iniciar imediatamente
-    if (deriv.isConnected) {
+    if (deriv.isMarketConnected) {
       startTickSubscriptions();
     }
 
@@ -410,7 +402,7 @@ export const TicksTest = () => {
     return () => {
       isMounted = false;
       cancelAnimationFrame(rafIdRef.current);
-      deriv.observerInstance.removeById(openListenerId);
+      deriv.observerInstance.removeById(marketOpenListenerId);
       deriv.observerInstance.removeById(tickListenerId);
       // Cancelar todas as subscriptions de ticks
       subscriptionIdsRef.current.forEach((id) => {

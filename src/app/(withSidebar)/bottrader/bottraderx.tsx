@@ -107,11 +107,11 @@ export default function BotTraderX() {
   });
 
   const [loading, setLoading] = useState(false);
-  //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
+  const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
   //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
-  //const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
-  const [demoToken, setDemoToken] = useState("");
-  const [realToken, setRealToken] = useState("");
+  const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
+  //const [demoToken, setDemoToken] = useState("");
+  //const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({
@@ -174,9 +174,9 @@ export default function BotTraderX() {
           detalhes: data.errors.errors,
         }));
       }
-      
+
     } catch (error) {
-      
+
     }
   };
 
@@ -234,7 +234,7 @@ export default function BotTraderX() {
       }
     } catch (error) {
       toast.error("Erro ao parar copy trading");
-      
+
     } finally {
       setLoading(false);
     }
@@ -307,13 +307,10 @@ export default function BotTraderX() {
               {isStart ? (
                 <button
                   onClick={stopCopyTrading}
-                  className={`flex items-center gap-3 rounded-md pr-4 pl-4 ${
-                    isPaused ? "bg-yellow-600" : "bg-red-600"
-                  } px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-${
-                    isPaused ? "yellow-500" : "red-500"
-                  } focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-${
-                    isPaused ? "yellow-600" : "red-600"
-                  }`}
+                  className={`flex items-center gap-3 rounded-md pr-4 pl-4 ${isPaused ? "bg-yellow-600" : "bg-red-600"
+                    } px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-${isPaused ? "yellow-500" : "red-500"
+                    } focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-${isPaused ? "yellow-600" : "red-600"
+                    }`}
                 >
                   {isPaused ? (
                     <>
@@ -752,7 +749,7 @@ export default function BotTraderX() {
                           : "text-red-600"
                       }
                     >
-                      {index + 1} {item.isDemo ? '[DEMO] ==> ' : '[REAL] ==> '} - {item.amount > 0 ? 'WIN' : 'LOSE'} 
+                      {index + 1} {item.isDemo ? '[DEMO] ==> ' : '[REAL] ==> '} - {item.amount > 0 ? 'WIN' : 'LOSE'}
 
                     </span>
                   </div>
@@ -808,7 +805,7 @@ export default function BotTraderX() {
                     <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Payout</div>
                     </th>
-                    
+
                     <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Status</div>
                     </th>
@@ -821,9 +818,8 @@ export default function BotTraderX() {
                   {stats.realAccount?.map((item, index) => (
                     <tr
                       key={index}
-                      className={`bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 ${
-                        item.profit > 0 ? "text-green-600" : "text-red-600"
-                      }`}
+                      className={`bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 ${item.profit > 0 ? "text-green-600" : "text-red-600"
+                        }`}
                     >
                       <td className="px-6 py-2">{item.contract_id}</td>
                       <td className="px-6 py-2">
@@ -848,7 +844,7 @@ export default function BotTraderX() {
                 <div key={index}>
                   <small>{item.message}</small>
                 </div>
-              )).reverse()}              
+              )).reverse()}
             </div>
           </div>
         </div>

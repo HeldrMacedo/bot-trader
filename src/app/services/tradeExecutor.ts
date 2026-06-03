@@ -5,7 +5,7 @@ import EventEmitter from 'events';
 
 export class TradeExecutor extends EventEmitter {
   private wsMaster: WebSocket | null = null;
-  private baseUrl = `wss://ws.binaryws.com/websockets/v3?app_id=${process.env.NEXT_PUBLIC_APPID}`;
+  private baseUrl = `wss://ws.binaryws.com/websockets/v3?app_id=${process.env.NEXT_PUBLIC_DERIV_CLIENT_ID}`;
   private token: string;
   private currency = 'USD';
   private appMarkupPercentage = 0;
@@ -34,7 +34,7 @@ export class TradeExecutor extends EventEmitter {
     at: number;
   } | null = null;
 
-  
+
   constructor(token: string, configure?: any) {
     super();
     this.token = token;
@@ -79,7 +79,7 @@ export class TradeExecutor extends EventEmitter {
         }
 
         this.wsMaster = new WebSocket(wsUrl);
-        
+
         this.wsMaster.on('open', () => {
           //console.log('Connected to master account (real trading)');
           this.isConnected = true;
@@ -88,7 +88,7 @@ export class TradeExecutor extends EventEmitter {
           resolve();
           this.authenticateReal();
         });
-        
+
         this.wsMaster.on('error', (error) => {
           console.error('Master WebSocket error:', error);
           this.isConnected = false;
@@ -104,11 +104,11 @@ export class TradeExecutor extends EventEmitter {
           this.emit('disconnected');
           this.attemptReconnect();
         });
-        
+
         this.wsMaster.on('message', (data) => {
           this.handleMasterMessage(data.toString());
         });
-        
+
       } catch (error) {
         this.emit('error', error);
         reject(error);
@@ -146,7 +146,7 @@ export class TradeExecutor extends EventEmitter {
     }
   }
 
-  private balanceSubscribe(){
+  private balanceSubscribe() {
     const balance = {
       balance: 1,
       subscribe: 1,
@@ -156,7 +156,7 @@ export class TradeExecutor extends EventEmitter {
 
   async executeTrade(signal: TradeSignal): Promise<void> {
     try {
-      
+
       // Implementa lógica similar ao method_348
       if (!this.wsMaster || !this.isConnected) {
         const error = new Error('Conta real não conectada');
@@ -174,17 +174,17 @@ export class TradeExecutor extends EventEmitter {
       // Incrementa contador de requisições
       this.requestCounter++;
       const requestId = this.requestCounter;
-      
+
       // Constrói e envia a requisição de compra
       const buyRequest = this.buildBuyRequest(signal, requestId);
-      
+
       //this.emit('transaction', buyRequest);
 
       /*@ts-ignore*/
       this.wsMaster.send(JSON.stringify(buyRequest));
-     
+
       this.updateLastTradeInfo(signal);
-      
+
     } catch (error) {
       this.emit('error', error);
       throw error;
@@ -232,17 +232,17 @@ export class TradeExecutor extends EventEmitter {
       'DIGITODD', 'DIGITEVEN',
       'DIGITMATCH', 'DIGITDIFF'
     ];
-    
+
     if (!barrierTypes.includes(contractType)) {
       return false;
     }
-    
+
     // Validação mais rigorosa da barreira
     if (contractType.startsWith('DIGIT')) {
       // Para contratos de dígito, a barreira deve ser um dígito (0-9)
       return /^[0-9]$/.test(barrier);
     }
-    
+
     // Para outros tipos, aceita números com sinal ou sem sinal
     return /^[+-]?\d*\.?\d+$/.test(barrier) || /^[+-]\d/.test(barrier);
   }
@@ -250,22 +250,22 @@ export class TradeExecutor extends EventEmitter {
   private isDuplicateTrade(signal: TradeSignal): boolean {
     const currentTimestamp = new Date().toISOString().slice(0, 19); // YYYY-MM-DD HH:mm:ss
     const currentParams = `${signal.symbol}|${signal.contractType}|${signal.amount}|${signal.barrier}|${signal.duration}|${signal.durationUnit}`;
-    
+
     // Verifica se é a mesma operação no mesmo segundo
     if (currentTimestamp === this.lastTradeTimestamp && currentParams === this.lastTradeParams) {
       return true;
     }
-    
+
     // Verifica se é uma operação muito próxima (proteção adicional)
     const lastTime = new Date(this.lastTradeTimestamp).getTime();
     const currentTime = new Date(currentTimestamp).getTime();
     const timeDiff = currentTime - lastTime;
-    
+
     if (timeDiff === 1000 && currentParams === this.lastTradeParams) {
       // Bloqueia se for exatamente 1 segundo depois com os mesmos parâmetros
       return true;
     }
-    
+
     return false;
   }
 
@@ -280,7 +280,7 @@ export class TradeExecutor extends EventEmitter {
       if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
         this.emit('transaction', message.proposal_open_contract);
       }
-      
+
 
       if (message.msg_type === 'buy') {
         if (message.error) {
@@ -290,7 +290,7 @@ export class TradeExecutor extends EventEmitter {
           this.emit('success', { message: 'Trade executado com sucesso', data: message.buy });
         }
       }
-      
+
       if (message.msg_type === 'authorize') {
         if (message.authorize) {
           this.emit('balance', message.authorize.balance);

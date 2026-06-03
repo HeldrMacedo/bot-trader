@@ -9,7 +9,7 @@ export class WsListener extends EventEmitter {
   private token: string;
   private isConnected = false;
   private processedContracts = new Set<string>(); // Evitar duplicatas
-   private lastVirtualTransaction: {
+  private lastVirtualTransaction: {
     action?: string;
     contract_id?: number | string;
     amount?: number;
@@ -40,7 +40,7 @@ export class WsListener extends EventEmitter {
           const parts = this.token.split(':');
           const accessToken = parts[1];
           const accountId = parts[2];
-          const appId = process.env.NEXT_PUBLIC_APPID || '';
+          const appId = process.env.NEXT_PUBLIC_DERIV_CLIENT_ID || '';
 
           const response = await fetch(`https://api.derivws.com/trading/v1/options/accounts/${accountId}/otp`, {
             method: 'POST',
@@ -64,7 +64,7 @@ export class WsListener extends EventEmitter {
       }
 
       this.ws = new WebSocket(wsUrl);
-      
+
       this.ws.on('open', async () => {
         console.log('WebSocket connected');
         this.isConnected = true;
@@ -123,7 +123,7 @@ export class WsListener extends EventEmitter {
     }
   }
 
-  
+
 
   public getVirtualAccountInfo() {
     return {
@@ -147,11 +147,11 @@ export class WsListener extends EventEmitter {
       if (message.msg_type === 'proposal_open_contract') {
         console.log('Received message:', message);
       }*/
-      
-  
+
+
 
       //REFORMULAR DEPOIS
- if (message.msg_type === 'transaction' && message.transaction) {
+      if (message.msg_type === 'transaction' && message.transaction) {
         const t = message.transaction;
         const summary = {
           action: t.action,
@@ -173,19 +173,19 @@ export class WsListener extends EventEmitter {
       }
 
       // Implementação completa baseada no method_394
-      if (message.msg_type === 'transaction' && 
-          message.transaction?.action === 'buy') {
-          
+      if (message.msg_type === 'transaction' &&
+        message.transaction?.action === 'buy') {
+
         const signal = this.extractTradeSignalAdvanced(message);
         if (signal && !this.processedContracts.has(signal.contractId)) {
           this.processedContracts.add(signal.contractId);
           this.emit('tradeSignal', signal);
         }
       }
-      
+
       // Processa outros tipos de mensagemu
       this.handleOtherMessages(message);
-      
+
     } catch (error) {
       console.error('Error processing message:', error);
     }
@@ -196,11 +196,11 @@ export class WsListener extends EventEmitter {
       const transaction = message.transaction;
       const longcode = transaction.longcode || '';
       const symbol = transaction.symbol || '';
-      
-      
+
+
       // Determina se é Forex
       const isForex = this.isForexSymbol(symbol);
-      
+
       // Extrai duração com lógica avançada
       const durationInfo = this.parseDurationAdvanced(longcode);
       if (!durationInfo.isValid) {
@@ -239,7 +239,7 @@ export class WsListener extends EventEmitter {
 
   private parseDurationAdvanced(longcode: string): DurationInfo & { isValid: boolean } {
     const longcodeLower = longcode.toLowerCase();
-    
+
     // Processa ticks primeiro
     const ticksMatch = longcodeLower.match(/(\d+)\s+ticks?/);
     if (ticksMatch) {
@@ -251,12 +251,12 @@ export class WsListener extends EventEmitter {
         isValid: ticks > 0 && ticks <= 10
       };
     }
-    
+
     // Processa durações compostas (horas + minutos + segundos)
     if (this.hasComplexDuration(longcodeLower)) {
       return this.parseComplexDuration(longcodeLower);
     }
-    
+
     // Processa durações simples
     const secondsMatch = longcodeLower.match(/(\d+)\s+seconds?/);
     if (secondsMatch) {
@@ -268,7 +268,7 @@ export class WsListener extends EventEmitter {
         isValid: seconds > 0 && seconds <= 86400
       };
     }
-    
+
     const minutesMatch = longcodeLower.match(/(\d+)\s+minutes?/);
     if (minutesMatch) {
       const minutes = parseInt(minutesMatch[1]);
@@ -279,7 +279,7 @@ export class WsListener extends EventEmitter {
         isValid: minutes > 0 && minutes <= 1440
       };
     }
-    
+
     const hoursMatch = longcodeLower.match(/(\d+)\s+hours?/);
     if (hoursMatch) {
       const hours = parseInt(hoursMatch[1]);
@@ -290,7 +290,7 @@ export class WsListener extends EventEmitter {
         isValid: hours > 0 && hours <= 24
       };
     }
-    
+
     // Default para contratos sem duração específica
     return {
       duration: 1,
@@ -304,38 +304,38 @@ export class WsListener extends EventEmitter {
     const hasHours = longcode.includes('hour');
     const hasMinutes = longcode.includes('minute');
     const hasSeconds = longcode.includes('second');
-    
+
     // Verifica se tem pelo menos duas unidades de tempo
-    return (hasHours && hasMinutes) || 
-           (hasHours && hasSeconds) || 
-           (hasMinutes && hasSeconds) ||
-           (hasHours && hasMinutes && hasSeconds);
+    return (hasHours && hasMinutes) ||
+      (hasHours && hasSeconds) ||
+      (hasMinutes && hasSeconds) ||
+      (hasHours && hasMinutes && hasSeconds);
   }
 
   private parseComplexDuration(longcode: string): DurationInfo & { isValid: boolean } {
     const words = longcode.split(' ');
     let hours = 0, minutes = 0, seconds = 0;
-    
+
     // Extrai horas
     const hoursIndex = words.findIndex(word => word.includes('hour'));
     if (hoursIndex > 0) {
       hours = parseInt(words[hoursIndex - 1]) || 0;
     }
-    
+
     // Extrai minutos
     const minutesIndex = words.findIndex(word => word.includes('minute'));
     if (minutesIndex > 0) {
       minutes = parseInt(words[minutesIndex - 1]) || 0;
     }
-    
+
     // Extrai segundos
     const secondsIndex = words.findIndex(word => word.includes('second'));
     if (secondsIndex > 0) {
       seconds = parseInt(words[secondsIndex - 1]) || 0;
     }
-    
+
     const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-    
+
     return {
       duration: totalSeconds,
       durationUnit: 's',
@@ -346,7 +346,7 @@ export class WsListener extends EventEmitter {
 
   private parseContractAdvanced(longcode: string, isForex: boolean): ContractInfo {
     const longcodeLower = longcode.toLowerCase();
-    
+
     if (isForex) {
       return this.parseForexContract(longcodeLower);
     } else {
@@ -362,23 +362,23 @@ export class WsListener extends EventEmitter {
       const barrier = this.extractBarrierWithSign(longcode);
       return { type: 'ONETOUCH', barrier: barrier, isValid: true };
     }
-    
+
     if (longcode.includes('does not touch') && (longcode.includes('plus') || longcode.includes('minus'))) {
       const barrier = this.extractBarrierWithSign(longcode);
       return { type: 'NOTOUCH', barrier: barrier, isValid: true };
     }
-    
+
     // Call/Put com barrier específico (mais específico primeiro)
     if (longcode.includes('higher than entry spot') && (longcode.includes('plus') || longcode.includes('minus'))) {
       const barrier = this.extractBarrierWithSign(longcode);
       return { type: 'CALL', barrier: barrier, isValid: true };
     }
-    
+
     if (longcode.includes('lower than entry spot') && (longcode.includes('plus') || longcode.includes('minus'))) {
       const barrier = this.extractBarrierWithSign(longcode);
       return { type: 'PUT', barrier: barrier, isValid: true };
     }
-    
+
     // Reset contracts
     if (longcode.includes('strictly lower than it was')) {
       return { type: 'RESETPUT', isValid: true };
@@ -386,7 +386,7 @@ export class WsListener extends EventEmitter {
     if (longcode.includes('strictly higher than it was')) {
       return { type: 'RESETCALL', isValid: true };
     }
-    
+
     // Run contracts
     if (longcode.includes('rises successively')) {
       return { type: 'RUNHIGH', isValid: true };
@@ -394,7 +394,7 @@ export class WsListener extends EventEmitter {
     if (longcode.includes('falls successively')) {
       return { type: 'RUNLOW', isValid: true };
     }
-    
+
     // Call/Put com "or equal" (mais específico que os básicos)
     if (longcode.includes('higher than') && longcode.includes('or equal')) {
       return { type: 'CALLE', isValid: true };
@@ -402,19 +402,19 @@ export class WsListener extends EventEmitter {
     if (longcode.includes('lower than') && longcode.includes('or equal')) {
       return { type: 'PUTE', isValid: true };
     }
-    
+
     // Digit contracts - VERIFICAÇÃO MAIS ESPECÍFICA PRIMEIRO
     // DIGITOVER/DIGITUNDER - Verifica se é sobre "last digit" primeiro (mais específico)
     if (longcode.includes('last digit') && longcode.includes('strictly higher than')) {
       const barrier = this.extractDigitBarrierAfterThan(longcode);
       return { type: 'DIGITOVER', barrier: barrier, isValid: true };
     }
-    
+
     if (longcode.includes('last digit') && longcode.includes('strictly lower than')) {
       const barrier = this.extractDigitBarrierAfterThan(longcode);
       return { type: 'DIGITUNDER', barrier: barrier, isValid: true };
     }
-    
+
     // Digit odd/even (DEVE ser verificado ANTES de DIGITMATCH/DIGITDIFF)
     if (longcode.includes('is odd')) {
       return { type: 'DIGITODD', isValid: true };
@@ -422,27 +422,27 @@ export class WsListener extends EventEmitter {
     if (longcode.includes('is even')) {
       return { type: 'DIGITEVEN', isValid: true };
     }
-    
+
     // Digit match/diff (verificação mais específica para padrões exatos)
     if (longcode.includes('if the last digit') && longcode.includes('is not') && longcode.includes('after') && !longcode.includes('strictly')) {
       const barrier = this.extractDigitBarrier(longcode);
       return { type: 'DIGITDIFF', barrier: barrier, isValid: true };
     }
-    
+
     if (longcode.includes('if the last digit') && longcode.includes('is') && longcode.includes('after') && !longcode.includes('is not') && !longcode.includes('strictly') && !longcode.includes('is odd') && !longcode.includes('is even')) {
       const barrier = this.extractDigitBarrier(longcode);
       return { type: 'DIGITMATCH', barrier: barrier, isValid: true };
     }
-    
+
     // Call/Put básicos com "entry spot" (seguindo exatamente a lógica do Dashboard.cs)
     if (longcode.includes('strictly higher than entry spot')) {
       return { type: 'CALL', isValid: true };
     }
-    
+
     if (longcode.includes('strictly lower than entry spot')) {
       return { type: 'PUT', isValid: true };
     }
-    
+
     // Digit contracts com barrier numérico (sem "last digit" e sem "entry spot")
     if (longcode.includes('strictly higher than') && !longcode.includes('entry spot')) {
       const numericBarrier = this.extractDigitBarrierAfterThan(longcode);
@@ -450,14 +450,14 @@ export class WsListener extends EventEmitter {
         return { type: 'DIGITOVER', barrier: numericBarrier, isValid: true };
       }
     }
-    
+
     if (longcode.includes('strictly lower than') && !longcode.includes('entry spot')) {
       const numericBarrier = this.extractDigitBarrierAfterThan(longcode);
       if (numericBarrier && this.isNumericBarrier(numericBarrier)) {
         return { type: 'DIGITUNDER', barrier: numericBarrier, isValid: true };
       }
     }
-    
+
     // Touch contracts básicos (sem barrier específico)
     if (longcode.includes('touches')) {
       const barrier = this.extractBarrier(longcode);
@@ -467,7 +467,7 @@ export class WsListener extends EventEmitter {
       const barrier = this.extractBarrier(longcode);
       return { type: 'NOTOUCH', barrier: barrier, isValid: true };
     }
-    
+
     return { type: 'CALL', isValid: false }; // Default inválido
   }
 
@@ -482,7 +482,7 @@ export class WsListener extends EventEmitter {
       const barrier = this.extractBarrier(longcode);
       return { type: 'NOTOUCH', barrier: barrier, isValid: true };
     }
-    
+
     // Call/Put básicos com "entry spot"
     if (longcode.includes('strictly higher than entry spot')) {
       return { type: 'CALL', isValid: true };
@@ -491,22 +491,22 @@ export class WsListener extends EventEmitter {
       return { type: 'PUT', isValid: true };
     }
 
-      // Call/Put com "or equal to entry spot"
+    // Call/Put com "or equal to entry spot"
     if (longcode.includes('is higher than or equal to entry spot')) {
       return { type: 'CALLE', isValid: true };
     }
     if (longcode.includes('is lower than or equal to entry spot')) {
       return { type: 'PUTE', isValid: true };
     }
-    
+
     return { type: 'CALL', isValid: false }; // Default inválido
   }
 
-  
+
 
   private extractBarrierWithSign(longcode: string): string {
     const words = longcode.split(' ');
-    
+
     if (longcode.includes('plus')) {
       const plusIndex = words.findIndex(word => word.toLowerCase() === 'plus');
       if (plusIndex >= 0 && plusIndex < words.length - 1) {
@@ -518,7 +518,7 @@ export class WsListener extends EventEmitter {
         return `+${value}`;
       }
     }
-    
+
     if (longcode.includes('minus')) {
       const minusIndex = words.findIndex(word => word.toLowerCase() === 'minus');
       if (minusIndex >= 0 && minusIndex < words.length - 1) {
@@ -530,7 +530,7 @@ export class WsListener extends EventEmitter {
         return `-${value}`;
       }
     }
-    
+
     return '';
   }
 
@@ -573,24 +573,24 @@ export class WsListener extends EventEmitter {
           this.emit('authorized', message.authorize);
         }
         break;
-        
+
       case 'tick':
         this.emit('tick', message.tick);
         break;
-        
+
       case 'proposal_open_contract':
         // Processa contratos abertos (ganhos/perdas)
         if (message.proposal_open_contract) {
           this.handleContractUpdate(message.proposal_open_contract);
         }
         break;
-        
+
       case 'transaction':
         if (message.transaction?.action === 'sell') {
           this.emit('sellTransaction', message.transaction);
         }
         break;
-        
+
       default:
     }
   }
@@ -599,7 +599,7 @@ export class WsListener extends EventEmitter {
     const status = contract.status;
     const contractId = contract.contract_id;
     const profit = contract.profit;
-    
+
     if (status === 'won' || status === 'lost' || status === 'sold') {
       this.emit('contractResult', {
         contractId,
