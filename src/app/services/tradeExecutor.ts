@@ -2,11 +2,15 @@ import WebSocket from 'ws';
 import { TradeSignal, BuyRequest, TradeParameters } from '../types/types';
 import moment from 'moment';
 import EventEmitter from 'events';
+import { resolveDerivConnection } from './derivConfig';
+
+const PING_INTERVAL_MS = 20000;
 
 export class TradeExecutor extends EventEmitter {
   private wsMaster: WebSocket | null = null;
-  private baseUrl = `wss://ws.binaryws.com/websockets/v3?app_id=${process.env.NEXT_PUBLIC_DERIV_CLIENT_ID}`;
   private token: string;
+  private needsAuthorize = false;
+  private pingTimer: NodeJS.Timeout | null = null;
   private currency = 'USD';
   private appMarkupPercentage = 0;
   private lastTradeParams = '';
@@ -48,48 +52,24 @@ export class TradeExecutor extends EventEmitter {
   async connectToMaster(): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        let wsUrl = this.baseUrl;
+        // Resolve URL + auth pela camada central (oauth:->OTP / clássico->authorize).
+        // OTP é de uso único, então resolvemos a cada (re)conexão.
+        const conn = await resolveDerivConnection(this.token, "demo");
+        console.log('conn: ', conn);
+        this.needsAuthorize = conn.needsAuthorize;
 
-        if (this.token && this.token.startsWith('oauth:')) {
-          try {
-            const parts = this.token.split(':');
-            const accessToken = parts[1];
-            const accountId = parts[2];
-            const appId = process.env.NEXT_PUBLIC_APPID || '';
-
-            const response = await fetch(`https://api.derivws.com/trading/v1/options/accounts/${accountId}/otp`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Deriv-App-ID': appId,
-              },
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              if (data.data && data.data.websocket_url) {
-                wsUrl = data.data.websocket_url;
-              }
-            } else {
-              console.error('Failed to fetch OTP from Deriv:', await response.text());
-            }
-          } catch (error) {
-            console.error('Error fetching OTP WebSocket URL:', error);
-          }
-        }
-
-        this.wsMaster = new WebSocket(wsUrl);
+        this.wsMaster = new WebSocket(conn.url);
 
         this.wsMaster.on('open', () => {
-          //console.log('Connected to master account (real trading)');
           this.isConnected = true;
           this.reconnectAttempts = 0;
           this.emit('connected');
+          this.startPing();
           resolve();
-          this.authenticateReal();
+          this.authenticateReal(conn.needsAuthorize, conn.token);
         });
 
-        this.wsMaster.on('error', (error) => {
+        this.wsMaster.on('error', (error: any) => {
           console.error('Master WebSocket error:', error);
           this.isConnected = false;
           this.emit('error', error);
@@ -99,13 +79,14 @@ export class TradeExecutor extends EventEmitter {
         });
 
         this.wsMaster.on('close', () => {
-          //console.log('Master WebSocket disconnected');
           this.isConnected = false;
+          this.stopPing();
           this.emit('disconnected');
           this.attemptReconnect();
         });
 
-        this.wsMaster.on('message', (data) => {
+        this.wsMaster.on('message', (data: any) => {
+          console.log('data MASTER MESSAGE: ', data.toString());
           this.handleMasterMessage(data.toString());
         });
 
@@ -114,6 +95,22 @@ export class TradeExecutor extends EventEmitter {
         reject(error);
       }
     });
+  }
+
+  private startPing(): void {
+    this.stopPing();
+    this.pingTimer = setInterval(() => {
+      if (this.wsMaster && this.isConnected) {
+        this.wsMaster.send(JSON.stringify({ ping: 1 }));
+      }
+    }, PING_INTERVAL_MS);
+  }
+
+  private stopPing(): void {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
   }
 
   private attemptReconnect(): void {
@@ -132,17 +129,16 @@ export class TradeExecutor extends EventEmitter {
     }, this.reconnectDelay * this.reconnectAttempts);
   }
 
-  private authenticateReal(): void {
-    if (this.token && this.token.startsWith('oauth:')) {
+  private authenticateReal(needsAuthorize: boolean, token: string): void {
+    if (!needsAuthorize) {
+      // Socket OTP já autorizado: assina o saldo diretamente.
       this.balanceSubscribe();
       return;
     }
 
-    if (this.wsMaster && this.token) {
-      const authMessage = {
-        authorize: this.token
-      };
-      this.wsMaster.send(JSON.stringify(authMessage));
+    if (this.wsMaster && token) {
+      // Token clássico: o saldo é assinado após o authorize OK (handleMasterMessage).
+      this.wsMaster.send(JSON.stringify({ authorize: token }));
     }
   }
 
@@ -194,7 +190,8 @@ export class TradeExecutor extends EventEmitter {
   private buildBuyRequest(signal: TradeSignal, requestId: number): BuyRequest {
     // Implementa lógica avançada baseada no method_220 do ZeeX
     const parameters: any = {
-      underlying_symbol: signal.symbol,
+      // API v3 oficial usa "symbol" (não "underlying_symbol").
+      symbol: signal.symbol,
       contract_type: signal.contractType,
       duration: signal.duration,
       duration_unit: signal.durationUnit || 't',
@@ -277,6 +274,7 @@ export class TradeExecutor extends EventEmitter {
   private handleMasterMessage(data: string): void {
     try {
       const message = JSON.parse(data);
+      console.log("MESSAGE JSON ", message);
       if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
         this.emit('transaction', message.proposal_open_contract);
       }
@@ -293,7 +291,7 @@ export class TradeExecutor extends EventEmitter {
 
       if (message.msg_type === 'authorize') {
         if (message.authorize) {
-          this.emit('balance', message.authorize.balance);
+          this.emit('balance', message.authorize.balance || message.balance.balance);
         }
         this.balanceSubscribe();
       }
@@ -319,6 +317,7 @@ export class TradeExecutor extends EventEmitter {
   }
 
   disconnect(): void {
+    this.stopPing();
     if (this.wsMaster) {
       this.wsMaster.close();
       this.wsMaster = null;

@@ -1,13 +1,18 @@
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
 import { TradeSignal, DurationInfo, ContractInfo } from '../types/types';
+import { resolveDerivConnection } from './derivConfig';
+
+const PING_INTERVAL_MS = 20000;
 
 export class WsListener extends EventEmitter {
   private ws: WebSocket | null = null;
-  private baseUrl = `wss://ws.binaryws.com/websockets/v3?app_id=${process.env.NEXT_PUBLIC_APPID}`;
 
   private token: string;
   private isConnected = false;
+  private needsAuthorize = false;
+  private subscribed = false;
+  private pingTimer: NodeJS.Timeout | null = null;
   private processedContracts = new Set<string>(); // Evitar duplicatas
   private lastVirtualTransaction: {
     action?: string;
@@ -33,53 +38,35 @@ export class WsListener extends EventEmitter {
 
   async connect(): Promise<void> {
     try {
-      let wsUrl = this.baseUrl;
+      // Resolve URL + auth pela camada central (oauth:->OTP / clássico->authorize).
+      // OTP é de uso único, então resolvemos a cada (re)conexão.
+      const conn = await resolveDerivConnection(this.token, "demo");
+      this.needsAuthorize = conn.needsAuthorize;
+      this.subscribed = false;
 
-      if (this.token && this.token.startsWith('oauth:')) {
-        try {
-          const parts = this.token.split(':');
-          const accessToken = parts[1];
-          const accountId = parts[2];
-          const appId = process.env.NEXT_PUBLIC_DERIV_CLIENT_ID || '';
+      this.ws = new WebSocket(conn.url);
 
-          const response = await fetch(`https://api.derivws.com/trading/v1/options/accounts/${accountId}/otp`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Deriv-App-ID': appId,
-            },
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.data && data.data.websocket_url) {
-              wsUrl = data.data.websocket_url;
-            }
-          } else {
-            console.error('Failed to fetch OTP from Deriv:', await response.text());
-          }
-        } catch (error) {
-          console.error('Error fetching OTP WebSocket URL:', error);
-        }
-      }
-
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.on('open', async () => {
-        console.log('WebSocket connected');
+      this.ws.on('open', () => {
         this.isConnected = true;
         this.emit('connected');
-        await this.authenticate();
-        this.subscribeToTransactions();
+        this.startPing();
+
+        if (this.needsAuthorize) {
+          // Token clássico: autentica; a subscrição acontece após o authorize OK.
+          this.ws!.send(JSON.stringify({ authorize: conn.token }));
+        } else {
+          // Socket OTP já vem autorizado.
+          this.subscribeToTransactions();
+        }
       });
 
       this.ws.on('message', (data: string) => {
-        console.log('Received message:', data);
         this.processMessage(data);
       });
 
       this.ws.on('close', () => {
         this.isConnected = false;
+        this.stopPing();
         this.emit('disconnected');
       });
 
@@ -90,31 +77,27 @@ export class WsListener extends EventEmitter {
       this.emit('error', error);
     }
   }
-  private async authenticate(): Promise<void> {
-    return new Promise((resolve) => {
-      if (this.token && this.token.startsWith('oauth:')) {
-        // Already authenticated via OTP URL
-        resolve();
-        return;
-      }
 
-      if (this.ws && this.token) {
-        const authMessage = { authorize: this.token };
-        this.ws.send(JSON.stringify(authMessage));
-
-        this.ws.on('message', (data: string) => {
-          const message = JSON.parse(data);
-          if (message.authorize) {
-            resolve();
-          }
-        });
+  private startPing(): void {
+    this.stopPing();
+    this.pingTimer = setInterval(() => {
+      if (this.ws && this.isConnected) {
+        this.ws.send(JSON.stringify({ ping: 1 }));
       }
-    });
+    }, PING_INTERVAL_MS);
+  }
+
+  private stopPing(): void {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
   }
 
   private subscribeToTransactions(): void {
-    if (this.ws && this.isConnected) {
+    if (this.ws && this.isConnected && !this.subscribed) {
       // Subscrever ao stream de transações
+      this.subscribed = true;
       const subscribeMessage = {
         transaction: 1,
         subscribe: 1
@@ -571,6 +554,10 @@ export class WsListener extends EventEmitter {
           this.disconnect();
         } else {
           this.emit('authorized', message.authorize);
+          // Token clássico: só subscreve após o authorize ser confirmado.
+          if (this.needsAuthorize) {
+            this.subscribeToTransactions();
+          }
         }
         break;
 
@@ -611,11 +598,13 @@ export class WsListener extends EventEmitter {
   }
 
   disconnect(): void {
+    this.stopPing();
     if (this.ws) {
       this.ws.close();
       this.ws = null;
       this.isConnected = false;
     }
+    this.subscribed = false;
     this.processedContracts.clear();
   }
 

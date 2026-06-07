@@ -107,11 +107,10 @@ export default function BotTraderX() {
   });
 
   const [loading, setLoading] = useState(false);
+  // Tokens da Deriv. Aceita token clássico (API token) ou o formato
+  // composto `oauth:<access_token>:<account_id>` vindo do fluxo OAuth.
   const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
-  //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
-  const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
-  //const [demoToken, setDemoToken] = useState("");
-  //const [realToken, setRealToken] = useState("");
+  const [realToken, setRealToken] = useState("pat_7d78254a606c2fc0b4d3ce7de0761abbfb66a8b2af170077e4ef4b3acf2f0bff");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({
