@@ -42,6 +42,7 @@ export class TradeExecutor extends EventEmitter {
   constructor(token: string, configure?: any) {
     super();
     this.token = token;
+    this.isTestMode = configure?.testMode || false;
   }
 
   public getLatestRealContractSummary() {
@@ -54,8 +55,8 @@ export class TradeExecutor extends EventEmitter {
       try {
         // Resolve URL + auth pela camada central (oauth:->OTP / clássico->authorize).
         // OTP é de uso único, então resolvemos a cada (re)conexão.
-        const conn = await resolveDerivConnection(this.token, "demo");
-        console.log('conn: ', conn);
+        const conn = await resolveDerivConnection(this.token, this.isTestMode ? "demo" : "real");
+
         this.needsAuthorize = conn.needsAuthorize;
 
         this.wsMaster = new WebSocket(conn.url);
@@ -190,8 +191,6 @@ export class TradeExecutor extends EventEmitter {
   private buildBuyRequest(signal: TradeSignal, requestId: number): BuyRequest {
     // Implementa lógica avançada baseada no method_220 do ZeeX
     const parameters: any = {
-      // API v3 oficial usa "symbol" (não "underlying_symbol").
-      symbol: signal.symbol,
       contract_type: signal.contractType,
       duration: signal.duration,
       duration_unit: signal.durationUnit || 't',
@@ -199,6 +198,13 @@ export class TradeExecutor extends EventEmitter {
       amount: signal.amount,
       currency: this.currency
     };
+
+    // API v3 oficial (legada) usa "symbol". API Options (nova) usa "underlying_symbol".
+    if (this.needsAuthorize) {
+      parameters.symbol = signal.symbol;
+    } else {
+      parameters.underlying_symbol = signal.symbol;
+    }
 
     // Adiciona barreira baseado no tipo de contrato e validação avançada
     if (signal.barrier && this.shouldIncludeBarrierAdvanced(signal.contractType, signal.barrier)) {

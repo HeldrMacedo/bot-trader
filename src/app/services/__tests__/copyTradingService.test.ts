@@ -1340,3 +1340,91 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
     expect(internal.signalProcessor.processSignal).toHaveBeenCalledTimes(1);
   });
 });
+
+// =============================================================================
+// 8. Suporte Híbrido Deriv (Legacy vs New API)
+// =============================================================================
+describe('Suporte Híbrido Deriv (Legacy vs New API)', () => {
+  it('deve extrair o symbol corretamente a partir de underlying_symbol (API Nova)', () => {
+    const { internal } = createService();
+    const wsInternal = internal.wsListener as any;
+
+    const mockMessage = {
+      msg_type: 'transaction',
+      transaction: {
+        action: 'buy',
+        underlying_symbol: 'R_100',
+        contract_id: '1234',
+        amount: -10,
+        longcode: 'Win payout if Volatility 100 Index is strictly higher than entry spot.'
+      }
+    };
+
+    let signalEmitted: any = null;
+    wsInternal.on('tradeSignal', (signal: any) => {
+      signalEmitted = signal;
+    });
+
+    // Mockar ws.send para evitar erros já que processMessage chama `this.ws.send` no `action == 'buy'`
+    wsInternal.ws = { send: vi.fn() };
+
+    wsInternal.processMessage(JSON.stringify(mockMessage));
+
+    // O fallback `transaction.underlying_symbol || transaction.symbol` deve resultar em 'R_100'
+    expect(signalEmitted).not.toBeNull();
+    expect(signalEmitted.symbol).toBe('R_100');
+  });
+
+  it('deve extrair o symbol corretamente a partir de symbol (API Legada)', () => {
+    const { internal } = createService();
+    const wsInternal = internal.wsListener as any;
+
+    const mockMessage = {
+      msg_type: 'transaction',
+      transaction: {
+        action: 'buy',
+        symbol: 'R_50',
+        contract_id: '5678',
+        amount: -10,
+        longcode: 'Win payout if Volatility 50 Index is strictly higher than entry spot.'
+      }
+    };
+
+    let signalEmitted: any = null;
+    wsInternal.on('tradeSignal', (signal: any) => {
+      signalEmitted = signal;
+    });
+
+    wsInternal.ws = { send: vi.fn() };
+
+    wsInternal.processMessage(JSON.stringify(mockMessage));
+
+    expect(signalEmitted).not.toBeNull();
+    expect(signalEmitted.symbol).toBe('R_50');
+  });
+
+  it('deve converter profit recebido como string para number (API Nova - proposal_open_contract)', () => {
+    const { internal } = createService();
+    const wsInternal = internal.wsListener as any;
+
+    const mockMessage = {
+      msg_type: 'proposal_open_contract',
+      proposal_open_contract: {
+        contract_id: '1234',
+        status: 'won',
+        profit: "15.50" // String na nova API
+      }
+    };
+
+    let resultEmitted: any = null;
+    wsInternal.on('contractResult', (res: any) => {
+      resultEmitted = res;
+    });
+
+    wsInternal.processMessage(JSON.stringify(mockMessage));
+
+    expect(resultEmitted).not.toBeNull();
+    expect(resultEmitted.profit).toBe(15.5); // Number processado
+    expect(typeof resultEmitted.profit).toBe('number');
+  });
+});

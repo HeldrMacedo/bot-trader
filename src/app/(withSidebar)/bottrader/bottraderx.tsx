@@ -109,8 +109,9 @@ export default function BotTraderX() {
   const [loading, setLoading] = useState(false);
   // Tokens da Deriv. Aceita token clássico (API token) ou o formato
   // composto `oauth:<access_token>:<account_id>` vindo do fluxo OAuth.
-  const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
-  const [realToken, setRealToken] = useState("pat_7d78254a606c2fc0b4d3ce7de0761abbfb66a8b2af170077e4ef4b3acf2f0bff");
+  //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
+  const [demoToken, setDemoToken] = useState("pat_c378e0f6c482ee92e584e3318c9a2d1b6424212066c632b6cfb35a93c0de38ad"); // conta helder.macedo
+  const [realToken, setRealToken] = useState("pat_7d78254a606c2fc0b4d3ce7de0761abbfb66a8b2af170077e4ef4b3acf2f0bff"); //conta DEV
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({
@@ -281,6 +282,10 @@ export default function BotTraderX() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <div>
+                <input type="checkbox" className="ml-2" checked={isTestMode} onChange={(e) => setIsTestMode(e.target.checked)} /> Teste
+
+              </div>
               <div>
                 <input
                   type="text"

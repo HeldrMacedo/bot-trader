@@ -61,7 +61,7 @@ export class WsListener extends EventEmitter {
       });
 
       this.ws.on('message', (data: string) => {
-        this.processMessage(data);
+        this.processMessage(data.toString());
       });
 
       this.ws.on('close', () => {
@@ -118,6 +118,7 @@ export class WsListener extends EventEmitter {
   private processMessage(data: string): void {
     try {
       const message = JSON.parse(data);
+
       if (message.msg_type === 'transaction' && message.transaction.action == 'buy') {
         this.ws.send(JSON.stringify({
           proposal_open_contract: 1,
@@ -142,7 +143,7 @@ export class WsListener extends EventEmitter {
           amount: t.amount ?? t.delta_amount ?? undefined,
           buy_price: t.buy_price,
           price: t.price,
-          symbol: t.symbol,
+          symbol: t.underlying_symbol || t.symbol,
           transaction_id: t.transaction_id,
           raw: t,
           at: Date.now(),
@@ -178,7 +179,7 @@ export class WsListener extends EventEmitter {
     try {
       const transaction = message.transaction;
       const longcode = transaction.longcode || '';
-      const symbol = transaction.symbol || '';
+      const symbol = transaction.underlying_symbol || transaction.symbol || '';
 
 
       // Determina se é Forex
@@ -585,7 +586,7 @@ export class WsListener extends EventEmitter {
   private handleContractUpdate(contract: any): void {
     const status = contract.status;
     const contractId = contract.contract_id;
-    const profit = contract.profit;
+    const profit = Number(contract.profit || 0);
 
     if (status === 'won' || status === 'lost' || status === 'sold') {
       this.emit('contractResult', {

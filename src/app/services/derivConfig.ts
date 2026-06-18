@@ -132,8 +132,7 @@ export async function fetchAccountIdFromPat(patToken: string, accountType: 'demo
       'Deriv-App-ID': process.env.NEXT_PUBLIC_DERIV_CLIENT_ID,
     },
   });
-  console.log("patToken ", patToken);
-  console.log("process.env.NEXT_PUBLIC_DERIV_CLIENT_ID ", process.env.NEXT_PUBLIC_DERIV_CLIENT_ID);
+
   if (!response.ok) {
     const details = await response.text().catch(() => '');
     throw new Error(`Falha ao buscar contas do PAT (${response.status}): ${details}`);
