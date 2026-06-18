@@ -50,6 +50,8 @@ interface RealAccount {
   data: string;
   entry_spot_display_value?: string;
   exit_tick_display_value?: string;
+  entry_spot?: string;
+  exit_spot?: string;
   contract_id?: number | string;
   contract_type?: string;
   display_name?: string;
@@ -57,6 +59,8 @@ interface RealAccount {
   profit?: number;
   status?: string;
   buy_price?: number;
+  shortcode?: string;
+  underlying_symbol?: string;
 }
 
 interface VirtualAccount {
@@ -816,6 +820,9 @@ export default function BotTraderX() {
                     <th scope="col" className="px-6 py-2">
                       <div className="flex items-center">Strategy</div>
                     </th>
+                    <th scope="col" className="px-6 py-2">
+                      <div className="flex items-center">Shortcode</div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -827,16 +834,17 @@ export default function BotTraderX() {
                     >
                       <td className="px-6 py-2">{item.contract_id}</td>
                       <td className="px-6 py-2">
-                        {item.entry_spot_display_value}
+                        {item.entry_spot_display_value || item.entry_spot}
                       </td>
                       <td className="px-6 py-2">
-                        {item.exit_tick_display_value}
+                        {item.exit_tick_display_value || item.exit_spot}
                       </td>
                       <td className="px-6 py-2">{item.buy_price}</td>
                       <td className="px-6 py-2">{item.profit}</td>
                       <td className="px-6 py-2">{item.payout}</td>
                       <td className="px-6 py-2">{item.status}</td>
-                      <td className="px-6 py-2">{item.display_name}</td>
+                      <td className="px-6 py-2">{item.display_name || item.underlying_symbol}</td>
+                      <td className="px-6 py-2">{item.shortcode || ''}</td>
                     </tr>
                   )).reverse()}
                 </tbody>

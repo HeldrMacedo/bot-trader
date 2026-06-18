@@ -87,7 +87,6 @@ export class TradeExecutor extends EventEmitter {
         });
 
         this.wsMaster.on('message', (data: any) => {
-          console.log('data MASTER MESSAGE: ', data.toString());
           this.handleMasterMessage(data.toString());
         });
 
@@ -121,7 +120,6 @@ export class TradeExecutor extends EventEmitter {
     }
 
     this.reconnectAttempts++;
-    //console.log(`Attempting to reconnect master connection (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     setTimeout(() => {
       this.connectToMaster().catch((error) => {
@@ -280,7 +278,7 @@ export class TradeExecutor extends EventEmitter {
   private handleMasterMessage(data: string): void {
     try {
       const message = JSON.parse(data);
-      console.log("MESSAGE JSON ", message);
+
       if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
         this.emit('transaction', message.proposal_open_contract);
       }

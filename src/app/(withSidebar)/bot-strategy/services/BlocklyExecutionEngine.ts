@@ -30,11 +30,11 @@ class BlocklyExecutionEngine {
   private contractId: string | null = null;
   private currentProposal: any = null;
   private callbacks: BotCallbacks = {};
-  
+
   private ws: WebSocket | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private tickListenerId: string | null = null;
-  
+
   constructor() {
     this.api = DerivService.getInstance();
   }
@@ -165,7 +165,7 @@ class BlocklyExecutionEngine {
     if (this.tradeOptions.prediction !== undefined) {
       const type = contractType.toUpperCase();
       const barrierTypes = ['DIGITMATCH', 'DIGITDIFF', 'DIGITOVER', 'DIGITUNDER', 'HIGHER', 'LOWER', 'TOUCH', 'NOTOUCH'];
-      
+
       if (barrierTypes.includes(type)) {
         req['barrier'] = this.tradeOptions.prediction;
       }
@@ -182,9 +182,9 @@ class BlocklyExecutionEngine {
       this.currentProposal = proposal;
 
       // Execute purchase
-      const buy = await this.api.send({ 
-        buy: proposal.proposal.id, 
-        price: proposal.proposal.ask_price 
+      const buy = await this.api.send({
+        buy: proposal.proposal.id,
+        price: proposal.proposal.ask_price
       });
 
       if (buy.error) {
@@ -204,13 +204,13 @@ class BlocklyExecutionEngine {
   private async monitorContract(id: string) {
     const check = async () => {
       if (!this.isRunning || !this.contractId) return;
-      
+
       try {
-        const data = await this.api?.send({ 
-          proposal_open_contract: 1, 
-          contract_id: id 
+        const data = await this.api?.send({
+          proposal_open_contract: 1,
+          contract_id: id
         });
-        
+
         const contract = data?.proposal_open_contract;
 
         if (contract?.is_sold) {
@@ -232,7 +232,7 @@ class BlocklyExecutionEngine {
         setTimeout(check, 1000);
       }
     };
-    
+
     check();
   }
 
@@ -243,7 +243,7 @@ class BlocklyExecutionEngine {
       const profit = win ? (this.tradeOptions?.amount || 0.35) * 0.9 : -(this.tradeOptions?.amount || 0.35);
       this.totalProfit += profit;
       const result = win ? "win" : "loss";
-      
+
       this.log(`Resultado (Simulado): ${result.toUpperCase()} (${profit.toFixed(2)})`, win ? 'success' : 'error');
 
       if (this.callbacks.onAfterPurchase) {
@@ -269,7 +269,7 @@ class BlocklyExecutionEngine {
     if (this.ticks.length < 2) return false;
     const last = this.ticks[this.ticks.length - 1];
     const prev = this.ticks[this.ticks.length - 2];
-    
+
     if (dir === 'rise') return last > prev;
     if (dir === 'fall') return last < prev;
     return false;
@@ -353,19 +353,19 @@ class BlocklyExecutionEngine {
 
   private mapDurationUnit(durationType: string | undefined): string {
     if (!durationType) return 't';
-    
-    const map: Record<string, string> = { 
-      't': 't', 's': 's', 'm': 'm', 'h': 'h', 'd': 'd', 
-      'ticks': 't', 'seconds': 's', 'minutes': 'm' 
+
+    const map: Record<string, string> = {
+      't': 't', 's': 's', 'm': 'm', 'h': 'h', 'd': 'd',
+      'ticks': 't', 'seconds': 's', 'minutes': 'm'
     };
-    
+
     return map[durationType] || 't';
   }
 
   private log(msg: string, type: 'info' | 'success' | 'warn' | 'error' = 'info') {
     const timestamp = new Date().toLocaleTimeString();
-    console.log(`[${timestamp}] ${msg}`);
-    
+
+
     if (this.callbacks.onNotify) {
       this.callbacks.onNotify(msg, type);
     }
@@ -373,8 +373,7 @@ class BlocklyExecutionEngine {
 
   private notify(msg: string, type: 'info' | 'success' | 'warn' | 'error' = 'info', sound: string = 'silent') {
     const timestamp = new Date().toLocaleTimeString();
-    console.log(`%c[BOT] [${timestamp}] ${msg}`, type === 'error' ? 'color: red' : 'color: cyan');
-    
+
     if (this.callbacks.onNotify) {
       this.callbacks.onNotify(msg, type, sound);
     }

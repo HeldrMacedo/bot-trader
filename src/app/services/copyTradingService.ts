@@ -44,7 +44,7 @@ export class CopyTradingService {
   private onTrade: boolean = false; // Guard: true enquanto um trade real está ativo (equivale a bool_89 do ZeekBot)
   private isInRealMode: boolean = false; // true quando consecutiveLosses >= quantityLoss — permanece até sair win na real
 
-  
+
   // Dados das contas
   private demoTransactions: any[] = [];
   private realTransactions: any[] = [];
@@ -62,12 +62,12 @@ export class CopyTradingService {
     this.demoToken = demoToken;
     this.realToken = realToken;
     this.sessionId = sessionId;
- 
+
 
     this.tradeExecutor = new TradeExecutor(realToken, configure);
     this.signalProcessor = new SignalProcessor(this.tradeExecutor);
     this.wsListener = new WsListener(demoToken, configure);
-    
+
     // Configura parâmetros do copy trading
     this.quantityLoss = configure?.quantityLoss || 0;
     this.stopLoss = configure?.stopLoss || 0;
@@ -94,24 +94,25 @@ export class CopyTradingService {
       source: source as any,
       details
     };
-    
+
     this.errors.unshift(error);
     if (this.errors.length > this.maxErrors) {
       this.errors = this.errors.slice(0, this.maxErrors);
     }
-    
+
   }
 
 
-  private processTransaction(transaction: any, isDemo: boolean) {    
+  private processTransaction(transaction: any, isDemo: boolean) {
+    console.log('PROCESS TRANSACTION', transaction, isDemo);
     if (isDemo) {
       if (!this.shouldProcessSignal()) {
-        this.console.push({...transaction, isDemo: true});
+        this.console.push({ ...transaction, isDemo: true });
       }
       //this.demoTransactions.push(transaction);
       this.handleDemoTransaction(transaction);
     } else {
-      this.console.push({...transaction, isDemo: false});
+      this.console.push({ ...transaction, isDemo: false });
       this.realTransactions.push(transaction);
       this.handleRealTransaction(transaction);
     }
@@ -119,11 +120,11 @@ export class CopyTradingService {
 
   private handleDemoTransaction(transaction: any) {
     const isWin = transaction.amount > 0;
-    
+
     if (isWin) {
       this.consecutiveLosses = 0;
     } else if (this.quantityLoss > 0) {
-      this.consecutiveLosses++;      
+      this.consecutiveLosses++;
     }
   }
 
@@ -145,17 +146,19 @@ export class CopyTradingService {
   }
 
   private handleRealTransaction(transaction: any) {
-    const isWin = transaction.profit > 0;
-    const profit = transaction.profit;
+    const isWin = parseFloat(transaction.profit) > 0;
+    const profit = parseFloat(transaction.profit);
 
     if (isWin) {
+      // Sai do modo real: volta a aguardar sequência de losses na demo
+      this.isInRealMode = false;
+      this.consecutiveLosses = 0;
+
       this.totalProfit += profit;
       this.martingaleLevel = 0;
       this.currentStake = Number(this.initialValue.toFixed(2));
 
-      // Sai do modo real: volta a aguardar sequência de losses na demo
-      this.isInRealMode = false;
-      this.consecutiveLosses = 0;
+
 
       if (this.pauseTimeWin) {
         this.applyPause(this.pauseTime, 'win');
@@ -201,25 +204,25 @@ export class CopyTradingService {
     this.isPaused = true;
     this.pauseEndTime = Date.now() + (seconds * 1000);
     this.timePause = seconds;
-    
-    
+
+
     // Atualizar timePause em tempo real
     const updateTimer = setInterval(() => {
       const remainingTime = Math.max(0, this.pauseEndTime - Date.now());
       this.timePause = Math.ceil(remainingTime / 1000);
-      
+
       if (remainingTime <= 0) {
         this.isPaused = false;
         this.timePause = 0;
 
         clearInterval(updateTimer);
       }
-    }, 1000); 
+    }, 1000);
   }
 
-  
 
-  private  setupEventHandlers(): void {
+
+  private setupEventHandlers(): void {
     // Handler de sinais da conta demo — executa trade na real
     this.wsListener.on('tradeSignal', async (signal: TradeSignal) => {
       this.stats.signalsReceived++;
@@ -251,7 +254,7 @@ export class CopyTradingService {
           this.isInRealMode = true;
         }
 
-        await this.signalProcessor.processSignal({...signal, amount: this.currentStake});
+        await this.signalProcessor.processSignal({ ...signal, amount: this.currentStake });
         this.stats.tradesExecuted++;
         this.stats.lastTradeTime = new Date();
 
@@ -273,7 +276,7 @@ export class CopyTradingService {
     this.tradeExecutor.on('transaction', (transaction: any) => {
       // Libera guard APÓS resultado do trade real (como bool_89 = false no ZeekBot)
       this.onTrade = false;
-      this.processTransaction({...transaction, amount: transaction.profit}, false);
+      this.processTransaction({ ...transaction, amount: transaction.profit }, false);
     });
 
     // Handler de resultado da conta demo (sell)
@@ -349,24 +352,24 @@ export class CopyTradingService {
   async start(): Promise<void> {
     try {
 
-      
+
       if (this.isRunning) {
         return;
       }
-      
+
       this.stats.startTime = new Date();
-      
+
       // Conecta ao WebSocket da conta real
       await this.connectMasterWithRetry();
-      
+
       // Conecta ao WebSocket da conta demo
       this.wsListener.connect();
-      
+
       // Habilita o processamento de sinais
       this.signalProcessor.setEnabled(true);
-      
+
       this.isRunning = true;
-      
+
     } catch (error) {
       throw error;
     }
@@ -387,7 +390,7 @@ export class CopyTradingService {
   }
 
   stop(): void {
-    
+
     this.isRunning = false;
     this.signalProcessor.setEnabled(false);
     this.wsListener.disconnect();
@@ -408,36 +411,36 @@ export class CopyTradingService {
   }
 
   getStats() {
-  return {
-    isRunning: this.isRunning,
-    timePause: this.timePause,
-    trading: {
-      consecutiveLosses: this.consecutiveLosses,
-      martingaleLevel: this.martingaleLevel,
-      maxMartingale: this.maxMartingale,
-      onMaxMartingale: this.onMaxMartingale,
-      currentStake: this.currentStake,
-      onTrade: this.onTrade,
-      isInRealMode: this.isInRealMode,
-    },
-    realAccount: {
-      transactions: this.realTransactions,
-      totalWin: this.realTransactions.filter(t => t.profit > 0).length,
-      totalLoss: this.realTransactions.filter(t => t.profit < 0).length,
-      totalValueWin: this.realTransactions.filter(t => t.profit > 0).reduce((acc, t) => acc + t.profit, 0),
-      totalValueLoss: this.realTransactions.filter(t => t.profit < 0).reduce((acc, t) => acc + t.profit, 0),
-      totalProfit: this.realTransactions.reduce((acc, t) => acc + t.profit, 0)
-    },
-    realTransactions: this.realTransactions,
-    console: this.console,
-    balance: this.balance,
-    errors: {
-      errors: this.errors,
-      lastError: this.errors[0] || null,
-      errorCount: this.errors.filter(e => e.type === 'error').length
-    }
-  };
-}
+    return {
+      isRunning: this.isRunning,
+      timePause: this.timePause,
+      trading: {
+        consecutiveLosses: this.consecutiveLosses,
+        martingaleLevel: this.martingaleLevel,
+        maxMartingale: this.maxMartingale,
+        onMaxMartingale: this.onMaxMartingale,
+        currentStake: this.currentStake,
+        onTrade: this.onTrade,
+        isInRealMode: this.isInRealMode,
+      },
+      realAccount: {
+        transactions: this.realTransactions,
+        totalWin: this.realTransactions.filter(t => parseFloat(t.profit) > 0).length,
+        totalLoss: this.realTransactions.filter(t => parseFloat(t.profit) < 0).length,
+        totalValueWin: this.realTransactions.filter(t => parseFloat(t.profit) > 0).reduce((acc, t) => acc + parseFloat(t.profit), 0),
+        totalValueLoss: this.realTransactions.filter(t => parseFloat(t.profit) < 0).reduce((acc, t) => acc + parseFloat(t.profit), 0),
+        totalProfit: this.realTransactions.reduce((acc, t) => acc + parseFloat(t.profit), 0)
+      },
+      realTransactions: this.realTransactions,
+      console: this.console,
+      balance: this.balance,
+      errors: {
+        errors: this.errors,
+        lastError: this.errors[0] || null,
+        errorCount: this.errors.filter(e => e.type === 'error').length
+      }
+    };
+  }
 
   private maskToken(token: string): string {
     if (token.length <= 8) return '***';
@@ -448,7 +451,7 @@ export class CopyTradingService {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
     } else if (minutes > 0) {
@@ -470,20 +473,20 @@ export class CopyTradingService {
   setAppMarkupPercentage(percentage: number): void {
     this.tradeExecutor.setAppMarkupPercentage(percentage);
   }
-  
+
   // Getters para informações da sessão
   getDemoToken(): string {
     return this.demoToken;
   }
-  
+
   getRealToken(): string {
     return this.realToken;
   }
-  
+
   getSessionId(): string | undefined {
     return this.sessionId;
   }
-  
+
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId;
   }
