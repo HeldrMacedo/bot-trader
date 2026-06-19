@@ -155,7 +155,6 @@ export const TicksTest = () => {
     const savedAccounts = localStorage.getItem("deriv_accounts");
     if (savedAccounts) {
       const accounts: AccountInfo[] = JSON.parse(savedAccounts);
-      console.log("ACCOUNTS ", accounts);
       if (accounts.length > 0) {
         setAccountInfo(accounts[0]);
       }

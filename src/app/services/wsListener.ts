@@ -118,7 +118,7 @@ export class WsListener extends EventEmitter {
   private processMessage(data: string): void {
     try {
       const message = JSON.parse(data);
-      console.log("WS LISTENER ======>", message);
+
       if (message.msg_type === 'transaction' && message.transaction.action == 'buy') {
         this.ws.send(JSON.stringify({
           proposal_open_contract: 1,
