@@ -340,6 +340,12 @@ export class DerivService {
       const activeTokenInfo = currentAcc?.tokens.find(t => t.token === token);
       this.isAuthorized = true;
 
+      // A conexão OAuth/OTP já vem pré-autorizada. Como o `isAuthorized` só é
+      // definido aqui (e não no `handleOpen` quando `authorizeToken` ainda é nulo),
+      // precisamos liberar as requisições que ficaram enfileiradas aguardando auth.
+      this.dispatchPendingRequests();
+      this.dispatchPendingResubscribes();
+
       return {
         balance: activeTokenInfo?.balance ?? 0,
         fullname: currentAcc?.name || "Conta Deriv",
@@ -1413,6 +1419,166 @@ export class DerivService {
       end: "latest",
       style: "ticks"
     });
+  }
+
+  /**
+   * Obtém a tabela de lucros (histórico de operações) da conta ativa autorizada,
+   * usando a nova API OAuth. O `send` enfileira a requisição até a conexão estar
+   * autorizada (profit_table está em `needAuthorize`).
+   */
+  public async getProfitTable(limit: number = 50, offset: number = 0): Promise<any> {
+    return this.send({
+      profit_table: 1,
+      description: 1,
+      sort: "DESC",
+      limit,
+      offset,
+    });
+  }
+
+  /**
+   * Obtém o histórico de operações (profit_table) de uma conta específica
+   * (demo ou real) sem alterar a conta ativa de trade.
+   *
+   * - Se for a conta ativa já autorizada, reaproveita a conexão principal.
+   * - Caso contrário, obtém uma `websocket_url` pré-autorizada via OTP e usa
+   *   uma conexão temporária descartável apenas para essa consulta.
+   */
+  public async getProfitTableForAccount(
+    token: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<any> {
+    const payload = {
+      profit_table: 1,
+      description: 1,
+      sort: "DESC",
+      limit,
+      offset,
+    };
+
+    // Reaproveita a conexão principal quando for a conta ativa já autorizada
+    if (
+      token &&
+      token === this.currentAccount?.activeToken &&
+      this.isConnected &&
+      this.isAuthorized
+    ) {
+      return this.send(payload);
+    }
+
+    if (token && token.startsWith("oauth:")) {
+      const parts = token.split(":");
+      const accessToken = parts[1];
+      const accountId = parts[2];
+
+      const res = await fetch("/api/deriv-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, accountId }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Falha ao autorizar a conta selecionada");
+      }
+
+      const otp = await res.json();
+      if (!otp.websocket_url) {
+        throw new Error("Não foi possível obter conexão autorizada para a conta");
+      }
+
+      // A URL do OTP já vem pré-autorizada para a conta solicitada
+      return this.requestOnTempConnection(otp.websocket_url, payload, "profit_table");
+    }
+
+    // Token legado (não-OAuth): autoriza numa conexão temporária
+    const wsUrl = `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`;
+    return this.requestOnTempConnection(wsUrl, payload, "profit_table", token);
+  }
+
+  /**
+   * Abre uma conexão WebSocket temporária, envia uma requisição e resolve com a
+   * resposta correspondente, fechando a conexão em seguida. Usada para consultas
+   * pontuais a contas que não são a conta ativa.
+   */
+  private requestOnTempConnection(
+    wsUrl: string,
+    payload: Record<string, any>,
+    expectedMsgType: string,
+    authToken?: string
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let ws: WebSocket;
+
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch (e) {
+        reject(e);
+        return;
+      }
+
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        try {
+          ws.close();
+        } catch {}
+        fn();
+      };
+
+      const timeout = setTimeout(() => {
+        finish(() =>
+          reject(
+            new Error("Limite de tempo expirado, sem resposta da corretora")
+          )
+        );
+      }, 20000);
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify(authToken ? { authorize: authToken } : payload));
+      };
+
+      ws.onmessage = (event) => {
+        let data: any;
+        try {
+          data = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        if (data.error) {
+          finish(() => reject(new Error(data.error.message)));
+          return;
+        }
+
+        if (data.msg_type === "authorize") {
+          ws.send(JSON.stringify(payload));
+          return;
+        }
+
+        if (data.msg_type === expectedMsgType) {
+          finish(() => resolve(data));
+        }
+      };
+
+      ws.onerror = () => {
+        finish(() => reject(new Error("Erro na conexão com a corretora")));
+      };
+    });
+  }
+
+  /**
+   * Retorna o loginId (acct) da conta ativa atualmente autorizada.
+   */
+  public getActiveLoginId(): string {
+    const account = this.currentAccount || this.getStorageDerivAccount()?.[0];
+    if (!account) return "";
+    const activeTokenData = account.tokens.find(
+      (t) => t.token === account.activeToken
+    );
+    return activeTokenData?.acct || account.selectedLoginId || account.loginId || "";
   }
 
   /**
