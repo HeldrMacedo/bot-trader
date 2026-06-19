@@ -23,6 +23,7 @@ export class TradeExecutor extends EventEmitter {
   private reconnectDelay = 5000;
   private isTestMode = false; // Novo: modo de teste
   private mockContractId = 1000000; // Contador para IDs de contratos mock
+  private emittedContractIds = new Set<string | number>(); // Evita emitir transaction duplicada para o mesmo contrato
   private latestRealContractSummary: {
     data: string;
     entry_spot_display_value?: string;
@@ -278,9 +279,15 @@ export class TradeExecutor extends EventEmitter {
   private handleMasterMessage(data: string): void {
     try {
       const message = JSON.parse(data);
-
-      if (message.msg_type === 'proposal_open_contract' && (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
-        this.emit('transaction', message.proposal_open_contract);
+      console.log("TRADE EXECUTOR =====> ", message);
+      if (message.msg_type === 'proposal_open_contract' &&
+        (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
+        const contractId = message.proposal_open_contract.contract_id;
+        // Emite apenas uma vez por contract_id (API Deriv envia múltiplas mensagens para o mesmo contrato finalizado)
+        if (contractId && !this.emittedContractIds.has(contractId)) {
+          this.emittedContractIds.add(contractId);
+          this.emit('transaction', message.proposal_open_contract);
+        }
       }
 
 
@@ -294,15 +301,29 @@ export class TradeExecutor extends EventEmitter {
       }
 
       if (message.msg_type === 'authorize') {
-        if (message.authorize) {
-          this.emit('balance', message.authorize.balance || message.balance.balance);
+        if (message.error) {
+          // Emite evento específico de erro de autenticação (ex: AccountDisabled)
+          this.emit('authError', { code: message.error.code, message: message.error.message });
+          this.disconnect();
+          return;
         }
+
+        if (message.authorize) {
+          this.emit('balance', message.authorize.balance || message.balance?.balance);
+        }
+
+        //Subscribe no saldo 
         this.balanceSubscribe();
       }
 
       if (message.msg_type === 'balance') {
         this.emit('balance', message.balance.balance);
       }
+
+      if (message.msg_type == 'error') {
+
+      }
+
     } catch (error) {
       this.emit('error', new Error(`Erro ao processar mensagem: ${error.message}`));
     }

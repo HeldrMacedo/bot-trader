@@ -45,14 +45,14 @@ const BuyTable = ({
           const status = data.proposal_open_contract.status;
           onPurchaseStatusChange?.(status);
 
-          if (data.proposal_open_contract.is_valid_to_sell) {
+          if (data.proposal_open_contract?.is_valid_to_sell || data.proposal_open_contract?.is_sold) {
             derivService.send({ forget: data.subscription.id });
             onPurchaseStatusChange("");
 
             const accounts = derivService.getStorageDerivAccount();
             const account = accounts && accounts[0];
             if (!account) return;
-            console.log("data.proposal_open_contract", data);
+
             const finishedTradeList = {
               amount: data.proposal_open_contract.buy_price,
               barrier: handleBarrieType(data.proposal_open_contract),

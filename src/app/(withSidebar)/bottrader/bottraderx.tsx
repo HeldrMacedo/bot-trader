@@ -114,6 +114,8 @@ export default function BotTraderX() {
   // Tokens da Deriv. Aceita token clássico (API token) ou o formato
   // composto `oauth:<access_token>:<account_id>` vindo do fluxo OAuth.
   //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
+  //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
+  //const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
   const [demoToken, setDemoToken] = useState("pat_c378e0f6c482ee92e584e3318c9a2d1b6424212066c632b6cfb35a93c0de38ad"); // conta helder.macedo
   const [realToken, setRealToken] = useState("pat_7d78254a606c2fc0b4d3ce7de0761abbfb66a8b2af170077e4ef4b3acf2f0bff"); //conta DEV
   const [isStart, setIsStart] = useState(false);
@@ -142,7 +144,7 @@ export default function BotTraderX() {
   useEffect(() => {
     const interval = setInterval(fetchStatus, 2000);
     return () => clearInterval(interval);
-  });
+  }, []);
 
   const fetchStatus = async () => {
     try {
@@ -158,6 +160,21 @@ export default function BotTraderX() {
       });
 
       const data = await response.json();
+
+      // Detectar erro de autenticação (ex: AccountDisabled)
+      if (data?.authError) {
+        const source = data.authError.source === 'demo' ? 'Demo' : 'Real';
+        toast.error(`Conta ${source} desabilitada: ${data.authError.message}`, { toastId: 'auth-error' });
+        setIsStart(false);
+        setDisabledFields(false);
+        return;
+      }
+
+      // Se o bot foi parado externamente (ex: por erro), atualizar o UI
+      if (isStart && data?.copyTrading && !data.copyTrading.isRunning) {
+        setIsStart(false);
+        setDisabledFields(false);
+      }
 
       if (data?.copyTrading?.isRunning) {
         setStats((prev) => ({
@@ -589,8 +606,26 @@ export default function BotTraderX() {
             </div>
 
             <div className="mt-2 flex flex-col lg:flex-row">
-              <div className="w-2/5">
+              <div className="w-2/5 flex items-center gap-1">
                 <span className="text-nowrap">Max Martingale</span>
+                <div className="bg-indigo-600 rounded-full w-4 h-4 text-center flex justify-center items-center group relative">
+                  <span className="text-white text-[10px]">?</span>
+                  <span
+                    id="tooltip-logout"
+                    role="tooltip"
+                    className="z-10 absolute -top-10 left-1/2 -translate-x-1/2 w-max px-3 py-1.5 text-sm bg-gray-800 text-white rounded-md opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none
+       before:absolute before:left-1/2 before:top-full before:-translate-x-1/2 before:border-4 before:border-transparent before:border-t-gray-800"
+                  >
+                    <p>Limite de Martingale:</p>
+                    <p>Como funciona:</p>
+                    <p>- Max Martingale = 0 (padrão): sem limite, comportamento atual mantido</p>
+                    <p>- Max Martingale &gt; 0: ao atingir N losses consecutivos:</p>
+                    <p>- Reset: zera o nível e volta ao stake inicial (continua operando)</p>
+                    <p>- Stop: para o bot completamente</p>
+                    <p>- O nível atual é exibido no painel como 2/5 (nível/máximo) junto com o stake atual</p>
+                    <p>- Win reseta o nível para 0</p>
+                  </span>
+                </div>
               </div>
 
               <div className="w-3/5 flex">
@@ -622,8 +657,9 @@ export default function BotTraderX() {
             </div>
 
             <div className="mt-2 flex flex-col lg:flex-row">
-              <div className="w-2/5">
+              <div className="w-2/5 flex items-center gap-1">
                 <span className="text-nowrap">On Max Marting.</span>
+
               </div>
 
               <div className="w-3/5 flex gap-3">

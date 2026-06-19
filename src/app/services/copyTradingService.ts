@@ -54,6 +54,8 @@ export class CopyTradingService {
   private errors: ErrorNotification[] = [];
   private maxErrors: number = 50;
 
+  private authErrorInfo: { code: string; message: string; source: string } | null = null;
+
   private contract_id: any;
 
   constructor(demoToken: string, realToken: string, sessionId?: string, configure?: any) {
@@ -102,9 +104,7 @@ export class CopyTradingService {
 
   }
 
-
   private processTransaction(transaction: any, isDemo: boolean) {
-    console.log('PROCESS TRANSACTION', transaction, isDemo);
     if (isDemo) {
       if (!this.shouldProcessSignal()) {
         this.console.push({ ...transaction, isDemo: true });
@@ -274,6 +274,14 @@ export class CopyTradingService {
 
     // Handler de resultado do trade real — libera guard
     this.tradeExecutor.on('transaction', (transaction: any) => {
+      // Camada defensiva: evita reprocessar transações já tratadas (caso alguma duplicata passe pelo tradeExecutor)
+      if (transaction.contract_id) {
+        const alreadyProcessed = this.realTransactions.some(t => t.contract_id === transaction.contract_id);
+        if (alreadyProcessed) {
+          return;
+        }
+      }
+
       // Libera guard APÓS resultado do trade real (como bool_89 = false no ZeekBot)
       this.onTrade = false;
       this.processTransaction({ ...transaction, amount: transaction.profit }, false);
@@ -326,6 +334,22 @@ export class CopyTradingService {
       console.error(`[Session ${this.sessionId}] WsListener error:`, error);
       this.stats.errors++;
       this.addError('error', 'Erro de Conexão Demo', `Falha na conexão da conta demo: ${error.message}`, 'connection', error);
+    });
+
+    // Handler de erro de autenticação na conta demo (ex: AccountDisabled)
+    this.wsListener.on('authError', (error: { code: string; message: string }) => {
+      console.error(`[Session ${this.sessionId}] Demo auth error:`, error);
+      this.authErrorInfo = { code: error.code, message: error.message, source: 'demo' };
+      this.addError('error', 'Conta Demo Desabilitada', `${error.message} (${error.code})`, 'auth', error);
+      this.stop();
+    });
+
+    // Handler de erro de autenticação na conta real (ex: AccountDisabled)
+    this.tradeExecutor.on('authError', (error: { code: string; message: string }) => {
+      console.error(`[Session ${this.sessionId}] Real auth error:`, error);
+      this.authErrorInfo = { code: error.code, message: error.message, source: 'real' };
+      this.addError('error', 'Conta Real Desabilitada', `${error.message} (${error.code})`, 'auth', error);
+      this.stop();
     });
   }
 
@@ -414,6 +438,7 @@ export class CopyTradingService {
     return {
       isRunning: this.isRunning,
       timePause: this.timePause,
+      authError: this.authErrorInfo,
       trading: {
         consecutiveLosses: this.consecutiveLosses,
         martingaleLevel: this.martingaleLevel,
@@ -440,25 +465,6 @@ export class CopyTradingService {
         errorCount: this.errors.filter(e => e.type === 'error').length
       }
     };
-  }
-
-  private maskToken(token: string): string {
-    if (token.length <= 8) return '***';
-    return token.substring(0, 4) + '***' + token.substring(token.length - 4);
-  }
-
-  private formatUptime(ms: number): string {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
-    }
   }
 
   // Métodos de configuração
