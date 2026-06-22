@@ -17,7 +17,7 @@ import {
   UserIcon,
   XMarkIcon,
   DocumentTextIcon,
-  CubeTransparentIcon,
+
 } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
@@ -147,12 +147,7 @@ const Sidebar = ({
         },
       ],
     },
-    {
-      name: "Trade Mind Pro",
-      icon: CubeTransparentIcon,
-      href: "/trade-mind-pro",
-      role: ["admin"]
-    },
+
     {
       name: "Bot Copy Trader",
       icon: CpuChipIcon,

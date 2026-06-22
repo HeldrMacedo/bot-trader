@@ -56,7 +56,7 @@ describe('middleware — rotas públicas', () => {
 
 describe('middleware — rotas protegidas', () => {
   it('redireciona para /login sem cookie', async () => {
-    const req = await buildRequest('/trade-mind-pro');
+    const req = await buildRequest('/home');
     const res = await middleware(req as any);
     expect(res?.status).toBe(307);
     expect(res?.headers.get('location')).toContain('/login');
@@ -89,7 +89,7 @@ describe('middleware — rotas protegidas', () => {
 
   it('libera acesso com token válido', async () => {
     const valid = makeJwt(42);
-    const req = await buildRequest('/trade-mind-pro', valid);
+    const req = await buildRequest('/home', valid);
     const res = await middleware(req as any);
     // NextResponse.next() retorna status 200 no ambiente de teste
     expect(res?.status).not.toBe(307);
