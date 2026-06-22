@@ -91,7 +91,8 @@ export default function UserModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData, selectedModules);
+    const { hiddenInfo, ...submitData } = formData;
+    onSubmit(submitData as any, selectedModules);
   };
 
   if (!isOpen) return null;
@@ -140,7 +141,7 @@ export default function UserModal({
               onChange={(e) =>
                 setFormData({ ...formData, phone: e.target.value })
               }
-              pattern="\(?\d{2}\)?[\s-]?9?\d{4}-?\d{4}"
+              pattern="\\(?\\d{2}\\)?[\\s-]?9?\\d{4}-?\\d{4}"
               placeholder="(99) 99999-9999"
             />
           </div>
