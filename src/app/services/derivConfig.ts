@@ -140,7 +140,6 @@ export async function fetchAccountIdFromPat(patToken: string, accountType: 'demo
 
   const data = await response.json();
   const accounts = data?.data;
-  console.log("ACCOUNTS ", accounts);
 
   if (!accounts || accounts.length === 0) {
     throw new Error('Nenhuma conta de Options encontrada para este token PAT.');

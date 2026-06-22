@@ -50,7 +50,6 @@ const useDerivWebSocket = () => {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected to Deriv Analyzer API');
         setState(prev => ({
           ...prev,
           isConnected: true,
@@ -75,7 +74,6 @@ const useDerivWebSocket = () => {
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
         setState(prev => ({
           ...prev,
           isConnected: false,
@@ -85,8 +83,7 @@ const useDerivWebSocket = () => {
         // Attempt to reconnect if not closed intentionally
         if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
-          console.log(`Attempting to reconnect... (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             connectWebSocket();
           }, reconnectDelay);
@@ -128,7 +125,7 @@ const useDerivWebSocket = () => {
 
   const cleanup = () => {
     disconnectWebSocket();
-    
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;

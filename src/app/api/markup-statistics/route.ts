@@ -21,13 +21,6 @@ export async function POST(request: Request) {
       : '';
     const accessToken = bearer || body.accessToken;
 
-    console.log("api NEXT_PUBLIC_DERIV_CLIENT_ID ", process.env.NEXT_PUBLIC_DERIV_CLIENT_ID);
-    console.log("api accessToken ", accessToken);
-
-    // const appId =
-    //   request.headers.get('deriv-app-id') ||
-    //   process.env.NEXT_PUBLIC_DERIV_CLIENT_ID ||
-    //   process.env.NEXT_PUBLIC_APPID;
 
     if (!accessToken) {
       return NextResponse.json(
