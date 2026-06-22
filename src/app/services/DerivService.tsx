@@ -932,11 +932,11 @@ export class DerivService {
       if (this.ws) {
         try {
           this.ws.close();
-        } catch {}
+        } catch { }
         this.ws = null;
       }
       this.cleanup(); // Limpa as subscriptions do socket de trade, pendentes, etc.
-      
+
       this.connect(); // Dispara nova conexão que vai buscar o OTP da conta correspondente
 
       // Aguardar conexão estar ativa
@@ -1214,7 +1214,7 @@ export class DerivService {
     authUrl.searchParams.append("response_type", "code");
     authUrl.searchParams.append("client_id", clientId);
     authUrl.searchParams.append("redirect_uri", redirectUri);
-    authUrl.searchParams.append("scope", "trade account_manage");
+    authUrl.searchParams.append("scope", "trade account_manage application_read");
     authUrl.searchParams.append("state", state);
     authUrl.searchParams.append("code_challenge", codeChallenge);
     authUrl.searchParams.append("code_challenge_method", "S256");
@@ -1524,7 +1524,7 @@ export class DerivService {
         clearTimeout(timeout);
         try {
           ws.close();
-        } catch {}
+        } catch { }
         fn();
       };
 
@@ -1579,6 +1579,22 @@ export class DerivService {
       (t) => t.token === account.activeToken
     );
     return activeTokenData?.acct || account.selectedLoginId || account.loginId || "";
+  }
+
+  /**
+   * Retorna o access token OAuth da conta ativa (parte `accessToken` do
+   * formato `oauth:accessToken:accountId`). Usado para chamadas REST
+   * autenticadas via Bearer token (ex.: markup-statistics).
+   */
+  public getActiveAccessToken(): string | null {
+    const account = this.currentAccount || this.getStorageDerivAccount()?.[0];
+    const token = account?.activeToken;
+    console.log("account ", account);
+    console.log("token ", token);
+    if (token && token.startsWith("oauth:")) {
+      return token.split(":")[1] || null;
+    }
+    return null;
   }
 
   /**

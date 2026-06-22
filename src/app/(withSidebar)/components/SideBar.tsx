@@ -134,12 +134,6 @@ const Sidebar = ({
           role: ["user", "admin"],
         },
         {
-          name: "Markup Detalhes",
-          icon: DocumentTextIcon,
-          href: "/reports/markup-details",
-          role: ["admin"],
-        },
-        {
           name: "Markup Estatísticas",
           icon: DocumentTextIcon,
           href: "/reports/markup-statistics",
