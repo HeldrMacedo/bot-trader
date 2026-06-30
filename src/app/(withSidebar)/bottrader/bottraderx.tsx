@@ -116,8 +116,10 @@ export default function BotTraderX() {
   //const [demoToken, setDemoToken] = useState("ehOXyajRlX3TdOu");
   //const [realToken, setRealToken] = useState("xa5kGNBaSNP232p");
   //const [realToken, setRealToken] = useState('MBCFDgoInpHq1sz');// real fake
-  const [demoToken, setDemoToken] = useState("pat_c378e0f6c482ee92e584e3318c9a2d1b6424212066c632b6cfb35a93c0de38ad"); // conta helder.macedo
-  const [realToken, setRealToken] = useState("pat_7d78254a606c2fc0b4d3ce7de0761abbfb66a8b2af170077e4ef4b3acf2f0bff"); //conta DEV
+  //const [demoToken, setDemoToken] = useState("pat_c378e0f6c482ee92e584e3318c9a2d1b6424212066c632b6cfb35a93c0de38ad"); // conta helder.macedo
+  //const [realToken, setRealToken] = useState("pat_7d78254a606c2fc0b4d3ce7de0761abbfb66a8b2af170077e4ef4b3acf2f0bff"); //conta DEV
+  const [demoToken, setDemoToken] = useState("");
+  const [realToken, setRealToken] = useState("");
   const [isStart, setIsStart] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [configure, setConfigure] = useState<Configure>({

@@ -23,12 +23,7 @@ const SYMBOLS = [
   "R_25",
   "R_10",
   "RDBEAR",
-  "RDBULL",
-  "JD10",
-  "JD25",
-  "JD50",
-  "JD75",
-  "JD100",
+  "RDBULL"
 ] as const;
 
 const MAX_VISIBLE_TICKS = 40;
@@ -37,11 +32,6 @@ const TICK_BUFFER_SIZE = 100; // margem para gráficos, mas muito menor que 500
 const SYMBOL_LABELS: Record<string, string> = {
   RDBEAR: "Bear Market Index",
   RDBULL: "Bull Market Index",
-  JD10: "Jump 10 Index",
-  JD25: "Jump 25 Index",
-  JD50: "Jump 50 Index",
-  JD75: "Jump 75 Index",
-  JD100: "Jump 100 Index",
 };
 
 function getSymbolLabel(symbol: string): string {

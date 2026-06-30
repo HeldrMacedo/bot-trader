@@ -54,6 +54,7 @@ interface UserStats {
   lastActivity?: Date;
   balance?: number;
   errors?: any;
+  authError?: any;
 }
 
 export class CopyTradingManager {
