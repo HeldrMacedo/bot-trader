@@ -159,6 +159,7 @@ export default function BearBotUltra() {
     multiCand: {} as Record<string, { sym: string; b: number | null; score: number; force?: number }>,
     comboPending: null as { legs: number; won: number; results: number[] } | null,
     pendingKind: null as { kind: string } | null,
+    vlStartIdx: {} as Record<string, number>,
   });
 
   // Histórico local de ticks por símbolo
@@ -621,14 +622,20 @@ export default function BearBotUltra() {
     if (stateRef.current.vlMode === 'consec') {
       if (isLoser) st.count++;
       else st.count = 0;
+      st.seen = 0;
     } else {
-      st.seen++;
-      if (isLoser) st.count++;
-      if (st.count >= stateRef.current.vlQty) return;
-      if (st.seen >= stateRef.current.vlWindow) {
-        st.count = 0;
-        st.seen = 0;
-      }
+      const startIdx = stateRef.current.vlStartIdx[sym] || 0;
+      const digits = tickDataRef.current[sym]?.digits || [];
+      const validDigits = digits.slice(startIdx);
+      const slice = validDigits.slice(-stateRef.current.vlWindow);
+      
+      let count = 0;
+      slice.forEach(d => {
+        const dIsLoser = forDigit !== null && forDigit !== undefined ? d === forDigit : lose.has(d);
+        if (dIsLoser) count++;
+      });
+      st.count = count;
+      st.seen = slice.length;
     }
   };
 
@@ -643,18 +650,21 @@ export default function BearBotUltra() {
       } else {
         stateRef.current.vlCount = 0;
       }
+      stateRef.current.vlSeen = 0;
     } else {
-      stateRef.current.vlSeen++;
-      if (isLoser) stateRef.current.vlCount++;
-      if (stateRef.current.vlCount >= stateRef.current.vlQty) {
-        setVlCount(stateRef.current.vlCount);
-        return;
-      }
-      if (stateRef.current.vlSeen >= stateRef.current.vlWindow) {
-        addLogLine(`Janela ${stateRef.current.vlWindow} ticks: reset`, "virt");
-        stateRef.current.vlCount = 0;
-        stateRef.current.vlSeen = 0;
-      }
+      const sym = stateRef.current.activeSym;
+      const startIdx = stateRef.current.vlStartIdx[sym] || 0;
+      const digits = tickDataRef.current[sym]?.digits || [];
+      const validDigits = digits.slice(startIdx);
+      const slice = validDigits.slice(-stateRef.current.vlWindow);
+
+      let count = 0;
+      slice.forEach(d => {
+        const dIsLoser = forDigit !== null && forDigit !== undefined ? d === forDigit : lose.has(d);
+        if (dIsLoser) count++;
+      });
+      stateRef.current.vlCount = count;
+      stateRef.current.vlSeen = slice.length;
     }
     setVlCount(stateRef.current.vlCount);
     setVlSeen(stateRef.current.vlSeen);
@@ -673,6 +683,8 @@ export default function BearBotUltra() {
   const vlReset = () => {
     stateRef.current.vlCount = 0;
     stateRef.current.vlSeen = 0;
+    const sym = stateRef.current.activeSym;
+    stateRef.current.vlStartIdx[sym] = tickDataRef.current[sym]?.digits.length || 0;
     setVlCount(0);
     setVlSeen(0);
   };
@@ -681,11 +693,16 @@ export default function BearBotUltra() {
     const st = vlM(sym);
     st.count = 0;
     st.seen = 0;
+    stateRef.current.vlStartIdx[sym] = tickDataRef.current[sym]?.digits.length || 0;
   };
 
   const vlResetAllM = () => {
     stateRef.current.vlMState = {};
     stateRef.current.multiCand = {};
+    stateRef.current.vlStartIdx = {};
+    MARKETS.forEach(m => {
+      stateRef.current.vlStartIdx[m.sym] = tickDataRef.current[m.sym]?.digits.length || 0;
+    });
   };
 
   // Qui-quadrado
