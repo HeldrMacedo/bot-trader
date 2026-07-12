@@ -2038,6 +2038,114 @@ export default function BearBotUltra() {
               </div>
             </div>
 
+            {/* 🔥 Dígitos que mais saíram */}
+            <div className="bg-[#0e131d] p-3 border border-[#222c3f] rounded-lg flex flex-col gap-2">
+              <div>
+                <span className="text-[10px] text-[#8593aa] uppercase tracking-wider font-bold block mb-1">🔥 Dígitos que mais saíram</span>
+                <span className="text-[9px] text-gray-500 block mb-2">
+                  {mode === 'differ' 
+                    ? '(últimos 25 · DIFFER · evite operar ≠ neles)' 
+                    : `(últimos 25 · ${mode === 'over' ? 'OVER >' + digit : mode === 'under' ? 'UNDER <' + digit : 'COMBO (4 e 5)'} · evite/espere)`
+                  }
+                </span>
+              </div>
+              {(() => {
+                if (!tickData || Object.keys(tickData).length === 0) return (
+                  <div className="text-[10px] text-gray-500">coletando dados...</div>
+                );
+
+                if (mode === 'differ') {
+                  const best: Record<number, { count: number; sym: string }> = {};
+                  MARKETS.forEach(m => {
+                    const arr = tickData[m.sym]?.digits.slice(-25) || [];
+                    if (arr.length < 5) return;
+                    const c = new Array(10).fill(0);
+                    arr.forEach(d => c[d]++);
+                    for (let d = 0; d < 10; d++) {
+                      if (!best[d] || c[d] > best[d].count) {
+                        best[d] = { count: c[d], sym: m.sym };
+                      }
+                    }
+                  });
+                  const rows = Object.keys(best)
+                    .map(d => ({ d: +d, count: best[d].count, sym: best[d].sym }))
+                    .filter(r => r.count > 0)
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 3);
+
+                  if (rows.length === 0) return <div className="text-[10px] text-gray-500">coletando dados...</div>;
+
+                  return (
+                    <div className="flex flex-col gap-2">
+                      {rows.map((r, i) => {
+                        const nm = MARKETS.find(m => m.sym === r.sym)?.nm || r.sym;
+                        return (
+                          <div key={i} className="bg-[#18202f] border border-[#2e3a52] rounded flex items-center p-2">
+                            <span className="w-5 text-gray-500 font-bold text-xs">{i + 1}º</span>
+                            <span className="text-xl font-bold font-mono text-cyan-400 w-8 text-center">{r.d}</span>
+                            <div className="flex flex-col ml-2">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase">{nm}</span>
+                              <span className="text-[9px] text-[#8593aa]">{r.count}× nos últimos 25</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
+                const lose = loserSet(mode, digit);
+                const loseArr = Array.from(lose).sort((a, b) => a - b);
+                if (loseArr.length === 0) return null;
+                
+                const rows = MARKETS.map(m => {
+                  const arr = tickData[m.sym]?.digits.slice(-25) || [];
+                  if (arr.length < 5) return null;
+                  const per: Record<number, number> = {};
+                  loseArr.forEach(d => per[d] = 0);
+                  let k = 0;
+                  arr.forEach(d => {
+                    if (lose.has(d)) {
+                      k++;
+                      per[d]++;
+                    }
+                  });
+                  return { sym: m.sym, count: k, tot: arr.length, per };
+                }).filter(Boolean) as { sym: string; count: number; tot: number; per: Record<number, number> }[];
+                
+                rows.sort((a, b) => b.count - a.count);
+                const topRows = rows.slice(0, 3);
+
+                if (topRows.length === 0) return <div className="text-[10px] text-gray-500">coletando dados...</div>;
+
+                return (
+                  <div className="flex flex-col gap-2">
+                    {topRows.map((r, i) => {
+                      const nm = MARKETS.find(m => m.sym === r.sym)?.nm || r.sym;
+                      return (
+                        <div key={i} className="bg-[#18202f] border border-[#2e3a52] rounded flex items-center p-2">
+                          <span className="w-5 text-gray-500 font-bold text-xs">{i + 1}º</span>
+                          <span className="text-xl font-bold font-mono text-red-400 w-8 text-center">{r.count}</span>
+                          <div className="flex flex-col ml-2 flex-1">
+                            <span className="text-[10px] text-gray-400 font-bold uppercase">{nm}</span>
+                            <span className="text-[9px] text-[#8593aa] flex items-center flex-wrap gap-1">
+                              {loseArr.map((d, idx) => (
+                                <span key={d} className="flex items-center gap-1">
+                                  {idx > 0 && <span className="text-[#2e3a52]">|</span>}
+                                  <span className="text-red-400">{d}</span>:<span className="text-white">{r.per[d]}</span>
+                                </span>
+                              ))}
+                              <span className="ml-1">· em {r.tot}</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
           </div>
 
           {/* Logs Histórico */}
