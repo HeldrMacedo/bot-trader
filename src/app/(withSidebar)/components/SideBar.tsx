@@ -91,7 +91,7 @@ const Sidebar = ({
       }
     } catch (error) {
       toast.error("Erro ao conectar com o servidor");
-     
+
     }
   };
 
@@ -229,9 +229,12 @@ const Sidebar = ({
         transition-transform duration-300 ease-in-out overflow-y-auto`}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-800">
+        <div className="flex items-center p-6 border-b border-gray-800 gap-2">
+          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-500 text-white font-bold">
+            <img src="/img/bear-logo.jpg" alt="logo" className="w-full h-full rounded-full object-cover" />
+          </div>
           <span className="text-xl font-semibold text-white">
-            Trade Platform
+            Bear Bot Pro
           </span>
         </div>
 
@@ -265,9 +268,8 @@ const Sidebar = ({
                       <span>{item.name}</span>
                     </div>
                     <ChevronDownIcon
-                      className={`w-4 h-4 text-gray-400 group-hover:text-white transition-transform ${
-                        isDropdownOpen ? "rotate-180" : ""
-                      }`}
+                      className={`w-4 h-4 text-gray-400 group-hover:text-white transition-transform ${isDropdownOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 
@@ -292,17 +294,17 @@ const Sidebar = ({
             }
 
             return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  onClick={(e) => handleNavigationClick(item.name, e)}
-                  className="flex items-center space-x-3 px-3 py-2 rounded-md
+              <a
+                key={item.name}
+                href={item.href}
+                onClick={(e) => handleNavigationClick(item.name, e)}
+                className="flex items-center space-x-3 px-3 py-2 rounded-md
                 hover:bg-gray-800 hover:text-white group transition-colors"
-                >
-                  <item.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
-                  <span>{item.name}</span>
-                </a>
-              );
+              >
+                <item.icon className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                <span>{item.name}</span>
+              </a>
+            );
           })}
         </nav>
       </aside>
@@ -324,15 +326,15 @@ const Sidebar = ({
                     <span className="text-[#4bb4b3]">
                       {accountInfo?.is_virtual
                         ? "VRTC " +
-                          new Intl.NumberFormat("en-US", {
-                            style: "currency",
-                            currency: "USD",
-                          }).format(accountInfo?.balance ?? 0)
+                        new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                        }).format(accountInfo?.balance ?? 0)
                         : "CR " +
-                          new Intl.NumberFormat("en-US", {
-                            style: "currency",
-                            currency: "USD",
-                          }).format(accountInfo?.balance ?? 0)}
+                        new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                        }).format(accountInfo?.balance ?? 0)}
                     </span>
                   )}
                 </span>

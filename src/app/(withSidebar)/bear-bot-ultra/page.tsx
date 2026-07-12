@@ -3,9 +3,9 @@
 import { useEffect, useState, useRef } from "react";
 import { DerivService, TokenData, AccountInfo } from "@/app/services/DerivService";
 import { toast } from "react-toastify";
-import { 
-  CpuChipIcon, 
-  ArrowDownTrayIcon, 
+import {
+  CpuChipIcon,
+  ArrowDownTrayIcon,
   ArrowPathIcon,
   PlayIcon,
   StopIcon,
@@ -27,12 +27,12 @@ interface Market {
 
 const MARKETS: Market[] = [
   { sym: 'R_100', nm: 'Volatilidade 100', pip: 2 },
-  { sym: 'R_75',  nm: 'Volatilidade 75',  pip: 4 },
-  { sym: 'R_50',  nm: 'Volatilidade 50',  pip: 4 },
-  { sym: 'R_25',  nm: 'Volatilidade 25',  pip: 3 },
-  { sym: 'R_10',  nm: 'Volatilidade 10',  pip: 3 },
-  { sym: 'RDBEAR', nm: 'Bear Market',      pip: 3 },
-  { sym: 'RDBULL', nm: 'Bull Market',      pip: 4 },
+  { sym: 'R_75', nm: 'Volatilidade 75', pip: 4 },
+  { sym: 'R_50', nm: 'Volatilidade 50', pip: 4 },
+  { sym: 'R_25', nm: 'Volatilidade 25', pip: 3 },
+  { sym: 'R_10', nm: 'Volatilidade 10', pip: 3 },
+  { sym: 'RDBEAR', nm: 'Bear Market', pip: 3 },
+  { sym: 'RDBULL', nm: 'Bull Market', pip: 4 },
 ];
 
 interface TradeLog {
@@ -78,7 +78,7 @@ export default function BearBotUltra() {
   const [exec, setExec] = useState<'manual' | 'auto'>('manual');
   const [digit, setDigit] = useState<number>(2);
   const [autoOn, setAutoOn] = useState<boolean>(false);
-  
+
   // Perdas Virtuais
   const [vlOn, setVlOn] = useState<boolean>(false);
   const [vlMode, setVlMode] = useState<'consec' | 'accum'>('consec');
@@ -143,6 +143,7 @@ export default function BearBotUltra() {
     wins,
     loss,
     pnl,
+    accountInfo: null as AccountInfo | null,
     galeLevel: 0,
     curStake: 0.35,
     lossAcum: 0,
@@ -170,12 +171,12 @@ export default function BearBotUltra() {
   useEffect(() => {
     const initTicks: Record<string, { digits: number[]; price: number | null }> = {};
     const initPatState: Record<string, PatternState> = {};
-    
+
     MARKETS.forEach(m => {
       initTicks[m.sym] = { digits: [], price: null };
       initPatState[m.sym] = { a: null, b: null, count: 0, reps: 0, armed: false, waiting: false, seqCount: 0 };
     });
-    
+
     setTickData(initTicks);
     tickDataRef.current = initTicks;
     stateRef.current.patState = initPatState;
@@ -223,10 +224,11 @@ export default function BearBotUltra() {
     stateRef.current.wins = wins;
     stateRef.current.loss = loss;
     stateRef.current.pnl = pnl;
+    stateRef.current.accountInfo = accountInfo;
   }, [
     activeSym, mode, exec, digit, autoOn, vlOn, vlMode, vlQty, vlWindow,
     stake, gale, stopLoss, stopWin, galeMode, galeParcels, multiOn,
-    patReps, patMinForce, patTrigger, patMode, wins, loss, pnl
+    patReps, patMinForce, patTrigger, patMode, wins, loss, pnl, accountInfo
   ]);
 
   // Sons de Win/Loss usando Web Audio API
@@ -250,7 +252,7 @@ export default function BearBotUltra() {
       osc.frequency.value = freq;
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
-      
+
       const t = ctx.currentTime + start;
       gainNode.gain.setValueAtTime(0, t);
       gainNode.gain.linearRampToValueAtTime(gainVal, t + 0.01);
@@ -332,7 +334,7 @@ export default function BearBotUltra() {
       const after: Record<string, number> = {};
 
       for (let i = 0; i < sl.length - 1; i++) {
-        const a = sl[i], b = sl[i+1];
+        const a = sl[i], b = sl[i + 1];
         const k = `${a}-${b}`;
         pair[k] = (pair[k] || 0) + 1;
         after[a] = (after[a] || 0) + 1;
@@ -362,9 +364,9 @@ export default function BearBotUltra() {
       const sl = digits.slice(-50);
       let ab = 0, abc: Record<number, number> = {};
       for (let i = 0; i < sl.length - 2; i++) {
-        if (sl[i] === a && sl[i+1] === b) {
+        if (sl[i] === a && sl[i + 1] === b) {
           ab++;
-          const c = sl[i+2];
+          const c = sl[i + 2];
           abc[c] = (abc[c] || 0) + 1;
         }
       }
@@ -378,7 +380,7 @@ export default function BearBotUltra() {
       for (let i = 0; i < digits.length - 1; i++) {
         if (digits[i] === a) {
           aTot++;
-          if (digits[i+1] === b) ab++;
+          if (digits[i + 1] === b) ab++;
         }
       }
       return aTot >= 4 ? { p: ab / aTot, n: aTot } : { p: 0, n: aTot };
@@ -471,7 +473,7 @@ export default function BearBotUltra() {
       const sl = arr.slice(-50);
       let occ = 0;
       for (let i = 0; i < sl.length - 1; i++) {
-        if (sl[i] === ps.a && sl[i+1] === ps.b) occ++;
+        if (sl[i] === ps.a && sl[i + 1] === ps.b) occ++;
       }
       ps.count = occ;
       ps.armed = occ >= stateRef.current.patReps && qualityOk;
@@ -776,6 +778,7 @@ export default function BearBotUltra() {
   // Escutar retornos das compras e POC
   useEffect(() => {
     const handlePOCMsg = (data: any) => {
+      console.log("MESSAGE ", data);
       if (data.msg_type === "proposal_open_contract" && data.proposal_open_contract) {
         const c = data.proposal_open_contract;
         if (c.is_sold === 1 || c.status === 'won' || c.status === 'lost') {
@@ -806,7 +809,7 @@ export default function BearBotUltra() {
 
   // Lógica de Compra e Execução de Operações
   const fireTrade = async (kind: string) => {
-    if (!accountInfo) {
+    if (!stateRef.current.accountInfo) {
       toast.error("Por favor, conecte a API");
       return;
     }
@@ -847,13 +850,13 @@ export default function BearBotUltra() {
           currency: 'USD',
           duration: 1,
           duration_unit: 't',
-          symbol: stateRef.current.activeSym,
+          underlying_symbol: stateRef.current.activeSym,
           barrier: String(stateRef.current.digit)
         }
       });
 
       if (response.buy) {
-        addLogLine(`▶ ${kind.toUpperCase()} ${kind==='differ'?'≠':kind==='over'?'>':'<'}${stateRef.current.digit} · $${stakeVal} · ${stateRef.current.activeSym}`, "info");
+        addLogLine(`▶ ${kind.toUpperCase()} ${kind === 'differ' ? '≠' : kind === 'over' ? '>' : '<'}${stateRef.current.digit} · $${stakeVal} · ${stateRef.current.activeSym}`, "info");
         // Subscrever no POC
         derivService.send({
           proposal_open_contract: 1,
@@ -886,7 +889,7 @@ export default function BearBotUltra() {
           currency: 'USD',
           duration: 1,
           duration_unit: 't',
-          symbol: stateRef.current.activeSym,
+          underlying_symbol: stateRef.current.activeSym,
           barrier: '5'
         }
       });
@@ -902,7 +905,7 @@ export default function BearBotUltra() {
           currency: 'USD',
           duration: 1,
           duration_unit: 't',
-          symbol: stateRef.current.activeSym,
+          underlying_symbol: stateRef.current.activeSym,
           barrier: '4'
         }
       });
@@ -1092,7 +1095,7 @@ export default function BearBotUltra() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bearbot_trades_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `bearbot_trades_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1107,7 +1110,7 @@ export default function BearBotUltra() {
     let badgeClass = "text-gray-400 border-gray-600";
     if (cs.level === 'medio') badgeClass = "text-yellow-500 border-yellow-500 bg-yellow-500/10";
     if (cs.level === 'alto') badgeClass = "text-red-500 border-red-500 bg-red-500/10";
-    
+
     return (
       <span className={`text-[10px] font-mono border rounded px-1.5 py-0.5 ${badgeClass}`} title="Qui-quadrado">
         χ² {cs.chi}
@@ -1175,7 +1178,7 @@ export default function BearBotUltra() {
 
   return (
     <div className="w-full bg-[#0d0a18] text-[#eef2f8] min-h-screen pb-10">
-      
+
       {/* Banner de conexão ausente */}
       {!accountInfo && (
         <div className="bg-red-500/10 border-b border-red-500/30 p-4 text-center text-red-200 flex items-center justify-center gap-2">
@@ -1187,8 +1190,8 @@ export default function BearBotUltra() {
       {/* Header Placar */}
       <div className="border-b border-[#222c3f] bg-[#0e131d] px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-indigo-600/10 border border-indigo-500/30 flex items-center justify-center text-xl">
-            🐻
+          <div className="w-10 h-10 rounded-lg bg-indigo-600/10 border border-indigo-500/30 flex items-center justify-center text-xl overflow-hidden">
+            <img src="/img/bear-logo.jpg" alt="logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-lg font-bold">Bear Bot Ultra 7.7.9</h1>
@@ -1223,21 +1226,19 @@ export default function BearBotUltra() {
           <div className="flex items-center bg-[#070b14] border border-[#2e3a52] rounded-lg p-1">
             <button
               onClick={() => handleAccountToggle(true)}
-              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                accountInfo.tokens.find(t => t.token === accountInfo.activeToken)?.is_virtual
-                  ? "bg-yellow-600/30 text-yellow-400 border border-yellow-500/50"
-                  : "text-[#8593aa]"
-              }`}
+              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${accountInfo.tokens.find(t => t.token === accountInfo.activeToken)?.is_virtual
+                ? "bg-yellow-600/30 text-yellow-400 border border-yellow-500/50"
+                : "text-[#8593aa]"
+                }`}
             >
               Demo
             </button>
             <button
               onClick={() => handleAccountToggle(false)}
-              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                !accountInfo.tokens.find(t => t.token === accountInfo.activeToken)?.is_virtual
-                  ? "bg-red-600/30 text-red-400 border border-red-500/50"
-                  : "text-[#8593aa]"
-              }`}
+              className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${!accountInfo.tokens.find(t => t.token === accountInfo.activeToken)?.is_virtual
+                ? "bg-red-600/30 text-red-400 border border-red-500/50"
+                : "text-[#8593aa]"
+                }`}
             >
               Real
             </button>
@@ -1247,10 +1248,10 @@ export default function BearBotUltra() {
 
       {/* Grid Principal */}
       <div className="w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
-        
+
         {/* Coluna Esquerda: Painel de Controle (3/12) */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          
+
           {/* Card: Execução e Controle */}
           <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl">
             <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa] mb-3 flex items-center gap-2">
@@ -1264,17 +1265,15 @@ export default function BearBotUltra() {
                 <div className="grid grid-cols-2 gap-2 bg-[#070b14] p-1 border border-[#2e3a52] rounded-lg">
                   <button
                     onClick={() => { setExec('manual'); stopRobo(); }}
-                    className={`py-2 text-xs font-bold rounded-md transition-all ${
-                      exec === 'manual' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
-                    }`}
+                    className={`py-2 text-xs font-bold rounded-md transition-all ${exec === 'manual' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
+                      }`}
                   >
                     Manual
                   </button>
                   <button
                     onClick={() => setExec('auto')}
-                    className={`py-2 text-xs font-bold rounded-md transition-all ${
-                      exec === 'auto' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
-                    }`}
+                    className={`py-2 text-xs font-bold rounded-md transition-all ${exec === 'auto' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
+                      }`}
                   >
                     Automático
                   </button>
@@ -1287,11 +1286,10 @@ export default function BearBotUltra() {
                   <button
                     onClick={autoOn ? stopRobo : startRobo}
                     disabled={!accountInfo}
-                    className={`py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                      autoOn
-                        ? "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse"
-                        : "bg-green-600 hover:bg-green-500 text-[#04140a] disabled:opacity-50"
-                    }`}
+                    className={`py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${autoOn
+                      ? "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse"
+                      : "bg-green-600 hover:bg-green-500 text-[#04140a] disabled:opacity-50"
+                      }`}
                   >
                     {autoOn ? (
                       <>
@@ -1353,11 +1351,10 @@ export default function BearBotUltra() {
                       setMultiOn(!multiOn);
                       vlResetAllM();
                     }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
-                      multiOn
-                        ? "bg-indigo-600 border-indigo-500 text-white"
-                        : "bg-[#18202f] border-[#2e3a52] text-[#8593aa]"
-                    }`}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${multiOn
+                      ? "bg-indigo-600 border-indigo-500 text-white"
+                      : "bg-[#18202f] border-[#2e3a52] text-[#8593aa]"
+                      }`}
                   >
                     {multiOn ? "Multi ON" : "Multi OFF"}
                   </button>
@@ -1383,9 +1380,8 @@ export default function BearBotUltra() {
                     <button
                       key={m}
                       onClick={() => setMode(m)}
-                      className={`py-1.5 text-[10px] font-bold rounded transition-all uppercase ${
-                        mode === m ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
-                      }`}
+                      className={`py-1.5 text-[10px] font-bold rounded transition-all uppercase ${mode === m ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
+                        }`}
                     >
                       {m}
                     </button>
@@ -1401,13 +1397,12 @@ export default function BearBotUltra() {
                     <button
                       key={i}
                       onClick={() => setDigit(i)}
-                      className={`py-2 font-mono font-bold text-sm rounded-lg border transition-all ${
-                        digit === i
-                          ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
-                          : loserSet(mode, digit).has(i)
+                      className={`py-2 font-mono font-bold text-sm rounded-lg border transition-all ${digit === i
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                        : loserSet(mode, digit).has(i)
                           ? "bg-[#e23b32]/5 border-[#e23b32]/25 text-[#e23b32] hover:bg-[#e23b32]/10"
                           : "bg-[#2eb84f]/5 border-[#2eb84f]/25 text-[#2eb84f] hover:bg-[#2eb84f]/10"
-                      }`}
+                        }`}
                     >
                       {i}
                     </button>
@@ -1472,17 +1467,15 @@ export default function BearBotUltra() {
                 <div className="grid grid-cols-2 gap-2 bg-[#070b14] p-1 border border-[#2e3a52] rounded-lg">
                   <button
                     onClick={() => setGaleMode('mult')}
-                    className={`py-1.5 text-xs font-bold rounded-md transition-all ${
-                      galeMode === 'mult' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
-                    }`}
+                    className={`py-1.5 text-xs font-bold rounded-md transition-all ${galeMode === 'mult' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
+                      }`}
                   >
                     Multiplicador
                   </button>
                   <button
                     onClick={() => setGaleMode('parc')}
-                    className={`py-1.5 text-xs font-bold rounded-md transition-all ${
-                      galeMode === 'parc' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
-                    }`}
+                    className={`py-1.5 text-xs font-bold rounded-md transition-all ${galeMode === 'parc' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
+                      }`}
                   >
                     Parcelado
                   </button>
@@ -1514,14 +1507,12 @@ export default function BearBotUltra() {
               </h2>
               <button
                 onClick={() => setVlOn(!vlOn)}
-                className={`w-12 h-6 rounded-full transition-all relative ${
-                  vlOn ? "bg-green-600" : "bg-[#18202f] border border-[#2e3a52]"
-                }`}
+                className={`w-12 h-6 rounded-full transition-all relative ${vlOn ? "bg-green-600" : "bg-[#18202f] border border-[#2e3a52]"
+                  }`}
               >
                 <div
-                  className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${
-                    vlOn ? "left-6.5" : "left-0.5"
-                  }`}
+                  className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${vlOn ? "left-6.5" : "left-0.5"
+                    }`}
                 />
               </button>
             </div>
@@ -1533,17 +1524,15 @@ export default function BearBotUltra() {
                   <div className="grid grid-cols-2 gap-2 bg-[#070b14] p-1 border border-[#2e3a52] rounded-lg">
                     <button
                       onClick={() => setVlMode('consec')}
-                      className={`py-1.5 text-xs font-bold rounded-md transition-all ${
-                        vlMode === 'consec' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
-                      }`}
+                      className={`py-1.5 text-xs font-bold rounded-md transition-all ${vlMode === 'consec' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
+                        }`}
                     >
                       Consecutivo
                     </button>
                     <button
                       onClick={() => setVlMode('accum')}
-                      className={`py-1.5 text-xs font-bold rounded-md transition-all ${
-                        vlMode === 'accum' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
-                      }`}
+                      className={`py-1.5 text-xs font-bold rounded-md transition-all ${vlMode === 'accum' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"
+                        }`}
                     >
                       Acumulado
                     </button>
@@ -1611,11 +1600,10 @@ export default function BearBotUltra() {
                       setActiveSym(m.sym);
                       stateRef.current.activeSym = m.sym;
                     }}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      isSelected
-                        ? "bg-[#18202f] border-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.2)]"
-                        : "bg-[#0e131d] border-[#222c3f] hover:bg-[#18202f]/50"
-                    }`}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${isSelected
+                      ? "bg-[#18202f] border-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.2)]"
+                      : "bg-[#0e131d] border-[#222c3f] hover:bg-[#18202f]/50"
+                      }`}
                   >
                     {/* Linha 1: Nome e Qui-Quadrado */}
                     <div className="flex items-center justify-between mb-1.5">
@@ -1627,9 +1615,8 @@ export default function BearBotUltra() {
 
                     {/* Linha 2: Status de Anomalia */}
                     {anomaly ? (
-                      <div className={`text-[10px] font-bold py-0.5 px-1.5 rounded mb-2 ${
-                        anomaly.level === 'evite' ? "bg-red-500/10 text-red-400" : "bg-yellow-500/10 text-yellow-400"
-                      }`}>
+                      <div className={`text-[10px] font-bold py-0.5 px-1.5 rounded mb-2 ${anomaly.level === 'evite' ? "bg-red-500/10 text-red-400" : "bg-yellow-500/10 text-yellow-400"
+                        }`}>
                         {anomaly.level === 'evite' ? "⛔ Evitar Operar" : "⚠️ Instável"}
                       </div>
                     ) : (
@@ -1645,11 +1632,10 @@ export default function BearBotUltra() {
                         return (
                           <span
                             key={index}
-                            className={`w-6 h-6 flex items-center justify-center text-xs font-mono font-bold rounded ${
-                              isLoser
-                                ? "bg-red-500/10 border border-red-500/20 text-red-400"
-                                : "bg-green-500/10 border border-green-500/20 text-green-400"
-                            }`}
+                            className={`w-6 h-6 flex items-center justify-center text-xs font-mono font-bold rounded ${isLoser
+                              ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                              : "bg-green-500/10 border border-green-500/20 text-green-400"
+                              }`}
                           >
                             {d}
                           </span>
@@ -1690,7 +1676,7 @@ export default function BearBotUltra() {
                     <span className="text-[10px] text-[#8593aa] uppercase tracking-wider font-bold mb-2 block text-center">
                       Últimos {n} Ticks
                     </span>
-                    
+
                     {/* Barras Verticais */}
                     <div className="flex items-end justify-between h-20 gap-1.5 mt-2">
                       {Array.from({ length: 10 }).map((_, i) => {
@@ -1703,13 +1689,12 @@ export default function BearBotUltra() {
                             <span className="text-[8px] font-mono text-gray-500 mb-0.5">{Math.round(pctNum)}%</span>
                             <div
                               style={{ height: `${counts[i] ? Math.max(heightPct, 4) : 2}%` }}
-                              className={`w-full rounded-t-sm transition-all ${
-                                isLoser
-                                  ? "bg-gradient-to-t from-red-600 to-red-400"
-                                  : counts[i] > 0
+                              className={`w-full rounded-t-sm transition-all ${isLoser
+                                ? "bg-gradient-to-t from-red-600 to-red-400"
+                                : counts[i] > 0
                                   ? "bg-gradient-to-t from-green-600 to-green-400"
                                   : "bg-[#2e3a52]"
-                              }`}
+                                }`}
                             />
                             <span className={`text-[10px] font-mono font-bold mt-1 ${isLoser ? "text-red-400" : "text-green-400"}`}>
                               {i}
@@ -1757,11 +1742,10 @@ export default function BearBotUltra() {
                       <td className="py-2 px-3">{t.saiu}</td>
                       <td className="py-2 px-3">${t.stake}</td>
                       <td className="py-2 px-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          t.resultado === 'WIN'
-                            ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                            : "bg-red-500/10 text-red-400 border border-red-500/20"
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${t.resultado === 'WIN'
+                          ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                          : "bg-red-500/10 text-red-400 border border-red-500/20"
+                          }`}>
                           {t.resultado}
                         </span>
                       </td>
@@ -1783,11 +1767,11 @@ export default function BearBotUltra() {
 
         {/* Coluna Direita: Painel de IA & Logs (3/12) */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          
+
           {/* IA e Termômetro */}
           <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl flex flex-col gap-4">
             <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">
-              🧠 CONSELHO E ANÁLISE DE IA
+              🧠 ANÁLISE DE IA PROBABILÍSTICA
             </h2>
 
             {/* Hit rate circular (SVG Ring) */}
@@ -1861,11 +1845,35 @@ export default function BearBotUltra() {
               </span>
             </div>
 
+            {/* Momento p/ entrar (Manual) */}
+            <div className={`p-3 border rounded-lg flex items-center gap-3 transition-colors ${(tickData[activeSym]?.digits?.length || 0) < 50 ? 'bg-[#0e131d] border-[#222c3f]' :
+              activeExhaustion >= 60 ? 'bg-[#0d1f14] border-green-800' :
+                activeExhaustion >= 30 ? 'bg-[#1f1a0d] border-yellow-800' :
+                  'bg-[#1f0d0f] border-red-800'
+              }`}>
+              <span className="text-2xl">
+                {(tickData[activeSym]?.digits?.length || 0) < 50 ? '⏳' : activeExhaustion >= 60 ? '🟢' : activeExhaustion >= 30 ? '🟡' : '🔴'}
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-[#8593aa] uppercase tracking-wider block">Momento p/ Entrar (Manual)</span>
+                <span className={`text-xs font-bold mt-0.5 ${(tickData[activeSym]?.digits?.length || 0) < 50 ? 'text-gray-500' :
+                  activeExhaustion >= 60 ? 'text-green-400' :
+                    activeExhaustion >= 30 ? 'text-yellow-400' :
+                      'text-red-400'
+                  }`}>
+                  {(tickData[activeSym]?.digits?.length || 0) < 50 ? 'coletando dados' :
+                    activeExhaustion >= 60 ? 'BOM MOMENTO — zona perdedora esgotada' :
+                      activeExhaustion >= 30 ? 'ATENÇÃO — exaustão subindo' :
+                        'ESPERE — perdedores ainda fracos'}
+                </span>
+              </div>
+            </div>
+
           </div>
 
           {/* Logs Histórico */}
           <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl flex flex-col justify-between">
-            
+
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">
                 📜 HISTÓRICO DE LOGS

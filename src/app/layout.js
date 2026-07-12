@@ -13,15 +13,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Trade Platform",
-  description: "Trade Platform",
+  title: "Bear Bot Pro",
+  description: "Bear Bot Pro",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-      <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+        <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+        <link rel="icon" href="/img/bear-logo.ico" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
