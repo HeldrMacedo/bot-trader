@@ -1362,6 +1362,12 @@ export default function BearBotUltra() {
             </span>
           </div>
           <div className="flex flex-col">
+            <span className="text-[10px] text-[#8593aa] uppercase tracking-wider">Saldo:</span>
+            <span className="font-bold font-mono text-sm text-yellow-500">
+              {accountInfo ? new Intl.NumberFormat('en-Us', { style: 'currency', currency: 'USD' }).format(accountInfo.tokens.find(t => t.token === accountInfo.activeToken)?.balance) : "0.00"}
+            </span>
+          </div>
+          <div className="flex flex-col">
             <span className="text-[10px] text-[#8593aa] uppercase tracking-wider">LUCRO ACUMULADO</span>
             <span className={`font-bold font-mono text-sm ${pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
               {pnl >= 0 ? `+$${pnl}` : `-$${Math.abs(pnl)}`}
