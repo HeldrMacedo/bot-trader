@@ -1117,18 +1117,17 @@ export default function BearBotUltra() {
     setTrades(prev => [newTrade, ...prev].slice(0, 2000));
 
     if (isLoss) {
-      const nextLoss = wins + 1;
       setLoss(prev => prev + 1);
 
-      if (galeMode === 'parc') {
+      if (stateRef.current.galeMode === 'parc') {
         stateRef.current.lossAcum = +(stateRef.current.lossAcum + Math.abs(profit)).toFixed(2);
-        stateRef.current.parcelsLeft = galeParcels;
+        stateRef.current.parcelsLeft = stateRef.current.galeParcels;
         const pay = stateRef.current.lastPayout > 0.05 ? stateRef.current.lastPayout : 0.9;
-        stateRef.current.curStake = +(stake + (stateRef.current.lossAcum / stateRef.current.parcelsLeft) / pay).toFixed(2);
+        stateRef.current.curStake = +(stateRef.current.stake + (stateRef.current.lossAcum / stateRef.current.parcelsLeft) / pay).toFixed(2);
         addLogLine(`✖ LOSS ${label}${dtxt} ${profit.toFixed(2)} · parc: $${stateRef.current.lossAcum} ÷ ${stateRef.current.parcelsLeft} · próx $${stateRef.current.curStake}`, "lose");
       } else {
         stateRef.current.galeLevel++;
-        stateRef.current.curStake = +(stake * Math.pow(gale, stateRef.current.galeLevel)).toFixed(2);
+        stateRef.current.curStake = +(stateRef.current.stake * Math.pow(stateRef.current.gale, stateRef.current.galeLevel)).toFixed(2);
         addLogLine(`✖ LOSS ${label}${dtxt} ${profit.toFixed(2)} · próx $${stateRef.current.curStake}`, "lose");
       }
       soundLoss();
@@ -1138,24 +1137,24 @@ export default function BearBotUltra() {
         stateRef.current.lastPayout = +(profit / stakeUsed).toFixed(3);
       }
 
-      if (galeMode === 'parc' && stateRef.current.lossAcum > 0) {
+      if (stateRef.current.galeMode === 'parc' && stateRef.current.lossAcum > 0) {
         stateRef.current.lossAcum = +Math.max(0, stateRef.current.lossAcum - profit).toFixed(2);
         stateRef.current.parcelsLeft = Math.max(1, stateRef.current.parcelsLeft - 1);
         if (stateRef.current.lossAcum <= 0) {
           stateRef.current.lossAcum = 0;
           stateRef.current.parcelsLeft = 0;
-          stateRef.current.curStake = stake;
-          addLogLine(`✔ WIN ${label}${dtxt} +${profit.toFixed(2)} · dívida quitada · stake $${stake}`, "win");
+          stateRef.current.curStake = stateRef.current.stake;
+          addLogLine(`✔ WIN ${label}${dtxt} +${profit.toFixed(2)} · dívida quitada · stake $${stateRef.current.stake}`, "win");
         } else {
           const pay = stateRef.current.lastPayout > 0.05 ? stateRef.current.lastPayout : 0.9;
-          stateRef.current.curStake = +(stake + (stateRef.current.lossAcum / stateRef.current.parcelsLeft) / pay).toFixed(2);
+          stateRef.current.curStake = +(stateRef.current.stake + (stateRef.current.lossAcum / stateRef.current.parcelsLeft) / pay).toFixed(2);
           addLogLine(`✔ WIN ${label}${dtxt} +${profit.toFixed(2)} · resta $${stateRef.current.lossAcum} (${stateRef.current.parcelsLeft} parc) · próx $${stateRef.current.curStake}`, "win");
         }
       } else {
         stateRef.current.galeLevel = 0;
         stateRef.current.lossAcum = 0;
         stateRef.current.parcelsLeft = 0;
-        stateRef.current.curStake = stake;
+        stateRef.current.curStake = stateRef.current.stake;
         addLogLine(`✔ WIN ${label}${dtxt} +${profit.toFixed(2)}`, "win");
       }
       soundWin();
@@ -1169,11 +1168,11 @@ export default function BearBotUltra() {
       refreshProposals();
     }, 50);
 
-    if (nextPnl <= -Math.abs(stopLoss)) {
+    if (nextPnl <= -Math.abs(stateRef.current.stopLoss)) {
       toast.error("Stop Loss Atingido!");
       stopRobo();
     }
-    if (nextPnl >= Math.abs(stopWin)) {
+    if (nextPnl >= Math.abs(stateRef.current.stopWin)) {
       toast.success("Stop Win Atingido!");
       stopRobo();
     }
