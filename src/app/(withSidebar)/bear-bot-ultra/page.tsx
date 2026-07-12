@@ -40,6 +40,7 @@ interface TradeLog {
   mercado: string;
   modo: string;
   alvo: number;
+  audit: { tick_previous: string, tick_start: string, tick_end: string };
   saiu: string | number;
   stake: string;
   resultado: 'WIN' | 'LOSS';
@@ -167,6 +168,74 @@ export default function BearBotUltra() {
   // Web Audio Context para efeitos sonoros
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // ---- PROPOSTAS PRÉ-ABERTAS (compra rápida por id) ----
+  const propKey = (ct: string, barrier: number) => {
+    return `${stateRef.current.activeSym}|${ct}|${barrier}|${+stateRef.current.curStake.toFixed(2)}`;
+  };
+
+  const forgetAllProposals = () => {
+    derivService.send({ forget_all: 'proposal' }).catch(err => console.error('Forget all proposals error:', err));
+    stateRef.current.props = {};
+  };
+
+  const ensureProposal = (ct: string, barrier: number) => {
+    if (!stateRef.current.accountInfo) return;
+    const key = propKey(ct, barrier);
+    const p = stateRef.current.props[key];
+    if (p && (p.id || p.pending)) return;
+
+    stateRef.current.props[key] = { id: null, ready: false, pending: true, ct, barrier };
+    const stakeVal = +stateRef.current.curStake.toFixed(2);
+
+    derivService.send({
+      proposal: 1,
+      subscribe: 1,
+      amount: stakeVal,
+      basis: 'stake',
+      contract_type: ct,
+      currency: 'USD',
+      duration: 1,
+      duration_unit: 't',
+      underlying_symbol: stateRef.current.activeSym,
+      barrier: String(barrier),
+      passthrough: { pkey: key }
+    }).catch(err => {
+      console.error('Ensure proposal error:', err);
+      if (stateRef.current.props[key]) {
+        stateRef.current.props[key].pending = false;
+      }
+    });
+  };
+
+  const refreshProposals = () => {
+    if (!stateRef.current.accountInfo) return;
+    const m = stateRef.current.mode;
+    const d = stateRef.current.digit;
+    if (m === 'over') ensureProposal('DIGITOVER', d);
+    else if (m === 'under') ensureProposal('DIGITUNDER', d);
+    else if (m === 'differ') ensureProposal('DIGITDIFF', d);
+    else if (m === 'combo') {
+      ensureProposal('DIGITOVER', 5);
+      ensureProposal('DIGITUNDER', 4);
+    }
+  };
+
+  const getProp = (ct: string, barrier: number) => {
+    const p = stateRef.current.props[propKey(ct, barrier)];
+    return (p && p.id) ? p : null;
+  };
+
+  const invalidateConsumedProposals = () => {
+    for (const k in stateRef.current.props) {
+      const p = stateRef.current.props[k];
+      if (p) {
+        p.id = null;
+        p.ready = false;
+        p.pending = false;
+      }
+    }
+  };
+
   // Inicializar estado das volatilidades
   useEffect(() => {
     const initTicks: Record<string, { digits: number[]; price: number | null }> = {};
@@ -191,11 +260,25 @@ export default function BearBotUltra() {
       setAccountInfo(data);
     });
 
+    // Captura as propostas pré-abertas do WebSocket
+    const subProposal = derivService.observerInstance.on("message", (data) => {
+      if (data.msg_type === "proposal" && data.proposal) {
+        const pkey = data.passthrough && data.passthrough.pkey;
+        if (pkey && stateRef.current.props[pkey]) {
+          stateRef.current.props[pkey].id = data.proposal.id;
+          stateRef.current.props[pkey].ready = true;
+          stateRef.current.props[pkey].pending = false;
+        }
+      }
+    });
+
     // Logger inicial
     addLogLine("Plataforma iniciada · Configure os parâmetros e ligue o robô.", "info");
 
     return () => {
       derivService.observerInstance.removeById(subUpdate);
+      derivService.observerInstance.removeById(subProposal);
+      forgetAllProposals();
     };
   }, []);
 
@@ -230,6 +313,31 @@ export default function BearBotUltra() {
     stake, gale, stopLoss, stopWin, galeMode, galeParcels, multiOn,
     patReps, patMinForce, patTrigger, patMode, wins, loss, pnl, accountInfo
   ]);
+
+  // Monitorar alterações de configuração para invalidar e recriar as propostas
+  useEffect(() => {
+    if (!accountInfo) return;
+
+    // Cancela as anteriores para evitar "already subscribed"
+    forgetAllProposals();
+
+    const t = setTimeout(() => {
+      refreshProposals();
+    }, 50);
+
+    return () => clearTimeout(t);
+  }, [accountInfo, activeSym, mode, digit, stake]);
+
+  // PropKeeper: garante que sempre exista proposta pronta pro setup atual
+  useEffect(() => {
+    if (!accountInfo) return;
+    const intervalId = setInterval(() => {
+      if (!stateRef.current.tradeLock) {
+        refreshProposals();
+      }
+    }, 4000);
+    return () => clearInterval(intervalId);
+  }, [accountInfo]);
 
   // Sons de Win/Loss usando Web Audio API
   const getAudioCtx = () => {
@@ -781,7 +889,7 @@ export default function BearBotUltra() {
       console.log("MESSAGE ", data);
       if (data.msg_type === "proposal_open_contract" && data.proposal_open_contract) {
         const c = data.proposal_open_contract;
-        if (c.is_sold === 1 || c.status === 'won' || c.status === 'lost') {
+        if (c.is_valid_to_sell === 1 || c.is_sold === 1 || c.status === 'won' || c.status === 'lost') {
           // Evitar processar duplicados
           const contractId = c.contract_id;
           if (derivService.getStorageDerivAccount()) {
@@ -791,12 +899,23 @@ export default function BearBotUltra() {
           }
 
           let exitDig: number | null = null;
-          if (c.exit_tick_display_value !== undefined) {
-            exitDig = Number(String(c.exit_tick_display_value).slice(-1));
+          let audit: { tick_previous: string; tick_start: string; tick_end: string; } | null = null;
+          if (c.exit_spot !== undefined) {
+            exitDig = Number(String(c.exit_spot).slice(-1));
           }
 
-          const isCombo = stateRef.current.pendingKind?.kind === 'combo';
-          settleContract(c, Number(c.profit), isCombo, exitDig);
+          if (c.audit_details) {
+            const details = c.audit_details.all_ticks.filter((t: any) => t.tick_display_value !== undefined);
+            console.log("DETAILS ", details);
+            audit = {
+              'tick_previous': details[0].tick_display_value.slice(-1),
+              'tick_start': details[1].tick_display_value.slice(-1),
+              'tick_end': details[2].tick_display_value.slice(-1)
+            }
+
+            const isCombo = stateRef.current.pendingKind?.kind === 'combo';
+            settleContract(c, Number(c.profit), isCombo, exitDig, audit);
+          }
         }
       }
     };
@@ -839,24 +958,37 @@ export default function BearBotUltra() {
     stateRef.current.tradeLock = true;
     stateRef.current.pendingKind = { kind };
 
+    // Compra rápida por proposta pré-aberta se disponível, senão fallback
+    const p = getProp(ct, stateRef.current.digit);
+
     try {
-      const response = await derivService.send({
-        buy: 1,
-        price: stakeVal,
-        parameters: {
-          amount: stakeVal,
-          basis: 'stake',
-          contract_type: ct,
-          currency: 'USD',
-          duration: 1,
-          duration_unit: 't',
-          underlying_symbol: stateRef.current.activeSym,
-          barrier: String(stateRef.current.digit)
-        }
-      });
+      const response = await (p
+        ? derivService.send({ buy: p.id, price: stakeVal })
+        : derivService.send({
+          buy: 1,
+          price: stakeVal,
+          parameters: {
+            amount: stakeVal,
+            basis: 'stake',
+            contract_type: ct,
+            currency: 'USD',
+            duration: 1,
+            duration_unit: 't',
+            underlying_symbol: stateRef.current.activeSym,
+            barrier: String(stateRef.current.digit)
+          }
+        })
+      );
 
       if (response.buy) {
-        addLogLine(`▶ ${kind.toUpperCase()} ${kind === 'differ' ? '≠' : kind === 'over' ? '>' : '<'}${stateRef.current.digit} · $${stakeVal} · ${stateRef.current.activeSym}`, "info");
+        addLogLine(`▶ ${kind.toUpperCase()} ${kind === 'differ' ? '≠' : kind === 'over' ? '>' : '<'}${stateRef.current.digit} · $${stakeVal} · ${stateRef.current.activeSym}${p ? ' ⚡' : ''}`, "info");
+
+        // Se compramos por proposta, invalidamos para forçar a recarga
+        if (p) {
+          invalidateConsumedProposals();
+          ensureProposal(ct, stateRef.current.digit);
+        }
+
         // Subscrever no POC
         derivService.send({
           proposal_open_contract: 1,
@@ -877,43 +1009,58 @@ export default function BearBotUltra() {
     stateRef.current.comboPending = { legs: 2, won: 0, results: [] };
     stateRef.current.pendingKind = { kind: 'combo' };
 
+    const pO = getProp('DIGITOVER', 5);
+    const pU = getProp('DIGITUNDER', 4);
+
     try {
       // Perna 1: Over 5
-      const buyOver = derivService.send({
-        buy: 1,
-        price: stakeVal,
-        parameters: {
-          amount: stakeVal,
-          basis: 'stake',
-          contract_type: 'DIGITOVER',
-          currency: 'USD',
-          duration: 1,
-          duration_unit: 't',
-          underlying_symbol: stateRef.current.activeSym,
-          barrier: '5'
-        }
-      });
+      const buyOver = pO
+        ? derivService.send({ buy: pO.id, price: stakeVal })
+        : derivService.send({
+          buy: 1,
+          price: stakeVal,
+          parameters: {
+            amount: stakeVal,
+            basis: 'stake',
+            contract_type: 'DIGITOVER',
+            currency: 'USD',
+            duration: 1,
+            duration_unit: 't',
+            underlying_symbol: stateRef.current.activeSym,
+            barrier: '5'
+          }
+        });
 
       // Perna 2: Under 4
-      const buyUnder = derivService.send({
-        buy: 1,
-        price: stakeVal,
-        parameters: {
-          amount: stakeVal,
-          basis: 'stake',
-          contract_type: 'DIGITUNDER',
-          currency: 'USD',
-          duration: 1,
-          duration_unit: 't',
-          underlying_symbol: stateRef.current.activeSym,
-          barrier: '4'
-        }
-      });
+      const buyUnder = pU
+        ? derivService.send({ buy: pU.id, price: stakeVal })
+        : derivService.send({
+          buy: 1,
+          price: stakeVal,
+          parameters: {
+            amount: stakeVal,
+            basis: 'stake',
+            contract_type: 'DIGITUNDER',
+            currency: 'USD',
+            duration: 1,
+            duration_unit: 't',
+            underlying_symbol: stateRef.current.activeSym,
+            barrier: '4'
+          }
+        });
 
       const [resOver, resUnder] = await Promise.all([buyOver, buyUnder]);
 
       if (resOver.buy && resUnder.buy) {
-        addLogLine(`▶ COMBO Over>5 + Under<4 · $${stakeVal}×2 · ${stateRef.current.activeSym}`, "info");
+        addLogLine(`▶ COMBO Over>5 + Under<4 · $${stakeVal}×2 · ${stateRef.current.activeSym}${(pO && pU) ? ' ⚡' : ''}`, "info");
+
+        // Se compramos por propostas, invalidamos e recarregamos
+        if (pO || pU) {
+          invalidateConsumedProposals();
+          ensureProposal('DIGITOVER', 5);
+          ensureProposal('DIGITUNDER', 4);
+        }
+
         derivService.send({ proposal_open_contract: 1, contract_id: resOver.buy.contract_id, subscribe: 1 });
         derivService.send({ proposal_open_contract: 1, contract_id: resUnder.buy.contract_id, subscribe: 1 });
       }
@@ -924,7 +1071,7 @@ export default function BearBotUltra() {
     }
   };
 
-  const settleContract = (c: any, profit: number, isCombo: boolean, exitDig: number | null) => {
+  const settleContract = (c: any, profit: number, isCombo: boolean, exitDig: number | null, audit: { tick_previous: string, tick_start: string, tick_end: string } | null) => {
     if (isCombo && stateRef.current.comboPending) {
       const cp = stateRef.current.comboPending;
       cp.legs--;
@@ -935,15 +1082,15 @@ export default function BearBotUltra() {
 
       const net = cp.results.reduce((a, b) => a + b, 0);
       const bothLost = cp.won === 0;
-      finishTrade(net, bothLost, 'COMBO', exitDig);
+      finishTrade(net, bothLost, 'COMBO', exitDig, audit);
       stateRef.current.comboPending = null;
       return;
     }
 
-    finishTrade(profit, profit < 0, (stateRef.current.pendingKind?.kind || '').toUpperCase(), exitDig);
+    finishTrade(profit, profit < 0, (stateRef.current.pendingKind?.kind || '').toUpperCase(), exitDig, audit);
   };
 
-  const finishTrade = (profit: number, isLoss: boolean, label: string, exitDig: number | null) => {
+  const finishTrade = (profit: number, isLoss: boolean, label: string, exitDig: number | null, audit: { tick_previous: string, tick_start: string, tick_end: string } | null) => {
     const nextPnl = +(stateRef.current.pnl + profit).toFixed(2);
     setPnl(nextPnl);
     stateRef.current.pnl = nextPnl;
@@ -956,6 +1103,7 @@ export default function BearBotUltra() {
       mercado: stateRef.current.activeSym,
       modo: label,
       alvo: stateRef.current.digit,
+      audit: audit !== null ? audit : null,
       saiu: exitDig !== null ? exitDig : '—',
       stake: stakeUsed.toFixed(2),
       resultado: isLoss ? 'LOSS' : 'WIN',
@@ -1011,6 +1159,12 @@ export default function BearBotUltra() {
     }
 
     stateRef.current.tradeLock = false;
+
+    // Invalida e recria as propostas (porque o stake mudou no gale/win)
+    forgetAllProposals();
+    setTimeout(() => {
+      refreshProposals();
+    }, 50);
 
     if (nextPnl <= -Math.abs(stopLoss)) {
       toast.error("Stop Loss Atingido!");
@@ -1724,6 +1878,7 @@ export default function BearBotUltra() {
                   <th className="py-2 px-3">Estratégia</th>
                   <th className="py-2 px-3">Alvo</th>
                   <th className="py-2 px-3">Saiu</th>
+                  <th className="py-2 px-3">Auditoria</th>
                   <th className="py-2 px-3">Stake</th>
                   <th className="py-2 px-3">Resultado</th>
                   <th className="py-2 px-3">Lucro ($)</th>
@@ -1740,6 +1895,11 @@ export default function BearBotUltra() {
                       <td className="py-2 px-3 uppercase text-[10px]">{t.modo}</td>
                       <td className="py-2 px-3">{t.alvo}</td>
                       <td className="py-2 px-3">{t.saiu}</td>
+                      <td className="py-2 px-3">
+                        <span className="text-muted">{t.audit?.tick_previous}</span>-
+                        <span className="text-blue-500">{t.audit?.tick_start}</span>-
+                        <span className={`${t.resultado === 'WIN' ? 'text-green-400' : 'text-red-400'}`}>{t.audit?.tick_end}</span>
+                      </td>
                       <td className="py-2 px-3">${t.stake}</td>
                       <td className="py-2 px-3">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${t.resultado === 'WIN'

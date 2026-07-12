@@ -52,7 +52,7 @@ const BuyTable = ({
             const accounts = derivService.getStorageDerivAccount();
             const account = accounts && accounts[0];
             if (!account) return;
-
+            const details = data.proposal_open_contract.audit_details.all_ticks.filter((t: any) => t.tick_display_value !== undefined);
             const finishedTradeList = {
               amount: data.proposal_open_contract.buy_price,
               barrier: handleBarrieType(data.proposal_open_contract),
@@ -64,6 +64,11 @@ const BuyTable = ({
               resultBarrier:
                 data.proposal_open_contract.exit_spot?.slice(-1) ?? "",
               status: status,
+              audit: {
+                'tick_previous': details[0].tick_display_value.slice(-1),
+                'tick_start': details[1].tick_display_value.slice(-1),
+                'tick_end': details[2].tick_display_value.slice(-1)
+              }
             };
 
             const token = localStorage.getItem("access_token");
