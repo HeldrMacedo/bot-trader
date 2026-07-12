@@ -200,6 +200,11 @@ export default function BearBotUltra() {
       barrier: String(barrier),
       passthrough: { pkey: key }
     }).catch(err => {
+      if (err?.code === 'AlreadySubscribed') {
+        // Ignora silenciosamente. A Deriv já está enviando os dados dessa proposta no WS,
+        // então o listener global vai capturar normalmente.
+        return;
+      }
       console.error('Ensure proposal error:', err);
       if (stateRef.current.props[key]) {
         stateRef.current.props[key].pending = false;
@@ -886,7 +891,6 @@ export default function BearBotUltra() {
   // Escutar retornos das compras e POC
   useEffect(() => {
     const handlePOCMsg = (data: any) => {
-      console.log("MESSAGE ", data);
       if (data.msg_type === "proposal_open_contract" && data.proposal_open_contract) {
         const c = data.proposal_open_contract;
         if (c.is_valid_to_sell === 1 || c.is_sold === 1 || c.status === 'won' || c.status === 'lost') {
@@ -906,7 +910,6 @@ export default function BearBotUltra() {
 
           if (c.audit_details) {
             const details = c.audit_details.all_ticks.filter((t: any) => t.tick_display_value !== undefined);
-            console.log("DETAILS ", details);
             audit = {
               'tick_previous': details[0].tick_display_value.slice(-1),
               'tick_start': details[1].tick_display_value.slice(-1),

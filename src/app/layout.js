@@ -25,6 +25,7 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/img/bear-logo.ico" />
       </head>
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
