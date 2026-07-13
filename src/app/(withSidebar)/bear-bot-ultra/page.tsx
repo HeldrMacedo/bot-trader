@@ -160,6 +160,7 @@ export default function BearBotUltra() {
     comboPending: null as { legs: number; won: number; results: number[] } | null,
     pendingKind: null as { kind: string } | null,
     vlStartIdx: {} as Record<string, number>,
+    lastManualSwitch: 0,
   });
 
   // Histórico local de ticks por símbolo
@@ -794,7 +795,7 @@ export default function BearBotUltra() {
       updatePattern(sym);
     }
 
-    if (stateRef.current.multiOn && stateRef.current.exec === 'auto' && stateRef.current.autoOn) {
+    if (stateRef.current.multiOn) {
       if (stateRef.current.mode === 'differ' && stateRef.current.patTrigger) {
         const ps = stateRef.current.patState[sym];
         if (ps) {
@@ -827,7 +828,11 @@ export default function BearBotUltra() {
         setVlSeen(st.seen);
       }
 
-      tryFireMultiCandidate();
+      if (stateRef.current.exec === 'auto' && stateRef.current.autoOn) {
+        tryFireMultiCandidate();
+      } else {
+        trySwitchMultiCandidate();
+      }
       return;
     }
 
@@ -902,6 +907,30 @@ export default function BearBotUltra() {
       vlResetM(pick.sym);
       fireTrade(stateRef.current.mode);
       addLogLine(`🌐 MULTI · ${pick.sym} escolhido · ${stateRef.current.mode.toUpperCase()}`, "info");
+    }
+  };
+
+  const trySwitchMultiCandidate = () => {
+    if (stateRef.current.tradeLock) return;
+    const cands = Object.values(stateRef.current.multiCand);
+    if (!cands.length) return;
+    cands.sort((a, b) => b.score - a.score);
+    const pick = cands[0];
+    
+    if (pick.sym !== stateRef.current.activeSym) {
+      const now = Date.now();
+      if (now - (stateRef.current.lastManualSwitch || 0) > 3000) {
+        stateRef.current.multiCand = {};
+        setActiveSym(pick.sym);
+        stateRef.current.activeSym = pick.sym;
+        stateRef.current.lastManualSwitch = now;
+        
+        if (stateRef.current.mode === 'differ' && stateRef.current.patTrigger) {
+          setDigit(pick.b!);
+          stateRef.current.digit = pick.b!;
+        }
+        addLogLine(`🌐 MULTI (Manual) · Foco em ${pick.sym} (Pronto!)`, "info");
+      }
     }
   };
 
