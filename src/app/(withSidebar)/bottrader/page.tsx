@@ -6,7 +6,7 @@ import HasAcessComponet from "./hasAccessComponent";
 
 export default function BotTrade() {
   const [isTest, setIsTest] = useState(false);
-  const { hasAccess, loading } = useModuleAccess("BotTrader");
+  const { hasAccess, loading } = useModuleAccess("CopyTrade");
 
   return (
     <div>
@@ -29,7 +29,7 @@ export default function BotTrade() {
             </p>
           </div>
         </div>
-      ) : hasAccess ? ( <BotTraderX /> ) : ( <HasAcessComponet /> )}
+      ) : hasAccess ? (<BotTraderX />) : (<HasAcessComponet />)}
 
     </div>
   );
