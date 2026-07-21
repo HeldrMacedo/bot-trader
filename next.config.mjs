@@ -69,6 +69,23 @@ const nextConfig = {
     ];
   },
 
+  // Redirecionar URL sem WWW para com WWW
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'bearbotpro.com.br',
+          },
+        ],
+        destination: 'https://www.bearbotpro.com.br/:path*',
+        permanent: true,
+      },
+    ];
+  },
+
   // Transpile TensorFlow.js
   transpilePackages: ['@tensorflow/tfjs', '@tensorflow/tfjs-core', '@tensorflow/tfjs-converter', '@tensorflow/tfjs-backend-webgl'],
 
