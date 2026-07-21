@@ -89,10 +89,10 @@ export default function BearBotUltra() {
     const [vlSeen, setVlSeen] = useState<number>(0);
 
     // Gestão de Stake / Martingale
-    const [stake, setStake] = useState<number>(0.35);
-    const [gale, setGale] = useState<number>(2.1);
-    const [stopLoss, setStopLoss] = useState<number>(20);
-    const [stopWin, setStopWin] = useState<number>(20);
+    const [stake, setStake] = useState<string | number>(0.35);
+    const [gale, setGale] = useState<string | number>(2.1);
+    const [stopLoss, setStopLoss] = useState<string | number>(20);
+    const [stopWin, setStopWin] = useState<string | number>(20);
     const [galeMode, setGaleMode] = useState<'mult' | 'parc'>('mult');
     const [galeParcels, setGaleParcels] = useState<number>(2);
     const [soundOn, setSoundOn] = useState<boolean>(true);
@@ -130,10 +130,10 @@ export default function BearBotUltra() {
         vlWindow,
         vlCount,
         vlSeen,
-        stake,
-        gale,
-        stopLoss,
-        stopWin,
+        stake: Number(stake) || 0,
+        gale: Number(gale) || 0,
+        stopLoss: Number(stopLoss) || 0,
+        stopWin: Number(stopWin) || 0,
         galeMode,
         galeParcels,
         multiOn,
@@ -300,10 +300,10 @@ export default function BearBotUltra() {
         stateRef.current.vlMode = vlMode;
         stateRef.current.vlQty = vlQty;
         stateRef.current.vlWindow = vlWindow;
-        stateRef.current.stake = stake;
-        stateRef.current.gale = gale;
-        stateRef.current.stopLoss = stopLoss;
-        stateRef.current.stopWin = stopWin;
+        stateRef.current.stake = Number(stake) || 0;
+        stateRef.current.gale = Number(gale) || 0;
+        stateRef.current.stopLoss = Number(stopLoss) || 0;
+        stateRef.current.stopWin = Number(stopWin) || 0;
         stateRef.current.galeMode = galeMode;
         stateRef.current.galeParcels = galeParcels;
         stateRef.current.multiOn = multiOn;
@@ -1245,6 +1245,8 @@ export default function BearBotUltra() {
             toast.warn("Por favor, conecte na conta Deriv");
             return;
         }
+        vlReset();
+        vlResetAllM();
         setAutoOn(true);
         addLogLine(`🤖 Robô LIGADO · Modo ${mode.toUpperCase()}`, "win");
     };
@@ -1257,7 +1259,7 @@ export default function BearBotUltra() {
     const abortOp = () => {
         setAutoOn(false);
         stateRef.current.galeLevel = 0;
-        stateRef.current.curStake = stake;
+        stateRef.current.curStake = Number(stake) || 0;
         stateRef.current.lossAcum = 0;
         stateRef.current.parcelsLeft = 0;
         stateRef.current.tradeLock = false;
@@ -1273,7 +1275,7 @@ export default function BearBotUltra() {
         setTrades([]);
         setLogLines([]);
         stateRef.current.galeLevel = 0;
-        stateRef.current.curStake = stake;
+        stateRef.current.curStake = Number(stake) || 0;
         stateRef.current.lossAcum = 0;
         stateRef.current.parcelsLeft = 0;
         stateRef.current.tradeLock = false;
@@ -1623,14 +1625,14 @@ export default function BearBotUltra() {
                                 <div>
                                     <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Entrada Inicial</label>
                                     <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0.35"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={stake}
                                         onChange={(e) => {
-                                            const v = Number(e.target.value);
-                                            setStake(v);
-                                            stateRef.current.curStake = v;
+                                            const raw = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+                                            setStake(raw);
+                                            const v = Number(raw);
+                                            if (!isNaN(v)) stateRef.current.curStake = v;
                                         }}
                                         className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
                                     />
@@ -1638,11 +1640,10 @@ export default function BearBotUltra() {
                                 <div>
                                     <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Martingale (Gale)</label>
                                     <input
-                                        type="number"
-                                        step="0.1"
-                                        min="1"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={gale}
-                                        onChange={(e) => setGale(Number(e.target.value))}
+                                        onChange={(e) => setGale(e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''))}
                                         className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
                                     />
                                 </div>
@@ -1652,18 +1653,20 @@ export default function BearBotUltra() {
                                 <div>
                                     <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Stop Loss ($)</label>
                                     <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={stopLoss}
-                                        onChange={(e) => setStopLoss(Number(e.target.value))}
+                                        onChange={(e) => setStopLoss(e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''))}
                                         className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
                                     />
                                 </div>
                                 <div>
                                     <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Stop Win ($)</label>
                                     <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         value={stopWin}
-                                        onChange={(e) => setStopWin(Number(e.target.value))}
+                                        onChange={(e) => setStopWin(e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''))}
                                         className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
                                     />
                                 </div>
@@ -1853,6 +1856,11 @@ export default function BearBotUltra() {
 
                                         <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#222c3f] text-[10px] text-[#8593aa]">
                                             <span>Último: <strong className="font-mono text-cyan-400">{data?.price ?? '—'}</strong></span>
+                                            {vlOn ? (
+                                                <span>Loss: <strong className="font-mono text-red-400">{stateRef.current.vlMState[m.sym]?.count || 0}/{vlQty}</strong></span>
+                                            ) : (
+                                                <span></span>
+                                            )}
                                             <span>Hit: <strong className="font-mono text-green-400">{obsRate}%</strong></span>
                                         </div>
 
