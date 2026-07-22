@@ -598,7 +598,11 @@ export class DerivService {
       return;
     }
 
-    const wsUrl = `wss://ws.derivws.com/websockets/v3?l=pt&app_id=1089`;
+    // API nova (Options public gateway) — ticks / ticks_history sem auth.
+    // O endpoint legado wss://ws.derivws.com/websockets/v3 passou a rejeitar
+    // stream de ticks em índices sintéticos (R_*, RDBEAR, RDBULL) com InvalidSymbol.
+    // Doc: https://developers.deriv.com/llms/ticks.md
+    const wsUrl = "wss://api.derivws.com/trading/v1/options/ws/public";
     const ws = new WebSocket(wsUrl);
 
     this.marketWs = ws;

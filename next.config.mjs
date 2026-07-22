@@ -58,7 +58,7 @@ const nextConfig = {
               "img-src 'self' data: blob:",
               "font-src 'self' https://rsms.me",
               // WebSocket Deriv + HMR dev + OAuth
-              "connect-src 'self' ws://localhost:* wss://localhost:* wss://ws.derivws.com wss://*.derivws.com wss://ws.binaryws.com wss://*.binaryws.com https://*.binaryws.com https://*.deriv.com wss://*.deriv.com https://oauth.deriv.com",
+              "connect-src 'self' ws://localhost:* wss://localhost:* wss://ws.derivws.com wss://api.derivws.com wss://*.derivws.com https://api.derivws.com https://*.derivws.com wss://ws.binaryws.com wss://*.binaryws.com https://*.binaryws.com https://*.deriv.com wss://*.deriv.com https://oauth.deriv.com https://auth.deriv.com",
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",

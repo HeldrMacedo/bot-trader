@@ -33,7 +33,7 @@ This is a **Next.js 16 + React 19 trading bot platform** that integrates with th
 Legacy scripts from `public/legacy/js/` are loaded dynamically via `<script>` tags. Communication happens through `window` globals and `CustomEvent`s. Key shims: `CreditsManager` (infinite credits), `UserLevels` (VIP), `selectedSymbol`, `logConfig`.
 
 **Deriv WebSocket (`src/app/services/DerivService.tsx`):**
-Singleton service managing the Deriv API WebSocket connection. Provides tick data, contract proposals, and account information. `src/lib/deriv-api-client.ts` and `src/lib/use-deriv-websocket.ts` are lower-level primitives.
+Singleton with **two channels**: (1) market public `wss://api.derivws.com/trading/v1/options/ws/public` for `ticks` / `ticks_history` (no auth); (2) trading OTP `.../ws/demo|real` for buy/proposal/balance. Do **not** use legacy `ws.derivws.com/websockets/v3` for tick streams (returns `InvalidSymbol` on synthetics). See `docs/DERIV_OAUTH_MIGRATION.md`.
 
 **Monitoring & Probability (`bot-strategy/services/Monitoring.ts`):**
 Singleton with a 5-period weighted probability algorithm:
@@ -85,7 +85,7 @@ Turbopack is explicitly disabled. The `next.config.mjs` has special webpack rule
 - Telegram integration
 
 See `docs/MIGRATION_ARCHITECTURE.md` and `docs/MIGRATION_DOCUMENTATION.md` for detailed migration guidance.
-See `docs/DERIV_OAUTH_MIGRATION.md` for details on the new OAuth 2.0 PKCE authentication and unified WebSocket data layer.
+See `docs/DERIV_OAUTH_MIGRATION.md` for OAuth 2.0 PKCE, trading OTP WebSocket, and the public market-data gateway for ticks.
 See `docs/ADVANCED_MODE.md` for the trade-mind-pro Advanced Mode (json-rules-engine) documentation.
 See `docs/AUTH_ROUTES.md` for authentication and route protection documentation.
 See `docs/BOTTRADER.md` for the BotTrader (Copy Trader) module documentation.

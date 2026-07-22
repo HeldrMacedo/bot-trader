@@ -28,7 +28,9 @@
  * ────────────────────────────────────────────────────────────────────────
  */
 
-// app_id público de fallback (mesmo usado pelo DerivService para market data).
+// app_id público de fallback (WebSocket legado / PAT clássico).
+// Market data (ticks) no DerivService usa o gateway público, sem app_id:
+// wss://api.derivws.com/trading/v1/options/ws/public
 // Defina NEXT_PUBLIC_APPID com o app_id numérico registrado para o seu domínio.
 const DEFAULT_APP_ID = '1089';
 

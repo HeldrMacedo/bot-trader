@@ -493,7 +493,7 @@ You can access market data using the **public** WebSocket endpoint without authe
 
 ```javascript
 // Connect to the public WebSocket endpoint (no authentication required)
-const ws = new WebSocket('wss://ws.binaryws.com/websockets/v3');
+const ws = new WebSocket('wss://api.derivws.com/trading/v1/options/ws/public');
 
 ws.onopen = () => {
   // Get available symbols
