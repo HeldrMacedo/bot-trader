@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Bear Bot Pro",
   description: "Bear Bot Pro",
+  icons: {
+    icon: "/img/bear-logo.ico",
+    shortcut: "/img/bear-logo.ico",
+    apple: "/img/bear-logo.ico",
+  },
 };
 
 export default function RootLayout({ children }) {

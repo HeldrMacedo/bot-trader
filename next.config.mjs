@@ -2,6 +2,17 @@
 const nextConfig = {
   // Desativar Turbopack temporariamente para debugging
   turbopack: {},
+
+  // Origens permitidas para Server Actions (evita erro CSRF/Origin mismatch em proxy/Nginx)
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        'bearbotpro.com.br',
+        'www.bearbotpro.com.br',
+        'localhost:3000',
+      ],
+    },
+  },
   
   // Configurações para TensorFlow.js
   webpack: (config, { isServer, dev }) => {

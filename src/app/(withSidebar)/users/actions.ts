@@ -11,44 +11,49 @@ export async function getUsers(
   itemsPerPage: number,
   token: string
 ) {
-  const isAdmin = await verifyAdminToken(token);
-  if (!isAdmin) return { users: [], total: 0, totalPages: 0, error: true };
-  const skip = (page - 1) * itemsPerPage;
-  const take = itemsPerPage;
+  try {
+    const isAdmin = await verifyAdminToken(token);
+    if (!isAdmin) return { users: [], total: 0, totalPages: 0, error: true };
+    const skip = (page - 1) * itemsPerPage;
+    const take = itemsPerPage;
 
-  const [users, total] = await prisma.$transaction([
-    prisma.user.findMany({
-      where: {
-        name: {
-          contains: search,
-        },
-      },
-      include: {
-        userModules: {
-          include: {
-            module: true,
+    const [users, total] = await prisma.$transaction([
+      prisma.user.findMany({
+        where: {
+          name: {
+            contains: search,
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take,
-    }),
-    prisma.user.count({
-      where: {
-        name: {
-          contains: search,
+        include: {
+          userModules: {
+            include: {
+              module: true,
+            },
+          },
         },
-      },
-    }),
-  ]);
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+      prisma.user.count({
+        where: {
+          name: {
+            contains: search,
+          },
+        },
+      }),
+    ]);
 
-  return {
-    users,
-    total,
-    totalPages: Math.ceil(total / itemsPerPage),
-    error: false,
-  };
+    return {
+      users,
+      total,
+      totalPages: Math.ceil(total / itemsPerPage),
+      error: false,
+    };
+  } catch (error) {
+    console.error("getUsers error:", error);
+    return { users: [], total: 0, totalPages: 0, error: true };
+  }
 }
 
 export async function createUser(
@@ -143,15 +148,20 @@ export async function deleteUser(id: number, token: string) {
 
 // Novas funções para módulos
 export async function getModules(token: string) {
-  const isAdmin = await verifyAdminToken(token);
-  if (!isAdmin) return { modules: [], error: true };
-  
-  const modules = await prisma.module.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-  });
-  
-  return { modules, error: false };
+  try {
+    const isAdmin = await verifyAdminToken(token);
+    if (!isAdmin) return { modules: [], error: true };
+    
+    const modules = await prisma.module.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    });
+    
+    return { modules, error: false };
+  } catch (error) {
+    console.error("getModules error:", error);
+    return { modules: [], error: true };
+  }
 }
 
 export async function createModule(

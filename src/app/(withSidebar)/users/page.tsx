@@ -4,7 +4,7 @@ import { User } from "@prisma/client";
 import { deleteUser, getUsers, createUser, updateUser, getModules } from "./actions";
 import UserModal from "./UserModal";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface Module {
   id: number;
@@ -23,6 +23,7 @@ interface UserWithModules extends User {
 }
 
 export default function UsersPage() {
+  const router = useRouter();
   const [data, setData] = useState<{
     users: UserWithModules[];
     total: number;
@@ -43,7 +44,8 @@ export default function UsersPage() {
     const token = localStorage.getItem("access_token") || "";
     const result = await getUsers(search, currentPage, itemsPerPage, token);
     if (result?.error == true) {
-      redirect("/home");
+      router.push("/home");
+      return;
     }
     setData(result);
   };
@@ -52,7 +54,8 @@ export default function UsersPage() {
     const token = localStorage.getItem("access_token") || "";
     const result = await getModules(token);
     if (result?.error == true) {
-      redirect("/home");
+      router.push("/home");
+      return;
     }
     setModules(result.modules);
   };
@@ -67,7 +70,8 @@ export default function UsersPage() {
       const token = localStorage.getItem("access_token") || "";
       const result = await deleteUser(+id, token);
       if (result?.error == true) {
-        redirect("/home");
+        router.push("/home");
+        return;
       }
       loadUsers();
     }
@@ -85,13 +89,15 @@ export default function UsersPage() {
         token
       );
       if (result?.error == true) {
-        redirect("/home");
+        router.push("/home");
+        return;
       }
     } else {
       const token = localStorage.getItem("access_token") || "";
       const response = await createUser(userData, selectedModules, token);
       if (response.error == true) {
-        redirect("/home");
+        router.push("/home");
+        return;
       }
     }
     setIsModalOpen(false);
