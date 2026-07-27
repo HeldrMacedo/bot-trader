@@ -1775,13 +1775,6 @@ export default function BearBotUltra() {
                                         </div>
                                     )}
                                 </div>
-
-                                <div className="bg-[#070b14] p-3 border border-[#2e3a52] rounded-lg text-center">
-                                    <span className="text-[10px] text-[#8593aa] uppercase tracking-wider block">Status do Filtro</span>
-                                    <span className="text-xl font-bold font-mono text-cyan-400">
-                                        {vlCount} / {vlQty} {vlMode === 'accum' && `(janela ${vlSeen}/${vlWindow})`}
-                                    </span>
-                                </div>
                             </div>
                         )}
                     </div>
@@ -1804,6 +1797,11 @@ export default function BearBotUltra() {
                                 const data = tickData[m.sym];
                                 const obsRate = getObservedRate(m.sym);
                                 const anomaly = marketAnomaly(m.sym);
+                                // Multi-mercado usa estado por símbolo; mercado único usa o contador global do ativo
+                                const vlSt = stateRef.current.vlMState[m.sym];
+                                const lossCount = multiOn ? (vlSt?.count || 0) : (isSelected ? vlCount : 0);
+                                const lossSeen = multiOn ? (vlSt?.seen || 0) : (isSelected ? vlSeen : 0);
+                                const showVlLoss = vlOn && (multiOn || isSelected);
 
                                 return (
                                     <div
@@ -1857,13 +1855,17 @@ export default function BearBotUltra() {
 
                                         <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#222c3f] text-[10px] text-[#8593aa]">
                                             <span>Último: <strong className="font-mono text-cyan-400">{data?.price ?? '—'}</strong></span>
-                                            {vlOn ? (
-                                                <span>Loss: <strong className="font-mono text-red-400">{stateRef.current.vlMState[m.sym]?.count || 0}/{vlQty}</strong></span>
-                                            ) : (
-                                                <span></span>
-                                            )}
                                             <span>Hit: <strong className="font-mono text-green-400">{obsRate}%</strong></span>
                                         </div>
+
+                                        {showVlLoss && (
+                                            <div className="mt-1.5 text-[10px] text-[#8593aa]">
+                                                Loss: <strong className="font-mono text-red-400">
+                                                    {lossCount}/{vlQty}
+                                                    {vlMode === 'accum' && ` (janela ${lossSeen}/${vlWindow})`}
+                                                </strong>
+                                            </div>
+                                        )}
 
                                     </div>
                                 );
