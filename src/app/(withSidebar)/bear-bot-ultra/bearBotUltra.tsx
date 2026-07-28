@@ -629,7 +629,7 @@ export default function BearBotUltra() {
             const countSinceReset = stateRef.current.ticksSinceReset[sym] || 0;
             const windowSize = Math.min(countSinceReset, stateRef.current.vlWindow);
             const digits = tickDataRef.current[sym]?.digits || [];
-            const slice = digits.slice(-windowSize);
+            const slice = windowSize > 0 ? digits.slice(-windowSize) : [];
 
             let count = 0;
             slice.forEach(d => {
@@ -644,6 +644,7 @@ export default function BearBotUltra() {
     const vlOnDigit = (dig: number, forDigit?: number | null) => {
         if (!stateRef.current.vlOn) return;
         const sym = stateRef.current.activeSym;
+        stateRef.current.ticksSinceReset[sym] = (stateRef.current.ticksSinceReset[sym] || 0) + 1;
         const lose = loserSet(stateRef.current.mode, stateRef.current.digit);
         const isLoser = forDigit !== null && forDigit !== undefined ? dig === forDigit : lose.has(dig);
 
@@ -658,7 +659,7 @@ export default function BearBotUltra() {
             const countSinceReset = stateRef.current.ticksSinceReset[sym] || 0;
             const windowSize = Math.min(countSinceReset, stateRef.current.vlWindow);
             const digits = tickDataRef.current[sym]?.digits || [];
-            const slice = digits.slice(-windowSize);
+            const slice = windowSize > 0 ? digits.slice(-windowSize) : [];
 
             let count = 0;
             slice.forEach(d => {

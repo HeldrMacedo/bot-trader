@@ -66,12 +66,15 @@ O **Loss Virtual (VL)** é o mecanismo de segurança usado para proteger a banca
 ### 4.1 O Algoritmo da Janela Deslizante (Sliding Window)
 O robô monitora as perdas virtuais acumuladas usando o conceito de **Janela Deslizante** no modo `acum`:
 
-1. **A Janela:** Definida pelas variáveis `vlWindow` (tamanho da janela em ticks) e `vlQty` (quantidade mínima de perdas necessárias para liberar a entrada).
-2. **Gatilho de Entrada (`vlGateOpen`):** A entrada real só é autorizada se houver pelo menos `vlQty` derrotas acumuladas dentro da janela.
-3. **Ponto de Reset (`vlStartIdx`):** Sempre que uma operação é finalizada (ou o usuário clica para resetar as perdas), o robô captura o índice atual do histórico de dígitos (`digits.length`) como o novo "ponto inicial".
-   * A janela deslizante analisa apenas os ticks recebidos *após* esse reset.
-   * Se os ticks disponíveis forem menores que `vlWindow`, o robô analisa a fatia total desde o reset.
-   * Conforme novos ticks chegam além da janela, o histórico antigo desliza, e as perdas que saíram da janela de observação expiram organicamente (sem sofrer o reset repentino a cada 14 ticks do modelo legado).
+1. **A Janela:** Definida pelas variáveis `vlWindow` (tamanho da janela em ticks, ex: 14) e `vlQty` (quantidade mínima de perdas necessárias para liberar a entrada, ex: 5).
+2. **Gatilho de Entrada (`vlGateOpen`):** A entrada real só é autorizada se houver pelo menos `vlQty` derrotas acumuladas dentro da janela ativa.
+3. **Reset de Histórico e Isolamento Pré-Início (`ticksSinceReset`):**
+   * Ao clicar em **Ligar Robô** (`startRobo`), ao resetar estatísticas ou ao concluir uma operação (`vlReset` / `vlResetAllM`), o sistema zera o contador de ticks decorridos desde o início (`ticksSinceReset[sym] = 0`).
+   * Isso garante que os ticks coletados enquanto o robô estava desligado **não entrem** no cálculo de loss virtual ao iniciar.
+   * A cada novo tick recebido, `ticksSinceReset[sym]` é incrementado em ambos os modos (Mercado Único `vlOnDigit` e Multi-Mercado `vlOnDigitM`).
+   * A janela calculada é `windowSize = Math.min(countSinceReset, vlWindow)`.
+   * Para evitar a armadilha do JavaScript onde `array.slice(-0)` equivale a `array.slice(0)` (que retornava todo o histórico prévio), a fatia de ticks utiliza a trava `windowSize > 0 ? digits.slice(-windowSize) : []`.
+   * Nos primeiros ticks pós-início, a janela cresce gradativamente (ex: `1/14`, `2/14`...) contabilizando estritamente as perdas ocorridas durante a execução ativa.
 
 ### 4.2 Lógica Consecutiva (`consec`)
 No modo `consec`, o sistema desconsidera a janela e exige que ocorram **X perdas seguidas** sem nenhuma vitória no meio. Se um dígito vencedor aparecer, o contador de perdas consecutivas retorna imediatamente a 0.
@@ -106,6 +109,23 @@ No modo Differ, o robô pode aguardar padrões comportamentais nos dígitos ante
 * **Exaustão:** Uma vez completado o padrão, ele monitora quantas vezes o dígito de perda (geralmente $b$) sai de forma virtual para então liberar a compra real do contrato de diferença.
 * O Score do padrão é a soma:
   $$\text{Score} = \text{Perdas Virtuais acumuladas no dígito alvo} + \text{Contador de sequência do padrão}$$
+
+---
+
+## 7. Suíte de Testes Automatizados (Vitest)
+
+O Bear Bot Ultra possui cobertura de testes unitários integrados com Vitest e `@testing-library/react`.
+
+* **Arquivo de Testes:** [bearBotUltra.test.tsx](file:///home/helder/Desenvolvimento/bot-trader/src/__tests__/bearBotUltra.test.tsx)
+* **Comando para Execução:**
+  ```bash
+  npx vitest run src/__tests__/bearBotUltra.test.tsx
+  ```
+* **Cenários Testados:**
+  1. Renderização inicial dos componentes de UI e seleção de volatilidades/estratégias.
+  2. Alternância entre contas Real e Demo (Virtual).
+  3. Ligar e desligar o robô no modo automático.
+  4. Validação da regra de **Loss Virtual Acumulado**: simulação de ticks históricos com robô desligado, acionamento do robô, verificação do reset da janela (iniciando em `1/vlWindow`) e disparo correto da ordem quando o limite `vlQty` é atingido.
 
 ---
 
