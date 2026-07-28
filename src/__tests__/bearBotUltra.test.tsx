@@ -172,4 +172,33 @@ describe('BearBotUltra Component', () => {
       })
     }));
   });
+
+  it('deve zerar o loss virtual ao trocar de mercado no modo singular', async () => {
+    render(<BearBotUltra />);
+
+    const tickCallback = registeredListeners['deriv.tick']?.[0];
+    
+    // Ativar o Loss Virtual e setar modo consecutivo
+    const vlCardHeader = screen.getByText(/LOSS VIRTUAL/i);
+    const vlToggleBtn = vlCardHeader.parentElement?.querySelector('button')!;
+    fireEvent.click(vlToggleBtn);
+
+    // O default é consec, não precisamos trocar, mas vamos enviar 2 losses no R_100
+    await act(async () => {
+      tickCallback({ tick: { symbol: 'R_100', quote: 100.02 } }); // dígito 2 (over 2 = loss)
+      tickCallback({ tick: { symbol: 'R_100', quote: 100.01 } }); // dígito 1 (loss)
+    });
+
+    // O contador deve mostrar 2 losses
+    expect(screen.getByText(/2\/2/i)).toBeDefined();
+
+    // Mudar de mercado para R_50
+    const r50Btn = screen.getByText('Volatilidade 50');
+    await act(async () => {
+      fireEvent.click(r50Btn);
+    });
+
+    // O contador de loss deve ter sido zerado
+    expect(screen.getByText(/0\/2/i)).toBeDefined();
+  });
 });

@@ -705,8 +705,22 @@ export default function BearBotUltra() {
         stateRef.current.ticksSinceReset = {};
         MARKETS.forEach(m => {
             stateRef.current.ticksSinceReset[m.sym] = 0;
+            if (stateRef.current.patState[m.sym]) {
+                stateRef.current.patState[m.sym].count = 0;
+                stateRef.current.patState[m.sym].seqCount = 0;
+                stateRef.current.patState[m.sym].armed = false;
+                stateRef.current.patState[m.sym].waiting = false;
+            }
         });
     };
+
+    // Previne vazamento de loss entre mercados ao trocar manualmente no modo Singular
+    useEffect(() => {
+        if (!stateRef.current.multiOn) {
+            vlReset();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeSym]);
 
     // Qui-quadrado
     const chiSquare = (sym: string) => {
