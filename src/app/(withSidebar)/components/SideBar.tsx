@@ -161,6 +161,12 @@ const Sidebar = ({
       role: ["admin", "user"],
     },
     {
+      name: "Bear Bot Ultra 2.0",
+      icon: CpuChipIcon,
+      href: "/bear-bot-ultra-2",
+      role: ["admin", "user"],
+    },
+    {
       name: "Minha Conta",
       icon: UserIcon,
       href: "/profile",
