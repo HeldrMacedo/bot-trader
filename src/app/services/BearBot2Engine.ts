@@ -123,12 +123,12 @@ export class BearBotEngine {
   private props: Record<string, ProposalState> = {};
   private multiCand: Record<string, MultiCandidate> = {};
   private comboPending: ComboPending | null = null;
-  private pendingKind: { kind: string } | null = null;
   private ticksSinceReset: Record<string, number> = {};
   private settled: Record<string, boolean> = {};
   private lastManualSwitch = 0;
   private listeners: Set<(state: BotState) => void> = new Set();
   private logListeners: Set<(log: { ts: string; msg: string; type: string }) => void> = new Set();
+  private autoTradeListeners: Set<(kind: string) => void> = new Set();
 
   constructor(config: Partial<BotConfig> = {}) {
     this.config = { ...this.getDefaultConfig(), ...config };
@@ -182,6 +182,15 @@ export class BearBotEngine {
     return () => this.logListeners.delete(callback);
   }
 
+  onAutoTrade(callback: (kind: string) => void): () => void {
+    this.autoTradeListeners.add(callback);
+    return () => this.autoTradeListeners.delete(callback);
+  }
+
+  private triggerAutoTrade() {
+    this.autoTradeListeners.forEach(cb => cb(this.config.mode));
+  }
+
   private notify() {
     const s = this.getState();
     this.listeners.forEach(cb => cb(s));
@@ -206,7 +215,6 @@ export class BearBotEngine {
 
     if (this.config.mode === 'differ') this.updatePattern(sym);
 
-    // Atualiza IA a cada 3 ticks
     if (currentDigits.length % 3 === 0) {
       this.updateAllIntelligence();
     }
@@ -591,54 +599,34 @@ export class BearBotEngine {
         this.state.vlSeen = st.seen;
       }
 
-      if (this.config.exec === 'auto' && this.config.autoOn) {
-        this.tryFireMultiCandidate();
-      } else {
-        this.trySwitchMultiCandidate();
-      }
+      if (this.config.exec === 'auto' && this.config.autoOn) this.tryFireMultiCandidate();
+      else this.trySwitchMultiCandidate();
       return;
     }
 
     if (sym !== this.config.activeSym) return;
 
-    if (this.config.mode === 'differ') {
+    if (this.config.mode === 'differ' && this.config.patTrigger) {
       const ps = this.patState[sym];
-      if (this.config.patTrigger && ps) {
+      if (ps) {
         this.vlOnDigit(dig, ps.b !== null ? ps.b : this.config.digit);
         if (ps.waiting) {
           ps.waiting = false;
-          if (dig !== ps.b) {
-            ps.count = 0; ps.armed = false;
-            this.addLog(`Padrão ${ps.a}→${ps.b} quebrou (saiu ${dig}) · reset`, 'virt');
-          }
+          if (dig !== ps.b) { ps.count = 0; ps.armed = false; this.addLog(`Padrão ${ps.a}→${ps.b} quebrou · reset`, 'virt'); }
         }
-        if (this.config.exec === 'auto' && this.config.autoOn && !this.state.tradeLock && ps.armed) {
-          if (dig === ps.a) {
-            if ((this.vlGateOpen() || isRecovery) && aiGateOpen) {
-              this.config.digit = ps.b!;
-              ps.waiting = true;
-              this.vlReset();
-              this.addLog(`Gatilho ${ps.a}→ + loss virtual OK · entra DIFFER ≠${ps.b}`, 'info');
-              this.notify();
-              return;
-            } else if (!aiGateOpen && intel) {
-              this.addLog(`🧠 IA bloqueou · score ${intel.opportunityScore}/100 (${intel.recommendation})`, 'info');
-            } else {
-              this.addLog(`🧬 ${ps.a}→ armou mas falta loss virtual (${this.state.vlCount}/${this.config.vlQty})`, 'virt');
-            }
-          }
+        if (ps.armed && dig === ps.a && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
+          this.config.digit = ps.b!; ps.waiting = true; this.vlReset();
+          if (this.config.exec === 'auto' && this.config.autoOn) this.triggerAutoTrade();
         }
-        return;
       }
-      this.vlOnDigit(dig);
-      if (this.config.exec !== 'auto' || !this.config.autoOn || this.state.tradeLock) return;
-      if ((this.vlGateOpen() || isRecovery) && aiGateOpen) { this.vlReset(); }
       return;
     }
 
     this.vlOnDigit(dig);
-    if (this.config.exec !== 'auto' || !this.config.autoOn || this.state.tradeLock) return;
-    if ((this.vlGateOpen() || isRecovery) && aiGateOpen) { this.vlReset(); }
+    if (this.config.exec === 'auto' && this.config.autoOn && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
+      this.vlReset();
+      this.triggerAutoTrade();
+    }
   }
 
   private tryFireMultiCandidate() {
@@ -650,17 +638,14 @@ export class BearBotEngine {
     const pick: any = cands[0];
     this.multiCand = {};
     this.config.activeSym = pick.sym;
-
     if (this.config.mode === 'differ' && this.config.patTrigger) {
       this.config.digit = pick.b!;
       const ps = this.patState[pick.sym];
       if (ps) ps.waiting = true;
-      this.vlResetM(pick.sym);
-      this.addLog(`🌐 MULTI · ${pick.sym} escolhido · DIFFER ≠${pick.b}`, 'info');
-    } else {
-      this.vlResetM(pick.sym);
-      this.addLog(`🌐 MULTI · ${pick.sym} escolhido · ${this.config.mode.toUpperCase()}`, 'info');
     }
+    this.vlResetM(pick.sym);
+    this.addLog(`🌐 MULTI · ${pick.sym} escolhido`, 'info');
+    this.triggerAutoTrade();
     this.notify();
   }
 
@@ -670,106 +655,66 @@ export class BearBotEngine {
     if (!cands.length) return;
     cands.sort((a: any, b: any) => b.score - a.score);
     const pick: any = cands[0];
-    if (pick.sym !== this.config.activeSym) {
-      const now = Date.now();
-      if (now - (this.lastManualSwitch || 0) > 3000) {
-        this.multiCand = {};
-        this.config.activeSym = pick.sym;
-        this.lastManualSwitch = now;
-        if (this.config.mode === 'differ' && this.config.patTrigger) {
-          this.config.digit = pick.b!;
-        }
-        this.addLog(`🌐 MULTI (Manual) · Foco em ${pick.sym} (Pronto!)`, 'info');
-        this.notify();
-      }
+    if (pick.sym !== this.config.activeSym && Date.now() - this.lastManualSwitch > 3000) {
+      this.multiCand = {};
+      this.config.activeSym = pick.sym;
+      this.lastManualSwitch = Date.now();
+      if (this.config.mode === 'differ' && this.config.patTrigger) this.config.digit = pick.b!;
+      this.addLog(`🌐 MULTI (Manual) · Foco em ${pick.sym}`, 'info');
+      this.notify();
     }
   }
 
   // ── Trade Execution Interface ──
-  // Retorna o payload para ser enviado pelo WS externo
   prepareTrade(kind: string): { payload: any; isPaper: boolean; kind: string } | null {
     if (this.state.tradeLock) return null;
     if (!this.canTradeByRate()) return null;
-    if (this.state.pnl <= -Math.abs(this.config.stopLoss)) {
-      this.addLog('Stop Loss atingido', 'lose');
-      return null;
-    }
-    if (this.state.pnl >= Math.abs(this.config.stopWin)) {
-      this.addLog('Stop Win atingido', 'win');
-      return null;
-    }
+    if (this.state.pnl <= -Math.abs(this.config.stopLoss)) { this.addLog('Stop Loss atingido', 'lose'); return null; }
+    if (this.state.pnl >= Math.abs(this.config.stopWin)) { this.addLog('Stop Win atingido', 'win'); return null; }
 
-    if (this.config.paperMode) {
-      return { payload: null, isPaper: true, kind };
-    }
+    if (this.config.paperMode) return { payload: null, isPaper: true, kind };
 
-    if (kind === 'combo') {
-      return this.prepareCombo();
-    }
-
-    const stakeVal = +this.state.curStake.toFixed(2);
-    let ct = 'DIGITDIFF';
-    if (kind === 'over') ct = 'DIGITOVER';
-    else if (kind === 'under') ct = 'DIGITUNDER';
+    if (kind === 'combo') return this.prepareCombo();
 
     this.state.tradeLock = true;
-    this.pendingKind = { kind };
     this.recordTrade();
-
+    const ct = kind === 'over' ? 'DIGITOVER' : kind === 'under' ? 'DIGITUNDER' : 'DIGITDIFF';
     const payload = {
-      buy: 1, price: stakeVal,
+      buy: 1, price: +this.state.curStake.toFixed(2),
       parameters: {
-        amount: stakeVal, basis: 'stake', contract_type: ct,
+        amount: +this.state.curStake.toFixed(2), basis: 'stake', contract_type: ct,
         currency: 'USD', duration: 1, duration_unit: 't',
-        underlying_symbol: this.config.activeSym,
-        barrier: String(this.config.digit),
+        underlying_symbol: this.config.activeSym, barrier: String(this.config.digit),
       },
     };
-
     return { payload, isPaper: false, kind };
   }
 
   private prepareCombo(): { payload: any; isPaper: boolean; kind: string } | null {
-    const stakeVal = +this.state.curStake.toFixed(2);
     this.state.tradeLock = true;
     this.comboPending = { legs: 2, won: 0, results: [] };
-    this.pendingKind = { kind: 'combo' };
     this.recordTrade();
-
-    return { payload: { combo: true, stakeVal, sym: this.config.activeSym }, isPaper: false, kind: 'combo' };
+    return { payload: { combo: true, stakeVal: +this.state.curStake.toFixed(2), sym: this.config.activeSym }, isPaper: false, kind: 'combo' };
   }
 
-  // ── Paper Simulation ──
   simulateTrade(kind: string): { profit: number; isLoss: boolean; exitDig: number | null; audit: any } | null {
     const stakeVal = +this.state.curStake.toFixed(2);
     const sym = this.config.activeSym;
     const digits = this.tickData[sym]?.digits || [];
-    if (digits.length < 2) {
-      this.addLog('📄 PAPER · dados insuficientes para simular', 'info');
-      return null;
-    }
+    if (digits.length < 2) return null;
     const lastDigit = digits[digits.length - 1];
     const win = isWinCheck(lastDigit, kind, this.config.digit);
     const profit = win ? +(stakeVal * 0.94).toFixed(2) : -stakeVal;
-    const audit = {
-      tick_previous: String(digits[digits.length - 2] ?? lastDigit),
-      tick_start: String(lastDigit),
-      tick_end: String(lastDigit),
-    };
-    return { profit, isLoss: !win, exitDig: lastDigit, audit };
+    return { profit, isLoss: !win, exitDig: lastDigit, audit: { tick_previous: String(digits[digits.length - 2]), tick_start: String(lastDigit), tick_end: String(lastDigit) } };
   }
 
-  // ── Settlement ──
   settleContract(profit: number, isLoss: boolean, kind: string, exitDig: number | null, audit: any) {
     if (this.comboPending && kind === 'combo') {
       const cp = this.comboPending;
-      cp.legs--;
-      if (profit >= 0) cp.won++;
-      cp.results.push(profit);
+      cp.legs--; if (profit >= 0) cp.won++; cp.results.push(profit);
       if (cp.legs > 0) return;
       const net = cp.results.reduce((a: number, b: number) => a + b, 0);
-      const bothLost = cp.won === 0;
-      this.finishTrade(net, bothLost, 'COMBO', exitDig, audit);
+      this.finishTrade(net, cp.won === 0, 'COMBO', exitDig, audit);
       this.comboPending = null;
       return;
     }
@@ -777,21 +722,16 @@ export class BearBotEngine {
   }
 
   private finishTrade(profit: number, isLoss: boolean, label: string, exitDig: number | null, audit: any) {
-    const nextPnl = +(this.state.pnl + profit).toFixed(2);
-    this.state.pnl = nextPnl;
+    this.state.pnl = +(this.state.pnl + profit).toFixed(2);
     const stakeUsed = this.state.curStake;
-    const dtxt = exitDig !== null ? ` · saiu ${exitDig}` : '';
     const isPaper = this.config.paperMode;
 
     const newTrade: TradeLog = {
-      t: new Date().toISOString(),
-      mercado: this.config.activeSym,
-      modo: label, alvo: this.config.digit,
-      audit: audit !== null ? audit : { tick_previous: '—', tick_start: '—', tick_end: '—' },
-      saiu: exitDig !== null ? exitDig : '—',
-      stake: stakeUsed.toFixed(2), resultado: isLoss ? 'LOSS' : 'WIN',
-      lucro: profit.toFixed(2), acumulado: nextPnl.toFixed(2),
-      paper: isPaper,
+      t: new Date().toISOString(), mercado: this.config.activeSym, modo: label, alvo: this.config.digit,
+      audit: audit || { tick_previous: '—', tick_start: '—', tick_end: '—' },
+      saiu: exitDig !== null ? exitDig : '—', stake: stakeUsed.toFixed(2),
+      resultado: isLoss ? 'LOSS' : 'WIN', lucro: profit.toFixed(2),
+      acumulado: this.state.pnl.toFixed(2), paper: isPaper,
     };
     this.state.trades = [newTrade, ...this.state.trades].slice(0, 2000);
 
@@ -802,53 +742,35 @@ export class BearBotEngine {
         this.state.parcelsLeft = this.config.galeParcels;
         const pay = this.state.lastPayout > 0.05 ? this.state.lastPayout : 0.9;
         this.state.curStake = +(this.config.stake + (this.state.lossAcum / this.state.parcelsLeft) / pay).toFixed(2);
-        this.addLog(`${isPaper ? '📄 ' : ''}✖ LOSS ${label}${dtxt} ${profit.toFixed(2)} · parc: $${this.state.lossAcum} ÷ ${this.state.parcelsLeft} · próx $${this.state.curStake}`, 'lose');
       } else {
         this.state.galeLevel++;
         this.state.curStake = +(this.config.stake * Math.pow(this.config.gale, this.state.galeLevel)).toFixed(2);
-        this.addLog(`${isPaper ? '📄 ' : ''}✖ LOSS ${label}${dtxt} ${profit.toFixed(2)} · próx $${this.state.curStake}`, 'lose');
       }
+      this.addLog(`✖ LOSS ${label} ${profit.toFixed(2)}`, 'lose');
       if (this.config.postLossOn) {
         if (this.config.postLossMode === 'recover') {
-          const maxAtt = this.config.recoverMaxAttempts;
           this.state.recovery.active = true;
-          this.state.recovery.attemptsLeft = maxAtt;
+          this.state.recovery.attemptsLeft = this.config.recoverMaxAttempts;
           this.state.recovery.nextTradeAfter = Date.now() + this.config.recoverDelay;
-          this.addLog(`🔥 RECUPERAÇÃO ATIVADA · ${maxAtt} tentativas consecutivas com gale`, 'info');
         } else {
-          const cdMs = this.config.cooldownSec * 1000;
           this.state.recovery.active = true;
-          this.state.recovery.cooldownUntil = Date.now() + cdMs;
-          this.state.recovery.attemptsLeft = 0;
+          this.state.recovery.cooldownUntil = Date.now() + this.config.cooldownSec * 1000;
           this.vlReset();
-          this.addLog(`🧠 PÓS-LOSS · aguardando ${this.config.cooldownSec}s antes de voltar a analisar`, 'info');
         }
       }
     } else {
       this.state.wins++;
       if (stakeUsed > 0 && profit > 0) this.state.lastPayout = +(profit / stakeUsed).toFixed(3);
-      if (this.state.recovery.active) {
-        this.state.recovery.active = false;
-        this.state.recovery.attemptsLeft = 0;
-        this.addLog(`${isPaper ? '📄 ' : ''}✔ WIN em recuperação · ciclo encerrado`, 'win');
-      }
+      if (this.state.recovery.active) { this.state.recovery.active = false; this.state.recovery.attemptsLeft = 0; }
       if (this.config.galeMode === 'parc' && this.state.lossAcum > 0) {
         this.state.lossAcum = +Math.max(0, this.state.lossAcum - profit).toFixed(2);
         this.state.parcelsLeft = Math.max(1, this.state.parcelsLeft - 1);
-        if (this.state.lossAcum <= 0) {
-          this.state.lossAcum = 0; this.state.parcelsLeft = 0;
-          this.state.curStake = this.config.stake;
-          this.addLog(`${isPaper ? '📄 ' : ''}✔ WIN ${label}${dtxt} +${profit.toFixed(2)} · dívida quitada · stake $${this.config.stake}`, 'win');
-        } else {
-          const pay = this.state.lastPayout > 0.05 ? this.state.lastPayout : 0.9;
-          this.state.curStake = +(this.config.stake + (this.state.lossAcum / this.state.parcelsLeft) / pay).toFixed(2);
-          this.addLog(`${isPaper ? '📄 ' : ''}✔ WIN ${label}${dtxt} +${profit.toFixed(2)} · resta $${this.state.lossAcum} (${this.state.parcelsLeft} parc) · próx $${this.state.curStake}`, 'win');
-        }
+        if (this.state.lossAcum <= 0) { this.state.lossAcum = 0; this.state.parcelsLeft = 0; this.state.curStake = this.config.stake; }
+        else { const pay = this.state.lastPayout > 0.05 ? this.state.lastPayout : 0.9; this.state.curStake = +(this.config.stake + (this.state.lossAcum / this.state.parcelsLeft) / pay).toFixed(2); }
       } else {
-        this.state.galeLevel = 0; this.state.lossAcum = 0;
-        this.state.parcelsLeft = 0; this.state.curStake = this.config.stake;
-        this.addLog(`${isPaper ? '📄 ' : ''}✔ WIN ${label}${dtxt} +${profit.toFixed(2)}`, 'win');
+        this.state.galeLevel = 0; this.state.lossAcum = 0; this.state.parcelsLeft = 0; this.state.curStake = this.config.stake;
       }
+      this.addLog(`✔ WIN ${label} +${profit.toFixed(2)}`, 'win');
     }
     this.state.tradeLock = false;
     this.notify();
@@ -856,56 +778,33 @@ export class BearBotEngine {
 
   // ── Controles ──
   startBot() {
-    if (this.config.exec !== 'auto') {
-      this.addLog('Selecione modo AUTOMÁTICO para ligar o robô', 'warn');
-      return false;
-    }
-    this.vlReset(); this.vlResetAllM();
-    this.state.recovery.active = false;
+    if (this.config.exec !== 'auto') return false;
+    this.vlReset(); this.vlResetAllM(); this.state.recovery.active = false;
     this.config.autoOn = true;
-    this.addLog(`🤖 Robô LIGADO · Modo ${this.config.mode.toUpperCase()}${this.config.paperMode ? ' · 📄 PAPER' : ''} · IA: ${this.config.aiMode.toUpperCase()}`, 'win');
+    this.addLog(`🤖 Robô LIGADO · ${this.config.mode.toUpperCase()}`, 'win');
     this.notify();
     return true;
   }
 
-  stopBot() {
-    this.config.autoOn = false;
-    this.addLog('🤖 Robô desligado', 'info');
-    this.notify();
-  }
+  stopBot() { this.config.autoOn = false; this.addLog('🤖 Robô desligado', 'info'); this.notify(); }
 
   abortOp() {
-    this.config.autoOn = false;
-    this.state.galeLevel = 0;
-    this.state.curStake = this.config.stake;
-    this.state.lossAcum = 0;
-    this.state.parcelsLeft = 0;
-    this.state.tradeLock = false;
-    this.state.recovery.active = false;
+    this.config.autoOn = false; this.state.galeLevel = 0; this.state.curStake = this.config.stake;
+    this.state.tradeLock = false; this.state.recovery.active = false;
     this.vlReset(); this.vlResetAllM();
-    this.addLog('✋ Operação abortada · gale e contadores resetados', 'info');
-    this.notify();
+    this.addLog('✋ Operação abortada', 'info'); this.notify();
   }
 
   resetStats() {
-    this.state.wins = 0; this.state.loss = 0; this.state.pnl = 0;
-    this.state.trades = []; this.state.logLines = [];
-    this.state.galeLevel = 0; this.state.curStake = this.config.stake;
-    this.state.lossAcum = 0; this.state.parcelsLeft = 0;
-    this.state.tradeLock = false; this.state.recovery.active = false;
+    this.state.wins = 0; this.state.loss = 0; this.state.pnl = 0; this.state.trades = []; this.state.logLines = [];
+    this.state.galeLevel = 0; this.state.curStake = this.config.stake; this.state.tradeLock = false;
     this.vlReset(); this.vlResetAllM();
-    this.addLog('Histórico e estatísticas resetados', 'info');
-    this.notify();
+    this.addLog('Estatísticas resetadas', 'info'); this.notify();
   }
 
   manualFire(kind: string): { payload: any; isPaper: boolean; kind: string } | null {
-    if (this.config.vlOn) {
-      if (!this.vlGateOpen()) {
-        this.addLog(`Aguardando loss virtual (${this.state.vlCount}/${this.config.vlQty})`, 'warn');
-        return null;
-      }
-      this.vlReset();
-    }
+    if (this.config.vlOn && !this.vlGateOpen()) return null;
+    if (this.config.vlOn) this.vlReset();
     if (this.state.recovery.active && this.config.postLossMode === 'recover') {
       this.state.recovery.attemptsLeft--;
       if (this.state.recovery.attemptsLeft <= 0) this.state.recovery.active = false;

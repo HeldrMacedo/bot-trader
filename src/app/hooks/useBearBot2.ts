@@ -39,6 +39,12 @@ export function useBearBot() {
       // Logs já estão no state
     });
 
+    const unsubAutoTrade = engine.onAutoTrade((kind) => {
+      // Usamos setTimeout para colocar a execução na próxima tick do event loop, 
+      // evitando deadlocks caso seja síncrono no meio de um processamento de tick
+      setTimeout(() => executeTrade(kind), 0);
+    });
+
     const checkConnection = () => {
       setIsConnected(derivService.isMarketConnected);
     };
@@ -68,7 +74,7 @@ export function useBearBot() {
     const onAccountId = derivService.observerInstance.on('account.update', (data: any) => {
       setAccountInfo(data);
     });
-    
+
     // Fetch initial account info if already present
     const storageAccounts = derivService.getStorageDerivAccount();
     if (storageAccounts && storageAccounts.length > 0) {
@@ -78,6 +84,7 @@ export function useBearBot() {
     return () => {
       unsubState();
       unsubLog();
+      unsubAutoTrade();
       derivService.observerInstance.removeById(onOpenId);
       derivService.observerInstance.removeById(onCloseId);
       derivService.observerInstance.removeById(onMarketOpenId);
@@ -95,15 +102,15 @@ export function useBearBot() {
   useEffect(() => {
     const derivService = DerivService.getInstance();
     if (!isConnected) return;
-    
+
     // Na arquitetura original, subscribes eram feitos.
     if (config.multiOn) {
       const markets = ['R_100', 'R_75', 'R_50', 'R_25', 'R_10', 'RDBEAR', 'RDBULL'];
       markets.forEach(sym => {
-        derivService.subscribe({ ticks: sym }).catch(() => {});
+        derivService.subscribe({ ticks: sym }).catch(() => { });
       });
     } else {
-      derivService.subscribe({ ticks: config.activeSym }).catch(() => {});
+      derivService.subscribe({ ticks: config.activeSym }).catch(() => { });
     }
   }, [config.activeSym, config.multiOn, isConnected]);
 
@@ -118,7 +125,7 @@ export function useBearBot() {
     const engine = engineRef.current;
     const prep = engine.prepareTrade(kind);
     if (!prep) return;
-    
+
     const derivService = DerivService.getInstance();
 
     if (prep.isPaper) {
@@ -135,13 +142,14 @@ export function useBearBot() {
 
     // Trade real via WS
     try {
-      const response = await derivService.send({ buy: 1, parameters: prep.payload, price: prep.payload.amount });
+      console.log("TRADE ", prep.payload);
+      const response = await derivService.send(prep.payload);
       if (response.buy) {
         // Subscribe ao contrato
         derivService.subscribe({
           proposal_open_contract: 1,
           contract_id: response.buy.contract_id
-        }).catch(() => {});
+        }).catch(() => { });
 
         // Safety timeout
         const timeout = setTimeout(() => {
@@ -221,10 +229,11 @@ export function useBearBot() {
 
   // ── Controles ──
   const startBot = useCallback(() => {
+    getAudioCtx(); // Inicializa no clique do usuário para evitar bloqueio de autoplay
     const res = engineRef.current.startBot();
     setConfigState(engineRef.current.getConfig());
     return res;
-  }, []);
+  }, [getAudioCtx]);
 
   const stopBot = useCallback(() => {
     engineRef.current.stopBot();
@@ -241,9 +250,10 @@ export function useBearBot() {
   }, []);
 
   const manualFire = useCallback((kind: string) => {
+    getAudioCtx(); // Inicializa no clique do usuário
     const prep = engineRef.current.manualFire(kind);
     if (prep) executeTrade(kind);
-  }, [executeTrade]);
+  }, [executeTrade, getAudioCtx]);
 
   const exportCSV = useCallback(() => {
     const csv = engineRef.current.exportTradesCSV();

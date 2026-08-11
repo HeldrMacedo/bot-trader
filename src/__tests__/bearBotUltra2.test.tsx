@@ -16,6 +16,34 @@ const localStorageMock = (function () {
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
+// Mock de AudioContext
+class MockAudioContext {
+  createOscillator() {
+    return {
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      type: 'sine',
+      frequency: { value: 440 }
+    };
+  }
+  createGain() {
+    return {
+      connect: vi.fn(),
+      gain: {
+        setValueAtTime: vi.fn(),
+        linearRampToValueAtTime: vi.fn(),
+        exponentialRampToValueAtTime: vi.fn()
+      }
+    };
+  }
+  destination = {};
+  currentTime = 0;
+  state = 'running';
+  resume = vi.fn();
+}
+(window as any).AudioContext = MockAudioContext;
+
 // Mock do DerivService
 const mockSend = vi.fn().mockResolvedValue({});
 const mockSubscribe = vi.fn().mockResolvedValue({ subscription: { id: 'test_sub' } });
