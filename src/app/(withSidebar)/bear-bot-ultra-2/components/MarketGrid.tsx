@@ -1,7 +1,6 @@
 "use client";
 
-import { BotConfig, BotState, Market, MARKETS, MarketIntelligence } from '../../../services/bearbot2.types';
-import { useBearBot } from '../../../hooks/useBearBot2';
+import { BotConfig, BotState, MARKETS } from '../../../services/bearbot2.types';
 
 interface MarketGridProps {
   config: BotConfig;
@@ -64,8 +63,13 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
           const data = state.tickData[m.sym];
           const intel = state.marketIntel[m.sym];
           const colors = intel ? getIntelColor(intel.opportunityScore) : getIntelColor(0);
-          const vlSt = config.multiOn ? state.marketIntel[m.sym] : null;
-          const lossCount = config.multiOn ? (vlSt as any)?.count || 0 : (isSelected ? state.vlCount : 0);
+          const vlSym = state.vlBySym?.[m.sym];
+          const lossCount = config.multiOn
+            ? (vlSym?.count ?? 0)
+            : (isSelected ? state.vlCount : 0);
+          const vlSeenDisplay = config.multiOn
+            ? (vlSym?.seen ?? 0)
+            : state.vlSeen;
           const showVlLoss = config.vlOn && (config.multiOn || isSelected);
 
           return (
@@ -114,7 +118,7 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
 
               {showVlLoss && (
                 <div className="mt-1.5 text-[10px] text-[#8593aa]">
-                  Loss: <strong className="font-mono text-red-400">{lossCount}/{config.vlQty}{config.vlMode === 'accum' && ` (janela ${state.vlSeen}/${config.vlWindow})`}</strong>
+                  Loss: <strong className="font-mono text-red-400">{lossCount}/{config.vlQty}{config.vlMode === 'accum' && ` (janela ${vlSeenDisplay}/${config.vlWindow})`}</strong>
                 </div>
               )}
             </div>

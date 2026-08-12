@@ -264,6 +264,57 @@ export default function BearBotUltra() {
             )}
           </div>
 
+          {/* Card: Padrão A→B (differ) */}
+          {config.mode === 'differ' && (
+            <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">🔗 PADRÃO A→B</h2>
+                <button
+                  onClick={() => updateConfig({ patTrigger: !config.patTrigger })}
+                  className={`w-12 h-6 rounded-full transition-all relative ${config.patTrigger ? "bg-purple-600" : "bg-[#18202f] border border-[#2e3a52]"}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${config.patTrigger ? "left-[26px]" : "left-0.5"}`} />
+                </button>
+              </div>
+              {config.patTrigger && (
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Modo de contagem</label>
+                    <div className="grid grid-cols-2 gap-2 bg-[#070b14] p-1 border border-[#2e3a52] rounded-lg">
+                      <button onClick={() => updateConfig({ patMode: 'accum' })} className={`py-1.5 text-xs font-bold rounded-md transition-all ${config.patMode === 'accum' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"}`}>Acumulado</button>
+                      <button onClick={() => updateConfig({ patMode: 'seq' })} className={`py-1.5 text-xs font-bold rounded-md transition-all ${config.patMode === 'seq' ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"}`}>Sequência</button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Repetições</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={config.patReps}
+                        onChange={(e) => updateConfig({ patReps: Math.max(1, Math.min(20, Number(e.target.value) || 1)) })}
+                        className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Força mín. (%)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={config.patMinForce}
+                        onChange={(e) => updateConfig({ patMinForce: Math.max(1, Math.min(100, Number(e.target.value) || 30)) })}
+                        className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-[#8593aa]">Com trigger ativo, o bot entra em DIFFER ≠B quando o dígito A aparece e o padrão está armado (Wilson/Lift/força).</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Card: Proteções */}
           <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl">
             <div className="flex items-center gap-2 mb-3">

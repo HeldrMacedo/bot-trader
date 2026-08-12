@@ -103,6 +103,24 @@ export interface ComboPending {
   results: number[];
 }
 
+/** Intent returned by prepareTrade for the hook to execute. */
+export interface TradeLeg {
+  ct: string;
+  barrier: number;
+  /** Contract kind for partial-fail demotion: over | under | differ */
+  legKind: string;
+  payload: Record<string, unknown>;
+}
+
+export interface TradePrep {
+  isPaper: boolean;
+  kind: string;
+  /** Single-leg real buy payload (non-combo). */
+  payload?: Record<string, unknown> | null;
+  /** Combo real legs (DIGITOVER 5 + DIGITUNDER 4). */
+  legs?: TradeLeg[];
+}
+
 export interface BotConfig {
   activeSym: string;
   mode: BotMode;
@@ -144,6 +162,8 @@ export interface BotState {
   logLines: { ts: string; msg: string; type: string }[];
   marketIntel: Record<string, MarketIntelligence>;
   tickData: Record<string, TickData>;
+  /** Per-market VL counters for multi UI. */
+  vlBySym: Record<string, VLMarketState>;
   vlCount: number;
   vlSeen: number;
   galeLevel: number;
@@ -214,6 +234,7 @@ export const DEFAULT_BOT_STATE: BotState = {
   logLines: [],
   marketIntel: {},
   tickData: {},
+  vlBySym: {},
   vlCount: 0,
   vlSeen: 0,
   galeLevel: 0,

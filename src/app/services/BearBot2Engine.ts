@@ -4,6 +4,7 @@ import {
   BotConfig, BotState, Market, MARKETS, TradeLog, PatternState,
   VLMarketState, MarketIntelligence, MultiCandidate, ComboPending,
   RecoveryState, TickData, ProposalState, DEFAULT_BOT_STATE,
+  TradePrep, TradeLeg,
 } from './bearbot2.types';
 
 // ── Helpers Estáticos ──
@@ -132,7 +133,11 @@ export class BearBotEngine {
 
   constructor(config: Partial<BotConfig> = {}) {
     this.config = { ...this.getDefaultConfig(), ...config };
-    this.state = { ...DEFAULT_BOT_STATE };
+    this.state = {
+      ...DEFAULT_BOT_STATE,
+      curStake: this.config.stake,
+      recovery: { active: false, attemptsLeft: 0, cooldownUntil: 0, nextTradeAfter: 0 },
+    };
     this.initMarkets();
   }
 
@@ -160,13 +165,27 @@ export class BearBotEngine {
 
   // ── Getters ──
   getConfig(): BotConfig { return { ...this.config }; }
-  getState(): BotState { return { ...this.state, tickData: { ...this.tickData } }; }
+  getState(): BotState {
+    const vlBySym: Record<string, VLMarketState> = {};
+    MARKETS.forEach(m => {
+      const st = this.vlMState[m.sym] || { count: 0, seen: 0 };
+      vlBySym[m.sym] = { count: st.count, seen: st.seen };
+    });
+    return {
+      ...this.state,
+      tickData: { ...this.tickData },
+      vlBySym,
+    };
+  }
 
   // ── Config Updates ──
   updateConfig(updates: Partial<BotConfig>) {
     const oldMulti = this.config.multiOn;
     this.config = { ...this.config, ...updates };
     if (oldMulti && !this.config.multiOn) this.vlReset();
+    if (updates.stake !== undefined && this.state.galeLevel === 0) {
+      this.state.curStake = updates.stake;
+    }
     this.notify();
   }
 
@@ -520,16 +539,21 @@ export class BearBotEngine {
   }
 
   // ── Rate Limiting ──
-  private canTradeByRate(): boolean {
+  private canTradeByRate(silent = false): boolean {
     const now = Date.now();
     const hourAgo = now - 3600000;
     this.state.tradesThisHour = this.state.tradesThisHour.filter(t => t > hourAgo);
     if (this.state.tradesThisHour.length >= this.config.maxTradesHour) {
-      this.addLog(`⛔ Limite de ${this.config.maxTradesHour} trades/hora atingido`, 'lose');
+      if (!silent) this.addLog(`⛔ Limite de ${this.config.maxTradesHour} trades/hora atingido`, 'lose');
       return false;
     }
     if (now - this.state.lastTradeTime < this.config.tradeCooldownMs) return false;
     return true;
+  }
+
+  /** True if a new trade can be attempted (lock free + rate ok). */
+  private canOpenTrade(silent = true): boolean {
+    return !this.state.tradeLock && this.canTradeByRate(silent);
   }
 
   private recordTrade() {
@@ -615,8 +639,18 @@ export class BearBotEngine {
           if (dig !== ps.b) { ps.count = 0; ps.armed = false; this.addLog(`Padrão ${ps.a}→${ps.b} quebrou · reset`, 'virt'); }
         }
         if (ps.armed && dig === ps.a && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
-          this.config.digit = ps.b!; ps.waiting = true; this.vlReset();
-          if (this.config.exec === 'auto' && this.config.autoOn) this.triggerAutoTrade();
+          if (this.config.exec === 'auto' && this.config.autoOn) {
+            // Do not reset VL if lock/rate would block prepareTrade
+            if (!this.canOpenTrade(true)) return;
+            this.config.digit = ps.b!;
+            ps.waiting = true;
+            this.vlReset();
+            this.triggerAutoTrade();
+          } else {
+            this.config.digit = ps.b!;
+            ps.waiting = true;
+            this.vlReset();
+          }
         }
       }
       return;
@@ -624,6 +658,7 @@ export class BearBotEngine {
 
     this.vlOnDigit(dig);
     if (this.config.exec === 'auto' && this.config.autoOn && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
+      if (!this.canOpenTrade(true)) return;
       this.vlReset();
       this.triggerAutoTrade();
     }
@@ -631,7 +666,7 @@ export class BearBotEngine {
 
   private tryFireMultiCandidate() {
     if (this.state.tradeLock) return;
-    if (!this.canTradeByRate()) return;
+    if (!this.canTradeByRate(true)) return;
     const cands = Object.values(this.multiCand);
     if (!cands.length) return;
     cands.sort((a: any, b: any) => b.score - a.score);
@@ -666,35 +701,85 @@ export class BearBotEngine {
   }
 
   // ── Trade Execution Interface ──
-  prepareTrade(kind: string): { payload: any; isPaper: boolean; kind: string } | null {
+  private buildBuyPayload(ct: string, barrier: number): Record<string, unknown> {
+    const stake = +this.state.curStake.toFixed(2);
+    return {
+      buy: 1,
+      price: stake,
+      parameters: {
+        amount: stake,
+        basis: 'stake',
+        contract_type: ct,
+        currency: 'USD',
+        duration: 1,
+        duration_unit: 't',
+        underlying_symbol: this.config.activeSym,
+        barrier: String(barrier),
+      },
+    };
+  }
+
+  prepareTrade(kind: string): TradePrep | null {
     if (this.state.tradeLock) return null;
     if (!this.canTradeByRate()) return null;
     if (this.state.pnl <= -Math.abs(this.config.stopLoss)) { this.addLog('Stop Loss atingido', 'lose'); return null; }
     if (this.state.pnl >= Math.abs(this.config.stopWin)) { this.addLog('Stop Win atingido', 'win'); return null; }
 
-    if (this.config.paperMode) return { payload: null, isPaper: true, kind };
+    // Paper and real both lock until settle/abort
+    this.state.tradeLock = true;
+    this.recordTrade();
+
+    if (this.config.paperMode) {
+      this.notify();
+      return { payload: null, isPaper: true, kind };
+    }
 
     if (kind === 'combo') return this.prepareCombo();
 
-    this.state.tradeLock = true;
-    this.recordTrade();
     const ct = kind === 'over' ? 'DIGITOVER' : kind === 'under' ? 'DIGITUNDER' : 'DIGITDIFF';
-    const payload = {
-      buy: 1, price: +this.state.curStake.toFixed(2),
-      parameters: {
-        amount: +this.state.curStake.toFixed(2), basis: 'stake', contract_type: ct,
-        currency: 'USD', duration: 1, duration_unit: 't',
-        underlying_symbol: this.config.activeSym, barrier: String(this.config.digit),
-      },
-    };
+    const payload = this.buildBuyPayload(ct, this.config.digit);
+    this.notify();
     return { payload, isPaper: false, kind };
   }
 
-  private prepareCombo(): { payload: any; isPaper: boolean; kind: string } | null {
-    this.state.tradeLock = true;
+  private prepareCombo(): TradePrep {
     this.comboPending = { legs: 2, won: 0, results: [] };
-    this.recordTrade();
-    return { payload: { combo: true, stakeVal: +this.state.curStake.toFixed(2), sym: this.config.activeSym }, isPaper: false, kind: 'combo' };
+    const proposals = this.getRequiredProposals();
+    const legs: TradeLeg[] = proposals.map(({ ct, barrier }) => {
+      const legKind = ct === 'DIGITOVER' ? 'over' : ct === 'DIGITUNDER' ? 'under' : 'differ';
+      return {
+        ct,
+        barrier,
+        legKind,
+        payload: this.buildBuyPayload(ct, barrier),
+      };
+    });
+    this.notify();
+    return { payload: null, isPaper: false, kind: 'combo', legs };
+  }
+
+  /**
+   * Unlock without counting PnL / gale / recovery.
+   * Used on API errors, safety timeout, and cancelled prepares.
+   */
+  abortPendingTrade(reason?: string) {
+    this.comboPending = null;
+    if (this.state.tradeLock) {
+      this.state.tradeLock = false;
+      if (reason) this.addLog(reason, 'warn');
+      this.notify();
+    } else if (reason) {
+      this.addLog(reason, 'warn');
+    }
+  }
+
+  /** Drop combo aggregation so the open leg settles as a normal single trade. */
+  demoteComboToSingle() {
+    this.comboPending = null;
+  }
+
+  isComboPending(): boolean {
+    return this.comboPending !== null;
   }
 
   simulateTrade(kind: string): { profit: number; isLoss: boolean; exitDig: number | null; audit: any } | null {
@@ -703,19 +788,41 @@ export class BearBotEngine {
     const digits = this.tickData[sym]?.digits || [];
     if (digits.length < 2) return null;
     const lastDigit = digits[digits.length - 1];
+    const audit = {
+      tick_previous: String(digits[digits.length - 2]),
+      tick_start: String(lastDigit),
+      tick_end: String(lastDigit),
+    };
+
+    // Paper combo: evaluate both legs (OVER 5 + UNDER 4) and net P&L
+    if (kind === 'combo') {
+      const legStake = stakeVal;
+      const winOver = lastDigit > 5;
+      const winUnder = lastDigit < 4;
+      const p1 = winOver ? +(legStake * 0.94).toFixed(2) : -legStake;
+      const p2 = winUnder ? +(legStake * 0.94).toFixed(2) : -legStake;
+      const profit = +(p1 + p2).toFixed(2);
+      const won = (winOver ? 1 : 0) + (winUnder ? 1 : 0);
+      // LOSS only if both legs lost (matches real comboPending.won === 0)
+      return { profit, isLoss: won === 0, exitDig: lastDigit, audit };
+    }
+
     const win = isWinCheck(lastDigit, kind, this.config.digit);
     const profit = win ? +(stakeVal * 0.94).toFixed(2) : -stakeVal;
-    return { profit, isLoss: !win, exitDig: lastDigit, audit: { tick_previous: String(digits[digits.length - 2]), tick_start: String(lastDigit), tick_end: String(lastDigit) } };
+    return { profit, isLoss: !win, exitDig: lastDigit, audit };
   }
 
   settleContract(profit: number, isLoss: boolean, kind: string, exitDig: number | null, audit: any) {
     if (this.comboPending && kind === 'combo') {
       const cp = this.comboPending;
       cp.legs--; if (profit >= 0) cp.won++; cp.results.push(profit);
-      if (cp.legs > 0) return;
+      if (cp.legs > 0) {
+        this.notify();
+        return;
+      }
       const net = cp.results.reduce((a: number, b: number) => a + b, 0);
-      this.finishTrade(net, cp.won === 0, 'COMBO', exitDig, audit);
       this.comboPending = null;
+      this.finishTrade(net, cp.won === 0, 'COMBO', exitDig, audit);
       return;
     }
     this.finishTrade(profit, isLoss, kind.toUpperCase(), exitDig, audit);
@@ -791,6 +898,7 @@ export class BearBotEngine {
   abortOp() {
     this.config.autoOn = false; this.state.galeLevel = 0; this.state.curStake = this.config.stake;
     this.state.tradeLock = false; this.state.recovery.active = false;
+    this.comboPending = null;
     this.vlReset(); this.vlResetAllM();
     this.addLog('✋ Operação abortada', 'info'); this.notify();
   }
@@ -798,17 +906,35 @@ export class BearBotEngine {
   resetStats() {
     this.state.wins = 0; this.state.loss = 0; this.state.pnl = 0; this.state.trades = []; this.state.logLines = [];
     this.state.galeLevel = 0; this.state.curStake = this.config.stake; this.state.tradeLock = false;
+    this.comboPending = null;
     this.vlReset(); this.vlResetAllM();
     this.addLog('Estatísticas resetadas', 'info'); this.notify();
   }
 
-  manualFire(kind: string): { payload: any; isPaper: boolean; kind: string } | null {
-    if (this.config.vlOn && !this.vlGateOpen()) return null;
+  /**
+   * Manual entry gate only — does NOT call prepareTrade (avoids double-lock).
+   * Hook must call executeTrade → prepareTrade once.
+   */
+  tryManualFire(): boolean {
+    if (this.state.tradeLock) {
+      this.addLog('Operação em andamento · aguarde settlement', 'warn');
+      return false;
+    }
+    if (this.config.vlOn && !this.vlGateOpen()) {
+      this.addLog(`Loss virtual incompleto (${this.state.vlCount}/${this.config.vlQty})`, 'virt');
+      return false;
+    }
     if (this.config.vlOn) this.vlReset();
     if (this.state.recovery.active && this.config.postLossMode === 'recover') {
       this.state.recovery.attemptsLeft--;
       if (this.state.recovery.attemptsLeft <= 0) this.state.recovery.active = false;
     }
+    return true;
+  }
+
+  /** @deprecated use tryManualFire + prepareTrade via executeTrade */
+  manualFire(kind: string): TradePrep | null {
+    if (!this.tryManualFire()) return null;
     return this.prepareTrade(kind);
   }
 
