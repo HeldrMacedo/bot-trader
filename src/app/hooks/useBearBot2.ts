@@ -19,7 +19,7 @@ export function extractLastDigit(price: number, symbol: string): number | null {
 }
 
 function isTerminalContract(contract: any): boolean {
-  if (contract.is_sold === 1 || contract.is_sold === true) return true;
+  if (contract.is_valid_to_sell === 1 || contract.is_sold === 1 || contract.is_sold === true) return true;
   const status = String(contract.status || '').toLowerCase();
   return status === 'won' || status === 'lost';
 }
@@ -37,9 +37,9 @@ export function useBearBot() {
   /** contract_id → leg kind for partial combo demotion tracking */
   const openContractsRef = useRef<Map<number, string>>(new Map());
   const settledIdsRef = useRef<Set<number>>(new Set());
-  const playWinSoundRef = useRef<() => void>(() => {});
-  const playLossSoundRef = useRef<() => void>(() => {});
-  const executeTradeRef = useRef<(kind: string) => Promise<void>>(async () => {});
+  const playWinSoundRef = useRef<() => void>(() => { });
+  const playLossSoundRef = useRef<() => void>(() => { });
+  const executeTradeRef = useRef<(kind: string) => Promise<void>>(async () => { });
 
   const clearSafetyTimeouts = useCallback(() => {
     safetyTimeouts.current.forEach(clearTimeout);
