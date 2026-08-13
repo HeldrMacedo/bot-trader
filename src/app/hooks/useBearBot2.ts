@@ -66,7 +66,7 @@ export function useBearBot() {
     if (!prep) return;
 
     pendingKindRef.current = prep.kind;
-    settledIdsRef.current.clear();
+    // settledIdsRef.current.clear(); // REMOVIDO: Limpar aqui permite que POCs atrasados do trade anterior quebrem o lock
 
     if (prep.isPaper) {
       const result = engine.simulateTrade(kind);
@@ -174,6 +174,13 @@ export function useBearBot() {
     if (contractId != null) {
       if (settledIdsRef.current.has(contractId)) return;
       settledIdsRef.current.add(contractId);
+      // Limitar o tamanho do cache para evitar vazamento de memória
+      if (settledIdsRef.current.size > 100) {
+        const firstItem = settledIdsRef.current.values().next().value;
+        if (firstItem !== undefined) {
+          settledIdsRef.current.delete(firstItem);
+        }
+      }
     }
 
     const profit = Number(contract.profit);
