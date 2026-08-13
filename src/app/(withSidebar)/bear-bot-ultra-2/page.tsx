@@ -425,48 +425,50 @@ export default function BearBotUltra() {
           {/* Tabela de Transações */}
           <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl overflow-x-auto">
             <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa] mb-3">💰 ÚLTIMAS OPERAÇÕES</h2>
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-[#2e3a52] text-[#8593aa] uppercase text-[10px]">
-                  <th className="py-2 px-3">Data/Hora</th>
-                  <th className="py-2 px-3">Mercado</th>
-                  <th className="py-2 px-3">Estratégia</th>
-                  <th className="py-2 px-3">Alvo</th>
-                  <th className="py-2 px-3">Saiu</th>
-                  <th className="py-2 px-3">Auditoria</th>
-                  <th className="py-2 px-3">Stake</th>
-                  <th className="py-2 px-3">Tipo</th>
-                  <th className="py-2 px-3">Resultado</th>
-                  <th className="py-2 px-3">Lucro ($)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.trades.length > 0 ? (
-                  state.trades.slice(0, 10).map((t, index) => (
-                    <tr key={index} className="border-b border-[#222c3f]/50 hover:bg-[#18202f]/20 font-mono">
-                      <td className="py-2 px-3 text-gray-400">{new Date(t.t).toLocaleTimeString("pt-BR", { hour12: false })}</td>
-                      <td className="py-2 px-3">{t.mercado}</td>
-                      <td className="py-2 px-3 uppercase text-[10px]">{t.modo}</td>
-                      <td className="py-2 px-3">{t.alvo}</td>
-                      <td className="py-2 px-3">{t.saiu}</td>
-                      <td className="py-2 px-3">
-                        <span className="text-muted">{t.audit?.tick_previous}</span>-<span className="text-blue-500">{t.audit?.tick_start}</span>-<span className={`${t.resultado === 'WIN' ? 'text-green-400' : 'text-red-400'}`}>{t.audit?.tick_end}</span>
-                      </td>
-                      <td className="py-2 px-3">${t.stake}</td>
-                      <td className="py-2 px-3">{t.paper ? <span className="text-indigo-400 text-[9px]">PAPER</span> : <span className="text-[9px] text-gray-500">REAL</span>}</td>
-                      <td className="py-2 px-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${t.resultado === 'WIN' ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>{t.resultado}</span>
-                      </td>
-                      <td className={`py-2 px-3 font-bold ${Number(t.lucro) >= 0 ? "text-green-400" : "text-red-400"}`}>
-                        {Number(t.lucro) >= 0 ? `+$${t.lucro}` : `-$${Math.abs(Number(t.lucro))}`}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr><td colSpan={10} className="py-8 text-center text-gray-500">Nenhum trade efetuado.</td></tr>
-                )}
-              </tbody>
-            </table>
+            <div className="max-h-[300px] overflow-y-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 bg-[#131925] z-10">
+                  <tr className="border-b border-[#2e3a52] text-[#8593aa] uppercase text-[10px]">
+                    <th className="py-2 px-3">Data/Hora</th>
+                    <th className="py-2 px-3">Mercado</th>
+                    <th className="py-2 px-3">Estratégia</th>
+                    <th className="py-2 px-3">Alvo</th>
+                    <th className="py-2 px-3">Saiu</th>
+                    <th className="py-2 px-3">Auditoria</th>
+                    <th className="py-2 px-3">Stake</th>
+                    <th className="py-2 px-3">Tipo</th>
+                    <th className="py-2 px-3">Resultado</th>
+                    <th className="py-2 px-3">Lucro ($)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {state.trades.length > 0 ? (
+                    state.trades.map((t, index) => (
+                      <tr key={index} className="border-b border-[#222c3f]/50 hover:bg-[#18202f]/20 font-mono">
+                        <td className="py-2 px-3 text-gray-400">{new Date(t.t).toLocaleTimeString("pt-BR", { hour12: false })}</td>
+                        <td className="py-2 px-3">{t.mercado}</td>
+                        <td className="py-2 px-3 uppercase text-[10px]">{t.modo}</td>
+                        <td className="py-2 px-3">{t.alvo}</td>
+                        <td className="py-2 px-3">{t.saiu}</td>
+                        <td className="py-2 px-3">
+                          <span className="text-muted">{t.audit?.tick_previous}</span>-<span className="text-blue-500">{t.audit?.tick_start}</span>-<span className={`${t.resultado === 'WIN' ? 'text-green-400' : 'text-red-400'}`}>{t.audit?.tick_end}</span>
+                        </td>
+                        <td className="py-2 px-3">${t.stake}</td>
+                        <td className="py-2 px-3">{t.paper ? <span className="text-indigo-400 text-[9px]">PAPER</span> : <span className="text-[9px] text-gray-500">REAL</span>}</td>
+                        <td className="py-2 px-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${t.resultado === 'WIN' ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>{t.resultado}</span>
+                        </td>
+                        <td className={`py-2 px-3 font-bold ${Number(t.lucro) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                          {Number(t.lucro) >= 0 ? `+$${t.lucro}` : `-$${Math.abs(Number(t.lucro))}`}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr><td colSpan={10} className="py-8 text-center text-gray-500">Nenhum trade efetuado.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
