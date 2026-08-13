@@ -77,18 +77,18 @@ export default function IntelPanel({ config, state }: IntelPanelProps) {
 
           <div className="flex flex-col gap-2">
             {[
-              { label: 'Pressão de Perdedores', value: 100 - intel.pressure, color: 'cyan', raw: intel.pressure },
-              { label: 'Força do Padrão A→B', value: intel.patternStrength, color: 'purple', raw: null },
-              { label: 'Progresso Loss Virtual', value: intel.vlProgress, color: 'green', raw: null },
-              { label: 'Sincronia Cross-Market', value: intel.syncScore, color: 'yellow', raw: null },
+              { label: 'Pressão de Perdedores', value: 100 - intel.pressure, text: 'text-cyan-400', bar: 'from-cyan-500 to-blue-400' },
+              { label: 'Força do Padrão A→B', value: intel.patternStrength, text: 'text-purple-400', bar: 'from-purple-500 to-pink-400' },
+              { label: 'Progresso Loss Virtual', value: intel.vlProgress, text: 'text-green-400', bar: 'from-green-500 to-emerald-400' },
+              { label: 'Sincronia Cross-Market', value: intel.syncScore, text: 'text-yellow-400', bar: 'from-yellow-500 to-amber-400' },
             ].map((item) => (
               <div key={item.label} className="bg-[#0e131d] p-2 border border-[#222c3f] rounded-lg">
                 <div className="flex justify-between items-center mb-1">
-                  <span className={`text-[10px] text-${item.color}-400 font-bold`}>{item.label}</span>
-                  <span className={`text-xs font-mono font-bold text-${item.color}-400`}>{item.value}%</span>
+                  <span className={`text-[10px] ${item.text} font-bold`}>{item.label}</span>
+                  <span className={`text-xs font-mono font-bold ${item.text}`}>{item.value}%</span>
                 </div>
                 <div className="w-full bg-[#18202f] h-1.5 rounded-full overflow-hidden">
-                  <div style={{ width: `${item.value}%` }} className={`h-full bg-gradient-to-r from-${item.color}-500 to-${item.color === 'cyan' ? 'blue' : item.color === 'purple' ? 'pink' : item.color === 'green' ? 'emerald' : 'amber'}-400 transition-all duration-500`} />
+                  <div style={{ width: `${item.value}%` }} className={`h-full bg-gradient-to-r ${item.bar} transition-all duration-500`} />
                 </div>
               </div>
             ))}

@@ -232,7 +232,8 @@ export class BearBotEngine {
     tdc[sym] = { digits: currentDigits, price };
     this.state.tickData = { ...tdc };
 
-    if (this.config.mode === 'differ') this.updatePattern(sym);
+    // Pattern A→B is market intelligence, not just a differ-mode trade trigger.
+    this.updatePattern(sym);
 
     if (currentDigits.length % 3 === 0) {
       this.updateAllIntelligence();
@@ -404,7 +405,9 @@ export class BearBotEngine {
     }
 
     let patternStrength = 0;
-    if (ps && ps.a !== null && ps.b !== null && ps.armed) {
+    // Score the detected A→B quality. `armed` is a trade trigger (quality + reps)
+    // and stays false while rival pairs flip-flop stability — not a display gate.
+    if (ps && ps.a !== null && ps.b !== null) {
       patternStrength = 40;
       if ((ps.force || 0) >= 0.5) patternStrength += 20;
       if ((ps.wilson || 0) >= 0.3) patternStrength += 15;
@@ -434,7 +437,7 @@ export class BearBotEngine {
       MARKETS.forEach(m => {
         if (m.sym === sym) return;
         const otherPs = this.patState[m.sym];
-        if (otherPs && otherPs.a === ps.a && otherPs.b === ps.b && otherPs.armed) syncCount++;
+        if (otherPs && otherPs.a === ps.a && otherPs.b === ps.b) syncCount++;
         totalMarkets++;
       });
       syncScore = totalMarkets > 0 ? Math.min(100, Math.round((syncCount / 3) * 100)) : 0;

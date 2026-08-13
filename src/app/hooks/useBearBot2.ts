@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { BearBotEngine, createEngine } from '../services/BearBot2Engine';
 import { DerivService } from '../services/DerivService';
 import {
-  BotConfig, BotState,
+  BotConfig, BotState, MARKETS,
 } from '../services/bearbot2.types';
 
 const SAFETY_TIMEOUT_MS = 30_000;
@@ -292,15 +292,12 @@ export function useBearBot() {
     const derivService = DerivService.getInstance();
     if (!isConnected) return;
 
-    if (config.multiOn) {
-      const markets = ['R_100', 'R_75', 'R_50', 'R_25', 'R_10', 'RDBEAR', 'RDBULL'];
-      markets.forEach(sym => {
-        derivService.subscribe({ ticks: sym }).catch(() => { });
-      });
-    } else {
-      derivService.subscribe({ ticks: config.activeSym }).catch(() => { });
-    }
-  }, [config.activeSym, config.multiOn, isConnected]);
+    // Always subscribe to every market: IntelPanel sync + MarketGrid scores
+    // need ticks from all symbols, not only the active one / multi mode.
+    MARKETS.forEach(m => {
+      derivService.subscribe({ ticks: m.sym }).catch(() => { });
+    });
+  }, [isConnected]);
 
   const updateConfig = useCallback((updates: Partial<BotConfig>) => {
     engineRef.current.updateConfig(updates);

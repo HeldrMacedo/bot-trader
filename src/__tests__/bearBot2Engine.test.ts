@@ -144,3 +144,43 @@ describe('BearBot2Engine trade path', () => {
     expect(engine.getState().curStake).toBe(1.5);
   });
 });
+
+/** Strong alternating 1→2 sequence that getBestPattern can arm. */
+function feedABPattern(engine: ReturnType<typeof createEngine>, sym: string, pairs = 30) {
+  for (let i = 0; i < pairs; i++) {
+    engine.processTick(sym, 100.01, 1);
+    engine.processTick(sym, 100.02, 2);
+  }
+}
+
+describe('BearBot2Engine market intelligence', () => {
+  it('computes patternStrength in over mode (not only differ)', () => {
+    const engine = createEngine({ mode: 'over', digit: 2, vlOn: false });
+    feedABPattern(engine, 'R_100', 30);
+    const intel = engine.getState().marketIntel['R_100'];
+    expect(intel).toBeDefined();
+    expect(intel.patternStrength).toBeGreaterThan(0);
+  });
+
+  it('computes syncScore when the same A→B pattern is armed on other markets', () => {
+    const engine = createEngine({ mode: 'over', digit: 2, vlOn: false });
+    feedABPattern(engine, 'R_100', 30);
+    feedABPattern(engine, 'R_75', 30);
+    feedABPattern(engine, 'R_50', 30);
+    feedABPattern(engine, 'R_25', 30);
+    const intel = engine.getState().marketIntel['R_100'];
+    expect(intel).toBeDefined();
+    expect(intel.syncScore).toBeGreaterThan(0);
+  });
+
+  it('computes loser pressure after 50 ticks', () => {
+    const engine = createEngine({ mode: 'over', digit: 2, vlOn: false });
+    // Over 2 losers are 0,1,2 — flood losers so pressure > 0
+    for (let i = 0; i < 51; i++) {
+      engine.processTick('R_100', 100.00, i % 3);
+    }
+    const intel = engine.getState().marketIntel['R_100'];
+    expect(intel).toBeDefined();
+    expect(intel.pressure).toBeGreaterThan(0);
+  });
+});
