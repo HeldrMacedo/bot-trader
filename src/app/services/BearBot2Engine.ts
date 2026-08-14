@@ -22,6 +22,31 @@ function buildLoserSet(mode: string, digit: number): Set<number> {
   return set;
 }
 
+function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
+  const next = { ...updates };
+  if (next.maxTradesHour !== undefined) {
+    const n = Number(next.maxTradesHour);
+    next.maxTradesHour = Number.isFinite(n) ? Math.max(1, Math.min(500, Math.floor(n))) : 1;
+  }
+  if (next.tradeCooldownMs !== undefined) {
+    const n = Number(next.tradeCooldownMs);
+    next.tradeCooldownMs = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+  }
+  if (next.recoverMaxAttempts !== undefined) {
+    const n = Number(next.recoverMaxAttempts);
+    next.recoverMaxAttempts = Number.isFinite(n) ? Math.max(1, Math.min(5, Math.floor(n))) : 1;
+  }
+  if (next.recoverDelay !== undefined) {
+    const n = Number(next.recoverDelay);
+    next.recoverDelay = Number.isFinite(n) ? Math.max(500, Math.floor(n)) : 500;
+  }
+  if (next.cooldownSec !== undefined) {
+    const n = Number(next.cooldownSec);
+    next.cooldownSec = Number.isFinite(n) ? Math.max(0, Math.min(60, Math.floor(n))) : 0;
+  }
+  return next;
+}
+
 function isWinCheck(r: number, mode: string, digit: number): boolean {
   if (mode === 'over') return r > digit;
   if (mode === 'under') return r < digit;
@@ -132,7 +157,7 @@ export class BearBotEngine {
   private autoTradeListeners: Set<(kind: string) => void> = new Set();
 
   constructor(config: Partial<BotConfig> = {}) {
-    this.config = { ...this.getDefaultConfig(), ...config };
+    this.config = { ...this.getDefaultConfig(), ...clampRateLimits(config) };
     this.state = {
       ...DEFAULT_BOT_STATE,
       curStake: this.config.stake,
@@ -181,10 +206,14 @@ export class BearBotEngine {
   // ── Config Updates ──
   updateConfig(updates: Partial<BotConfig>) {
     const oldMulti = this.config.multiOn;
-    this.config = { ...this.config, ...updates };
+    this.config = { ...this.config, ...clampRateLimits(updates) };
     if (oldMulti && !this.config.multiOn) this.vlReset();
     if (updates.stake !== undefined && this.state.galeLevel === 0) {
       this.state.curStake = updates.stake;
+    }
+    if (updates.aiMode !== undefined) this.updateAllIntelligence();
+    if (updates.postLossOn === false && this.state.recovery.active) {
+      this.clearRecovery();
     }
     this.notify();
   }
@@ -550,7 +579,14 @@ export class BearBotEngine {
       if (!silent) this.addLog(`⛔ Limite de ${this.config.maxTradesHour} trades/hora atingido`, 'lose');
       return false;
     }
-    if (now - this.state.lastTradeTime < this.config.tradeCooldownMs) return false;
+    const sinceLast = now - this.state.lastTradeTime;
+    if (sinceLast < this.config.tradeCooldownMs) {
+      if (!silent) {
+        const remain = this.config.tradeCooldownMs - sinceLast;
+        this.addLog(`⏸ Cooldown ${remain}ms`, 'warn');
+      }
+      return false;
+    }
     return true;
   }
 
@@ -565,9 +601,17 @@ export class BearBotEngine {
   }
 
   // ── Recovery ──
+  private clearRecovery() {
+    this.state.recovery = { active: false, attemptsLeft: 0, cooldownUntil: 0, nextTradeAfter: 0 };
+  }
+
   private handleRecoveryTick(): boolean {
     const rec = this.state.recovery;
     if (!rec.active) return false;
+    if (!this.config.postLossOn) {
+      this.clearRecovery();
+      return false;
+    }
     if (this.config.postLossMode === 'analyze') {
       if (Date.now() < rec.cooldownUntil) return true;
       rec.active = false;
@@ -575,15 +619,12 @@ export class BearBotEngine {
       return false;
     }
     if (this.config.postLossMode === 'recover') {
-      const now = Date.now();
-      if (now < rec.nextTradeAfter) return true;
+      if (Date.now() < rec.nextTradeAfter) return true;
       if (rec.attemptsLeft <= 0) {
-        rec.active = false;
+        this.clearRecovery();
         this.addLog('🛑 Limite de tentativas de recuperação atingido · voltando a analisar', 'info');
         return false;
       }
-      rec.attemptsLeft--;
-      rec.nextTradeAfter = now + this.config.recoverDelay;
       return false;
     }
     return false;
@@ -730,7 +771,6 @@ export class BearBotEngine {
 
     // Paper and real both lock until settle/abort
     this.state.tradeLock = true;
-    this.recordTrade();
 
     if (this.config.paperMode) {
       this.notify();
@@ -844,6 +884,7 @@ export class BearBotEngine {
       acumulado: this.state.pnl.toFixed(2), paper: isPaper,
     };
     this.state.trades = [newTrade, ...this.state.trades].slice(0, 2000);
+    this.recordTrade();
 
     if (isLoss) {
       this.state.loss++;
@@ -859,9 +900,19 @@ export class BearBotEngine {
       this.addLog(`✖ LOSS ${label} ${profit.toFixed(2)}`, 'lose');
       if (this.config.postLossOn) {
         if (this.config.postLossMode === 'recover') {
-          this.state.recovery.active = true;
-          this.state.recovery.attemptsLeft = this.config.recoverMaxAttempts;
-          this.state.recovery.nextTradeAfter = Date.now() + this.config.recoverDelay;
+          if (this.state.recovery.active) {
+            this.state.recovery.attemptsLeft--;
+            if (this.state.recovery.attemptsLeft <= 0) {
+              this.clearRecovery();
+              this.addLog('🛑 Limite de tentativas de recuperação atingido · voltando a analisar', 'info');
+            } else {
+              this.state.recovery.nextTradeAfter = Date.now() + this.config.recoverDelay;
+            }
+          } else {
+            this.state.recovery.active = true;
+            this.state.recovery.attemptsLeft = this.config.recoverMaxAttempts;
+            this.state.recovery.nextTradeAfter = Date.now() + this.config.recoverDelay;
+          }
         } else {
           this.state.recovery.active = true;
           this.state.recovery.cooldownUntil = Date.now() + this.config.cooldownSec * 1000;
@@ -909,6 +960,9 @@ export class BearBotEngine {
   resetStats() {
     this.state.wins = 0; this.state.loss = 0; this.state.pnl = 0; this.state.trades = []; this.state.logLines = [];
     this.state.galeLevel = 0; this.state.curStake = this.config.stake; this.state.tradeLock = false;
+    this.state.tradesThisHour = [];
+    this.state.lastTradeTime = 0;
+    this.clearRecovery();
     this.comboPending = null;
     this.vlReset(); this.vlResetAllM();
     this.addLog('Estatísticas resetadas', 'info'); this.notify();
@@ -923,15 +977,12 @@ export class BearBotEngine {
       this.addLog('Operação em andamento · aguarde settlement', 'warn');
       return false;
     }
+    if (!this.canTradeByRate()) return false;
     if (this.config.vlOn && !this.vlGateOpen()) {
       this.addLog(`Loss virtual incompleto (${this.state.vlCount}/${this.config.vlQty})`, 'virt');
       return false;
     }
     if (this.config.vlOn) this.vlReset();
-    if (this.state.recovery.active && this.config.postLossMode === 'recover') {
-      this.state.recovery.attemptsLeft--;
-      if (this.state.recovery.attemptsLeft <= 0) this.state.recovery.active = false;
-    }
     return true;
   }
 

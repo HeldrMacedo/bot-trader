@@ -148,4 +148,41 @@ describe('BearBotUltra 2.0 Component', () => {
     // E os gráficos ou logs de tick devem existir se os componentes internos renderizam
     expect(screen.getByText(/ÚLTIMAS OPERAÇÕES/i)).toBeDefined();
   });
+
+  it('mostra a cota das proteções e limita máx. trades/hora a 500', () => {
+    render(<BearBotUltra />);
+    expect(screen.getByText('0/50 nesta hora')).toBeDefined();
+
+    const hourInput = screen.getByDisplayValue('50') as HTMLInputElement;
+    fireEvent.change(hourInput, { target: { value: '999' } });
+    expect(hourInput.value).toBe('500');
+
+    fireEvent.change(hourInput, { target: { value: 'abc' } });
+    expect(hourInput.value).toBe('1');
+  });
+
+  it('liga o card Pós-Loss e troca Recuperar / Analisar', () => {
+    render(<BearBotUltra />);
+    expect(screen.queryByText('🔥 Recuperar')).toBeNull();
+
+    const heading = screen.getByText(/PÓS-LOSS/);
+    const toggle = heading.parentElement?.querySelector('button');
+    expect(toggle).toBeTruthy();
+    fireEvent.click(toggle!);
+
+    expect(screen.getByText('🔥 Recuperar')).toBeDefined();
+    expect(screen.getByText('Máx. tentativas')).toBeDefined();
+
+    const attempts = screen.getByDisplayValue('3') as HTMLInputElement;
+    fireEvent.change(attempts, { target: { value: '99' } });
+    expect(attempts.value).toBe('5');
+
+    fireEvent.click(screen.getByText('🧠 Analisar'));
+    expect(screen.getByText('Cooldown (seg)')).toBeDefined();
+    expect(screen.queryByText('Máx. tentativas')).toBeNull();
+
+    const cooldown = screen.getByDisplayValue('5') as HTMLInputElement;
+    fireEvent.change(cooldown, { target: { value: '90' } });
+    expect(cooldown.value).toBe('60');
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createEngine } from '../app/services/BearBot2Engine';
 
 describe('BearBot2Engine trade path', () => {
@@ -182,5 +182,482 @@ describe('BearBot2Engine market intelligence', () => {
     const intel = engine.getState().marketIntel['R_100'];
     expect(intel).toBeDefined();
     expect(intel.pressure).toBeGreaterThan(0);
+  });
+});
+
+/** Weights from score_oportunidade.md — source of truth for aiMode. */
+const AI_WEIGHTS = {
+  conservative: { pressure: 0.45, pattern: 0.20, vl: 0.25, sync: 0.10 },
+  balanced: { pressure: 0.35, pattern: 0.25, vl: 0.25, sync: 0.15 },
+  aggressive: { pressure: 0.25, pattern: 0.30, vl: 0.20, sync: 0.25 },
+} as const;
+
+type AIModeName = keyof typeof AI_WEIGHTS;
+
+function scoreFromSpec(
+  mode: AIModeName,
+  intel: { pressure: number; patternStrength: number; vlProgress: number; syncScore: number },
+) {
+  const w = AI_WEIGHTS[mode];
+  return Math.round(
+    (100 - intel.pressure) * w.pressure
+    + intel.patternStrength * w.pattern
+    + intel.vlProgress * w.vl
+    + intel.syncScore * w.sync,
+  );
+}
+
+function seedPatternIntel(aiMode: AIModeName) {
+  const engine = createEngine({ mode: 'over', digit: 2, vlOn: false, aiMode, tradeCooldownMs: 0 });
+  feedABPattern(engine, 'R_100', 30);
+  feedABPattern(engine, 'R_75', 30);
+  feedABPattern(engine, 'R_50', 30);
+  feedABPattern(engine, 'R_25', 30);
+  return engine;
+}
+
+function seedLoserPressure(aiMode: AIModeName) {
+  const engine = createEngine({ mode: 'over', digit: 2, vlOn: false, aiMode, tradeCooldownMs: 0 });
+  for (let i = 0; i < 51; i++) engine.processTick('R_100', 100.00, i % 3);
+  return engine;
+}
+
+describe('BearBot2Engine AI modes (conservative / balanced / aggressive)', () => {
+  it('applies documented weights for each aiMode on the same tick history', () => {
+    const modes: AIModeName[] = ['conservative', 'balanced', 'aggressive'];
+    const scores: Record<string, number> = {};
+    let pillars: { pressure: number; patternStrength: number; vlProgress: number; syncScore: number } | null = null;
+
+    for (const mode of modes) {
+      const intel = seedPatternIntel(mode).getState().marketIntel['R_100'];
+      expect(intel).toBeDefined();
+      if (!pillars) {
+        pillars = {
+          pressure: intel.pressure,
+          patternStrength: intel.patternStrength,
+          vlProgress: intel.vlProgress,
+          syncScore: intel.syncScore,
+        };
+      } else {
+        expect(intel.pressure).toBe(pillars.pressure);
+        expect(intel.patternStrength).toBe(pillars.patternStrength);
+        expect(intel.vlProgress).toBe(pillars.vlProgress);
+        expect(intel.syncScore).toBe(pillars.syncScore);
+      }
+      expect(intel.opportunityScore).toBe(scoreFromSpec(mode, intel));
+      scores[mode] = intel.opportunityScore;
+    }
+
+    expect(new Set(Object.values(scores)).size).toBeGreaterThan(1);
+  });
+
+  it('conservative penalizes loser pressure more than aggressive', () => {
+    const cons = seedLoserPressure('conservative').getState().marketIntel['R_100'];
+    const agg = seedLoserPressure('aggressive').getState().marketIntel['R_100'];
+    expect(cons.pressure).toBeGreaterThanOrEqual(50);
+    expect(cons.pressure).toBe(agg.pressure);
+    expect(cons.opportunityScore).toBe(scoreFromSpec('conservative', cons));
+    expect(agg.opportunityScore).toBe(scoreFromSpec('aggressive', agg));
+    expect(cons.opportunityScore).not.toBe(agg.opportunityScore);
+  });
+
+  it('aggressive rewards pattern+sync more than conservative', () => {
+    const cons = seedPatternIntel('conservative').getState().marketIntel['R_100'];
+    const agg = seedPatternIntel('aggressive').getState().marketIntel['R_100'];
+    expect(cons.patternStrength).toBeGreaterThan(0);
+    expect(cons.syncScore).toBeGreaterThan(0);
+    expect(agg.opportunityScore).toBeGreaterThan(cons.opportunityScore);
+  });
+
+  it('switching aiMode recomputes opportunityScore immediately', () => {
+    const engine = seedLoserPressure('balanced');
+    const before = engine.getState().marketIntel['R_100'];
+    expect(before.opportunityScore).toBe(scoreFromSpec('balanced', before));
+
+    engine.updateConfig({ aiMode: 'conservative' });
+    const afterCons = engine.getState().marketIntel['R_100'];
+    expect(afterCons.opportunityScore).toBe(scoreFromSpec('conservative', afterCons));
+    expect(afterCons.opportunityScore).not.toBe(before.opportunityScore);
+
+    engine.updateConfig({ aiMode: 'aggressive' });
+    const afterAgg = engine.getState().marketIntel['R_100'];
+    expect(afterAgg.opportunityScore).toBe(scoreFromSpec('aggressive', afterAgg));
+    expect(afterAgg.opportunityScore).not.toBe(afterCons.opportunityScore);
+  });
+
+  it('auto gate uses the score of the active aiMode', () => {
+    const make = (aiMode: AIModeName) => {
+      const engine = createEngine({
+        mode: 'over',
+        digit: 2,
+        vlOn: false,
+        aiMode,
+        exec: 'auto',
+        autoOn: true,
+        tradeCooldownMs: 0,
+        paperMode: true,
+      });
+      for (let i = 0; i < 51; i++) engine.processTick('R_100', 100.00, i % 3);
+      const auto = vi.fn();
+      engine.onAutoTrade(auto);
+      engine.processTick('R_100', 100.09, 9);
+      return { score: engine.getState().marketIntel['R_100'].opportunityScore, fired: auto.mock.calls.length > 0 };
+    };
+
+    const cons = make('conservative');
+    const bal = make('balanced');
+    const agg = make('aggressive');
+
+    expect(cons.fired).toBe(cons.score >= 40);
+    expect(bal.fired).toBe(bal.score >= 40);
+    expect(agg.fired).toBe(agg.score >= 40);
+  });
+});
+
+function settleOpenOver(engine: ReturnType<typeof createEngine>) {
+  engine.settleContract(0.3, false, 'over', 7, null);
+}
+
+describe('BearBot2Engine rate protections (maxTradesHour / tradeCooldownMs)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-13T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('maxTradesHour counts settled trades, not aborted prepares', () => {
+    const engine = createEngine({ paperMode: true, tradeCooldownMs: 0, maxTradesHour: 2 });
+    expect(engine.prepareTrade('over')).not.toBeNull();
+    settleOpenOver(engine);
+    expect(engine.prepareTrade('over')).not.toBeNull();
+    settleOpenOver(engine);
+    expect(engine.prepareTrade('over')).toBeNull();
+    expect(engine.getState().tradesThisHour).toHaveLength(2);
+    expect(engine.getState().logLines.some(l => l.msg.includes('Limite de 2 trades/hora'))).toBe(true);
+  });
+
+  it('tradeCooldownMs starts on settle and blocks until the window elapses', () => {
+    const engine = createEngine({ paperMode: true, tradeCooldownMs: 2000, maxTradesHour: 100 });
+    expect(engine.prepareTrade('over')).not.toBeNull();
+    settleOpenOver(engine);
+    expect(engine.prepareTrade('over')).toBeNull();
+    expect(engine.getState().logLines.some(l => l.msg.includes('Cooldown'))).toBe(true);
+    vi.advanceTimersByTime(1999);
+    expect(engine.prepareTrade('over')).toBeNull();
+    vi.advanceTimersByTime(1);
+    expect(engine.prepareTrade('over')).not.toBeNull();
+  });
+
+  it('updateConfig applies new limits immediately after a settled trade', () => {
+    const engine = createEngine({ paperMode: true, tradeCooldownMs: 0, maxTradesHour: 10 });
+    engine.prepareTrade('over');
+    settleOpenOver(engine);
+    engine.updateConfig({ maxTradesHour: 1 });
+    expect(engine.prepareTrade('over')).toBeNull();
+    engine.updateConfig({ maxTradesHour: 10, tradeCooldownMs: 5000 });
+    expect(engine.prepareTrade('over')).toBeNull();
+    vi.advanceTimersByTime(5000);
+    expect(engine.prepareTrade('over')).not.toBeNull();
+  });
+
+  it('abortPendingTrade does not consume hourly quota or start cooldown', () => {
+    const engine = createEngine({ paperMode: true, tradeCooldownMs: 2000, maxTradesHour: 1 });
+    engine.prepareTrade('over');
+    engine.abortPendingTrade('buy failed');
+    expect(engine.getState().tradeLock).toBe(false);
+    expect(engine.getState().tradesThisHour).toHaveLength(0);
+    expect(engine.prepareTrade('over')).not.toBeNull();
+  });
+
+  it('tryManualFire refuses rate-limited fire and does not reset VL', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      maxTradesHour: 1,
+      vlOn: true,
+      vlQty: 1,
+    });
+    engine.prepareTrade('over');
+    settleOpenOver(engine);
+    engine.processTick('R_100', 100.00, 0);
+    const vlBefore = engine.getState().vlCount;
+    expect(vlBefore).toBeGreaterThanOrEqual(1);
+    expect(engine.tryManualFire()).toBe(false);
+    expect(engine.getState().vlCount).toBe(vlBefore);
+    expect(engine.getState().logLines.some(l => l.msg.includes('Limite de 1 trades/hora'))).toBe(true);
+  });
+
+  it('resetStats clears tradesThisHour and lastTradeTime', () => {
+    const engine = createEngine({ paperMode: true, tradeCooldownMs: 2000, maxTradesHour: 1 });
+    engine.prepareTrade('over');
+    settleOpenOver(engine);
+    engine.resetStats();
+    expect(engine.getState().tradesThisHour).toHaveLength(0);
+    expect(engine.getState().lastTradeTime).toBe(0);
+    expect(engine.prepareTrade('over')).not.toBeNull();
+  });
+
+  it('hourly window expires after 1h and allows a new trade', () => {
+    const engine = createEngine({ paperMode: true, tradeCooldownMs: 0, maxTradesHour: 1 });
+    expect(engine.prepareTrade('over')).not.toBeNull();
+    settleOpenOver(engine);
+    expect(engine.prepareTrade('over')).toBeNull();
+    vi.advanceTimersByTime(3_600_000);
+    expect(engine.prepareTrade('over')).not.toBeNull();
+  });
+
+  it('updateConfig clamps maxTradesHour and tradeCooldownMs', () => {
+    const engine = createEngine();
+    engine.updateConfig({ maxTradesHour: 0 });
+    expect(engine.getConfig().maxTradesHour).toBe(1);
+    engine.updateConfig({ maxTradesHour: 999 });
+    expect(engine.getConfig().maxTradesHour).toBe(500);
+    engine.updateConfig({ maxTradesHour: Number.NaN });
+    expect(engine.getConfig().maxTradesHour).toBe(1);
+    engine.updateConfig({ tradeCooldownMs: -100 });
+    expect(engine.getConfig().tradeCooldownMs).toBe(0);
+    engine.updateConfig({ tradeCooldownMs: Number.NaN });
+    expect(engine.getConfig().tradeCooldownMs).toBe(0);
+  });
+});
+
+function loseOnce(engine: ReturnType<typeof createEngine>) {
+  expect(engine.prepareTrade('over')).not.toBeNull();
+  engine.settleContract(-1, true, 'over', 0, null);
+}
+
+function winOnce(engine: ReturnType<typeof createEngine>) {
+  expect(engine.prepareTrade('over')).not.toBeNull();
+  engine.settleContract(0.3, false, 'over', 7, null);
+}
+
+describe('BearBot2Engine post-loss recover / analyze', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-13T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('does not start recovery when postLossOn is off', () => {
+    const engine = createEngine({
+      paperMode: true, tradeCooldownMs: 0, postLossOn: false, postLossMode: 'recover',
+    });
+    loseOnce(engine);
+    expect(engine.getState().recovery.active).toBe(false);
+  });
+
+  it('recover waits recoverDelay then allows auto fire even with VL closed', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'recover',
+      recoverMaxAttempts: 3,
+      recoverDelay: 1500,
+      exec: 'auto',
+      autoOn: true,
+      vlOn: true,
+      vlQty: 5,
+      mode: 'over',
+      digit: 2,
+    });
+    const auto = vi.fn();
+    engine.onAutoTrade(auto);
+    loseOnce(engine);
+    expect(engine.getState().recovery.active).toBe(true);
+    expect(engine.getState().recovery.attemptsLeft).toBe(3);
+
+    engine.processTick('R_100', 100.09, 9);
+    expect(auto).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1499);
+    engine.processTick('R_100', 100.09, 9);
+    expect(auto).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    engine.processTick('R_100', 100.09, 9);
+    expect(auto).toHaveBeenCalledTimes(1);
+    expect(engine.getState().recovery.attemptsLeft).toBe(3);
+  });
+
+  it('idle ticks after recoverDelay do not burn attempts', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'recover',
+      recoverMaxAttempts: 3,
+      recoverDelay: 1500,
+      exec: 'manual',
+      autoOn: false,
+    });
+    loseOnce(engine);
+    vi.advanceTimersByTime(1500);
+    for (let i = 0; i < 8; i++) {
+      vi.advanceTimersByTime(2000);
+      engine.processTick('R_100', 100.09, 9);
+    }
+    expect(engine.getState().recovery.active).toBe(true);
+    expect(engine.getState().recovery.attemptsLeft).toBe(3);
+  });
+
+  it('a loss during recover decrements attempts instead of resetting them', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'recover',
+      recoverMaxAttempts: 3,
+      recoverDelay: 500,
+    });
+    loseOnce(engine);
+    expect(engine.getState().recovery.attemptsLeft).toBe(3);
+    vi.advanceTimersByTime(500);
+    loseOnce(engine);
+    expect(engine.getState().recovery.active).toBe(true);
+    expect(engine.getState().recovery.attemptsLeft).toBe(2);
+  });
+
+  it('stops recover after max attempts are consumed by losses', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'recover',
+      recoverMaxAttempts: 2,
+      recoverDelay: 500,
+    });
+    loseOnce(engine);
+    vi.advanceTimersByTime(500);
+    loseOnce(engine);
+    expect(engine.getState().recovery.attemptsLeft).toBe(1);
+    vi.advanceTimersByTime(500);
+    loseOnce(engine);
+    expect(engine.getState().recovery.active).toBe(false);
+    expect(engine.getState().recovery.attemptsLeft).toBe(0);
+    expect(engine.getState().logLines.some(l => l.msg.includes('Limite de tentativas'))).toBe(true);
+  });
+
+  it('a win ends recover and does not consume another attempt', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'recover',
+      recoverMaxAttempts: 3,
+      recoverDelay: 500,
+    });
+    loseOnce(engine);
+    vi.advanceTimersByTime(500);
+    winOnce(engine);
+    expect(engine.getState().recovery.active).toBe(false);
+    expect(engine.getState().recovery.attemptsLeft).toBe(0);
+  });
+
+  it('tryManualFire does not decrement recover attempts (settle does)', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'recover',
+      recoverMaxAttempts: 3,
+      recoverDelay: 0,
+    });
+    loseOnce(engine);
+    expect(engine.tryManualFire()).toBe(true);
+    expect(engine.getState().recovery.attemptsLeft).toBe(3);
+    expect(engine.getState().recovery.active).toBe(true);
+  });
+
+  it('analyze blocks auto trades during cooldown then resumes without VL bypass', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'analyze',
+      cooldownSec: 5,
+      exec: 'auto',
+      autoOn: true,
+      vlOn: true,
+      vlQty: 5,
+      mode: 'over',
+      digit: 2,
+    });
+    const auto = vi.fn();
+    engine.onAutoTrade(auto);
+    loseOnce(engine);
+    expect(engine.getState().recovery.active).toBe(true);
+    expect(engine.getState().vlCount).toBe(0);
+
+    engine.processTick('R_100', 100.09, 9);
+    expect(auto).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(4999);
+    engine.processTick('R_100', 100.09, 9);
+    expect(auto).not.toHaveBeenCalled();
+    expect(engine.getState().recovery.active).toBe(true);
+
+    vi.advanceTimersByTime(1);
+    engine.processTick('R_100', 100.09, 9);
+    expect(engine.getState().recovery.active).toBe(false);
+    expect(auto).not.toHaveBeenCalled();
+    expect(engine.getState().logLines.some(l => l.msg.includes('Cooldown finalizado'))).toBe(true);
+  });
+
+  it('turning postLossOn off cancels an active recovery', () => {
+    const engine = createEngine({
+      paperMode: true,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'recover',
+      recoverDelay: 5000,
+    });
+    loseOnce(engine);
+    expect(engine.getState().recovery.active).toBe(true);
+    engine.updateConfig({ postLossOn: false });
+    expect(engine.getState().recovery.active).toBe(false);
+    const auto = vi.fn();
+    engine.onAutoTrade(auto);
+    engine.updateConfig({ exec: 'auto', autoOn: true, vlOn: false });
+    engine.processTick('R_100', 100.09, 9);
+    expect(auto).toHaveBeenCalled();
+  });
+
+  it('resetStats clears recovery state', () => {
+    const engine = createEngine({
+      paperMode: true, tradeCooldownMs: 0, postLossOn: true, postLossMode: 'recover',
+    });
+    loseOnce(engine);
+    engine.resetStats();
+    expect(engine.getState().recovery.active).toBe(false);
+    expect(engine.getState().recovery.attemptsLeft).toBe(0);
+    expect(engine.getState().recovery.nextTradeAfter).toBe(0);
+    expect(engine.getState().recovery.cooldownUntil).toBe(0);
+  });
+
+  it('updateConfig clamps recoverMaxAttempts, recoverDelay and cooldownSec', () => {
+    const engine = createEngine();
+    engine.updateConfig({ recoverMaxAttempts: 0 });
+    expect(engine.getConfig().recoverMaxAttempts).toBe(1);
+    engine.updateConfig({ recoverMaxAttempts: 99 });
+    expect(engine.getConfig().recoverMaxAttempts).toBe(5);
+    engine.updateConfig({ recoverMaxAttempts: Number.NaN });
+    expect(engine.getConfig().recoverMaxAttempts).toBe(1);
+    engine.updateConfig({ recoverDelay: 100 });
+    expect(engine.getConfig().recoverDelay).toBe(500);
+    engine.updateConfig({ recoverDelay: Number.NaN });
+    expect(engine.getConfig().recoverDelay).toBe(500);
+    engine.updateConfig({ cooldownSec: -1 });
+    expect(engine.getConfig().cooldownSec).toBe(0);
+    engine.updateConfig({ cooldownSec: 90 });
+    expect(engine.getConfig().cooldownSec).toBe(60);
+    engine.updateConfig({ cooldownSec: Number.NaN });
+    expect(engine.getConfig().cooldownSec).toBe(0);
   });
 });

@@ -33,6 +33,10 @@ export default function BearBotUltra() {
   const { state, config, updateConfig, executeTrade, startBot, stopBot, abortOp, resetStats, manualFire, exportCSV, isConnected, accountInfo, switchAccount } = useBearBot();
   const activeAccount = accountInfo?.tokens?.find((t: any) => t.token === accountInfo.activeToken);
   const isAuthenticated = !!activeAccount;
+  const tradesThisHourCount = state.tradesThisHour.filter((t) => t > Date.now() - 3_600_000).length;
+  const cooldownLeftMs = state.lastTradeTime > 0
+    ? Math.max(0, config.tradeCooldownMs - (Date.now() - state.lastTradeTime))
+    : 0;
 
   const handleModeChange = (mode: typeof config.mode) => {
     updateConfig({ mode });
@@ -325,13 +329,17 @@ export default function BearBotUltra() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Máx. trades/hora</label>
-                  <input type="number" min="1" max="500" value={config.maxTradesHour} onChange={(e) => updateConfig({ maxTradesHour: Math.max(1, Number(e.target.value)) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                  <input type="number" min="1" max="500" value={config.maxTradesHour} onChange={(e) => updateConfig({ maxTradesHour: Number(validateNumber(e.target.value, 1, 500)) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                 </div>
                 <div>
                   <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Cooldown (ms)</label>
-                  <input type="number" min="0" step={500} value={config.tradeCooldownMs} onChange={(e) => updateConfig({ tradeCooldownMs: Math.max(0, Number(e.target.value)) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                  <input type="number" min="0" step={500} value={config.tradeCooldownMs} onChange={(e) => updateConfig({ tradeCooldownMs: Number(validateNumber(e.target.value, 0, 600000, true)) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                 </div>
               </div>
+              <p className="text-[10px] text-[#8593aa] font-mono">
+                {tradesThisHourCount}/{config.maxTradesHour} nesta hora
+                {cooldownLeftMs > 0 ? ` · cooldown ${cooldownLeftMs}ms` : ''}
+              </p>
             </div>
           </div>
 
@@ -356,11 +364,11 @@ export default function BearBotUltra() {
                   <>
                     <div>
                       <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Máx. tentativas</label>
-                      <input type="number" min={1} max={5} value={config.recoverMaxAttempts} onChange={(e) => updateConfig({ recoverMaxAttempts: Math.max(1, Math.min(5, Number(e.target.value))) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                      <input type="number" min={1} max={5} value={config.recoverMaxAttempts} onChange={(e) => updateConfig({ recoverMaxAttempts: Number(validateNumber(e.target.value, 1, 5)) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div>
                       <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Delay (ms)</label>
-                      <input type="number" min={500} step={500} value={config.recoverDelay} onChange={(e) => updateConfig({ recoverDelay: Math.max(500, Number(e.target.value)) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                      <input type="number" min={500} step={500} value={config.recoverDelay} onChange={(e) => updateConfig({ recoverDelay: Number(validateNumber(e.target.value, 500, 600000)) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div className="flex items-center gap-2 bg-[#1f0d0f] border border-red-900/50 p-2 rounded-lg">
                       <span className="text-red-400">⚠️</span>
@@ -371,7 +379,7 @@ export default function BearBotUltra() {
                   <>
                     <div>
                       <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Cooldown (seg)</label>
-                      <input type="number" min={0} max={60} value={config.cooldownSec} onChange={(e) => updateConfig({ cooldownSec: Math.max(0, Math.min(60, Number(e.target.value))) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                      <input type="number" min={0} max={60} value={config.cooldownSec} onChange={(e) => updateConfig({ cooldownSec: Number(validateNumber(e.target.value, 0, 60, true)) })} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                     </div>
                     <div className="bg-[#0d1f14] border border-green-900/50 p-2 rounded-lg">
                       <p className="text-[10px] text-green-300">Após loss, aguarda o tempo definido, reseta o loss virtual e volta a operar apenas quando o sinal for válido novamente.</p>
