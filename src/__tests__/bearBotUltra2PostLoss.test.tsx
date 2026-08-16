@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import BearBotUltra from '../app/(withSidebar)/bear-bot-ultra-2/page';
+import BearBotUltra from '../app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2';
 import React from 'react';
 
 // Mock de localStorage
