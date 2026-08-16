@@ -386,6 +386,16 @@ export default function BearBotUltra() {
                     </div>
                   </>
                 )}
+                {state.recovery.active && (
+                  <div className="mt-1 p-2 rounded-lg bg-indigo-950/60 border border-indigo-500/40 text-[10px] font-mono text-indigo-300 flex items-center justify-between">
+                    <span>
+                      {config.postLossMode === 'recover'
+                        ? `🔄 Recuperação: ${state.recovery.attemptsLeft}/${config.recoverMaxAttempts} tentativas`
+                        : `⏳ Cooldown pós-loss ativo`}
+                    </span>
+                    <span className="text-indigo-400 font-bold animate-pulse">● ATIVO</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

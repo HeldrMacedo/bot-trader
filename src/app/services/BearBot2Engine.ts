@@ -917,6 +917,7 @@ export class BearBotEngine {
           this.state.recovery.active = true;
           this.state.recovery.cooldownUntil = Date.now() + this.config.cooldownSec * 1000;
           this.vlReset();
+          this.vlResetM(this.config.activeSym);
         }
       }
     } else {
