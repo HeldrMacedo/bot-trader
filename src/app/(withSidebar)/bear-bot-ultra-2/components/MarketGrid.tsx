@@ -1,6 +1,6 @@
 "use client";
 
-import { BotConfig, BotState, MARKETS } from '../../../services/bearbot2.types';
+import { BotConfig, BotState, MARKETS, buildLoserSet } from '../../../services/bearbot2.types';
 
 interface MarketGridProps {
   config: BotConfig;
@@ -27,17 +27,8 @@ function getRecLabel(rec: string) {
   }
 }
 
-function buildLoserSet(mode: string, digit: number): Set<number> {
-  const set = new Set<number>();
-  if (mode === 'over') { for (let i = 0; i <= digit; i++) set.add(i); }
-  else if (mode === 'under') { for (let i = digit; i <= 9; i++) set.add(i); }
-  else if (mode === 'combo') { set.add(4); set.add(5); }
-  else { set.add(digit); }
-  return set;
-}
-
 export default function MarketGrid({ config, state, updateConfig }: MarketGridProps) {
-  const lose = buildLoserSet(config.mode, config.digit);
+  const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
 
   return (
     <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl">

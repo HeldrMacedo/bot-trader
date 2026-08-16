@@ -4,23 +4,8 @@ import {
   BotConfig, BotState, Market, MARKETS, TradeLog, PatternState,
   VLMarketState, MarketIntelligence, MultiCandidate, ComboPending,
   RecoveryState, TickData, ProposalState, DEFAULT_BOT_STATE,
-  TradePrep, TradeLeg,
+  TradePrep, TradeLeg, buildLoserSet, isWinCheck,
 } from './bearbot2.types';
-
-// ── Helpers Estáticos ──
-const LOSER_MAP: Record<string, Set<number>> = {};
-
-function buildLoserSet(mode: string, digit: number): Set<number> {
-  const key = `${mode}-${digit}`;
-  if (LOSER_MAP[key]) return LOSER_MAP[key];
-  const set = new Set<number>();
-  if (mode === 'over') { for (let i = 0; i <= digit; i++) set.add(i); }
-  else if (mode === 'under') { for (let i = digit; i <= 9; i++) set.add(i); }
-  else if (mode === 'combo') { set.add(4); set.add(5); }
-  else { set.add(digit); }
-  LOSER_MAP[key] = set;
-  return set;
-}
 
 function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
   const next = { ...updates };
@@ -45,14 +30,6 @@ function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
     next.cooldownSec = Number.isFinite(n) ? Math.max(0, Math.min(60, Math.floor(n))) : 0;
   }
   return next;
-}
-
-function isWinCheck(r: number, mode: string, digit: number): boolean {
-  if (mode === 'over') return r > digit;
-  if (mode === 'under') return r < digit;
-  if (mode === 'differ') return r !== digit;
-  if (mode === 'combo') return r !== 4 && r !== 5;
-  return false;
 }
 
 function wilsonLB(succ: number, total: number): number {
@@ -150,6 +127,7 @@ export class BearBotEngine {
   private multiCand: Record<string, MultiCandidate> = {};
   private comboPending: ComboPending | null = null;
   private ticksSinceReset: Record<string, number> = {};
+  private autoDigitTarget: Record<string, number | null> = {};
   private settled: Record<string, boolean> = {};
   private lastManualSwitch = 0;
   private listeners: Set<(state: BotState) => void> = new Set();
@@ -173,6 +151,8 @@ export class BearBotEngine {
       vlQty: 2, vlWindow: 14, stake: 0.35, gale: 2.1, stopLoss: 20,
       stopWin: 20, galeMode: 'mult', galeParcels: 2, multiOn: false,
       patReps: 3, patMinForce: 30, patTrigger: false, patMode: 'accum',
+      comboUnder: 4, comboOver: 5,
+      differAutoDigit: false,
       postLossOn: false, postLossMode: 'recover', recoverMaxAttempts: 3,
       recoverDelay: 1500, cooldownSec: 5, maxTradesHour: 50,
       tradeCooldownMs: 2000, aiMode: 'balanced', soundOn: true,
@@ -185,6 +165,7 @@ export class BearBotEngine {
       this.patState[m.sym] = { a: null, b: null, count: 0, reps: 0, armed: false, waiting: false, seqCount: 0 };
       this.vlMState[m.sym] = { count: 0, seen: 0 };
       this.ticksSinceReset[m.sym] = 0;
+      this.autoDigitTarget[m.sym] = null;
     });
   }
 
@@ -214,6 +195,8 @@ export class BearBotEngine {
     if (
       updates.aiMode !== undefined ||
       updates.mode !== undefined ||
+      updates.comboUnder !== undefined ||
+      updates.comboOver !== undefined ||
       updates.patTrigger !== undefined ||
       updates.digit !== undefined ||
       updates.vlOn !== undefined ||
@@ -350,7 +333,59 @@ export class BearBotEngine {
     if (!this.config.vlOn) return;
     this.ticksSinceReset[sym] = (this.ticksSinceReset[sym] || 0) + 1;
     const st = this.vlM(sym);
-    const lose = buildLoserSet(this.config.mode, this.config.digit);
+
+    if (this.config.mode === 'differ' && this.config.differAutoDigit) {
+      const countSinceReset = this.ticksSinceReset[sym] || 0;
+      const digits = this.tickData[sym]?.digits || [];
+      if (this.config.vlMode === 'consec') {
+        st.seen = 0;
+        if (countSinceReset >= this.config.vlQty) {
+          const tail = digits.slice(-this.config.vlQty);
+          if (tail.length === this.config.vlQty && tail.every(d => d === tail[0])) {
+            st.count = this.config.vlQty;
+            this.autoDigitTarget[sym] = tail[0];
+            return;
+          }
+        }
+        let streak = 0;
+        for (let i = digits.length - 1; i >= 0 && (digits.length - 1 - i) < countSinceReset; i--) {
+          if (digits[i] === dig) streak++;
+          else break;
+        }
+        st.count = streak;
+        this.autoDigitTarget[sym] = null;
+      } else {
+        const windowSize = Math.min(countSinceReset, this.config.vlWindow);
+        const slice = windowSize > 0 ? digits.slice(-windowSize) : [];
+        const freqs: Record<number, number> = {};
+        slice.forEach(d => { freqs[d] = (freqs[d] || 0) + 1; });
+        st.seen = slice.length;
+
+        if ((freqs[dig] || 0) >= this.config.vlQty) {
+          st.count = freqs[dig];
+          this.autoDigitTarget[sym] = dig;
+        } else {
+          let found: number | null = null;
+          for (let i = slice.length - 1; i >= 0; i--) {
+            const d = slice[i];
+            if ((freqs[d] || 0) >= this.config.vlQty) {
+              found = d;
+              break;
+            }
+          }
+          if (found !== null) {
+            st.count = freqs[found];
+            this.autoDigitTarget[sym] = found;
+          } else {
+            st.count = freqs[dig] || 0;
+            this.autoDigitTarget[sym] = null;
+          }
+        }
+      }
+      return;
+    }
+
+    const lose = buildLoserSet(this.config.mode, this.config.digit, this.config.comboUnder, this.config.comboOver);
     const isLoser = forDigit !== null && forDigit !== undefined ? dig === forDigit : lose.has(dig);
     if (this.config.vlMode === 'consec') {
       if (isLoser) st.count++; else st.count = 0;
@@ -373,7 +408,62 @@ export class BearBotEngine {
     if (!this.config.vlOn) return;
     const sym = this.config.activeSym;
     this.ticksSinceReset[sym] = (this.ticksSinceReset[sym] || 0) + 1;
-    const lose = buildLoserSet(this.config.mode, this.config.digit);
+
+    if (this.config.mode === 'differ' && this.config.differAutoDigit) {
+      const countSinceReset = this.ticksSinceReset[sym] || 0;
+      const digits = this.tickData[sym]?.digits || [];
+      if (this.config.vlMode === 'consec') {
+        this.state.vlSeen = 0;
+        if (countSinceReset >= this.config.vlQty) {
+          const tail = digits.slice(-this.config.vlQty);
+          if (tail.length === this.config.vlQty && tail.every(d => d === tail[0])) {
+            this.state.vlCount = this.config.vlQty;
+            const st = this.vlM(sym); st.count = this.state.vlCount; st.seen = 0;
+            this.autoDigitTarget[sym] = tail[0];
+            return;
+          }
+        }
+        let streak = 0;
+        for (let i = digits.length - 1; i >= 0 && (digits.length - 1 - i) < countSinceReset; i--) {
+          if (digits[i] === dig) streak++;
+          else break;
+        }
+        this.state.vlCount = streak;
+        const st = this.vlM(sym); st.count = streak; st.seen = 0;
+        this.autoDigitTarget[sym] = null;
+      } else {
+        const windowSize = Math.min(countSinceReset, this.config.vlWindow);
+        const slice = windowSize > 0 ? digits.slice(-windowSize) : [];
+        const freqs: Record<number, number> = {};
+        slice.forEach(d => { freqs[d] = (freqs[d] || 0) + 1; });
+        this.state.vlSeen = slice.length;
+
+        if ((freqs[dig] || 0) >= this.config.vlQty) {
+          this.state.vlCount = freqs[dig];
+          this.autoDigitTarget[sym] = dig;
+        } else {
+          let found: number | null = null;
+          for (let i = slice.length - 1; i >= 0; i--) {
+            const d = slice[i];
+            if ((freqs[d] || 0) >= this.config.vlQty) {
+              found = d;
+              break;
+            }
+          }
+          if (found !== null) {
+            this.state.vlCount = freqs[found];
+            this.autoDigitTarget[sym] = found;
+          } else {
+            this.state.vlCount = freqs[dig] || 0;
+            this.autoDigitTarget[sym] = null;
+          }
+        }
+        const st = this.vlM(sym); st.count = this.state.vlCount; st.seen = this.state.vlSeen;
+      }
+      return;
+    }
+
+    const lose = buildLoserSet(this.config.mode, this.config.digit, this.config.comboUnder, this.config.comboOver);
     const isLoser = forDigit !== null && forDigit !== undefined ? dig === forDigit : lose.has(dig);
     if (this.config.vlMode === 'consec') {
       if (isLoser) this.state.vlCount++; else this.state.vlCount = 0;
@@ -391,33 +481,48 @@ export class BearBotEngine {
       this.state.vlCount = count;
       this.state.vlSeen = slice.length;
     }
+    const st = this.vlM(sym); st.count = this.state.vlCount; st.seen = this.state.vlSeen;
   }
 
   private vlGateOpen(): boolean {
-    return !this.config.vlOn || this.state.vlCount >= this.config.vlQty;
+    if (!this.config.vlOn) return true;
+    if (this.config.mode === 'differ' && this.config.differAutoDigit) {
+      const sym = this.config.activeSym;
+      return this.autoDigitTarget[sym] !== null && this.autoDigitTarget[sym] !== undefined;
+    }
+    return this.state.vlCount >= this.config.vlQty;
   }
 
   private vlGateOpenM(sym: string): boolean {
-    return !this.config.vlOn || this.vlM(sym).count >= this.config.vlQty;
+    if (!this.config.vlOn) return true;
+    if (this.config.mode === 'differ' && this.config.differAutoDigit) {
+      return this.autoDigitTarget[sym] !== null && this.autoDigitTarget[sym] !== undefined;
+    }
+    return this.vlM(sym).count >= this.config.vlQty;
   }
 
   private vlReset() {
     this.state.vlCount = 0; this.state.vlSeen = 0;
     const sym = this.config.activeSym;
     this.ticksSinceReset[sym] = 0;
+    this.autoDigitTarget[sym] = null;
+    const st = this.vlM(sym); st.count = 0; st.seen = 0;
   }
 
   private vlResetM(sym: string) {
     const st = this.vlM(sym); st.count = 0; st.seen = 0;
     this.ticksSinceReset[sym] = 0;
+    this.autoDigitTarget[sym] = null;
   }
 
   private vlResetAllM() {
     this.vlMState = {};
     this.multiCand = {};
     this.ticksSinceReset = {};
+    this.autoDigitTarget = {};
     MARKETS.forEach(m => {
       this.ticksSinceReset[m.sym] = 0;
+      this.autoDigitTarget[m.sym] = null;
       if (this.patState[m.sym]) {
         this.patState[m.sym].count = 0;
         this.patState[m.sym].seqCount = 0;
@@ -432,7 +537,7 @@ export class BearBotEngine {
     const arr = this.tickData[sym]?.digits || [];
     const ps = this.patState[sym];
     const vlSt = this.vlM(sym);
-    const lose = buildLoserSet(this.config.mode, this.config.digit);
+    const lose = buildLoserSet(this.config.mode, this.config.digit, this.config.comboUnder, this.config.comboOver);
 
     let pressure = 0;
     if (arr.length >= 50) {
@@ -532,7 +637,7 @@ export class BearBotEngine {
   marketAnomaly(sym: string) {
     const arr = this.tickData[sym]?.digits.slice(-25) || [];
     if (arr.length < 12) return null;
-    const lose = buildLoserSet(this.config.mode, this.config.digit);
+    const lose = buildLoserSet(this.config.mode, this.config.digit, this.config.comboUnder, this.config.comboOver);
     const expFrac = lose.size / 10;
     let k = 0;
     arr.forEach(d => { if (lose.has(d)) k++; });
@@ -555,22 +660,27 @@ export class BearBotEngine {
     const arr = this.tickData[sym]?.digits.slice(-50) || [];
     if (arr.length < 10) return 0;
     let w = 0;
-    arr.forEach(x => { if (isWinCheck(x, this.config.mode, this.config.digit)) w++; });
+    arr.forEach(x => { if (isWinCheck(x, this.config.mode, this.config.digit, this.config.comboUnder, this.config.comboOver)) w++; });
     return Math.round((w / arr.length) * 100);
   }
 
   getTheoreticalRate(): number {
-    const { mode, digit } = this.config;
+    const { mode, digit, comboUnder = 4, comboOver = 5 } = this.config;
     if (mode === 'over') return ((9 - digit) / 10) * 100;
     if (mode === 'under') return (digit / 10) * 100;
-    if (mode === 'combo') return 80;
+    if (mode === 'combo') {
+      const minD = Math.min(comboUnder, comboOver);
+      const maxD = Math.max(comboUnder, comboOver);
+      const winCount = minD + (9 - maxD);
+      return Math.max(0, Math.min(100, winCount * 10));
+    }
     return 90;
   }
 
   getPressureRate(sym: string): number {
     const arr = this.tickData[sym]?.digits || [];
     if (arr.length < 50) return 0;
-    const lose = buildLoserSet(this.config.mode, this.config.digit);
+    const lose = buildLoserSet(this.config.mode, this.config.digit, this.config.comboUnder, this.config.comboOver);
     const expFrac = lose.size / 10;
     let exSum = 0;
     [10, 25, 50].forEach(n => {
@@ -652,7 +762,16 @@ export class BearBotEngine {
     const aiGateOpen = !intel || intel.opportunityScore >= 40 || isRecovery;
 
     if (this.config.multiOn) {
-      if (this.config.mode === 'differ' && this.config.patTrigger) {
+      if (this.config.mode === 'differ' && this.config.differAutoDigit) {
+        this.vlOnDigitM(sym, dig);
+        const target = this.autoDigitTarget[sym];
+        if (target !== null && target !== undefined && (this.vlGateOpenM(sym) || isRecovery) && aiGateOpen) {
+          const an = this.marketAnomaly(sym);
+          const exc = an ? an.excess : 0;
+          const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
+          this.multiCand[sym] = { sym, b: target, score };
+        }
+      } else if (this.config.mode === 'differ' && this.config.patTrigger) {
         const ps = this.patState[sym];
         if (ps) {
           this.vlOnDigitM(sym, dig, ps.b !== null ? ps.b : this.config.digit);
@@ -687,6 +806,22 @@ export class BearBotEngine {
     }
 
     if (sym !== this.config.activeSym) return;
+
+    if (this.config.mode === 'differ' && this.config.differAutoDigit) {
+      this.vlOnDigit(dig);
+      const target = this.autoDigitTarget[sym];
+      if (target !== null && target !== undefined && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
+        if (this.config.exec === 'auto' && this.config.autoOn) {
+          if (!this.canOpenTrade(true)) return;
+          this.config.digit = target;
+          this.vlReset();
+          this.triggerAutoTrade();
+        } else {
+          this.config.digit = target;
+        }
+      }
+      return;
+    }
 
     if (this.config.mode === 'differ' && this.config.patTrigger) {
       const ps = this.patState[sym];
@@ -731,7 +866,7 @@ export class BearBotEngine {
     const pick: any = cands[0];
     this.multiCand = {};
     this.config.activeSym = pick.sym;
-    if (this.config.mode === 'differ' && this.config.patTrigger) {
+    if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit)) {
       this.config.digit = pick.b!;
       const ps = this.patState[pick.sym];
       if (ps) ps.waiting = true;
@@ -752,7 +887,7 @@ export class BearBotEngine {
       this.multiCand = {};
       this.config.activeSym = pick.sym;
       this.lastManualSwitch = Date.now();
-      if (this.config.mode === 'differ' && this.config.patTrigger) this.config.digit = pick.b!;
+      if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit)) this.config.digit = pick.b!;
       this.addLog(`🌐 MULTI (Manual) · Foco em ${pick.sym}`, 'info');
       this.notify();
     }
@@ -851,11 +986,15 @@ export class BearBotEngine {
       tick_end: String(lastDigit),
     };
 
-    // Paper combo: evaluate both legs (OVER 5 + UNDER 4) and net P&L
+    // Paper combo: evaluate both legs (OVER comboOver + UNDER comboUnder) and net P&L
     if (kind === 'combo') {
+      const u = this.config.comboUnder ?? 4;
+      const o = this.config.comboOver ?? 5;
+      const minD = Math.min(u, o);
+      const maxD = Math.max(u, o);
       const legStake = stakeVal;
-      const winOver = lastDigit > 5;
-      const winUnder = lastDigit < 4;
+      const winOver = lastDigit > maxD;
+      const winUnder = lastDigit < minD;
       const p1 = winOver ? +(legStake * 0.94).toFixed(2) : -legStake;
       const p2 = winUnder ? +(legStake * 0.94).toFixed(2) : -legStake;
       const profit = +(p1 + p2).toFixed(2);
@@ -864,7 +1003,7 @@ export class BearBotEngine {
       return { profit, isLoss: won === 0, exitDig: lastDigit, audit };
     }
 
-    const win = isWinCheck(lastDigit, kind, this.config.digit);
+    const win = isWinCheck(lastDigit, kind, this.config.digit, this.config.comboUnder, this.config.comboOver);
     const profit = win ? +(stakeVal * 0.94).toFixed(2) : -stakeVal;
     return { profit, isLoss: !win, exitDig: lastDigit, audit };
   }
@@ -1022,7 +1161,13 @@ export class BearBotEngine {
     if (m === 'over') return [{ ct: 'DIGITOVER', barrier: d }];
     if (m === 'under') return [{ ct: 'DIGITUNDER', barrier: d }];
     if (m === 'differ') return [{ ct: 'DIGITDIFF', barrier: d }];
-    if (m === 'combo') return [{ ct: 'DIGITOVER', barrier: 5 }, { ct: 'DIGITUNDER', barrier: 4 }];
+    if (m === 'combo') {
+      const u = this.config.comboUnder ?? 4;
+      const o = this.config.comboOver ?? 5;
+      const minD = Math.min(u, o);
+      const maxD = Math.max(u, o);
+      return [{ ct: 'DIGITOVER', barrier: maxD }, { ct: 'DIGITUNDER', barrier: minD }];
+    }
     return [];
   }
 

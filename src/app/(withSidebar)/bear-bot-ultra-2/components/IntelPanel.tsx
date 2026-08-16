@@ -1,6 +1,6 @@
 "use client";
 
-import { BotConfig, BotState, MarketIntelligence, MARKETS } from '../../../services/bearbot2.types';
+import { BotConfig, BotState, MarketIntelligence, MARKETS, buildLoserSet } from '../../../services/bearbot2.types';
 
 interface IntelPanelProps {
   config: BotConfig;
@@ -26,20 +26,11 @@ function getRecLabel(rec: string) {
   }
 }
 
-function buildLoserSet(mode: string, digit: number): Set<number> {
-  const set = new Set<number>();
-  if (mode === 'over') { for (let i = 0; i <= digit; i++) set.add(i); }
-  else if (mode === 'under') { for (let i = digit; i <= 9; i++) set.add(i); }
-  else if (mode === 'combo') { set.add(4); set.add(5); }
-  else { set.add(digit); }
-  return set;
-}
-
 export default function IntelPanel({ config, state }: IntelPanelProps) {
   const intel = state.marketIntel[config.activeSym];
   const colors = intel ? getIntelColor(intel.opportunityScore) : getIntelColor(0);
   const arr = state.tickData[config.activeSym]?.digits || [];
-  const lose = buildLoserSet(config.mode, config.digit);
+  const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
 
   const getObservedRate = () => {
     if (arr.length < 10) return 0;
@@ -51,7 +42,12 @@ export default function IntelPanel({ config, state }: IntelPanelProps) {
   const getTheoreticalRate = () => {
     if (config.mode === 'over') return ((9 - config.digit) / 10) * 100;
     if (config.mode === 'under') return (config.digit / 10) * 100;
-    if (config.mode === 'combo') return 80;
+    if (config.mode === 'combo') {
+      const minD = Math.min(config.comboUnder ?? 4, config.comboOver ?? 5);
+      const maxD = Math.max(config.comboUnder ?? 4, config.comboOver ?? 5);
+      const winCount = minD + (9 - maxD);
+      return Math.max(0, Math.min(100, winCount * 10));
+    }
     return 90;
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useBearBot } from '../../hooks/useBearBot2';
+import { buildLoserSet } from '../../services/bearbot2.types';
 import { toast } from 'react-toastify';
 import MarketGrid from './components/MarketGrid';
 import IntelPanel from './components/IntelPanel';
@@ -21,15 +22,6 @@ function validateNumber(val: string, min: number, max: number, allowZero: boolea
   return v;
 }
 
-function buildLoserSet(mode: string, digit: number): Set<number> {
-  const set = new Set<number>();
-  if (mode === 'over') { for (let i = 0; i <= digit; i++) set.add(i); }
-  else if (mode === 'under') { for (let i = digit; i <= 9; i++) set.add(i); }
-  else if (mode === 'combo') { set.add(4); set.add(5); }
-  else { set.add(digit); }
-  return set;
-}
-
 export default function BearBotUltra() {
   const { state, config, updateConfig, executeTrade, startBot, stopBot, abortOp, resetStats, manualFire, exportCSV, isConnected, accountInfo, switchAccount } = useBearBot();
   const activeAccount = accountInfo?.tokens?.find((t: any) => t.token === accountInfo.activeToken);
@@ -45,6 +37,20 @@ export default function BearBotUltra() {
 
   const handleDigitChange = (digit: number) => {
     updateConfig({ digit });
+  };
+
+  const handleComboUnderChange = (val: number) => {
+    const currentOver = config.comboOver ?? 5;
+    const newUnder = Math.max(0, Math.min(8, val));
+    const newOver = Math.max(newUnder, currentOver);
+    updateConfig({ comboUnder: newUnder, comboOver: newOver });
+  };
+
+  const handleComboOverChange = (val: number) => {
+    const currentUnder = config.comboUnder ?? 4;
+    const newOver = Math.max(1, Math.min(9, val));
+    const newUnder = Math.min(currentUnder, newOver);
+    updateConfig({ comboUnder: newUnder, comboOver: newOver });
   };
 
   const handleStakeChange = (val: string) => {
@@ -231,14 +237,136 @@ export default function BearBotUltra() {
                 </div>
               </div>
 
-              <div className={config.mode === 'combo' ? 'opacity-40 pointer-events-none' : ''}>
-                <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Dígito Alvo</label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <button key={i} onClick={() => handleDigitChange(i)} className={`py-2 font-mono font-bold text-sm rounded-lg border transition-all ${config.digit === i ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]" : buildLoserSet(config.mode, config.digit).has(i) ? "bg-[#e23b32]/5 border-[#e23b32]/25 text-[#e23b32] hover:bg-[#e23b32]/10" : "bg-[#2eb84f]/5 border-[#2eb84f]/25 text-[#2eb84f] hover:bg-[#2eb84f]/10"}`}>{i}</button>
-                  ))}
+              {config.mode === 'differ' && config.vlOn && (
+                <div className="flex items-center justify-between bg-[#070b14] p-2.5 border border-[#2e3a52] rounded-lg">
+                  <div>
+                    <span className="text-xs font-bold text-[#eef2f8] block">Dígito Automático</span>
+                    <span className="text-[10px] text-[#8593aa]">Entra differ no dígito repetido por Loss Virtual</span>
+                  </div>
+                  <button
+                    data-testid="toggle-auto-digit"
+                    onClick={() => updateConfig({ differAutoDigit: !config.differAutoDigit })}
+                    className={`w-12 h-6 rounded-full transition-all relative ${config.differAutoDigit ? "bg-indigo-600" : "bg-[#18202f] border border-[#2e3a52]"}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${config.differAutoDigit ? "left-[26px]" : "left-0.5"}`} />
+                  </button>
                 </div>
-              </div>
+              )}
+
+              {config.mode === 'combo' ? (
+                <div className="flex flex-col gap-3 bg-[#070b14] p-3 border border-[#2e3a52] rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-400">Configuração COMBO</span>
+                    <span className="text-[10px] bg-indigo-600/20 text-indigo-300 px-2 py-0.5 rounded font-mono font-bold">
+                      {Math.max(0, ((config.comboUnder ?? 4) + (9 - (config.comboOver ?? 5))) * 10)}% WIN RATE TEÓRICO
+                    </span>
+                  </div>
+
+                  {/* Seletores UNDER e OVER */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] text-green-400 uppercase tracking-wider font-bold">
+                          UNDER (&lt; {config.comboUnder ?? 4})
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-5 gap-1">
+                        {Array.from({ length: 9 }).map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleComboUnderChange(i)}
+                            className={`py-1 text-xs font-mono font-bold rounded border transition-all ${
+                              (config.comboUnder ?? 4) === i
+                                ? "bg-green-600 border-green-400 text-white shadow-[0_0_8px_rgba(34,197,94,0.4)]"
+                                : i > (config.comboOver ?? 5)
+                                ? "opacity-20 pointer-events-none border-transparent text-gray-600"
+                                : "bg-[#18202f] border-[#2e3a52] text-gray-400 hover:text-white"
+                            }`}
+                          >
+                            {i}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] text-green-400 uppercase tracking-wider font-bold">
+                          OVER (&gt; {config.comboOver ?? 5})
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-5 gap-1">
+                        {Array.from({ length: 9 }).map((_, i) => {
+                          const digitVal = i + 1; // 1 to 9
+                          return (
+                            <button
+                              key={digitVal}
+                              onClick={() => handleComboOverChange(digitVal)}
+                              className={`py-1 text-xs font-mono font-bold rounded border transition-all ${
+                                (config.comboOver ?? 5) === digitVal
+                                ? "bg-green-600 border-green-400 text-white shadow-[0_0_8px_rgba(34,197,94,0.4)]"
+                                : digitVal < (config.comboUnder ?? 4)
+                                ? "opacity-20 pointer-events-none border-transparent text-gray-600"
+                                : "bg-[#18202f] border-[#2e3a52] text-gray-400 hover:text-white"
+                              }`}
+                            >
+                              {digitVal}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Régua Visual dos Dígitos */}
+                  <div>
+                    <span className="text-[9px] text-[#8593aa] block mb-1 uppercase tracking-wider font-semibold">
+                      Zona dos Dígitos (Verde: WIN · Vermelho: LOSS)
+                    </span>
+                    <div className="grid grid-cols-10 gap-1">
+                      {Array.from({ length: 10 }).map((_, i) => {
+                        const underVal = config.comboUnder ?? 4;
+                        const overVal = config.comboOver ?? 5;
+                        const isUnderWin = i < underVal;
+                        const isOverWin = i > overVal;
+                        return (
+                          <div
+                            key={i}
+                            className={`py-1 text-center font-mono font-bold text-xs rounded border transition-all ${
+                              isUnderWin || isOverWin
+                                ? "bg-green-500/10 border-green-500/30 text-green-400"
+                                : "bg-red-500/10 border-red-500/30 text-red-400"
+                            }`}
+                          >
+                            {i}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className={config.mode === 'differ' && config.vlOn && config.differAutoDigit ? 'opacity-40 pointer-events-none' : ''}>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block">Dígito Alvo</label>
+                    {config.mode === 'differ' && config.vlOn && config.differAutoDigit && (
+                      <span className="text-[10px] bg-indigo-600/30 text-indigo-400 border border-indigo-500/40 px-1.5 py-0.5 rounded font-bold">DÍGITO AUTO ATIVO</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <button
+                        key={i}
+                        disabled={config.mode === 'differ' && config.vlOn && config.differAutoDigit}
+                        onClick={() => handleDigitChange(i)}
+                        className={`py-2 font-mono font-bold text-sm rounded-lg border transition-all ${config.digit === i ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]" : buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver).has(i) ? "bg-[#e23b32]/5 border-[#e23b32]/25 text-[#e23b32] hover:bg-[#e23b32]/10" : "bg-[#2eb84f]/5 border-[#2eb84f]/25 text-[#2eb84f] hover:bg-[#2eb84f]/10"}`}
+                      >
+                        {i}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -313,7 +441,7 @@ export default function BearBotUltra() {
           </div>
 
           {/* Card: Padrão A→B (differ) */}
-          {config.mode === 'differ' && (
+          {config.mode === 'differ' && (!config.vlOn || !config.differAutoDigit) && (
             <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">🔗 PADRÃO A→B</h2>
@@ -460,7 +588,7 @@ export default function BearBotUltra() {
                 const counts = new Array(10).fill(0);
                 arr.forEach(d => counts[d]++);
                 const tot = arr.length || 1;
-                const lose = buildLoserSet(config.mode, config.digit);
+                const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
                 return (
                   <div key={n} className="bg-[#0e131d] border border-[#222c3f] rounded-lg p-3">
                     <span className="text-[10px] text-[#8593aa] uppercase tracking-wider font-bold mb-2 block text-center">Últimos {n} Ticks</span>

@@ -143,6 +143,9 @@ export interface BotConfig {
   patMinForce: number;
   patTrigger: boolean;
   patMode: PatMode;
+  comboUnder: number;
+  comboOver: number;
+  differAutoDigit: boolean;
   postLossOn: boolean;
   postLossMode: PostLossMode;
   recoverMaxAttempts: number;
@@ -215,6 +218,9 @@ export const DEFAULT_CONFIG: BotConfig = {
   patMinForce: 30,
   patTrigger: false,
   patMode: 'accum',
+  comboUnder: 4,
+  comboOver: 5,
+  differAutoDigit: false,
   postLossOn: false,
   postLossMode: 'recover',
   recoverMaxAttempts: 3,
@@ -247,3 +253,28 @@ export const DEFAULT_BOT_STATE: BotState = {
   lastTradeTime: 0,
   tradesThisHour: [],
 };
+
+export function buildLoserSet(mode: string, digit: number, comboUnder = 4, comboOver = 5): Set<number> {
+  const set = new Set<number>();
+  if (mode === 'over') { for (let i = 0; i <= digit; i++) set.add(i); }
+  else if (mode === 'under') { for (let i = digit; i <= 9; i++) set.add(i); }
+  else if (mode === 'combo') {
+    const minD = Math.min(comboUnder, comboOver);
+    const maxD = Math.max(comboUnder, comboOver);
+    for (let i = minD; i <= maxD; i++) set.add(i);
+  }
+  else { set.add(digit); }
+  return set;
+}
+
+export function isWinCheck(r: number, mode: string, digit: number, comboUnder = 4, comboOver = 5): boolean {
+  if (mode === 'over') return r > digit;
+  if (mode === 'under') return r < digit;
+  if (mode === 'differ') return r !== digit;
+  if (mode === 'combo') {
+    const minD = Math.min(comboUnder, comboOver);
+    const maxD = Math.max(comboUnder, comboOver);
+    return r < minD || r > maxD;
+  }
+  return false;
+}
