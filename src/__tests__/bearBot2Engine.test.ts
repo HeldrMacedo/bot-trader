@@ -208,7 +208,7 @@ function scoreFromSpec(
 }
 
 function seedPatternIntel(aiMode: AIModeName) {
-  const engine = createEngine({ mode: 'over', digit: 2, vlOn: false, aiMode, tradeCooldownMs: 0 });
+  const engine = createEngine({ mode: 'differ', patTrigger: true, digit: 2, vlOn: false, aiMode, tradeCooldownMs: 0 });
   feedABPattern(engine, 'R_100', 30);
   feedABPattern(engine, 'R_75', 30);
   feedABPattern(engine, 'R_50', 30);
@@ -283,6 +283,25 @@ describe('BearBot2Engine AI modes (conservative / balanced / aggressive)', () =>
     const afterAgg = engine.getState().marketIntel['R_100'];
     expect(afterAgg.opportunityScore).toBe(scoreFromSpec('aggressive', afterAgg));
     expect(afterAgg.opportunityScore).not.toBe(afterCons.opportunityScore);
+  });
+
+  it('does not include patternStrength or syncScore in opportunityScore when pattern is inactive', () => {
+    // Engine in OVER mode with strong 1->2 pattern
+    const engine = createEngine({ mode: 'over', digit: 2, vlOn: false, aiMode: 'balanced', tradeCooldownMs: 0 });
+    feedABPattern(engine, 'R_100', 30);
+    const intelOver = engine.getState().marketIntel['R_100'];
+
+    // Pattern strength exists as raw metric
+    expect(intelOver.patternStrength).toBeGreaterThan(0);
+    // Logic updated to only include active pattern in opportunityScore calculation
+    expect(intelOver.opportunityScore).toBe(scoreFromSpec('balanced', intelOver));
+
+    // Now switch to DIFFER mode with patTrigger: true
+    engine.updateConfig({ mode: 'differ', patTrigger: true });
+    const intelDiffer = engine.getState().marketIntel['R_100'];
+
+    // Now opportunityScore incorporates all 4 pillars including patternStrength
+    expect(intelDiffer.opportunityScore).toBe(scoreFromSpec('balanced', intelDiffer));
   });
 
   it('auto gate uses the score of the active aiMode', () => {

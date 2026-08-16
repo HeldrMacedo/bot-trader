@@ -26,6 +26,8 @@ O Score de Oportunidade varia de **0 a 100** e é fruto da combinação ponderad
 
 $$\text{OpportunityScore} = (\text{PressãoInvertida} \times w_{\text{Pressure}}) + (\text{ForçaPadrão} \times w_{\text{Pattern}}) + (\text{ProgressoVL} \times w_{\text{VL}}) + (\text{Sincronia} \times w_{\text{Sync}})$$
 
+---
+
 #### Os 4 Pilares do Score:
 
 1. **Pressão de Perdedores (`100 - pressure`):**

@@ -211,7 +211,18 @@ export class BearBotEngine {
     if (updates.stake !== undefined && this.state.galeLevel === 0) {
       this.state.curStake = updates.stake;
     }
-    if (updates.aiMode !== undefined) this.updateAllIntelligence();
+    if (
+      updates.aiMode !== undefined ||
+      updates.mode !== undefined ||
+      updates.patTrigger !== undefined ||
+      updates.digit !== undefined ||
+      updates.vlOn !== undefined ||
+      updates.vlQty !== undefined ||
+      updates.vlMode !== undefined ||
+      updates.vlWindow !== undefined
+    ) {
+      this.updateAllIntelligence();
+    }
     if (updates.postLossOn === false && this.state.recovery.active) {
       this.clearRecovery();
     }
@@ -294,9 +305,14 @@ export class BearBotEngine {
       if (changed) { ps.a = best.a; ps.b = best.b; ps.seqCount = 0; ps.waiting = false; ps.stable = 0; }
       ps._final = best.final; ps.force = best.force; ps.wilson = best.wilson;
       ps.lift = best.lift; ps.tri = best.tri;
+      if (changed) {
+        ps.stable = 1;
+      } else {
+        ps.stable = (ps.stable || 0) + 1;
+      }
+    } else {
+      ps.stable = (ps.stable || 0) + 1;
     }
-    if (ps.a === best.a && ps.b === best.b) ps.stable = (ps.stable || 0) + 1;
-    else ps.stable = 0;
 
     const minForce = this.config.patMinForce / 100;
     const forceOk = (ps.force || 0) >= minForce;
@@ -434,9 +450,7 @@ export class BearBotEngine {
     }
 
     let patternStrength = 0;
-    // Score the detected A→B quality. `armed` is a trade trigger (quality + reps)
-    // and stays false while rival pairs flip-flop stability — not a display gate.
-    if (ps && ps.a !== null && ps.b !== null) {
+    if (ps && ps.a !== null && ps.b !== null && ps.armed) {
       patternStrength = 40;
       if ((ps.force || 0) >= 0.5) patternStrength += 20;
       if ((ps.wilson || 0) >= 0.3) patternStrength += 15;
@@ -466,7 +480,7 @@ export class BearBotEngine {
       MARKETS.forEach(m => {
         if (m.sym === sym) return;
         const otherPs = this.patState[m.sym];
-        if (otherPs && otherPs.a === ps.a && otherPs.b === ps.b) syncCount++;
+        if (otherPs && otherPs.a === ps.a && otherPs.b === ps.b && otherPs.armed) syncCount++;
         totalMarkets++;
       });
       syncScore = totalMarkets > 0 ? Math.min(100, Math.round((syncCount / 3) * 100)) : 0;

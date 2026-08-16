@@ -1,6 +1,7 @@
 "use client";
 
 import { useBearBot } from '../../hooks/useBearBot2';
+import { toast } from 'react-toastify';
 import MarketGrid from './components/MarketGrid';
 import IntelPanel from './components/IntelPanel';
 import TradeLogComponent from './components/TradeLog';
@@ -63,6 +64,25 @@ export default function BearBotUltra() {
     updateConfig({ stopWin: Number(validateNumber(val, 1, 99999)) });
   };
 
+  const handleAccountToggle = async (isVirtual: boolean) => {
+    const targetToken = accountInfo?.tokens?.find((t: any) => t.is_virtual === isVirtual)?.token;
+    if (targetToken) {
+      abortOp();
+      if (config.autoOn) {
+        stopBot();
+      }
+      toast.info(`Trocando para conta ${isVirtual ? "Virtual" : "Real"}...`);
+      try {
+        await switchAccount(isVirtual);
+        toast.success("Conta alterada com sucesso!");
+      } catch (e: any) {
+        toast.error(`Falha ao alterar conta: ${e?.message || e}`);
+      }
+    } else {
+      toast.error(`Nenhum token configurado para conta ${isVirtual ? "Virtual" : "Real"}`);
+    }
+  };
+
   return (
     <div className="w-full bg-[#0d0a18] text-[#eef2f8] min-h-screen pb-10">
       {/* Header */}
@@ -108,6 +128,30 @@ export default function BearBotUltra() {
               {isConnected ? '● ONLINE' : '● OFFLINE'}
             </span>
           </div>
+
+          {/* Toggle Real/Demo */}
+          {accountInfo && (
+            <div className="flex items-center bg-[#070b14] border border-[#2e3a52] rounded-lg p-1">
+              <button
+                onClick={() => handleAccountToggle(true)}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${activeAccount?.is_virtual
+                  ? "bg-yellow-600/30 text-yellow-400 border border-yellow-500/50"
+                  : "text-[#8593aa] hover:text-[#eef2f8]"
+                  }`}
+              >
+                Demo
+              </button>
+              <button
+                onClick={() => handleAccountToggle(false)}
+                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${activeAccount && !activeAccount.is_virtual
+                  ? "bg-red-600/30 text-red-400 border border-red-500/50"
+                  : "text-[#8593aa] hover:text-[#eef2f8]"
+                  }`}
+              >
+                Real
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
