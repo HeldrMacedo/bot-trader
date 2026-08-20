@@ -113,10 +113,8 @@ describe('BearBotUltra2 UI - Dígito Automático', () => {
     expect(screen.queryByText('Dígito Automático')).not.toBeInTheDocument();
 
     // Ativa Loss Virtual
-    const vlHeading = screen.getByRole('heading', { name: /LOSS VIRTUAL/i });
-    const vlCard = vlHeading.closest('div');
-    const vlToggle = vlCard?.querySelector('button');
-    if (vlToggle) fireEvent.click(vlToggle);
+    const vlToggle = screen.getByTestId('toggle-loss-virtual');
+    fireEvent.click(vlToggle);
 
     // Agora deve exibir o botão de Dígito Automático
     expect(screen.getByText('Dígito Automático')).toBeInTheDocument();
@@ -130,10 +128,8 @@ describe('BearBotUltra2 UI - Dígito Automático', () => {
     fireEvent.click(differBtn);
 
     // Ativa Loss Virtual
-    const vlHeading = screen.getByRole('heading', { name: /LOSS VIRTUAL/i });
-    const vlCard = vlHeading.closest('div');
-    const vlToggle = vlCard?.querySelector('button');
-    if (vlToggle) fireEvent.click(vlToggle);
+    const vlToggle = screen.getByTestId('toggle-loss-virtual');
+    fireEvent.click(vlToggle);
 
     // Ativa Dígito Automático
     const autoDigitToggle = screen.getByTestId('toggle-auto-digit');
@@ -166,6 +162,9 @@ describe('BearBotUltra2 UI - Dígito Automático', () => {
 
     // Deve exibir o badge "DÍGITO DINÂMICO ATIVO"
     expect(screen.getByText('DÍGITO DINÂMICO ATIVO')).toBeInTheDocument();
+
+    // Deve exibir badge DESATIVADO no Loss Virtual e no Padrão A->B
+    expect(screen.getAllByText('DESATIVADO').length).toBeGreaterThanOrEqual(2);
 
     // Deve exibir o painel dedicado DynamicDigitPanel
     expect(screen.getByText(/RADAR DE DÍGITOS DINÂMICOS/i)).toBeInTheDocument();

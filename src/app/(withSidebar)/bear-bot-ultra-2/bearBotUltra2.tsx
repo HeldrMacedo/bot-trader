@@ -254,7 +254,14 @@ export default function BearBotUltra() {
                   </div>
                   <button
                     data-testid="toggle-dynamic-digit"
-                    onClick={() => updateConfig({ differDynamicDigit: !config.differDynamicDigit })}
+                    onClick={() => {
+                      const next = !config.differDynamicDigit;
+                      if (next) {
+                        updateConfig({ differDynamicDigit: true, vlOn: false, patTrigger: false, differAutoDigit: false });
+                      } else {
+                        updateConfig({ differDynamicDigit: false });
+                      }
+                    }}
                     className={`w-12 h-6 rounded-full transition-all relative ${config.differDynamicDigit ? "bg-indigo-600" : "bg-[#18202f] border border-[#2e3a52]"}`}
                   >
                     <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${config.differDynamicDigit ? "left-[26px]" : "left-0.5"}`} />
@@ -262,7 +269,7 @@ export default function BearBotUltra() {
                 </div>
               )}
 
-              {config.mode === 'differ' && config.vlOn && (
+              {config.mode === 'differ' && config.vlOn && !config.differDynamicDigit && (
                 <div className="flex items-center justify-between bg-[#070b14] p-2.5 border border-[#2e3a52] rounded-lg">
                   <div>
                     <span className="text-xs font-bold text-[#eef2f8] block">Dígito Automático</span>
@@ -436,10 +443,20 @@ export default function BearBotUltra() {
           </div>
 
           {/* Card: Loss Virtual */}
-          <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl">
+          <div className={`bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl transition-all ${config.mode === 'differ' && config.differDynamicDigit ? 'opacity-40 pointer-events-none' : ''}`}>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">🛡️ LOSS VIRTUAL</h2>
-              <button onClick={() => updateConfig({ vlOn: !config.vlOn })} className={`w-12 h-6 rounded-full transition-all relative ${config.vlOn ? "bg-green-600" : "bg-[#18202f] border border-[#2e3a52]"}`}>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">🛡️ LOSS VIRTUAL</h2>
+                {config.mode === 'differ' && config.differDynamicDigit && (
+                  <span className="text-[9px] bg-gray-700/50 text-gray-400 border border-gray-600/40 px-1.5 py-0.5 rounded font-bold">DESATIVADO</span>
+                )}
+              </div>
+              <button
+                data-testid="toggle-loss-virtual"
+                disabled={config.mode === 'differ' && config.differDynamicDigit}
+                onClick={() => updateConfig({ vlOn: !config.vlOn })}
+                className={`w-12 h-6 rounded-full transition-all relative ${config.vlOn ? "bg-green-600" : "bg-[#18202f] border border-[#2e3a52]"}`}
+              >
                 <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${config.vlOn ? "left-[26px]" : "left-0.5"}`} />
               </button>
             </div>
@@ -470,10 +487,17 @@ export default function BearBotUltra() {
 
           {/* Card: Padrão A→B (differ) */}
           {config.mode === 'differ' && (!config.vlOn || !config.differAutoDigit) && (
-            <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl">
+            <div className={`bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl transition-all ${config.differDynamicDigit ? 'opacity-40 pointer-events-none' : ''}`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">🔗 PADRÃO A→B</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">🔗 PADRÃO A→B</h2>
+                  {config.differDynamicDigit && (
+                    <span className="text-[9px] bg-gray-700/50 text-gray-400 border border-gray-600/40 px-1.5 py-0.5 rounded font-bold">DESATIVADO</span>
+                  )}
+                </div>
                 <button
+                  data-testid="toggle-pattern-ab"
+                  disabled={config.differDynamicDigit}
                   onClick={() => updateConfig({ patTrigger: !config.patTrigger })}
                   className={`w-12 h-6 rounded-full transition-all relative ${config.patTrigger ? "bg-purple-600" : "bg-[#18202f] border border-[#2e3a52]"}`}
                 >
