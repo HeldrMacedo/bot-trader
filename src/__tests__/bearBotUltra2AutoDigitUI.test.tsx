@@ -145,4 +145,35 @@ describe('BearBotUltra2 UI - Dígito Automático', () => {
     // O card do Padrão A->B deve estar oculto
     expect(screen.queryByRole('heading', { name: /PADRÃO A→B/i })).not.toBeInTheDocument();
   });
+
+  it('exibe o switch de Dígitos Dinâmicos no modo differ mesmo sem Loss Virtual e bloqueia seleção manual ao ativar', async () => {
+    render(<BearBotUltra />);
+
+    // No modo over inicial, não deve exibir Dígitos Dinâmicos
+    expect(screen.queryByText('Dígitos Dinâmicos')).not.toBeInTheDocument();
+
+    // Clica em 'differ'
+    const differBtn = screen.getByRole('button', { name: /differ/i });
+    fireEvent.click(differBtn);
+
+    // Deve exibir o switch de Dígitos Dinâmicos imediatamente (sem precisar de Loss Virtual)
+    expect(screen.getByText('Dígitos Dinâmicos')).toBeInTheDocument();
+    expect(screen.queryByText('DÍGITO DINÂMICO ATIVO')).not.toBeInTheDocument();
+
+    // Ativa Dígitos Dinâmicos
+    const dynamicDigitToggle = screen.getByTestId('toggle-dynamic-digit');
+    fireEvent.click(dynamicDigitToggle);
+
+    // Deve exibir o badge "DÍGITO DINÂMICO ATIVO"
+    expect(screen.getByText('DÍGITO DINÂMICO ATIVO')).toBeInTheDocument();
+
+    // Deve exibir o painel dedicado DynamicDigitPanel
+    expect(screen.getByText(/RADAR DE DÍGITOS DINÂMICOS/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ranking de Segurança dos 10 Dígitos/i)).toBeInTheDocument();
+    expect(screen.getByText(/Frequência Inversa/i)).toBeInTheDocument();
+    expect(screen.getByText(/Inverso Markov/i)).toBeInTheDocument();
+    expect(screen.getByText(/Inverso Trigrama/i)).toBeInTheDocument();
+    expect(screen.getByText(/Resistência Anomalia/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Entrar Agora no Dígito/i })).toBeInTheDocument();
+  });
 });

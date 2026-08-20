@@ -59,3 +59,8 @@ O módulo `bot-ia` foi migrado para `src/app/(withSidebar)/bot-strategy` com as 
 - `VolatilitySelector`: Busca e seleção de ativos.
 - `TradeConfig`, `ManagementConfig`, `ControllerConfig`: Painéis de configuração.
 - `BotDashboard`: Visualização de logs e status (preparado para expansão com gráficos).
+
+
+### Graphity
+
+O comando para atualizar o Graphify no diretório atual do seu projeto é: `graphify update .`

@@ -103,6 +103,22 @@ export interface ComboPending {
   results: number[];
 }
 
+export interface DynamicDigitDetail {
+  fScore: number;
+  mScore: number;
+  tScore: number;
+  aScore: number;
+  composite: number;
+  rawCount50: number;
+}
+
+export interface DynamicDigitResult {
+  digit: number;
+  score: number;
+  scores: Record<number, number>;
+  breakdown: Record<number, DynamicDigitDetail>;
+}
+
 /** Intent returned by prepareTrade for the hook to execute. */
 export interface TradeLeg {
   ct: string;
@@ -146,6 +162,7 @@ export interface BotConfig {
   comboUnder: number;
   comboOver: number;
   differAutoDigit: boolean;
+  differDynamicDigit: boolean;
   postLossOn: boolean;
   postLossMode: PostLossMode;
   recoverMaxAttempts: number;
@@ -221,6 +238,7 @@ export const DEFAULT_CONFIG: BotConfig = {
   comboUnder: 4,
   comboOver: 5,
   differAutoDigit: false,
+  differDynamicDigit: false,
   postLossOn: false,
   postLossMode: 'recover',
   recoverMaxAttempts: 3,

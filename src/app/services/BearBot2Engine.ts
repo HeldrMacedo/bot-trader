@@ -5,6 +5,7 @@ import {
   VLMarketState, MarketIntelligence, MultiCandidate, ComboPending,
   RecoveryState, TickData, ProposalState, DEFAULT_BOT_STATE,
   TradePrep, TradeLeg, buildLoserSet, isWinCheck,
+  DynamicDigitDetail, DynamicDigitResult,
 } from './bearbot2.types';
 
 function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
@@ -153,6 +154,7 @@ export class BearBotEngine {
       patReps: 3, patMinForce: 30, patTrigger: false, patMode: 'accum',
       comboUnder: 4, comboOver: 5,
       differAutoDigit: false,
+      differDynamicDigit: false,
       postLossOn: false, postLossMode: 'recover', recoverMaxAttempts: 3,
       recoverDelay: 1500, cooldownSec: 5, maxTradesHour: 50,
       tradeCooldownMs: 2000, aiMode: 'balanced', soundOn: true,
@@ -199,6 +201,7 @@ export class BearBotEngine {
       updates.comboOver !== undefined ||
       updates.patTrigger !== undefined ||
       updates.digit !== undefined ||
+      updates.differDynamicDigit !== undefined ||
       updates.vlOn !== undefined ||
       updates.vlQty !== undefined ||
       updates.vlMode !== undefined ||
@@ -537,7 +540,10 @@ export class BearBotEngine {
     const arr = this.tickData[sym]?.digits || [];
     const ps = this.patState[sym];
     const vlSt = this.vlM(sym);
-    const lose = buildLoserSet(this.config.mode, this.config.digit, this.config.comboUnder, this.config.comboOver);
+    const targetDigit = (this.config.mode === 'differ' && this.config.differDynamicDigit)
+      ? this.computeDynamicDifferDigit(sym).digit
+      : this.config.digit;
+    const lose = buildLoserSet(this.config.mode, targetDigit, this.config.comboUnder, this.config.comboOver);
 
     let pressure = 0;
     if (arr.length >= 50) {
@@ -620,6 +626,106 @@ export class BearBotEngine {
   }
 
   // ── Estatísticas ──
+  computeDynamicDifferDigit(sym: string): DynamicDigitResult {
+    const digits = this.tickData[sym]?.digits || [];
+    const defaultDigit = this.config.digit;
+    const scores: Record<number, number> = {};
+    const breakdown: Record<number, DynamicDigitDetail> = {};
+
+    if (digits.length < 5) {
+      for (let i = 0; i <= 9; i++) {
+        scores[i] = 50;
+        breakdown[i] = { fScore: 50, mScore: 50, tScore: 50, aScore: 50, composite: 50, rawCount50: 0 };
+      }
+      return { digit: defaultDigit, score: 50, scores, breakdown };
+    }
+
+    const lastDigit = digits[digits.length - 1];
+    const prevDigit = digits.length >= 2 ? digits[digits.length - 2] : null;
+
+    const w10 = digits.slice(-10);
+    const w25 = digits.slice(-25);
+    const w50 = digits.slice(-50);
+
+    // Markov occurrences of lastDigit
+    let lastOccurrences = 0;
+    const markovNext: Record<number, number> = {};
+    for (let i = 0; i < digits.length - 1; i++) {
+      if (digits[i] === lastDigit) {
+        lastOccurrences++;
+        const nxt = digits[i + 1];
+        markovNext[nxt] = (markovNext[nxt] || 0) + 1;
+      }
+    }
+
+    // Trigram occurrences of (prevDigit, lastDigit)
+    let pairOccurrences = 0;
+    const triNext: Record<number, number> = {};
+    if (prevDigit !== null && digits.length >= 3) {
+      const sl50 = digits.slice(-50);
+      for (let i = 0; i < sl50.length - 2; i++) {
+        if (sl50[i] === prevDigit && sl50[i + 1] === lastDigit) {
+          pairOccurrences++;
+          const nxt = sl50[i + 2];
+          triNext[nxt] = (triNext[nxt] || 0) + 1;
+        }
+      }
+    }
+
+    // Anomaly count in last 25 ticks
+    const count25: Record<number, number> = {};
+    w25.forEach(d => { count25[d] = (count25[d] || 0) + 1; });
+
+    // Raw counts in last 50 ticks for tie-breaking
+    const count50: Record<number, number> = {};
+    w50.forEach(d => { count50[d] = (count50[d] || 0) + 1; });
+
+    let bestDigit = defaultDigit;
+    let bestScore = -1;
+    let bestRawCount50 = Infinity;
+
+    for (let d = 0; d <= 9; d++) {
+      // 1. Multi-window frequency (40%)
+      const f10 = w10.length > 0 ? (w10.filter(x => x === d).length / w10.length) : 0.10;
+      const f25 = w25.length > 0 ? (w25.filter(x => x === d).length / w25.length) : 0.10;
+      const f50 = w50.length > 0 ? (w50.filter(x => x === d).length / w50.length) : 0.10;
+      const weightedFreq = (0.5 * f10) + (0.3 * f25) + (0.2 * f50);
+      const fScore = Math.max(0, Math.min(100, Math.round(100 * (1 - weightedFreq / 0.30))));
+
+      // 2. Markov Inverse (30%)
+      const markovP = lastOccurrences >= 2 ? ((markovNext[d] || 0) / lastOccurrences) : 0.10;
+      const mScore = Math.max(0, Math.min(100, Math.round(100 * (1 - markovP / 0.30))));
+
+      // 3. Trigram Inverse (15%)
+      const triP = pairOccurrences >= 2 ? ((triNext[d] || 0) / pairOccurrences) : 0.10;
+      const tScore = Math.max(0, Math.min(100, Math.round(100 * (1 - triP / 0.40))));
+
+      // 4. Anomaly resistance (15%)
+      const obsFrac = w25.length > 0 ? ((count25[d] || 0) / w25.length) : 0.10;
+      const excess = (obsFrac - 0.10) / 0.10;
+      const aScore = Math.max(0, Math.min(100, Math.round(50 - excess * 50)));
+
+      // Composite calculation
+      const compositeScore = Math.round(fScore * 0.40 + mScore * 0.30 + tScore * 0.15 + aScore * 0.15);
+      scores[d] = compositeScore;
+
+      const raw50 = count50[d] || 0;
+      breakdown[d] = { fScore, mScore, tScore, aScore, composite: compositeScore, rawCount50: raw50 };
+
+      if (
+        compositeScore > bestScore ||
+        (compositeScore === bestScore && raw50 < bestRawCount50) ||
+        (compositeScore === bestScore && raw50 === bestRawCount50 && d < bestDigit)
+      ) {
+        bestScore = compositeScore;
+        bestDigit = d;
+        bestRawCount50 = raw50;
+      }
+    }
+
+    return { digit: bestDigit, score: bestScore, scores, breakdown };
+  }
+
   chiSquare(sym: string) {
     const arr = this.tickData[sym]?.digits.slice(-50) || [];
     if (arr.length < 30) return null;
@@ -784,6 +890,15 @@ export class BearBotEngine {
             this.multiCand[sym] = { sym, b: ps.b, score };
           }
         }
+      } else if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
+        this.vlOnDigitM(sym, dig);
+        if ((this.vlGateOpenM(sym) || isRecovery) && aiGateOpen) {
+          const dyn = this.computeDynamicDifferDigit(sym);
+          const an = this.marketAnomaly(sym);
+          const exc = an ? an.excess : 0;
+          const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc + (dyn.score >= 70 ? 5 : 0);
+          this.multiCand[sym] = { sym, b: dyn.digit, score };
+        }
       } else {
         this.vlOnDigitM(sym, dig);
         if ((this.vlGateOpenM(sym) || isRecovery) && aiGateOpen) {
@@ -849,6 +964,24 @@ export class BearBotEngine {
       return;
     }
 
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
+      this.vlOnDigit(dig);
+      const dyn = this.computeDynamicDifferDigit(sym);
+      if (this.config.exec === 'auto' && this.config.autoOn) {
+        if ((this.vlGateOpen() || isRecovery) && aiGateOpen) {
+          if (!this.canOpenTrade(true)) return;
+          this.config.digit = dyn.digit;
+          this.vlReset();
+          this.triggerAutoTrade();
+        }
+      } else {
+        if (!this.state.tradeLock) {
+          this.config.digit = dyn.digit;
+        }
+      }
+      return;
+    }
+
     this.vlOnDigit(dig);
     if (this.config.exec === 'auto' && this.config.autoOn && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
       if (!this.canOpenTrade(true)) return;
@@ -866,10 +999,10 @@ export class BearBotEngine {
     const pick: any = cands[0];
     this.multiCand = {};
     this.config.activeSym = pick.sym;
-    if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit)) {
+    if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
       this.config.digit = pick.b!;
       const ps = this.patState[pick.sym];
-      if (ps) ps.waiting = true;
+      if (ps && this.config.patTrigger) ps.waiting = true;
     }
     this.vlResetM(pick.sym);
     this.addLog(`🌐 MULTI · ${pick.sym} escolhido`, 'info');
@@ -883,13 +1016,24 @@ export class BearBotEngine {
     if (!cands.length) return;
     cands.sort((a: any, b: any) => b.score - a.score);
     const pick: any = cands[0];
-    if (pick.sym !== this.config.activeSym && Date.now() - this.lastManualSwitch > 3000) {
-      this.multiCand = {};
-      this.config.activeSym = pick.sym;
-      this.lastManualSwitch = Date.now();
-      if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit)) this.config.digit = pick.b!;
-      this.addLog(`🌐 MULTI (Manual) · Foco em ${pick.sym}`, 'info');
-      this.notify();
+    if (pick.sym !== this.config.activeSym) {
+      if (Date.now() - this.lastManualSwitch > 3000) {
+        this.multiCand = {};
+        this.config.activeSym = pick.sym;
+        this.lastManualSwitch = Date.now();
+        if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
+          this.config.digit = pick.b!;
+        }
+        this.addLog(`🌐 MULTI (Manual) · Foco em ${pick.sym}`, 'info');
+        this.notify();
+      }
+    } else {
+      if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit) && pick.b !== null && pick.b !== undefined) {
+        if (!this.state.tradeLock && this.config.digit !== pick.b) {
+          this.config.digit = pick.b;
+          this.notify();
+        }
+      }
     }
   }
 
@@ -922,11 +1066,18 @@ export class BearBotEngine {
     this.state.tradeLock = true;
 
     if (this.config.paperMode) {
+      if (kind === 'differ' && this.config.differDynamicDigit) {
+        this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
+      }
       this.notify();
       return { payload: null, isPaper: true, kind };
     }
 
     if (kind === 'combo') return this.prepareCombo();
+
+    if (kind === 'differ' && this.config.differDynamicDigit) {
+      this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
+    }
 
     const ct = kind === 'over' ? 'DIGITOVER' : kind === 'under' ? 'DIGITUNDER' : 'DIGITDIFF';
     const payload = this.buildBuyPayload(ct, this.config.digit);
@@ -1136,6 +1287,9 @@ export class BearBotEngine {
       this.addLog(`Loss virtual incompleto (${this.state.vlCount}/${this.config.vlQty})`, 'virt');
       return false;
     }
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
+      this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
+    }
     if (this.config.vlOn) this.vlReset();
     return true;
   }
@@ -1160,7 +1314,10 @@ export class BearBotEngine {
     const m = this.config.mode, d = this.config.digit;
     if (m === 'over') return [{ ct: 'DIGITOVER', barrier: d }];
     if (m === 'under') return [{ ct: 'DIGITUNDER', barrier: d }];
-    if (m === 'differ') return [{ ct: 'DIGITDIFF', barrier: d }];
+    if (m === 'differ') {
+      const barrier = this.config.differDynamicDigit ? this.computeDynamicDifferDigit(this.config.activeSym).digit : d;
+      return [{ ct: 'DIGITDIFF', barrier }];
+    }
     if (m === 'combo') {
       const u = this.config.comboUnder ?? 4;
       const o = this.config.comboOver ?? 5;

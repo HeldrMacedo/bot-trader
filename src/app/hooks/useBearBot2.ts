@@ -408,6 +408,10 @@ export function useBearBot() {
     }
   }, [accountInfo]);
 
+  const getDynamicDifferDigit = useCallback((sym?: string) => {
+    return engineRef.current.computeDynamicDifferDigit(sym || engineRef.current.getConfig().activeSym);
+  }, []);
+
   return {
     state,
     config,
@@ -421,6 +425,7 @@ export function useBearBot() {
     exportCSV,
     isConnected,
     accountInfo,
-    switchAccount
+    switchAccount,
+    getDynamicDifferDigit
   };
 }

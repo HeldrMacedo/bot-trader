@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import MarketGrid from './components/MarketGrid';
 import IntelPanel from './components/IntelPanel';
 import TradeLogComponent from './components/TradeLog';
+import DynamicDigitPanel from './components/DynamicDigitPanel';
 import {
   PlayIcon, StopIcon, SpeakerWaveIcon, SpeakerXMarkIcon,
   BeakerIcon, CpuChipIcon, ChartBarIcon, ShieldCheckIcon,
@@ -23,13 +24,21 @@ function validateNumber(val: string, min: number, max: number, allowZero: boolea
 }
 
 export default function BearBotUltra() {
-  const { state, config, updateConfig, executeTrade, startBot, stopBot, abortOp, resetStats, manualFire, exportCSV, isConnected, accountInfo, switchAccount } = useBearBot();
+  const {
+    state, config, updateConfig, executeTrade, startBot, stopBot, abortOp,
+    resetStats, manualFire, exportCSV, isConnected, accountInfo, switchAccount,
+    getDynamicDifferDigit
+  } = useBearBot();
   const activeAccount = accountInfo?.tokens?.find((t: any) => t.token === accountInfo.activeToken);
   const isAuthenticated = !!activeAccount;
   const tradesThisHourCount = state.tradesThisHour.filter((t) => t > Date.now() - 3_600_000).length;
   const cooldownLeftMs = state.lastTradeTime > 0
     ? Math.max(0, config.tradeCooldownMs - (Date.now() - state.lastTradeTime))
     : 0;
+
+  const dynamicDifferInfo = getDynamicDifferDigit
+    ? getDynamicDifferDigit(config.activeSym)
+    : { digit: config.digit, score: 50, scores: {}, breakdown: {} };
 
   const handleModeChange = (mode: typeof config.mode) => {
     updateConfig({ mode });
@@ -237,6 +246,22 @@ export default function BearBotUltra() {
                 </div>
               </div>
 
+              {config.mode === 'differ' && (
+                <div className="flex items-center justify-between bg-[#070b14] p-2.5 border border-[#2e3a52] rounded-lg">
+                  <div>
+                    <span className="text-xs font-bold text-[#eef2f8] block">Dígitos Dinâmicos</span>
+                    <span className="text-[10px] text-[#8593aa]">Calcula o dígito mais seguro a cada tick via Score Composto</span>
+                  </div>
+                  <button
+                    data-testid="toggle-dynamic-digit"
+                    onClick={() => updateConfig({ differDynamicDigit: !config.differDynamicDigit })}
+                    className={`w-12 h-6 rounded-full transition-all relative ${config.differDynamicDigit ? "bg-indigo-600" : "bg-[#18202f] border border-[#2e3a52]"}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${config.differDynamicDigit ? "left-[26px]" : "left-0.5"}`} />
+                  </button>
+                </div>
+              )}
+
               {config.mode === 'differ' && config.vlOn && (
                 <div className="flex items-center justify-between bg-[#070b14] p-2.5 border border-[#2e3a52] rounded-lg">
                   <div>
@@ -346,18 +371,21 @@ export default function BearBotUltra() {
                   </div>
                 </div>
               ) : (
-                <div className={config.mode === 'differ' && config.vlOn && config.differAutoDigit ? 'opacity-40 pointer-events-none' : ''}>
+                <div className={config.mode === 'differ' && ((config.vlOn && config.differAutoDigit) || config.differDynamicDigit) ? 'opacity-40 pointer-events-none' : ''}>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block">Dígito Alvo</label>
                     {config.mode === 'differ' && config.vlOn && config.differAutoDigit && (
                       <span className="text-[10px] bg-indigo-600/30 text-indigo-400 border border-indigo-500/40 px-1.5 py-0.5 rounded font-bold">DÍGITO AUTO ATIVO</span>
+                    )}
+                    {config.mode === 'differ' && config.differDynamicDigit && (
+                      <span className="text-[10px] bg-indigo-600/30 text-indigo-400 border border-indigo-500/40 px-1.5 py-0.5 rounded font-bold">DÍGITO DINÂMICO ATIVO</span>
                     )}
                   </div>
                   <div className="grid grid-cols-5 gap-1.5">
                     {Array.from({ length: 10 }).map((_, i) => (
                       <button
                         key={i}
-                        disabled={config.mode === 'differ' && config.vlOn && config.differAutoDigit}
+                        disabled={config.mode === 'differ' && ((config.vlOn && config.differAutoDigit) || config.differDynamicDigit)}
                         onClick={() => handleDigitChange(i)}
                         className={`py-2 font-mono font-bold text-sm rounded-lg border transition-all ${config.digit === i ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]" : buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver).has(i) ? "bg-[#e23b32]/5 border-[#e23b32]/25 text-[#e23b32] hover:bg-[#e23b32]/10" : "bg-[#2eb84f]/5 border-[#2eb84f]/25 text-[#2eb84f] hover:bg-[#2eb84f]/10"}`}
                       >
@@ -576,6 +604,18 @@ export default function BearBotUltra() {
         {/* Coluna Central: Mercados com IA (6/12) */}
         <div className="lg:col-span-6 flex flex-col gap-4">
           <MarketGrid config={config} state={state} updateConfig={updateConfig} />
+
+          {/* Painel Dedicado de Dígitos Dinâmicos */}
+          {config.mode === 'differ' && config.differDynamicDigit && (
+            <DynamicDigitPanel
+              config={config}
+              state={state}
+              dynamicInfo={dynamicDifferInfo}
+              updateConfig={updateConfig}
+              manualFire={manualFire}
+              isAuthenticated={isAuthenticated}
+            />
+          )}
 
           {/* Gráfico de Barras */}
           <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl">
