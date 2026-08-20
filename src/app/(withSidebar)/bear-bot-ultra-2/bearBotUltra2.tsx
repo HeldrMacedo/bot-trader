@@ -184,6 +184,9 @@ export default function BearBotUltra() {
       if (config.autoOn) {
         stopBot();
       }
+      if (config.paperMode) {
+        updateConfig({ paperMode: false });
+      }
       toast.info(`Trocando para conta ${isVirtual ? "Virtual" : "Real"}...`);
       try {
         await switchAccount(isVirtual);

@@ -244,4 +244,32 @@ describe('BearBotUltra 2.0 Component', () => {
     fireEvent.change(stopWinInput, { target: { value: '100' } });
     expect(stopWinInput.value).toBe('100');
   });
+
+  it('ao alternar Paper Trading ou alternar entre Demo e Real, reseta o estado de operação', async () => {
+    render(<BearBotUltra />);
+
+    // Alternar para Paper Trading
+    const paperHeading = screen.getByText('Paper Trading');
+    const paperContainer = paperHeading.closest('div')?.parentElement?.parentElement;
+    const paperToggle = paperContainer?.querySelector('button');
+    expect(paperToggle).toBeTruthy();
+    
+    // Liga Paper Trading
+    fireEvent.click(paperToggle!);
+    expect(screen.getByText('📄 PAPER')).toBeDefined();
+
+    // Desliga Paper Trading
+    fireEvent.click(paperToggle!);
+    expect(screen.queryByText('📄 PAPER')).toBeNull();
+
+    // Clicar em Real troca de conta e desativa paper mode caso ativo
+    fireEvent.click(paperToggle!); // Liga paper
+    expect(screen.getByText('📄 PAPER')).toBeDefined();
+
+    const realBtn = screen.getByText('Real');
+    await act(async () => {
+      fireEvent.click(realBtn);
+    });
+    expect(screen.queryByText('📄 PAPER')).toBeNull();
+  });
 });

@@ -189,8 +189,22 @@ export class BearBotEngine {
   // ── Config Updates ──
   updateConfig(updates: Partial<BotConfig>) {
     const oldMulti = this.config.multiOn;
+    const oldPaperMode = this.config.paperMode;
     this.config = { ...this.config, ...clampRateLimits(updates) };
     if (oldMulti && !this.config.multiOn) this.vlReset();
+    if (updates.paperMode !== undefined && updates.paperMode !== oldPaperMode) {
+      this.config.autoOn = false;
+      this.state.galeLevel = 0;
+      this.state.curStake = this.config.stake;
+      this.state.lossAcum = 0;
+      this.state.parcelsLeft = 0;
+      this.state.tradeLock = false;
+      this.comboPending = null;
+      this.clearRecovery();
+      this.vlReset();
+      this.vlResetAllM();
+      this.addLog(updates.paperMode ? '📄 Modo Paper Trading ativado · progresso resetado' : '💼 Modo Conta Real/Demo ativado · progresso resetado', 'info');
+    }
     if (updates.stake !== undefined && this.state.galeLevel === 0) {
       this.state.curStake = updates.stake;
     }
@@ -1256,7 +1270,8 @@ export class BearBotEngine {
 
   abortOp() {
     this.config.autoOn = false; this.state.galeLevel = 0; this.state.curStake = this.config.stake;
-    this.state.tradeLock = false; this.state.recovery.active = false;
+    this.state.lossAcum = 0; this.state.parcelsLeft = 0;
+    this.state.tradeLock = false; this.clearRecovery();
     this.comboPending = null;
     this.vlReset(); this.vlResetAllM();
     this.addLog('✋ Operação abortada', 'info'); this.notify();

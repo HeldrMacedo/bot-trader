@@ -679,4 +679,33 @@ describe('BearBot2Engine post-loss recover / analyze', () => {
     engine.updateConfig({ cooldownSec: Number.NaN });
     expect(engine.getConfig().cooldownSec).toBe(0);
   });
+
+  it('switching paperMode resets galeLevel, curStake, lossAcum and turns off autoOn', () => {
+    const engine = createEngine({
+      paperMode: true,
+      stake: 0.35,
+      gale: 2.0,
+      tradeCooldownMs: 0,
+      postLossOn: true,
+      postLossMode: 'recover',
+    });
+
+    // 2 losses in paper trading
+    loseOnce(engine);
+    loseOnce(engine);
+    expect(engine.getState().galeLevel).toBe(2);
+    expect(engine.getState().curStake).toBe(1.4);
+    expect(engine.getState().recovery.active).toBe(true);
+
+    // Switch from Paper Trading to Real / Demo (paperMode: false)
+    engine.updateConfig({ paperMode: false });
+
+    // Gale and curStake MUST be reset to initial user settings
+    expect(engine.getState().galeLevel).toBe(0);
+    expect(engine.getState().curStake).toBe(0.35);
+    expect(engine.getState().lossAcum).toBe(0);
+    expect(engine.getState().parcelsLeft).toBe(0);
+    expect(engine.getState().recovery.active).toBe(false);
+    expect(engine.getConfig().autoOn).toBe(false);
+  });
 });
