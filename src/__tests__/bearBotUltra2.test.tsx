@@ -185,4 +185,63 @@ describe('BearBotUltra 2.0 Component', () => {
     fireEvent.change(cooldown, { target: { value: '90' } });
     expect(cooldown.value).toBe('60');
   });
+
+  it('permite alterar o valor do Martingale livremente sem travar em 1.01', () => {
+    render(<BearBotUltra />);
+    
+    // Obter o input de Martingale pelo valor padrão inicial 2.1
+    const galeInput = screen.getByDisplayValue('2.1') as HTMLInputElement;
+    expect(galeInput).toBeDefined();
+
+    // 1. Limpar / apagar o valor (backspace)
+    fireEvent.change(galeInput, { target: { value: '' } });
+    expect(galeInput.value).toBe('');
+
+    // 2. Digitar valor decimal passo a passo
+    fireEvent.change(galeInput, { target: { value: '1' } });
+    expect(galeInput.value).toBe('1');
+
+    fireEvent.change(galeInput, { target: { value: '1.' } });
+    expect(galeInput.value).toBe('1.');
+
+    fireEvent.change(galeInput, { target: { value: '1.5' } });
+    expect(galeInput.value).toBe('1.5');
+
+    // 3. Digitar outro valor como 3.2
+    fireEvent.change(galeInput, { target: { value: '3.2' } });
+    expect(galeInput.value).toBe('3.2');
+
+    // 4. Suportar vírgula decimal (ex: 2,5 -> 2.5)
+    fireEvent.change(galeInput, { target: { value: '2,5' } });
+    expect(galeInput.value).toBe('2.5');
+
+    // 5. No blur com valor abaixo do mínimo (ex: 0.5), ajusta para 1.01
+    fireEvent.change(galeInput, { target: { value: '0.5' } });
+    fireEvent.blur(galeInput);
+    expect(galeInput.value).toBe('1.01');
+
+    // 6. No blur com valor acima do máximo (ex: 15), ajusta para 10
+    fireEvent.change(galeInput, { target: { value: '15' } });
+    fireEvent.blur(galeInput);
+    expect(galeInput.value).toBe('10');
+  });
+
+  it('permite alterar Entrada Inicial, Stop Loss e Stop Win livremente', () => {
+    render(<BearBotUltra />);
+
+    // Stake
+    const stakeInput = screen.getByDisplayValue('0.35') as HTMLInputElement;
+    fireEvent.change(stakeInput, { target: { value: '' } });
+    expect(stakeInput.value).toBe('');
+    fireEvent.change(stakeInput, { target: { value: '0.5' } });
+    expect(stakeInput.value).toBe('0.5');
+
+    // Stop Loss and Stop Win (both default to 20)
+    const [stopLossInput, stopWinInput] = screen.getAllByDisplayValue('20') as HTMLInputElement[];
+    fireEvent.change(stopLossInput, { target: { value: '50' } });
+    expect(stopLossInput.value).toBe('50');
+
+    fireEvent.change(stopWinInput, { target: { value: '100' } });
+    expect(stopWinInput.value).toBe('100');
+  });
 });

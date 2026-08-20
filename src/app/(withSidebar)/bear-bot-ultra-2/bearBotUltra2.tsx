@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useBearBot } from '../../hooks/useBearBot2';
 import { buildLoserSet } from '../../services/bearbot2.types';
 import { toast } from 'react-toastify';
@@ -12,6 +13,15 @@ import {
   BeakerIcon, CpuChipIcon, ChartBarIcon, ShieldCheckIcon,
   EyeIcon, BoltIcon, ArrowPathIcon
 } from '@heroicons/react/24/outline';
+
+function sanitizeDecimalInput(val: string): string {
+  const v = val.replace(',', '.').replace(/[^0-9.]/g, '');
+  const parts = v.split('.');
+  if (parts.length > 2) {
+    return parts[0] + '.' + parts.slice(1).join('');
+  }
+  return v;
+}
 
 function validateNumber(val: string, min: number, max: number, allowZero: boolean = false): string {
   const v = val.replace(',', '.').replace(/[^0-9.]/g, '');
@@ -35,6 +45,35 @@ export default function BearBotUltra() {
   const cooldownLeftMs = state.lastTradeTime > 0
     ? Math.max(0, config.tradeCooldownMs - (Date.now() - state.lastTradeTime))
     : 0;
+
+  const [stakeStr, setStakeStr] = useState<string>(String(config.stake ?? 0.35));
+  const [galeStr, setGaleStr] = useState<string>(String(config.gale ?? 2.1));
+  const [stopLossStr, setStopLossStr] = useState<string>(String(config.stopLoss ?? 20));
+  const [stopWinStr, setStopWinStr] = useState<string>(String(config.stopWin ?? 20));
+
+  useEffect(() => {
+    if (config.stake !== undefined && Number(stakeStr) !== config.stake && !stakeStr.endsWith('.')) {
+      setStakeStr(String(config.stake));
+    }
+  }, [config.stake]);
+
+  useEffect(() => {
+    if (config.gale !== undefined && Number(galeStr) !== config.gale && !galeStr.endsWith('.')) {
+      setGaleStr(String(config.gale));
+    }
+  }, [config.gale]);
+
+  useEffect(() => {
+    if (config.stopLoss !== undefined && Number(stopLossStr) !== config.stopLoss && !stopLossStr.endsWith('.')) {
+      setStopLossStr(String(config.stopLoss));
+    }
+  }, [config.stopLoss]);
+
+  useEffect(() => {
+    if (config.stopWin !== undefined && Number(stopWinStr) !== config.stopWin && !stopWinStr.endsWith('.')) {
+      setStopWinStr(String(config.stopWin));
+    }
+  }, [config.stopWin]);
 
   const dynamicDifferInfo = getDynamicDifferDigit
     ? getDynamicDifferDigit(config.activeSym)
@@ -63,20 +102,79 @@ export default function BearBotUltra() {
   };
 
   const handleStakeChange = (val: string) => {
-    const raw = validateNumber(val, 0.01, 1000);
-    updateConfig({ stake: Number(raw) });
+    const clean = sanitizeDecimalInput(val);
+    setStakeStr(clean);
+    if (clean !== '' && !clean.endsWith('.')) {
+      const n = Number(clean);
+      if (!isNaN(n) && n >= 0.01 && n <= 1000) {
+        updateConfig({ stake: n });
+      }
+    }
+  };
+
+  const handleStakeBlur = () => {
+    let n = Number(stakeStr);
+    if (isNaN(n) || n < 0.01) n = 0.01;
+    else if (n > 1000) n = 1000;
+    setStakeStr(String(n));
+    updateConfig({ stake: n });
   };
 
   const handleGaleChange = (val: string) => {
-    updateConfig({ gale: Number(validateNumber(val, 1.01, 10)) });
+    const clean = sanitizeDecimalInput(val);
+    setGaleStr(clean);
+    if (clean !== '' && !clean.endsWith('.')) {
+      const n = Number(clean);
+      if (!isNaN(n) && n >= 1.01 && n <= 10) {
+        updateConfig({ gale: n });
+      }
+    }
+  };
+
+  const handleGaleBlur = () => {
+    let n = Number(galeStr);
+    if (isNaN(n) || n < 1.01) n = 1.01;
+    else if (n > 10) n = 10;
+    setGaleStr(String(n));
+    updateConfig({ gale: n });
   };
 
   const handleStopLossChange = (val: string) => {
-    updateConfig({ stopLoss: Number(validateNumber(val, 1, 99999)) });
+    const clean = sanitizeDecimalInput(val);
+    setStopLossStr(clean);
+    if (clean !== '' && !clean.endsWith('.')) {
+      const n = Number(clean);
+      if (!isNaN(n) && n >= 1 && n <= 99999) {
+        updateConfig({ stopLoss: n });
+      }
+    }
+  };
+
+  const handleStopLossBlur = () => {
+    let n = Number(stopLossStr);
+    if (isNaN(n) || n < 1) n = 1;
+    else if (n > 99999) n = 99999;
+    setStopLossStr(String(n));
+    updateConfig({ stopLoss: n });
   };
 
   const handleStopWinChange = (val: string) => {
-    updateConfig({ stopWin: Number(validateNumber(val, 1, 99999)) });
+    const clean = sanitizeDecimalInput(val);
+    setStopWinStr(clean);
+    if (clean !== '' && !clean.endsWith('.')) {
+      const n = Number(clean);
+      if (!isNaN(n) && n >= 1 && n <= 99999) {
+        updateConfig({ stopWin: n });
+      }
+    }
+  };
+
+  const handleStopWinBlur = () => {
+    let n = Number(stopWinStr);
+    if (isNaN(n) || n < 1) n = 1;
+    else if (n > 99999) n = 99999;
+    setStopWinStr(String(n));
+    updateConfig({ stopWin: n });
   };
 
   const handleAccountToggle = async (isVirtual: boolean) => {
@@ -406,22 +504,22 @@ export default function BearBotUltra() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Entrada Inicial</label>
-                  <input type="text" inputMode="decimal" value={config.stake} onChange={(e) => handleStakeChange(e.target.value)} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                  <input type="text" inputMode="decimal" value={stakeStr} onChange={(e) => handleStakeChange(e.target.value)} onBlur={handleStakeBlur} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                 </div>
                 <div>
                   <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Martingale</label>
-                  <input type="text" inputMode="decimal" value={config.gale} onChange={(e) => handleGaleChange(e.target.value)} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                  <input type="text" inputMode="decimal" value={galeStr} onChange={(e) => handleGaleChange(e.target.value)} onBlur={handleGaleBlur} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Stop Loss ($)</label>
-                  <input type="text" inputMode="decimal" value={config.stopLoss} onChange={(e) => handleStopLossChange(e.target.value)} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                  <input type="text" inputMode="decimal" value={stopLossStr} onChange={(e) => handleStopLossChange(e.target.value)} onBlur={handleStopLossBlur} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                 </div>
                 <div>
                   <label className="text-[10px] text-[#8593aa] uppercase tracking-wider block mb-1">Stop Win ($)</label>
-                  <input type="text" inputMode="decimal" value={config.stopWin} onChange={(e) => handleStopWinChange(e.target.value)} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
+                  <input type="text" inputMode="decimal" value={stopWinStr} onChange={(e) => handleStopWinChange(e.target.value)} onBlur={handleStopWinBlur} className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-3 py-2 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500" />
                 </div>
               </div>
 
