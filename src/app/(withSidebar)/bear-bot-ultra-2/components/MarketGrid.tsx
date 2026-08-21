@@ -104,7 +104,7 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
               )}
 
               <div className="flex justify-between items-center pt-2 border-t border-[#222c3f] text-[10px] text-[#8593aa]">
-                <span>Último: <strong className="font-mono text-cyan-400">{data?.price ?? '—'}</strong></span>
+                <span>Último: <strong className="font-mono text-cyan-400">{data?.price != null ? Number(data.price).toFixed(m.pip) : '—'}</strong></span>
               </div>
 
               {showVlLoss && (

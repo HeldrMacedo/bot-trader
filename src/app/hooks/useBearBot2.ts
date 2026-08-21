@@ -10,7 +10,7 @@ const SAFETY_TIMEOUT_MS = 30_000;
 export function extractLastDigit(price: number, symbol: string): number | null {
   const pipSizes: Record<string, number> = {
     R_100: 2, R_75: 4, R_50: 4, R_25: 3, R_10: 3,
-    RDBEAR: 3, RDBULL: 4,
+    RDBEAR: 4, RDBULL: 4,
   };
   const pip = pipSizes[symbol];
   if (pip === undefined) return null;

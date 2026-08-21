@@ -12,7 +12,7 @@ export const MARKETS: Market[] = [
   { sym: 'R_50', nm: 'Volatilidade 50', pip: 4 },
   { sym: 'R_25', nm: 'Volatilidade 25', pip: 3 },
   { sym: 'R_10', nm: 'Volatilidade 10', pip: 3 },
-  { sym: 'RDBEAR', nm: 'Bear Market', pip: 3 },
+  { sym: 'RDBEAR', nm: 'Bear Market', pip: 4 },
   { sym: 'RDBULL', nm: 'Bull Market', pip: 4 },
 ];
 
