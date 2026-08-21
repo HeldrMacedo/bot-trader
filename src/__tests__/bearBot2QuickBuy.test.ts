@@ -239,12 +239,22 @@ describe('BearBot2Engine - Quick Buy (Compra Rápida)', () => {
 
 describe('useBearBot2 Hook - Quick Buy Lifecycle & WebSocket integration', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     registeredListeners = {};
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('pré-abre propostas automaticamente ao iniciar conectado com conta', () => {
     renderHook(() => useBearBot());
+
+    // Avança o timer de debounce de 50ms
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
 
     // Deve enviar chamada de proposal com subscribe: 1
     expect(mockSend).toHaveBeenCalledWith(
@@ -270,6 +280,10 @@ describe('useBearBot2 Hook - Quick Buy Lifecycle & WebSocket integration', () =>
     });
 
     const { result } = renderHook(() => useBearBot());
+
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
 
     // Simula resposta da Deriv WebSocket com a proposta
     const pkey = 'R_100|DIGITOVER|2|0.35';
@@ -312,6 +326,10 @@ describe('useBearBot2 Hook - Quick Buy Lifecycle & WebSocket integration', () =>
 
     const { result } = renderHook(() => useBearBot());
 
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
+
     // Não envia evento de proposta (ainda pendente ou não respondido)
     await act(async () => {
       result.current.manualFire('over');
@@ -337,6 +355,10 @@ describe('useBearBot2 Hook - Quick Buy Lifecycle & WebSocket integration', () =>
   it('esquece e recria propostas quando a configuração de mercado ou dígito muda', () => {
     const { result } = renderHook(() => useBearBot());
 
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
+
     mockSend.mockClear();
 
     act(() => {
@@ -346,6 +368,11 @@ describe('useBearBot2 Hook - Quick Buy Lifecycle & WebSocket integration', () =>
     // Deve ter chamado forget_all: 'proposal'
     expect(mockSend).toHaveBeenCalledWith({
       forget_all: 'proposal',
+    });
+
+    // Avança o debounce de 50ms para o refresh
+    act(() => {
+      vi.advanceTimersByTime(60);
     });
 
     // E deve ter chamado proposal para R_50 e barrier 7

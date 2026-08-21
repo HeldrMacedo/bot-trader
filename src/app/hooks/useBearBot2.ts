@@ -76,6 +76,7 @@ export function useBearBot() {
   }, []);
 
   const ensureProposal = useCallback((ct: string, barrier: number) => {
+    if (!accountInfo) return;
     const derivService = DerivService.getInstance();
     const cfg = engineRef.current.getConfig();
     const st = engineRef.current.getState();
@@ -107,7 +108,7 @@ export function useBearBot() {
         proposalsRef.current[key].pending = false;
       }
     });
-  }, [propKey]);
+  }, [propKey, accountInfo]);
 
   const refreshProposals = useCallback(() => {
     const required = engineRef.current.getRequiredProposals();
@@ -418,7 +419,10 @@ export function useBearBot() {
   useEffect(() => {
     if (!isConnected || !accountInfo) return;
     forgetAllProposals();
-    refreshProposals();
+    const t = setTimeout(() => {
+      refreshProposals();
+    }, 50);
+    return () => clearTimeout(t);
   }, [
     isConnected,
     accountInfo,
@@ -433,6 +437,17 @@ export function useBearBot() {
     forgetAllProposals,
     refreshProposals,
   ]);
+
+  // PropKeeper: periodically ensures valid pre-opened proposals exist for active setup
+  useEffect(() => {
+    if (!isConnected || !accountInfo) return;
+    const intervalId = setInterval(() => {
+      if (!engineRef.current.getState().tradeLock) {
+        refreshProposals();
+      }
+    }, 4000);
+    return () => clearInterval(intervalId);
+  }, [isConnected, accountInfo, refreshProposals]);
 
   useEffect(() => {
     const derivService = DerivService.getInstance();
