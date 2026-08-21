@@ -119,6 +119,14 @@ export interface DynamicDigitResult {
   breakdown: Record<number, DynamicDigitDetail>;
 }
 
+export interface ProposalEntry {
+  id: string | null;
+  ready: boolean;
+  pending: boolean;
+  ct: string;
+  barrier: number;
+}
+
 /** Intent returned by prepareTrade for the hook to execute. */
 export interface TradeLeg {
   ct: string;
@@ -126,6 +134,7 @@ export interface TradeLeg {
   /** Contract kind for partial-fail demotion: over | under | differ */
   legKind: string;
   payload: Record<string, unknown>;
+  usedProposal?: boolean;
 }
 
 export interface TradePrep {
@@ -135,6 +144,7 @@ export interface TradePrep {
   payload?: Record<string, unknown> | null;
   /** Combo real legs (DIGITOVER 5 + DIGITUNDER 4). */
   legs?: TradeLeg[];
+  usedProposal?: boolean;
 }
 
 export interface BotConfig {

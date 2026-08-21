@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { BearBotEngine, createEngine } from '../services/BearBot2Engine';
 import { DerivService } from '../services/DerivService';
 import {
-  BotConfig, BotState, MARKETS,
+  BotConfig, BotState, MARKETS, ProposalEntry,
 } from '../services/bearbot2.types';
 
 const SAFETY_TIMEOUT_MS = 30_000;
@@ -37,6 +37,7 @@ export function useBearBot() {
   /** contract_id → leg kind for partial combo demotion tracking */
   const openContractsRef = useRef<Map<number, string>>(new Map());
   const settledIdsRef = useRef<Set<number>>(new Set());
+  const proposalsRef = useRef<Record<string, ProposalEntry>>({});
   const playWinSoundRef = useRef<() => void>(() => { });
   const playLossSoundRef = useRef<() => void>(() => { });
   const executeTradeRef = useRef<(kind: string) => Promise<void>>(async () => { });
@@ -59,14 +60,99 @@ export function useBearBot() {
     safetyTimeouts.current.push(timeout);
   }, [clearSafetyTimeouts]);
 
+  // ── Pre-opened Proposals (Quick Buy) ──
+  const propKey = useCallback((ct: string, barrier: number) => {
+    const cfg = engineRef.current.getConfig();
+    const st = engineRef.current.getState();
+    return `${cfg.activeSym}|${ct}|${barrier}|${+st.curStake.toFixed(2)}`;
+  }, []);
+
+  const forgetAllProposals = useCallback(() => {
+    const derivService = DerivService.getInstance();
+    derivService.send({ forget_all: 'proposal' }).catch((err) => {
+      console.error('Forget all proposals error:', err);
+    });
+    proposalsRef.current = {};
+  }, []);
+
+  const ensureProposal = useCallback((ct: string, barrier: number) => {
+    const derivService = DerivService.getInstance();
+    const cfg = engineRef.current.getConfig();
+    const st = engineRef.current.getState();
+    const key = propKey(ct, barrier);
+    const p = proposalsRef.current[key];
+    if (p && (p.id || p.pending)) return;
+
+    proposalsRef.current[key] = { id: null, ready: false, pending: true, ct, barrier };
+    const stakeVal = +st.curStake.toFixed(2);
+
+    derivService.send({
+      proposal: 1,
+      subscribe: 1,
+      amount: stakeVal,
+      basis: 'stake',
+      contract_type: ct,
+      currency: 'USD',
+      duration: 1,
+      duration_unit: 't',
+      underlying_symbol: cfg.activeSym,
+      barrier: String(barrier),
+      passthrough: { pkey: key },
+    }).catch((err) => {
+      if (err?.code === 'AlreadySubscribed') {
+        return;
+      }
+      console.error('Ensure proposal error:', err);
+      if (proposalsRef.current[key]) {
+        proposalsRef.current[key].pending = false;
+      }
+    });
+  }, [propKey]);
+
+  const refreshProposals = useCallback(() => {
+    const required = engineRef.current.getRequiredProposals();
+    required.forEach(({ ct, barrier }) => {
+      ensureProposal(ct, barrier);
+    });
+  }, [ensureProposal]);
+
+  const getProp = useCallback((ct: string, barrier: number) => {
+    const key = propKey(ct, barrier);
+    const p = proposalsRef.current[key];
+    return (p && p.id && p.ready) ? p : null;
+  }, [propKey]);
+
+  const invalidateConsumedProposals = useCallback(() => {
+    for (const k in proposalsRef.current) {
+      const p = proposalsRef.current[k];
+      if (p) {
+        p.id = null;
+        p.ready = false;
+        p.pending = false;
+      }
+    }
+  }, []);
+
+  const buildProposalMap = useCallback(() => {
+    const map = new Map<string, string>();
+    const required = engineRef.current.getRequiredProposals();
+    for (const req of required) {
+      const p = getProp(req.ct, req.barrier);
+      if (p && p.id) {
+        map.set(`${req.ct}|${req.barrier}`, p.id);
+      }
+    }
+    return map;
+  }, [getProp]);
+
   // ── Trade Execution ──
   const executeTrade = useCallback(async (kind: string) => {
     const engine = engineRef.current;
-    const prep = engine.prepareTrade(kind);
+    const proposalMap = buildProposalMap();
+    const prep = engine.prepareTrade(kind, proposalMap);
     if (!prep) return;
 
     pendingKindRef.current = prep.kind;
-    // settledIdsRef.current.clear(); // REMOVIDO: Limpar aqui permite que POCs atrasados do trade anterior quebrem o lock
 
     if (prep.isPaper) {
       const result = engine.simulateTrade(kind);
@@ -87,6 +173,9 @@ export function useBearBot() {
     }
 
     const derivService = DerivService.getInstance();
+    const cfg = engine.getConfig();
+    const st = engine.getState();
+    const stakeVal = +st.curStake.toFixed(2);
 
     // ── Combo: two independent buys ──
     if (prep.kind === 'combo' && prep.legs?.length) {
@@ -120,14 +209,21 @@ export function useBearBot() {
         return;
       }
 
+      const comboOver = cfg.comboOver ?? 5;
+      const comboUnder = cfg.comboUnder ?? 4;
+      const isFast = prep.usedProposal;
+      engine.addLog(`▶ COMBO Over>${comboOver} + Under<${comboUnder} · $${stakeVal}×2 · ${cfg.activeSym}${isFast ? ' ⚡' : ''}`, 'info');
+
+      if (prep.legs.some((l) => l.usedProposal)) {
+        invalidateConsumedProposals();
+        refreshProposals();
+      }
+
       if (opened.length === 1) {
         // Partial open: demote combo → single-leg settlement
         engine.demoteComboToSingle();
         pendingKindRef.current = opened[0].legKind;
         engine.getState(); // ensure notify path available
-        // log via abort-style message without unlocking
-        // use addLog through abort would unlock — demote already cleared comboPending
-        // stay locked until the open leg settles
       } else {
         pendingKindRef.current = 'combo';
       }
@@ -147,6 +243,16 @@ export function useBearBot() {
       if (response?.buy?.contract_id != null) {
         const contractId = Number(response.buy.contract_id);
         openContractsRef.current.set(contractId, prep.kind);
+
+        const sym = prep.kind === 'differ' ? '≠' : prep.kind === 'over' ? '>' : '<';
+        const isFast = prep.usedProposal;
+        engine.addLog(`▶ ${prep.kind.toUpperCase()} ${sym}${cfg.digit} · $${stakeVal} · ${cfg.activeSym}${isFast ? ' ⚡' : ''}`, 'info');
+
+        if (prep.usedProposal) {
+          invalidateConsumedProposals();
+          refreshProposals();
+        }
+
         derivService.subscribe({
           proposal_open_contract: 1,
           contract_id: contractId,
@@ -163,7 +269,7 @@ export function useBearBot() {
       openContractsRef.current.clear();
       console.error('Trade error:', e);
     }
-  }, [armSafetyTimeout, clearSafetyTimeouts]);
+  }, [armSafetyTimeout, clearSafetyTimeouts, buildProposalMap, invalidateConsumedProposals, refreshProposals]);
 
   executeTradeRef.current = executeTrade;
 
@@ -272,6 +378,17 @@ export function useBearBot() {
       }
     });
 
+    const onProposalId = derivService.observerInstance.on('message', (data: any) => {
+      if (data?.msg_type === 'proposal' && data.proposal) {
+        const pkey = data.passthrough?.pkey;
+        if (pkey && proposalsRef.current[pkey]) {
+          proposalsRef.current[pkey].id = data.proposal.id;
+          proposalsRef.current[pkey].ready = true;
+          proposalsRef.current[pkey].pending = false;
+        }
+      }
+    });
+
     const onAccountId = derivService.observerInstance.on('account.update', (data: any) => {
       setAccountInfo(data);
     });
@@ -290,10 +407,32 @@ export function useBearBot() {
       derivService.observerInstance.removeById(onMarketOpenId);
       derivService.observerInstance.removeById(onTickId);
       derivService.observerInstance.removeById(onPocId);
+      derivService.observerInstance.removeById(onProposalId);
       derivService.observerInstance.removeById(onAccountId);
       safetyTimeouts.current.forEach(clearTimeout);
+      forgetAllProposals();
     };
-  }, [handleContractSettlement]);
+  }, [handleContractSettlement, forgetAllProposals]);
+
+  // Synchronize proposals when parameters change
+  useEffect(() => {
+    if (!isConnected || !accountInfo) return;
+    forgetAllProposals();
+    refreshProposals();
+  }, [
+    isConnected,
+    accountInfo,
+    config.activeSym,
+    config.mode,
+    config.digit,
+    config.stake,
+    config.comboOver,
+    config.comboUnder,
+    config.differDynamicDigit,
+    state.curStake,
+    forgetAllProposals,
+    refreshProposals,
+  ]);
 
   useEffect(() => {
     const derivService = DerivService.getInstance();

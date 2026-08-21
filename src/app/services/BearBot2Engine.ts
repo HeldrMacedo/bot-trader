@@ -255,7 +255,7 @@ export class BearBotEngine {
     this.listeners.forEach(cb => cb(s));
   }
 
-  private addLog(msg: string, type: string = '') {
+  public addLog(msg: string, type: string = '') {
     const ts = new Date().toLocaleTimeString('pt-BR', { hour12: false });
     const log = { ts, msg, type };
     this.state.logLines = [log, ...this.state.logLines].slice(0, 120);
@@ -1052,6 +1052,14 @@ export class BearBotEngine {
   }
 
   // ── Trade Execution Interface ──
+  private buildQuickBuyPayload(proposalId: string): Record<string, unknown> {
+    const stake = +this.state.curStake.toFixed(2);
+    return {
+      buy: proposalId,
+      price: stake,
+    };
+  }
+
   private buildBuyPayload(ct: string, barrier: number): Record<string, unknown> {
     const stake = +this.state.curStake.toFixed(2);
     return {
@@ -1070,7 +1078,7 @@ export class BearBotEngine {
     };
   }
 
-  prepareTrade(kind: string): TradePrep | null {
+  prepareTrade(kind: string, proposals?: Map<string, string> | Record<string, string>): TradePrep | null {
     if (this.state.tradeLock) return null;
     if (!this.canTradeByRate()) return null;
     if (this.state.pnl <= -Math.abs(this.config.stopLoss)) { this.addLog('Stop Loss atingido', 'lose'); return null; }
@@ -1087,32 +1095,47 @@ export class BearBotEngine {
       return { payload: null, isPaper: true, kind };
     }
 
-    if (kind === 'combo') return this.prepareCombo();
+    if (kind === 'combo') return this.prepareCombo(proposals);
 
     if (kind === 'differ' && this.config.differDynamicDigit) {
       this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
     }
 
     const ct = kind === 'over' ? 'DIGITOVER' : kind === 'under' ? 'DIGITUNDER' : 'DIGITDIFF';
-    const payload = this.buildBuyPayload(ct, this.config.digit);
+    const barrier = this.config.digit;
+    const proposalKey = `${ct}|${barrier}`;
+    const proposalId = proposals instanceof Map ? proposals.get(proposalKey) : proposals?.[proposalKey];
+    const usedProposal = Boolean(proposalId);
+    const payload = proposalId
+      ? this.buildQuickBuyPayload(proposalId)
+      : this.buildBuyPayload(ct, barrier);
+
     this.notify();
-    return { payload, isPaper: false, kind };
+    return { payload, isPaper: false, kind, usedProposal };
   }
 
-  private prepareCombo(): TradePrep {
+  private prepareCombo(proposals?: Map<string, string> | Record<string, string>): TradePrep {
     this.comboPending = { legs: 2, won: 0, results: [] };
-    const proposals = this.getRequiredProposals();
-    const legs: TradeLeg[] = proposals.map(({ ct, barrier }) => {
+    const required = this.getRequiredProposals();
+    const legs: TradeLeg[] = required.map(({ ct, barrier }) => {
       const legKind = ct === 'DIGITOVER' ? 'over' : ct === 'DIGITUNDER' ? 'under' : 'differ';
+      const proposalKey = `${ct}|${barrier}`;
+      const proposalId = proposals instanceof Map ? proposals.get(proposalKey) : proposals?.[proposalKey];
+      const usedProposal = Boolean(proposalId);
+      const payload = proposalId
+        ? this.buildQuickBuyPayload(proposalId)
+        : this.buildBuyPayload(ct, barrier);
       return {
         ct,
         barrier,
         legKind,
-        payload: this.buildBuyPayload(ct, barrier),
+        payload,
+        usedProposal,
       };
     });
+    const usedProposal = legs.length > 0 && legs.every((l) => l.usedProposal);
     this.notify();
-    return { payload: null, isPaper: false, kind: 'combo', legs };
+    return { payload: null, isPaper: false, kind: 'combo', legs, usedProposal };
   }
 
   /**
