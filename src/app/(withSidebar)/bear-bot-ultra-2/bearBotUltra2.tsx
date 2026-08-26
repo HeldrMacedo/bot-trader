@@ -582,6 +582,20 @@ export default function BearBotUltra() {
                     </div>
                   )}
                 </div>
+                {config.multiOn && (
+                  <div className="flex items-center justify-between pt-2 border-t border-[#222c3f]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-[#8593aa] uppercase tracking-wider">🎯 Contagem sob Foco</span>
+                    </div>
+                    <button
+                      data-testid="toggle-vl-focus-only"
+                      onClick={() => updateConfig({ vlFocusOnly: !config.vlFocusOnly })}
+                      className={`w-10 h-5 rounded-full transition-all relative ${config.vlFocusOnly ? "bg-indigo-600" : "bg-[#18202f] border border-[#2e3a52]"}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${config.vlFocusOnly ? "left-[22px]" : "left-0.5"}`} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
