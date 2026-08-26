@@ -190,7 +190,14 @@ export class BearBotEngine {
   updateConfig(updates: Partial<BotConfig>) {
     const oldMulti = this.config.multiOn;
     const oldPaperMode = this.config.paperMode;
+    const oldActiveSym = this.config.activeSym;
     this.config = { ...this.config, ...clampRateLimits(updates) };
+    // Contagem sob Foco: reset VL when user manually switches activeSym
+    if (this.config.vlFocusOnly && this.config.vlOn && this.config.multiOn
+        && updates.activeSym !== undefined && updates.activeSym !== oldActiveSym) {
+      this.vlResetM(this.config.activeSym);
+      this.addLog(`🎯 Contagem sob Foco · Reset VL para ${this.config.activeSym}`, 'info');
+    }
     if (oldMulti && !this.config.multiOn) this.vlReset();
     if (updates.paperMode !== undefined && updates.paperMode !== oldPaperMode) {
       this.config.autoOn = false;
@@ -1019,6 +1026,9 @@ export class BearBotEngine {
       if (ps && this.config.patTrigger) ps.waiting = true;
     }
     this.vlResetM(pick.sym);
+    if (this.config.vlFocusOnly) {
+      this.addLog(`🎯 Contagem sob Foco · Reset VL para ${pick.sym}`, 'info');
+    }
     this.addLog(`🌐 MULTI · ${pick.sym} escolhido`, 'info');
     this.triggerAutoTrade();
     this.notify();
@@ -1037,6 +1047,11 @@ export class BearBotEngine {
         this.lastManualSwitch = Date.now();
         if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
           this.config.digit = pick.b!;
+        }
+        // Contagem sob Foco: reset VL for newly focused market
+        if (this.config.vlFocusOnly && this.config.vlOn) {
+          this.vlResetM(pick.sym);
+          this.addLog(`🎯 Contagem sob Foco · Reset VL para ${pick.sym}`, 'info');
         }
         this.addLog(`🌐 MULTI (Manual) · Foco em ${pick.sym}`, 'info');
         this.notify();
