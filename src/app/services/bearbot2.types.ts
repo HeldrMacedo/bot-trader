@@ -158,6 +158,7 @@ export interface BotConfig {
   vlMode: VLMode;
   vlQty: number;
   vlWindow: number;
+  vlFocusOnly: boolean;
   stake: number;
   gale: number;
   stopLoss: number;
@@ -234,6 +235,7 @@ export const DEFAULT_CONFIG: BotConfig = {
   vlMode: 'consec',
   vlQty: 2,
   vlWindow: 14,
+  vlFocusOnly: false,
   stake: 0.35,
   gale: 2.1,
   stopLoss: 20,

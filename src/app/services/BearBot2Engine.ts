@@ -149,7 +149,7 @@ export class BearBotEngine {
     return {
       activeSym: 'R_100', mode: 'over', exec: 'manual', digit: 2,
       autoOn: false, paperMode: false, vlOn: false, vlMode: 'consec',
-      vlQty: 2, vlWindow: 14, stake: 0.35, gale: 2.1, stopLoss: 20,
+      vlQty: 2, vlWindow: 14, vlFocusOnly: false, stake: 0.35, gale: 2.1, stopLoss: 20,
       stopWin: 20, galeMode: 'mult', galeParcels: 2, multiOn: false,
       patReps: 3, patMinForce: 30, patTrigger: false, patMode: 'accum',
       comboUnder: 4, comboOver: 5,
