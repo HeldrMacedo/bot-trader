@@ -708,4 +708,74 @@ describe('BearBot2Engine post-loss recover / analyze', () => {
     expect(engine.getState().recovery.active).toBe(false);
     expect(engine.getConfig().autoOn).toBe(false);
   });
+
+  describe('Contagem sob Foco (vlFocusOnly)', () => {
+    it('non-focused markets do NOT count virtual losses when vlFocusOnly is true', () => {
+      const engine = createEngine({
+        multiOn: true,
+        vlOn: true,
+        vlMode: 'consec',
+        vlQty: 2,
+        vlFocusOnly: true,
+        activeSym: 'R_100',
+        mode: 'over',
+        digit: 2,
+      });
+
+      // Ticks on non-focused market R_75 with losing digits (0, 1)
+      engine.processTick('R_75', 100, 0);
+      engine.processTick('R_75', 100, 1);
+      expect(engine.getState().vlBySym['R_75'].count).toBe(0);
+
+      // Ticks on focused market R_100 with losing digits (0, 1)
+      engine.processTick('R_100', 100, 0);
+      expect(engine.getState().vlBySym['R_100'].count).toBe(1);
+      engine.processTick('R_100', 100, 1);
+      expect(engine.getState().vlBySym['R_100'].count).toBe(2);
+
+      // Manual focus switch to R_75
+      engine.updateConfig({ activeSym: 'R_75' });
+      expect(engine.getState().vlBySym['R_100'].count).toBe(0); // old market reset
+      expect(engine.getState().vlBySym['R_75'].count).toBe(0);  // new market starts at 0
+
+      // Now R_75 is focused, it should count losses
+      engine.processTick('R_75', 100, 0);
+      expect(engine.getState().vlBySym['R_75'].count).toBe(1);
+
+      // R_100 is no longer focused, it should not count
+      engine.processTick('R_100', 100, 0);
+      expect(engine.getState().vlBySym['R_100'].count).toBe(0);
+    });
+
+    it('in auto mode with vlFocusOnly, focus change does NOT trigger trade immediately until VL accumulates under focus', () => {
+      let tradeCalls = 0;
+      const engine = createEngine({
+        multiOn: true,
+        vlOn: true,
+        vlMode: 'consec',
+        vlQty: 2,
+        vlFocusOnly: true,
+        activeSym: 'R_100',
+        exec: 'auto',
+        autoOn: true,
+        mode: 'over',
+        digit: 2,
+        tradeCooldownMs: 0,
+      });
+      engine.onAutoTrade(() => { tradeCalls++; });
+
+      // Feed non-focused market R_75 with 50 ticks to populate MarketIntelligence
+      for (let i = 0; i < 50; i++) {
+        engine.processTick('R_75', 100, 9); // winning digits -> high opportunity score
+      }
+
+      // Feed R_100 some ticks
+      for (let i = 0; i < 50; i++) {
+        engine.processTick('R_100', 100, 2); // losing digit for OVER 2
+      }
+
+      // Focus may switch to R_75 or stay, but trade should not fire until focused market hits 2 losses
+      expect(engine.getState().vlBySym['R_75'].count).toBeLessThan(2);
+    });
+  });
 });

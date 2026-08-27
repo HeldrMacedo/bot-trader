@@ -192,11 +192,24 @@ export class BearBotEngine {
     const oldPaperMode = this.config.paperMode;
     const oldActiveSym = this.config.activeSym;
     this.config = { ...this.config, ...clampRateLimits(updates) };
-    // Contagem sob Foco: reset VL when user manually switches activeSym
-    if (this.config.vlFocusOnly && this.config.vlOn && this.config.multiOn
-        && updates.activeSym !== undefined && updates.activeSym !== oldActiveSym) {
-      this.vlResetM(this.config.activeSym);
-      this.addLog(`🎯 Contagem sob Foco · Reset VL para ${this.config.activeSym}`, 'info');
+    // When activeSym is changed manually, set lastManualSwitch to prevent immediate override
+    if (updates.activeSym !== undefined && updates.activeSym !== oldActiveSym) {
+      this.lastManualSwitch = Date.now();
+      this.multiCand = {};
+      // Contagem sob Foco: reset VL when user manually switches activeSym
+      if (this.config.vlFocusOnly && this.config.vlOn && this.config.multiOn) {
+        this.vlResetM(oldActiveSym);
+        this.vlResetM(this.config.activeSym);
+        this.addLog(`🎯 Contagem sob Foco · Reset VL para ${this.config.activeSym}`, 'info');
+      }
+    }
+    // When vlFocusOnly is toggled ON, reset all non-active symbols
+    if (updates.vlFocusOnly === true && this.config.vlOn && this.config.multiOn) {
+      MARKETS.forEach(m => {
+        if (m.sym !== this.config.activeSym) {
+          this.vlResetM(m.sym);
+        }
+      });
     }
     if (oldMulti && !this.config.multiOn) this.vlReset();
     if (updates.paperMode !== undefined && updates.paperMode !== oldPaperMode) {
@@ -355,6 +368,7 @@ export class BearBotEngine {
 
   private vlOnDigitM(sym: string, dig: number, forDigit?: number | null) {
     if (!this.config.vlOn) return;
+    if (this.config.vlFocusOnly && sym !== this.config.activeSym) return;
     this.ticksSinceReset[sym] = (this.ticksSinceReset[sym] || 0) + 1;
     const st = this.vlM(sym);
 
@@ -593,13 +607,17 @@ export class BearBotEngine {
 
     let vlProgress = 0;
     if (this.config.vlOn) {
-      const target = this.config.vlQty;
-      const current = vlSt.count;
-      if (this.config.vlMode === 'consec') {
-        vlProgress = Math.min(100, Math.round((current / target) * 100));
+      if (this.config.vlFocusOnly && sym !== this.config.activeSym) {
+        vlProgress = 100;
       } else {
-        const windowSize = Math.min(arr.length, this.config.vlWindow);
-        vlProgress = windowSize > 0 ? Math.min(100, Math.round((current / Math.min(target, windowSize)) * 100)) : 0;
+        const target = this.config.vlQty;
+        const current = vlSt.count;
+        if (this.config.vlMode === 'consec') {
+          vlProgress = Math.min(100, Math.round((current / target) * 100));
+        } else {
+          const windowSize = Math.min(arr.length, this.config.vlWindow);
+          vlProgress = windowSize > 0 ? Math.min(100, Math.round((current / Math.min(target, windowSize)) * 100)) : 0;
+        }
       }
     } else {
       vlProgress = 100;
@@ -889,10 +907,13 @@ export class BearBotEngine {
     const aiGateOpen = !intel || intel.opportunityScore >= 40 || isRecovery;
 
     if (this.config.multiOn) {
+      const isFocusOnly = this.config.vlOn && this.config.vlFocusOnly;
+      const isCandidateGateOpen = (s: string) => isFocusOnly || this.vlGateOpenM(s) || isRecovery;
+
       if (this.config.mode === 'differ' && this.config.differAutoDigit) {
         this.vlOnDigitM(sym, dig);
         const target = this.autoDigitTarget[sym];
-        if (target !== null && target !== undefined && (this.vlGateOpenM(sym) || isRecovery) && aiGateOpen) {
+        if (target !== null && target !== undefined && isCandidateGateOpen(sym) && aiGateOpen) {
           const an = this.marketAnomaly(sym);
           const exc = an ? an.excess : 0;
           const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
@@ -906,14 +927,14 @@ export class BearBotEngine {
             ps.waiting = false;
             if (dig !== ps.b) { ps.count = 0; ps.armed = false; }
           }
-          if (ps.armed && dig === ps.a && (this.vlGateOpenM(sym) || isRecovery) && aiGateOpen) {
+          if (ps.armed && dig === ps.a && isCandidateGateOpen(sym) && aiGateOpen) {
             const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + (ps.seqCount || 0);
             this.multiCand[sym] = { sym, b: ps.b, score };
           }
         }
       } else if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
         this.vlOnDigitM(sym, dig);
-        if ((this.vlGateOpenM(sym) || isRecovery) && aiGateOpen) {
+        if (isCandidateGateOpen(sym) && aiGateOpen) {
           const dyn = this.computeDynamicDifferDigit(sym);
           const an = this.marketAnomaly(sym);
           const exc = an ? an.excess : 0;
@@ -922,7 +943,7 @@ export class BearBotEngine {
         }
       } else {
         this.vlOnDigitM(sym, dig);
-        if ((this.vlGateOpenM(sym) || isRecovery) && aiGateOpen) {
+        if (isCandidateGateOpen(sym) && aiGateOpen) {
           const an = this.marketAnomaly(sym);
           const exc = an ? an.excess : 0;
           const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
@@ -1018,6 +1039,49 @@ export class BearBotEngine {
     if (!cands.length) return;
     cands.sort((a: any, b: any) => b.score - a.score);
     const pick: any = cands[0];
+
+    // Under vlFocusOnly, focus switches first, and trading only triggers after VL accumulates under focus
+    if (this.config.vlFocusOnly && this.config.vlOn) {
+      if (pick.sym !== this.config.activeSym) {
+        const curScore = this.state.marketIntel[this.config.activeSym]?.opportunityScore ?? 50;
+        if (pick.score <= curScore && curScore >= 40) {
+          return;
+        }
+        if (Date.now() - this.lastManualSwitch > 3000) {
+          this.multiCand = {};
+          this.vlResetM(this.config.activeSym);
+          this.config.activeSym = pick.sym;
+          this.lastManualSwitch = Date.now();
+          this.vlResetM(pick.sym);
+          if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
+            this.config.digit = pick.b!;
+            const ps = this.patState[pick.sym];
+            if (ps && this.config.patTrigger) ps.waiting = true;
+          }
+          this.addLog(`🎯 Contagem sob Foco · Foco em ${pick.sym} (iniciando contagem)`, 'info');
+          this.notify();
+        }
+        return;
+      }
+
+      const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
+      if (!this.vlGateOpenM(pick.sym) && !isRecovery) {
+        return;
+      }
+
+      this.multiCand = {};
+      if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
+        this.config.digit = pick.b!;
+        const ps = this.patState[pick.sym];
+        if (ps && this.config.patTrigger) ps.waiting = true;
+      }
+      this.vlResetM(pick.sym);
+      this.addLog(`🌐 MULTI · ${pick.sym} atingiu ${this.config.vlQty} loss sob foco · Executando trade`, 'info');
+      this.triggerAutoTrade();
+      this.notify();
+      return;
+    }
+
     this.multiCand = {};
     this.config.activeSym = pick.sym;
     if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
@@ -1026,9 +1090,6 @@ export class BearBotEngine {
       if (ps && this.config.patTrigger) ps.waiting = true;
     }
     this.vlResetM(pick.sym);
-    if (this.config.vlFocusOnly) {
-      this.addLog(`🎯 Contagem sob Foco · Reset VL para ${pick.sym}`, 'info');
-    }
     this.addLog(`🌐 MULTI · ${pick.sym} escolhido`, 'info');
     this.triggerAutoTrade();
     this.notify();
@@ -1041,8 +1102,17 @@ export class BearBotEngine {
     cands.sort((a: any, b: any) => b.score - a.score);
     const pick: any = cands[0];
     if (pick.sym !== this.config.activeSym) {
+      if (this.config.vlFocusOnly && this.config.vlOn) {
+        const curScore = this.state.marketIntel[this.config.activeSym]?.opportunityScore ?? 50;
+        if (pick.score <= curScore && curScore >= 40) {
+          return;
+        }
+      }
       if (Date.now() - this.lastManualSwitch > 3000) {
         this.multiCand = {};
+        if (this.config.vlFocusOnly && this.config.vlOn) {
+          this.vlResetM(this.config.activeSym);
+        }
         this.config.activeSym = pick.sym;
         this.lastManualSwitch = Date.now();
         if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
@@ -1051,9 +1121,10 @@ export class BearBotEngine {
         // Contagem sob Foco: reset VL for newly focused market
         if (this.config.vlFocusOnly && this.config.vlOn) {
           this.vlResetM(pick.sym);
-          this.addLog(`🎯 Contagem sob Foco · Reset VL para ${pick.sym}`, 'info');
+          this.addLog(`🎯 Contagem sob Foco · Foco em ${pick.sym} (iniciando contagem)`, 'info');
+        } else {
+          this.addLog(`🌐 MULTI (Manual) · Foco em ${pick.sym}`, 'info');
         }
-        this.addLog(`🌐 MULTI (Manual) · Foco em ${pick.sym}`, 'info');
         this.notify();
       }
     } else {
