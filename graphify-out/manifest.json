@@ -65,7 +65,7 @@
     "semantic_hash": "a34685678d7342bae5e45cb93814845a"
   },
   "src/__tests__/bearBotUltra.test.tsx": {
-    "mtime": 1785205666.2508643,
+    "mtime": 1787275791.1168501,
     "ast_hash": "18e2b54fde2e748535f21a3b3c9e4e43",
     "semantic_hash": "18e2b54fde2e748535f21a3b3c9e4e43"
   },
@@ -115,9 +115,9 @@
     "semantic_hash": "a1e778219a895b4409d55ac9162dfdbe"
   },
   "src/app/(withSidebar)/bear-bot-ultra/bearBotUltra.tsx": {
-    "mtime": 1785205641.618822,
-    "ast_hash": "42e1cbaffdc5d0f1d14cdd05841802ad",
-    "semantic_hash": "42e1cbaffdc5d0f1d14cdd05841802ad"
+    "mtime": 1787276323.934926,
+    "ast_hash": "47dcb3d746818d41748dff3943ecbb34",
+    "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-ultra/page.tsx": {
     "mtime": 1783989095.2594893,
@@ -490,8 +490,8 @@
     "semantic_hash": ""
   },
   "src/__tests__/bearBot2Engine.test.ts": {
-    "mtime": 1786919649.5179794,
-    "ast_hash": "3a84bb4f0a0362afbf7dd89e75037648",
+    "mtime": 1787788697.4614532,
+    "ast_hash": "ad1532c1032ef7a82572da34df66f748",
     "semantic_hash": ""
   },
   "src/__tests__/bearBot2EnginePostLoss.test.ts": {
@@ -505,13 +505,13 @@
     "semantic_hash": ""
   },
   "src/__tests__/bearBotUltra2.test.tsx": {
-    "mtime": 1786919649.5189793,
-    "ast_hash": "9d9188c3ce551e464405eca3671689fb",
+    "mtime": 1787193293.5179827,
+    "ast_hash": "a2f3a168655879d94ff95b49317c3c49",
     "semantic_hash": ""
   },
   "src/__tests__/bearBotUltra2AutoDigitUI.test.tsx": {
-    "mtime": 1786919649.5189793,
-    "ast_hash": "affd3fc7137112017b4ea18900cb2961",
+    "mtime": 1787192014.8536656,
+    "ast_hash": "a613f4aa2c12186865057499ed503af9",
     "semantic_hash": ""
   },
   "src/__tests__/bearBotUltra2ComboUI.test.tsx": {
@@ -540,8 +540,8 @@
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx": {
-    "mtime": 1786919649.5189793,
-    "ast_hash": "c92e078c8ea3d9bb1e57c3fb0d6e25ca",
+    "mtime": 1787708354.8269758,
+    "ast_hash": "54723e6d58f7326e4bb10091558531cc",
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx": {
@@ -550,8 +550,8 @@
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-ultra-2/components/MarketGrid.tsx": {
-    "mtime": 1786919649.5200927,
-    "ast_hash": "9bcb014a4641e68fdf812743a3b9cdf5",
+    "mtime": 1787276326.766877,
+    "ast_hash": "3544041c561d8e3e2644208aed23a973",
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-ultra-2/components/TradeLog.tsx": {
@@ -565,8 +565,8 @@
     "semantic_hash": ""
   },
   "src/app/hooks/useBearBot2.ts": {
-    "mtime": 1786919649.5200927,
-    "ast_hash": "7080b64ea3e0c671086fffe18570a707",
+    "mtime": 1787276320.28499,
+    "ast_hash": "28696e73c0f9dba85686de4ba4df76a7",
     "semantic_hash": ""
   },
   "src/app/hooks/useLocalStorage2.ts": {
@@ -575,13 +575,13 @@
     "semantic_hash": ""
   },
   "src/app/services/BearBot2Engine.ts": {
-    "mtime": 1786919649.5200927,
-    "ast_hash": "e05dce9a72e458210c3f0609a78e6d08",
+    "mtime": 1787788842.663018,
+    "ast_hash": "fafd3d34e992fa602ffeaea0ccc5fc25",
     "semantic_hash": ""
   },
   "src/app/services/bearbot2.types.ts": {
-    "mtime": 1786919649.5200927,
-    "ast_hash": "864eee9eca4909c0b9536aafd771573a",
+    "mtime": 1787708127.6691506,
+    "ast_hash": "3ffcd5ea5bd920245cff2dc673ca3d43",
     "semantic_hash": ""
   },
   ".claude/commands/deriv-api.md": {
@@ -615,13 +615,13 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1784764167.7203002,
-    "ast_hash": "00d24166a2f2471008533593ecdafe66",
+    "mtime": 1787790826.290367,
+    "ast_hash": "61d2c49b4a003b803c9d074cbf8e4895",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1783785926.2716208,
-    "ast_hash": "466145f9b842f3402cec603a3211b37a",
+    "mtime": 1787014228.0567071,
+    "ast_hash": "7b64f36d9b0ad6e44856fd981eaa7941",
     "semantic_hash": ""
   },
   "ZeeK_RELATORIO.md": {
@@ -1047,6 +1047,51 @@
   "public/window.svg": {
     "mtime": 1783785926.351355,
     "ast_hash": "a2760511c65806022ad20adf74370ff3",
+    "semantic_hash": ""
+  },
+  "src/__tests__/bearBot2DynamicDigit.test.ts": {
+    "mtime": 1787186960.658358,
+    "ast_hash": "677a30b66dfac5bba9eca10266d3b3f1",
+    "semantic_hash": ""
+  },
+  "src/__tests__/bearBot2QuickBuy.test.ts": {
+    "mtime": 1787275791.1166444,
+    "ast_hash": "f52cd76bd1ce9a41e49bc698bafaf628",
+    "semantic_hash": ""
+  },
+  "src/__tests__/bearMarketDigits.test.ts": {
+    "mtime": 1787276309.4151843,
+    "ast_hash": "c51dd53eabf9a8468ecedc301936153f",
+    "semantic_hash": ""
+  },
+  "src/app/(withSidebar)/bear-bot-ultra-2/components/DynamicDigitPanel.tsx": {
+    "mtime": 1787186912.462632,
+    "ast_hash": "219c7e9ba0701b2f691e8be7d0fdf4a0",
+    "semantic_hash": ""
+  },
+  "docs/doc_bear_bot_ultra_2/README.md": {
+    "mtime": 1787790809.9403715,
+    "ast_hash": "91fa59447a38e08b5d849f432d59c1f8",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-08-17-differ-dynamic-digit.md": {
+    "mtime": 1787016391.8352087,
+    "ast_hash": "48449f79f9b521ff5952732dccaa1200",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-08-25-contagem-sob-foco.md": {
+    "mtime": 1787707957.733288,
+    "ast_hash": "422def22806e1bb0822098fe868dcb1d",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-17-differ-dynamic-digit-design.md": {
+    "mtime": 1787016379.3041675,
+    "ast_hash": "fed30c3e43724281683e40a212bd310c",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-25-contagem-sob-foco-design.md": {
+    "mtime": 1787707774.9894452,
+    "ast_hash": "ff4811970c783719c70813bd882d0980",
     "semantic_hash": ""
   }
 }

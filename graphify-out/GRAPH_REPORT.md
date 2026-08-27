@@ -1,16 +1,16 @@
-# Graph Report - bot-trader  (2026-08-17)
+# Graph Report - bot-trader  (2026-08-26)
 
 ## Corpus Check
-- 202 files · ~597,686 words
+- 211 files · ~611,332 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1992 nodes · 2465 edges · 163 communities (118 shown, 45 thin omitted)
+- 2105 nodes · 2608 edges · 168 communities (124 shown, 44 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6c200661`
+- Built from commit: `e9f527d2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -84,7 +84,7 @@
 - Request Schema
 - Create Account
 - bearBotUltra2.tsx
-- buildLoserSet
+- BotConfig
 - Request Schema
 - Balance
 - Response Schema
@@ -114,7 +114,7 @@
 - Get All Accounts
 - Health Check
 - Active symbols
-- bearBot2Engine.test.ts
+- createEngine
 - Contracts for
 - Breaking changes
 - Breaking changes
@@ -152,7 +152,7 @@
 - ciclo_monitoramento_trader.md
 - explicacao_multi_mercado_com_execicao_manual.md
 - Mark-up
-- .computeMarketIntelligence
+- Bear Bot Ultra 2 (v10.0 Refatorado) — Guia Técnico e Manual de Referência Completo
 - bottraderx.tsx
 - Pendente
 - .prepareTrade
@@ -164,10 +164,15 @@
 - subscription.md
 - trading.md
 - intelPanel.test.ts
+- Contagem sob Foco — Loss Virtual Modifier
+- useBearBot2.ts
+- Especificação de Design: Dígitos Dinâmicos no Modo Differ (Bear Bot Ultra 2)
+- Global Constraints
+- Global Constraints
 
 ## God Nodes (most connected - your core abstractions)
 1. `DerivService` - 84 edges
-2. `BearBotEngine` - 65 edges
+2. `BearBotEngine` - 67 edges
 3. `CopyTradingService` - 30 edges
 4. `WsListener` - 29 edges
 5. `TradeExecutor` - 24 edges
@@ -175,15 +180,15 @@
 7. `Request Schema` - 21 edges
 8. `DerivApiClient` - 17 edges
 9. `compilerOptions` - 17 edges
-10. `buildLoserSet()` - 14 edges
+10. `Bear Bot Ultra 2 (v10.0 Refatorado) — Guia Técnico e Manual de Referência Completo` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `TradeLogProps` --references--> `BotState`  [EXTRACTED]
-  src/app/(withSidebar)/bear-bot-ultra-2/components/TradeLog.tsx → src/app/services/bearbot2.types.ts
 - `seedLoserPressure()` --calls--> `createEngine()`  [EXTRACTED]
   src/__tests__/bearBot2Engine.test.ts → src/app/services/BearBot2Engine.ts
-- `BearBotUltra()` --calls--> `buildLoserSet()`  [EXTRACTED]
-  src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx → src/app/services/bearbot2.types.ts
+- `BearBotUltra()` --calls--> `useBearBot()`  [EXTRACTED]
+  src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx → src/app/hooks/useBearBot2.ts
+- `TradeLogProps` --references--> `BotState`  [EXTRACTED]
+  src/app/(withSidebar)/bear-bot-ultra-2/components/TradeLog.tsx → src/app/services/bearbot2.types.ts
 - `Page()` --calls--> `useModuleAccess()`  [EXTRACTED]
   src/app/(withSidebar)/bear-bot-ultra/page.tsx → src/app/hooks/useModuleAccess.ts
 - `BotTrade()` --calls--> `useModuleAccess()`  [EXTRACTED]
@@ -192,7 +197,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (163 total, 45 thin omitted)
+## Communities (168 total, 44 thin omitted)
 
 ### Community 1 - "CopyTradingService"
 Cohesion: 0.06
@@ -217,6 +222,10 @@ Nodes (22): GET(), POST(), prisma, getOperations(), verifyAdminToken(), Operatio
 ### Community 6 - "compilerOptions"
 Cohesion: 0.07
 Nodes (29): dom, dom.iterable, esnext, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules, **/*.ts (+21 more)
+
+### Community 7 - "BearBotEngine"
+Cohesion: 0.12
+Nodes (3): BearBotEngine, getBestPattern(), wilsonLB()
 
 ### Community 8 - "DerivApiClient"
 Cohesion: 0.11
@@ -295,8 +304,8 @@ Cohesion: 0.08
 Nodes (25): Authentication Workflows, Authorization Token, Before You Begin, Common Patterns, Complete Example, Complete Integration, Complete Trading Workflow, Complete Workflows (+17 more)
 
 ### Community 72 - "bearbot2.types.ts"
-Cohesion: 0.12
-Nodes (20): AIMode, BotMode, ComboPending, DEFAULT_BOT_STATE, DEFAULT_CONFIG, DerivAccount, DerivAuthState, ExecMode (+12 more)
+Cohesion: 0.13
+Nodes (23): AIMode, BotMode, ComboPending, DEFAULT_BOT_STATE, DerivAccount, DerivAuthState, DynamicDigitDetail, ExecMode (+15 more)
 
 ### Community 73 - "bearBotUltra2.test.tsx"
 Cohesion: 0.07
@@ -315,12 +324,12 @@ Cohesion: 0.08
 Nodes (23): 200 OK - Account Already Exists, 201 Created - New Account, About create_account, Account Types, Authentication Required, `body` — Required `object`, Create Account, Currency Support (+15 more)
 
 ### Community 77 - "bearBotUltra2.tsx"
-Cohesion: 0.12
-Nodes (14): extractLastDigit(), isTerminalContract(), useBearBot(), TradeLog, BearBotUltra(), validateNumber(), TradeLogComponent(), TradeLogProps (+6 more)
+Cohesion: 0.11
+Nodes (17): buildLoserSet(), DEFAULT_CONFIG, BearBotUltra(), sanitizeDecimalInput(), validateNumber(), getIntelColor(), getRecLabel(), IntelPanel() (+9 more)
 
-### Community 78 - "buildLoserSet"
-Cohesion: 0.15
-Nodes (13): BotConfig, BotState, buildLoserSet(), MARKETS, clampRateLimits(), getIntelColor(), getRecLabel(), IntelPanel() (+5 more)
+### Community 78 - "BotConfig"
+Cohesion: 0.16
+Nodes (11): BotConfig, BotState, DynamicDigitResult, clampRateLimits(), DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor(), IntelPanelProps (+3 more)
 
 ### Community 79 - "Request Schema"
 Cohesion: 0.10
@@ -438,8 +447,8 @@ Nodes (15): About Health Checks, Best Practices, Endpoint, Error Responses, Exam
 Cohesion: 0.12
 Nodes (15): 1. Response field name changes, 2. Translated display name fields removed, 3. Spot price data removed, 4. Landing company and product type filtering removed, 5. Barrier category filtering removed, 6. Additional metadata fields removed, 6 Breaking Changes, Active symbols (+7 more)
 
-### Community 108 - "bearBot2Engine.test.ts"
-Cohesion: 0.15
+### Community 108 - "createEngine"
+Cohesion: 0.14
 Nodes (6): createEngine(), AI_WEIGHTS, AIModeName, feedABPattern(), seedLoserPressure(), seedPatternIntel()
 
 ### Community 109 - "Contracts for"
@@ -571,8 +580,8 @@ Cohesion: 0.22
 Nodes (8): Authentication, Authentication Methods, OAuth 2.0 app vs PAT app, OAuth 2.0 apps, PAT apps, Token-based access, When to choose which, Why Authentication Matters
 
 ### Community 141 - "Migração Bot Strategy (2025)"
-Cohesion: 0.22
-Nodes (8): 1. Arquitetura, 2. Funcionalidades, 3. Inicialização, 4. Componentes Chave, Deploy on Vercel, Getting Started, Learn More, Migração Bot Strategy (2025)
+Cohesion: 0.20
+Nodes (9): 1. Arquitetura, 2. Funcionalidades, 3. Inicialização, 4. Componentes Chave, Deploy on Vercel, Getting Started, Graphity, Learn More (+1 more)
 
 ### Community 142 - "Pontos de BUG e Ajustes Necessários (Gaps de Funcionalidade):"
 Cohesion: 0.25
@@ -590,9 +599,9 @@ Nodes (6): 1. Varredura Simultânea (Paralelismo), 2. A Métrica de Exaustão (O
 Cohesion: 0.29
 Nodes (6): Another example, Earning partner commissions, Example, Mark-up, Markup impacts user profit, Other ways to monetise the Deriv API
 
-### Community 146 - ".computeMarketIntelligence"
-Cohesion: 0.29
-Nodes (3): MarketIntelligence, getBestPattern(), wilsonLB()
+### Community 146 - "Bear Bot Ultra 2 (v10.0 Refatorado) — Guia Técnico e Manual de Referência Completo"
+Cohesion: 0.05
+Nodes (40): 10. Execução de Baixa Latência: PropKeeper e Pre-opened Proposals, 11. Proteções de Taxa, Timeouts e Concorrência, 12. Cronograma de Ativação Progressiva por Ticks, 13. Suíte de Testes Automatizados (Vitest), 14. Guia Rápido de Consulta para Agentes de IA, 1. Visão Geral e Inovações do Bear Bot Ultra 2, 2. Estrutura de Arquivos e Arquitetura, 3. Mercados Suportados e Precisão de Dígitos (+32 more)
 
 ### Community 147 - "bottraderx.tsx"
 Cohesion: 0.29
@@ -610,22 +619,42 @@ Nodes (5): 1. Para que ele serve?, 2. Como ele funciona? (A Fórmula de Cálculo
 Cohesion: 0.40
 Nodes (4): Available Endpoints, System, Use Cases, WebSocket & REST Endpoints
 
+### Community 163 - "Contagem sob Foco — Loss Virtual Modifier"
+Cohesion: 0.09
+Nodes (21): 1. Tipos (`bearbot2.types.ts`), 2. Engine (`BearBot2Engine.ts`), 3. UI (`bearBotUltra2.tsx`), 4. Hook (`useBearBot2.ts`), Comparação com Comportamento Atual, Comportamento Detalhado, Contagem sob Foco — Loss Virtual Modifier, Escopo (+13 more)
+
+### Community 164 - "useBearBot2.ts"
+Cohesion: 0.14
+Nodes (13): extractLastDigit(), isTerminalContract(), useBearBot(), MARKETS, ProposalEntry, MockAudioContext, mockGetStorageDerivAccount, mockOn (+5 more)
+
+### Community 165 - "Especificação de Design: Dígitos Dinâmicos no Modo Differ (Bear Bot Ultra 2)"
+Cohesion: 0.18
+Nodes (10): 1. Visão Geral, 2.1. Componentes do Score:, 2.2. Critério de Seleção, 2. Modelo Matemático do Score Composto, 3.1. Tipos (`src/app/services/bearbot2.types.ts`), 3.2. Engine (`src/app/services/BearBot2Engine.ts`), 3. Alterações na Arquitetura de Tipos e Engine, 4. Alterações na Interface Gráfica (`src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx`) (+2 more)
+
+### Community 166 - "Global Constraints"
+Cohesion: 0.25
+Nodes (7): Differ Dynamic Digit (Score Composto) Implementation Plan, Global Constraints, Task 1: Type Definitions and Default Config, Task 2: Implement Composite Score Algorithm `computeDynamicDifferDigit`, Task 3: Integrate Dynamic Digit into Engine Tick and Trade Flow, Task 4: UI Toggle and Target Digit State in `bearBotUltra2.tsx`, Task 5: Run Full Test Suite & Validation
+
+### Community 167 - "Global Constraints"
+Cohesion: 0.29
+Nodes (6): Contagem sob Foco — Implementation Plan, Global Constraints, Task 1: Add `vlFocusOnly` to Types and Defaults, Task 2: Implement Focus Reset Logic in Engine, Task 3: Add UI Toggle, Task 4: Manual Verification
+
 ## Knowledge Gaps
-- **1022 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+1017 more)
+- **1087 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+1082 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **45 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **44 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `DerivService` connect `DerivService` to `TicksTest.tsx`, `DerivService.tsx`, `bearBotUltra.test.tsx`, `bearBotUltra2.tsx`, `buyTable.tsx`, `useAuth`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
-- **Why does `BearBotEngine` connect `BearBotEngine` to `bearbot2.types.ts`, `bearBotUltra2.tsx`, `buildLoserSet`, `.computeMarketIntelligence`, `.prepareTrade`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Why does `dependencies` connect `dependencies` to `devDependencies`, `bcryptjs`, `date-fns`, `@deriv/deriv-api`, `@heroicons/react`, `jose`, `json-rules-engine`, `jsonwebtoken`, `lucide-react`, `moment`, `mysql2`, `next`, `nextjs`, `query-string`, `react`, `react-icons`, `react-toastify`, `resend`, `@tensorflow/tfjs-backend-cpu`, `@tensorflow/tfjs-backend-webgl`, `@tensorflow/tfjs-converter`, `@types/react-dom`, `typescript`, `uuid`, `ws`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Why does `DerivService` connect `DerivService` to `useBearBot2.ts`, `TicksTest.tsx`, `DerivService.tsx`, `bearBotUltra.test.tsx`, `buyTable.tsx`, `useAuth`?**
+  _High betweenness centrality (0.010) - this node is a cross-community bridge._
+- **Why does `BearBotEngine` connect `BearBotEngine` to `useBearBot2.ts`, `bearbot2.types.ts`, `bearBotUltra2.tsx`, `BotConfig`, `.prepareTrade`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
+- **Why does `createEngine()` connect `createEngine` to `bearbot2.types.ts`, `useBearBot2.ts`?**
+  _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **What connects `__filename`, `__dirname`, `compat` to the rest of the system?**
-  _1022 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1087 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `DerivService` be split into smaller, more focused modules?**
   _Cohesion score 0.06522522522522523 - nodes in this community are weakly interconnected._
 - **Should `CopyTradingService` be split into smaller, more focused modules?**

@@ -77,7 +77,7 @@
   "75": "Request Schema",
   "76": "Create Account",
   "77": "bearBotUltra2.tsx",
-  "78": "buildLoserSet",
+  "78": "BotConfig",
   "79": "Request Schema",
   "80": "Balance",
   "81": "Response Schema",
@@ -107,7 +107,7 @@
   "105": "Get All Accounts",
   "106": "Health Check",
   "107": "Active symbols",
-  "108": "bearBot2Engine.test.ts",
+  "108": "createEngine",
   "109": "Contracts for",
   "110": "Breaking changes",
   "111": "Breaking changes",
@@ -145,7 +145,7 @@
   "143": "ciclo_monitoramento_trader.md",
   "144": "explicacao_multi_mercado_com_execicao_manual.md",
   "145": "Mark-up",
-  "146": ".computeMarketIntelligence",
+  "146": "Bear Bot Ultra 2 (v10.0 Refatorado) — Guia Técnico e Manual de Referência Completo",
   "147": "bottraderx.tsx",
   "148": "Pendente",
   "149": ".prepareTrade",
@@ -161,5 +161,10 @@
   "159": "localStorage.md",
   "160": "localstorage.md",
   "161": "grafico_sincronia.md",
-  "162": "copy-trader-doc.md"
+  "162": "copy-trader-doc.md",
+  "163": "Contagem sob Foco — Loss Virtual Modifier",
+  "164": "useBearBot2.ts",
+  "165": "Especificação de Design: Dígitos Dinâmicos no Modo Differ (Bear Bot Ultra 2)",
+  "166": "Global Constraints",
+  "167": "Global Constraints"
 }

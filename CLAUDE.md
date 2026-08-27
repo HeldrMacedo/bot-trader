@@ -26,6 +26,8 @@ This is a **Next.js 16 + React 19 trading bot platform** that integrates with th
 | `bot-analitico/` | Inactive | ML analytics with TensorFlow.js |
 | `advanced-bot/` | Inactive | Advanced bot features |
 | `bottrader/` | **Active** | Bot Copy Trader |
+| `bear-bot-ultra/` | **Active** | Bear Bot Ultra v1 |
+| `bear-bot-ultra-2/` | **Active** | Bear Bot Ultra 2 (v10.0 Refatorado) com IA Cross-Market & Dígitos Dinâmicos |
 
 ### Core Architecture Patterns
 
@@ -89,6 +91,8 @@ See `docs/DERIV_OAUTH_MIGRATION.md` for OAuth 2.0 PKCE, trading OTP WebSocket, a
 See `docs/ADVANCED_MODE.md` for the trade-mind-pro Advanced Mode (json-rules-engine) documentation.
 See `docs/AUTH_ROUTES.md` for authentication and route protection documentation.
 See `docs/BOTTRADER.md` for the BotTrader (Copy Trader) module documentation.
+See `docs/doc_bear_bot_ultra/README.md` for Bear Bot Ultra v1 documentation.
+See `docs/doc_bear_bot_ultra_2/README.md` for Bear Bot Ultra 2 (v10.0 Refatorado) comprehensive technical documentation.
 
 ### Authentication & Route Protection
 
