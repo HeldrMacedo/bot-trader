@@ -61,7 +61,7 @@ export default function HistoryPage() {
           limit,
           0
         );
-
+        console.log('response', response);
         const tradesWithAccount = (response?.profit_table?.transactions || [])
           .map((trade) => ({ ...trade, account, is_virtual: selected.is_virtual }))
           .sort((a, b) => b.purchase_time - a.purchase_time);
@@ -103,22 +103,20 @@ export default function HistoryPage() {
         <button
           onClick={() => switchMode("real")}
           disabled={!realToken}
-          className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
-            viewMode === "real"
-              ? "bg-blue-600 text-white shadow-md"
-              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-          } ${!realToken ? "opacity-40 cursor-not-allowed" : ""}`}
+          className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${viewMode === "real"
+            ? "bg-blue-600 text-white shadow-md"
+            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            } ${!realToken ? "opacity-40 cursor-not-allowed" : ""}`}
         >
           Conta Real
         </button>
         <button
           onClick={() => switchMode("demo")}
           disabled={!demoToken}
-          className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
-            viewMode === "demo"
-              ? "bg-yellow-500 text-black shadow-md"
-              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-          } ${!demoToken ? "opacity-40 cursor-not-allowed" : ""}`}
+          className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${viewMode === "demo"
+            ? "bg-yellow-500 text-black shadow-md"
+            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            } ${!demoToken ? "opacity-40 cursor-not-allowed" : ""}`}
         >
           Conta Demo
         </button>
@@ -155,6 +153,12 @@ export default function HistoryPage() {
                     ID da Transação
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
+                    Tipo Contrato
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
+                    Símbolo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
                     Conta
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-extrabold text-gray-400 uppercase tracking-wider">
@@ -173,6 +177,12 @@ export default function HistoryPage() {
                   <tr key={trade.transaction_id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {trade.transaction_id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {trade.contract_type}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {trade.underlying_symbol}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
                       {trade.account}
@@ -197,22 +207,21 @@ export default function HistoryPage() {
                       })}
                     </td>
                     <td
-                      className={`px-6 py-4 whitespace-nowrap ${
-                        trade.sell_price >= trade.buy_price
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }`}
+                      className={`px-6 py-4 whitespace-nowrap ${trade.sell_price >= trade.buy_price
+                        ? "text-green-500"
+                        : "text-red-500"
+                        }`}
                     >
                       {trade.sell_price === 0 ? "-" : "+"}$
                       {trade.sell_price === 0
                         ? parseFloat(trade.buy_price).toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
                         : parseFloat(trade.sell_price).toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                     </td>
                   </tr>
                 ))}
