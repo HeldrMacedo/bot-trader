@@ -228,4 +228,61 @@ describe('BearBot2Engine - Dígito Dinâmico no Modo Differ (Score Composto)', (
       expect(engine.getConfig().digit).toBe(1);
     });
   });
+
+  describe('5. Sincronização entre Dígito Alvo (config.digit) e Radar Dinâmico', () => {
+    it('atualiza imediatamente config.digit para o dígito dinâmico ao ativar differDynamicDigit via updateConfig', () => {
+      const engine = createEngine({
+        activeSym: 'R_100',
+        mode: 'differ',
+        digit: 3,
+        differDynamicDigit: false,
+      });
+
+      // Alimenta R_100 com ticks sem o dígito 7
+      for (let i = 0; i < 40; i++) {
+        const d = (i % 9 === 7) ? 0 : (i % 9);
+        engine.processTick('R_100', 100 + d, d);
+      }
+
+      expect(engine.getConfig().digit).toBe(3);
+
+      // Ativa differDynamicDigit
+      engine.updateConfig({ differDynamicDigit: true });
+
+      const dyn = engine.computeDynamicDifferDigit('R_100');
+      expect(dyn.digit).toBe(7);
+      expect(engine.getConfig().digit).toBe(7);
+    });
+
+    it('mantém config.digit sincronizado a cada tick no modo auto mesmo enquanto aguarda Loss Virtual', () => {
+      const engine = createEngine({
+        activeSym: 'R_100',
+        mode: 'differ',
+        exec: 'auto',
+        autoOn: true,
+        differDynamicDigit: true,
+        vlOn: true,
+        vlQty: 5,
+        tradeCooldownMs: 0,
+      });
+
+      // Alimenta ticks sem o dígito 2
+      for (let i = 0; i < 30; i++) {
+        const d = (i % 9 === 2) ? 0 : (i % 9);
+        engine.processTick('R_100', 100 + d, d);
+        const dyn = engine.computeDynamicDifferDigit('R_100');
+        expect(engine.getConfig().digit).toBe(dyn.digit);
+      }
+
+      // Alimenta stream onde o dígito 8 passa a ser mais frio que o dígito 2
+      for (let i = 0; i < 50; i++) {
+        const d = (i % 9 === 8) ? 2 : (i % 9);
+        engine.processTick('R_100', 100 + d, d);
+      }
+
+      const dynAfter = engine.computeDynamicDifferDigit('R_100');
+      expect(dynAfter.digit).toBe(8);
+      expect(engine.getConfig().digit).toBe(8);
+    });
+  });
 });

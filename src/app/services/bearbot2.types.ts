@@ -195,6 +195,8 @@ export interface BotState {
   tickData: Record<string, TickData>;
   /** Per-market VL counters for multi UI. */
   vlBySym: Record<string, VLMarketState>;
+  /** Per-market active/target auto digit for differ auto mode. */
+  autoDigitBySym?: Record<string, number | null>;
   vlCount: number;
   vlSeen: number;
   galeLevel: number;
@@ -271,6 +273,7 @@ export const DEFAULT_BOT_STATE: BotState = {
   marketIntel: {},
   tickData: {},
   vlBySym: {},
+  autoDigitBySym: {},
   vlCount: 0,
   vlSeen: 0,
   galeLevel: 0,

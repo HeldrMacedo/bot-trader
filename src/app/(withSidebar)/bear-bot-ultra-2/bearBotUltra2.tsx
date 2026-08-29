@@ -79,6 +79,14 @@ export default function BearBotUltra() {
     ? getDynamicDifferDigit(config.activeSym)
     : { digit: config.digit, score: 50, scores: {}, breakdown: {} };
 
+  const activeAutoDigit = (config.mode === 'differ' && config.vlOn && config.differAutoDigit)
+    ? (state.autoDigitBySym?.[config.activeSym] ?? config.digit)
+    : null;
+
+  const effectiveTargetDigit = (config.mode === 'differ' && config.differDynamicDigit)
+    ? dynamicDifferInfo.digit
+    : (activeAutoDigit !== null ? activeAutoDigit : config.digit);
+
   const handleModeChange = (mode: typeof config.mode) => {
     updateConfig({ mode });
   };
@@ -328,7 +336,7 @@ export default function BearBotUltra() {
                   <span className="text-xs text-[#8593aa]">Som</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => { updateConfig({ multiOn: !config.multiOn }); }} className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${config.multiOn ? "bg-indigo-600 border-indigo-500 text-white" : "bg-[#18202f] border-[#2e3a52] text-[#8593aa]"}`}>{config.multiOn ? "Multi ON" : "Multi OFF"}</button>
+                  <button data-testid="toggle-multi-market" onClick={() => { updateConfig({ multiOn: !config.multiOn }); }} className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${config.multiOn ? "bg-indigo-600 border-indigo-500 text-white" : "bg-[#18202f] border-[#2e3a52] text-[#8593aa]"}`}>{config.multiOn ? "Multi ON" : "Multi OFF"}</button>
                 </div>
               </div>
             </div>
@@ -358,7 +366,7 @@ export default function BearBotUltra() {
                     onClick={() => {
                       const next = !config.differDynamicDigit;
                       if (next) {
-                        updateConfig({ differDynamicDigit: true, vlOn: false, patTrigger: false, differAutoDigit: false });
+                        updateConfig({ differDynamicDigit: true, patTrigger: false, differAutoDigit: false });
                       } else {
                         updateConfig({ differDynamicDigit: false });
                       }
@@ -495,7 +503,7 @@ export default function BearBotUltra() {
                         key={i}
                         disabled={config.mode === 'differ' && ((config.vlOn && config.differAutoDigit) || config.differDynamicDigit)}
                         onClick={() => handleDigitChange(i)}
-                        className={`py-2 font-mono font-bold text-sm rounded-lg border transition-all ${config.digit === i ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]" : buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver).has(i) ? "bg-[#e23b32]/5 border-[#e23b32]/25 text-[#e23b32] hover:bg-[#e23b32]/10" : "bg-[#2eb84f]/5 border-[#2eb84f]/25 text-[#2eb84f] hover:bg-[#2eb84f]/10"}`}
+                        className={`py-2 font-mono font-bold text-sm rounded-lg border transition-all ${effectiveTargetDigit === i ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]" : buildLoserSet(config.mode, effectiveTargetDigit, config.comboUnder, config.comboOver).has(i) ? "bg-[#e23b32]/5 border-[#e23b32]/25 text-[#e23b32] hover:bg-[#e23b32]/10" : "bg-[#2eb84f]/5 border-[#2eb84f]/25 text-[#2eb84f] hover:bg-[#2eb84f]/10"}`}
                       >
                         {i}
                       </button>
@@ -544,17 +552,13 @@ export default function BearBotUltra() {
           </div>
 
           {/* Card: Loss Virtual */}
-          <div className={`bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl transition-all ${config.mode === 'differ' && config.differDynamicDigit ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div className="bg-[#131925] border border-[#222c3f] rounded-xl p-4 shadow-xl transition-all">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-[#8593aa]">🛡️ LOSS VIRTUAL</h2>
-                {config.mode === 'differ' && config.differDynamicDigit && (
-                  <span className="text-[9px] bg-gray-700/50 text-gray-400 border border-gray-600/40 px-1.5 py-0.5 rounded font-bold">DESATIVADO</span>
-                )}
               </div>
               <button
                 data-testid="toggle-loss-virtual"
-                disabled={config.mode === 'differ' && config.differDynamicDigit}
                 onClick={() => updateConfig({ vlOn: !config.vlOn })}
                 className={`w-12 h-6 rounded-full transition-all relative ${config.vlOn ? "bg-green-600" : "bg-[#18202f] border border-[#2e3a52]"}`}
               >
@@ -767,7 +771,7 @@ export default function BearBotUltra() {
                 const counts = new Array(10).fill(0);
                 arr.forEach(d => counts[d]++);
                 const tot = arr.length || 1;
-                const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
+                const lose = buildLoserSet(config.mode, effectiveTargetDigit, config.comboUnder, config.comboOver);
                 return (
                   <div key={n} className="bg-[#0e131d] border border-[#222c3f] rounded-lg p-3">
                     <span className="text-[10px] text-[#8593aa] uppercase tracking-wider font-bold mb-2 block text-center">Últimos {n} Ticks</span>

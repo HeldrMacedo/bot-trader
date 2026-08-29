@@ -129,6 +129,8 @@ export class BearBotEngine {
   private comboPending: ComboPending | null = null;
   private ticksSinceReset: Record<string, number> = {};
   private autoDigitTarget: Record<string, number | null> = {};
+  private autoDigitActive: Record<string, number | null> = {};
+  private vlLossHistory: Record<string, number[]> = {};
   private settled: Record<string, boolean> = {};
   private lastManualSwitch = 0;
   private listeners: Set<(state: BotState) => void> = new Set();
@@ -137,6 +139,7 @@ export class BearBotEngine {
 
   constructor(config: Partial<BotConfig> = {}) {
     this.config = { ...this.getDefaultConfig(), ...clampRateLimits(config) };
+    this.lastManualSwitch = 0;
     this.state = {
       ...DEFAULT_BOT_STATE,
       curStake: this.config.stake,
@@ -164,10 +167,12 @@ export class BearBotEngine {
   private initMarkets() {
     MARKETS.forEach(m => {
       this.tickData[m.sym] = { digits: [], price: null };
-      this.patState[m.sym] = { a: null, b: null, count: 0, reps: 0, armed: false, waiting: false, seqCount: 0 };
+      this.patState[m.sym] = { a: null, b: null, count: 0, reps: 0, seqCount: 0, armed: false, waiting: false, force: 0, wilson: 0, lift: 0, tri: 0, stable: 0, _final: 0 };
       this.vlMState[m.sym] = { count: 0, seen: 0 };
       this.ticksSinceReset[m.sym] = 0;
       this.autoDigitTarget[m.sym] = null;
+      this.autoDigitActive[m.sym] = null;
+      this.vlLossHistory[m.sym] = [];
     });
   }
 
@@ -175,14 +180,17 @@ export class BearBotEngine {
   getConfig(): BotConfig { return { ...this.config }; }
   getState(): BotState {
     const vlBySym: Record<string, VLMarketState> = {};
+    const autoDigitBySym: Record<string, number | null> = {};
     MARKETS.forEach(m => {
       const st = this.vlMState[m.sym] || { count: 0, seen: 0 };
       vlBySym[m.sym] = { count: st.count, seen: st.seen };
+      autoDigitBySym[m.sym] = this.autoDigitActive[m.sym] ?? null;
     });
     return {
       ...this.state,
       tickData: { ...this.tickData },
       vlBySym,
+      autoDigitBySym,
     };
   }
 
@@ -193,11 +201,11 @@ export class BearBotEngine {
     const oldActiveSym = this.config.activeSym;
     this.config = { ...this.config, ...clampRateLimits(updates) };
     // When activeSym is changed manually, set lastManualSwitch to prevent immediate override
-    if (updates.activeSym !== undefined && updates.activeSym !== oldActiveSym) {
+    if (updates.activeSym !== undefined) {
       this.lastManualSwitch = Date.now();
       this.multiCand = {};
       // Contagem sob Foco: reset VL when user manually switches activeSym
-      if (this.config.vlFocusOnly && this.config.vlOn && this.config.multiOn) {
+      if (this.config.vlFocusOnly && this.config.vlOn && this.config.multiOn && updates.activeSym !== oldActiveSym) {
         this.vlResetM(oldActiveSym);
         this.vlResetM(this.config.activeSym);
         this.addLog(`🎯 Contagem sob Foco · Reset VL para ${this.config.activeSym}`, 'info');
@@ -242,6 +250,9 @@ export class BearBotEngine {
       updates.vlWindow !== undefined
     ) {
       this.updateAllIntelligence();
+    }
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit && !this.state.tradeLock) {
+      this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
     }
     if (updates.postLossOn === false && this.state.recovery.active) {
       this.clearRecovery();
@@ -382,6 +393,8 @@ export class BearBotEngine {
           if (tail.length === this.config.vlQty && tail.every(d => d === tail[0])) {
             st.count = this.config.vlQty;
             this.autoDigitTarget[sym] = tail[0];
+            this.autoDigitActive[sym] = tail[0];
+            if (sym === this.config.activeSym) this.config.digit = tail[0];
             return;
           }
         }
@@ -392,6 +405,10 @@ export class BearBotEngine {
         }
         st.count = streak;
         this.autoDigitTarget[sym] = null;
+        this.autoDigitActive[sym] = streak > 0 ? dig : null;
+        if (sym === this.config.activeSym && streak > 0) {
+          this.config.digit = dig;
+        }
       } else {
         const windowSize = Math.min(countSinceReset, this.config.vlWindow);
         const slice = windowSize > 0 ? digits.slice(-windowSize) : [];
@@ -399,26 +416,55 @@ export class BearBotEngine {
         slice.forEach(d => { freqs[d] = (freqs[d] || 0) + 1; });
         st.seen = slice.length;
 
-        if ((freqs[dig] || 0) >= this.config.vlQty) {
-          st.count = freqs[dig];
-          this.autoDigitTarget[sym] = dig;
-        } else {
-          let found: number | null = null;
-          for (let i = slice.length - 1; i >= 0; i--) {
-            const d = slice[i];
-            if ((freqs[d] || 0) >= this.config.vlQty) {
-              found = d;
-              break;
-            }
-          }
-          if (found !== null) {
-            st.count = freqs[found];
-            this.autoDigitTarget[sym] = found;
-          } else {
-            st.count = freqs[dig] || 0;
-            this.autoDigitTarget[sym] = null;
+        let maxDigit: number | null = null;
+        let maxCount = 0;
+        for (let i = slice.length - 1; i >= 0; i--) {
+          const d = slice[i];
+          const cnt = freqs[d] || 0;
+          if (cnt > maxCount) {
+            maxCount = cnt;
+            maxDigit = d;
           }
         }
+
+        if (maxCount >= this.config.vlQty && maxDigit !== null) {
+          st.count = maxCount;
+          this.autoDigitTarget[sym] = maxDigit;
+          this.autoDigitActive[sym] = maxDigit;
+          if (sym === this.config.activeSym) this.config.digit = maxDigit;
+        } else {
+          st.count = maxCount;
+          this.autoDigitTarget[sym] = null;
+          this.autoDigitActive[sym] = maxCount > 0 ? maxDigit : null;
+          if (sym === this.config.activeSym && maxDigit !== null && maxCount > 0) {
+            this.config.digit = maxDigit;
+          }
+        }
+      }
+      return;
+    }
+
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
+      const allDigits = this.tickData[sym]?.digits || [];
+      const prevDigits = allDigits.length > 1 ? allDigits.slice(0, -1) : [];
+      const dynDigit = this.computeDynamicDifferDigit(sym, prevDigits).digit;
+      const isLoser = dig === dynDigit;
+      if (!this.vlLossHistory[sym]) this.vlLossHistory[sym] = [];
+      this.vlLossHistory[sym].push(isLoser ? 1 : 0);
+      if (this.vlLossHistory[sym].length > 200) this.vlLossHistory[sym].shift();
+
+      if (this.config.vlMode === 'consec') {
+        if (isLoser) st.count++; else st.count = 0;
+        st.seen = 0;
+      } else {
+        const countSinceReset = this.ticksSinceReset[sym] || 0;
+        const windowSize = Math.min(countSinceReset, this.config.vlWindow);
+        const hist = this.vlLossHistory[sym];
+        const slice = windowSize > 0 ? hist.slice(-windowSize) : [];
+        let count = 0;
+        slice.forEach(x => { if (x === 1) count++; });
+        st.count = count;
+        st.seen = slice.length;
       }
       return;
     }
@@ -458,6 +504,8 @@ export class BearBotEngine {
             this.state.vlCount = this.config.vlQty;
             const st = this.vlM(sym); st.count = this.state.vlCount; st.seen = 0;
             this.autoDigitTarget[sym] = tail[0];
+            this.autoDigitActive[sym] = tail[0];
+            this.config.digit = tail[0];
             return;
           }
         }
@@ -469,6 +517,8 @@ export class BearBotEngine {
         this.state.vlCount = streak;
         const st = this.vlM(sym); st.count = streak; st.seen = 0;
         this.autoDigitTarget[sym] = null;
+        this.autoDigitActive[sym] = streak > 0 ? dig : null;
+        if (streak > 0) this.config.digit = dig;
       } else {
         const windowSize = Math.min(countSinceReset, this.config.vlWindow);
         const slice = windowSize > 0 ? digits.slice(-windowSize) : [];
@@ -476,28 +526,58 @@ export class BearBotEngine {
         slice.forEach(d => { freqs[d] = (freqs[d] || 0) + 1; });
         this.state.vlSeen = slice.length;
 
-        if ((freqs[dig] || 0) >= this.config.vlQty) {
-          this.state.vlCount = freqs[dig];
-          this.autoDigitTarget[sym] = dig;
-        } else {
-          let found: number | null = null;
-          for (let i = slice.length - 1; i >= 0; i--) {
-            const d = slice[i];
-            if ((freqs[d] || 0) >= this.config.vlQty) {
-              found = d;
-              break;
-            }
+        let maxDigit: number | null = null;
+        let maxCount = 0;
+        for (let i = slice.length - 1; i >= 0; i--) {
+          const d = slice[i];
+          const cnt = freqs[d] || 0;
+          if (cnt > maxCount) {
+            maxCount = cnt;
+            maxDigit = d;
           }
-          if (found !== null) {
-            this.state.vlCount = freqs[found];
-            this.autoDigitTarget[sym] = found;
-          } else {
-            this.state.vlCount = freqs[dig] || 0;
-            this.autoDigitTarget[sym] = null;
+        }
+
+        if (maxCount >= this.config.vlQty && maxDigit !== null) {
+          this.state.vlCount = maxCount;
+          this.autoDigitTarget[sym] = maxDigit;
+          this.autoDigitActive[sym] = maxDigit;
+          this.config.digit = maxDigit;
+        } else {
+          this.state.vlCount = maxCount;
+          this.autoDigitTarget[sym] = null;
+          this.autoDigitActive[sym] = maxCount > 0 ? maxDigit : null;
+          if (maxDigit !== null && maxCount > 0) {
+            this.config.digit = maxDigit;
           }
         }
         const st = this.vlM(sym); st.count = this.state.vlCount; st.seen = this.state.vlSeen;
       }
+      return;
+    }
+
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
+      const allDigits = this.tickData[sym]?.digits || [];
+      const prevDigits = allDigits.length > 1 ? allDigits.slice(0, -1) : [];
+      const dynDigit = this.computeDynamicDifferDigit(sym, prevDigits).digit;
+      const isLoser = dig === dynDigit;
+      if (!this.vlLossHistory[sym]) this.vlLossHistory[sym] = [];
+      this.vlLossHistory[sym].push(isLoser ? 1 : 0);
+      if (this.vlLossHistory[sym].length > 200) this.vlLossHistory[sym].shift();
+
+      if (this.config.vlMode === 'consec') {
+        if (isLoser) this.state.vlCount++; else this.state.vlCount = 0;
+        this.state.vlSeen = 0;
+      } else {
+        const countSinceReset = this.ticksSinceReset[sym] || 0;
+        const windowSize = Math.min(countSinceReset, this.config.vlWindow);
+        const hist = this.vlLossHistory[sym];
+        const slice = windowSize > 0 ? hist.slice(-windowSize) : [];
+        let count = 0;
+        slice.forEach(x => { if (x === 1) count++; });
+        this.state.vlCount = count;
+        this.state.vlSeen = slice.length;
+      }
+      const st = this.vlM(sym); st.count = this.state.vlCount; st.seen = this.state.vlSeen;
       return;
     }
 
@@ -544,6 +624,8 @@ export class BearBotEngine {
     const sym = this.config.activeSym;
     this.ticksSinceReset[sym] = 0;
     this.autoDigitTarget[sym] = null;
+    this.autoDigitActive[sym] = null;
+    this.vlLossHistory[sym] = [];
     const st = this.vlM(sym); st.count = 0; st.seen = 0;
   }
 
@@ -551,6 +633,12 @@ export class BearBotEngine {
     const st = this.vlM(sym); st.count = 0; st.seen = 0;
     this.ticksSinceReset[sym] = 0;
     this.autoDigitTarget[sym] = null;
+    this.autoDigitActive[sym] = null;
+    this.vlLossHistory[sym] = [];
+    if (sym === this.config.activeSym) {
+      this.state.vlCount = 0;
+      this.state.vlSeen = 0;
+    }
   }
 
   private vlResetAllM() {
@@ -558,9 +646,15 @@ export class BearBotEngine {
     this.multiCand = {};
     this.ticksSinceReset = {};
     this.autoDigitTarget = {};
+    this.autoDigitActive = {};
+    this.vlLossHistory = {};
+    this.state.vlCount = 0;
+    this.state.vlSeen = 0;
     MARKETS.forEach(m => {
       this.ticksSinceReset[m.sym] = 0;
       this.autoDigitTarget[m.sym] = null;
+      this.autoDigitActive[m.sym] = null;
+      this.vlLossHistory[m.sym] = [];
       if (this.patState[m.sym]) {
         this.patState[m.sym].count = 0;
         this.patState[m.sym].seqCount = 0;
@@ -665,8 +759,8 @@ export class BearBotEngine {
   }
 
   // ── Estatísticas ──
-  computeDynamicDifferDigit(sym: string): DynamicDigitResult {
-    const digits = this.tickData[sym]?.digits || [];
+  computeDynamicDifferDigit(sym: string, customDigits?: number[]): DynamicDigitResult {
+    const digits = customDigits !== undefined ? customDigits : (this.tickData[sym]?.digits || []);
     const defaultDigit = this.config.digit;
     const scores: Record<number, number> = {};
     const breakdown: Record<number, DynamicDigitDetail> = {};
@@ -903,8 +997,10 @@ export class BearBotEngine {
   private onNewTick(sym: string, dig: number) {
     if (this.handleRecoveryTick()) return;
     const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
-    const intel = this.state.marketIntel[sym];
-    const aiGateOpen = !intel || intel.opportunityScore >= 40 || isRecovery;
+    const isAiGateOpen = (s: string) => {
+      const intel = this.state.marketIntel[s];
+      return !intel || intel.opportunityScore >= 40 || isRecovery || this.vlGateOpenM(s);
+    };
 
     if (this.config.multiOn) {
       const isFocusOnly = this.config.vlOn && this.config.vlFocusOnly;
@@ -913,11 +1009,23 @@ export class BearBotEngine {
       if (this.config.mode === 'differ' && this.config.differAutoDigit) {
         this.vlOnDigitM(sym, dig);
         const target = this.autoDigitTarget[sym];
-        if (target !== null && target !== undefined && isCandidateGateOpen(sym) && aiGateOpen) {
-          const an = this.marketAnomaly(sym);
-          const exc = an ? an.excess : 0;
-          const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
-          this.multiCand[sym] = { sym, b: target, score };
+        const aiGateOpen = isAiGateOpen(sym);
+        if (isFocusOnly) {
+          if (aiGateOpen) {
+            const an = this.marketAnomaly(sym);
+            const exc = an ? an.excess : 0;
+            const intel = this.state.marketIntel[sym];
+            const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
+            this.multiCand[sym] = { sym, b: target ?? this.config.digit, score };
+          }
+        } else {
+          if (target !== null && target !== undefined && isCandidateGateOpen(sym) && aiGateOpen) {
+            const an = this.marketAnomaly(sym);
+            const exc = an ? an.excess : 0;
+            const intel = this.state.marketIntel[sym];
+            const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
+            this.multiCand[sym] = { sym, b: target, score };
+          }
         }
       } else if (this.config.mode === 'differ' && this.config.patTrigger) {
         const ps = this.patState[sym];
@@ -927,25 +1035,34 @@ export class BearBotEngine {
             ps.waiting = false;
             if (dig !== ps.b) { ps.count = 0; ps.armed = false; }
           }
+          const aiGateOpen = isAiGateOpen(sym);
           if (ps.armed && dig === ps.a && isCandidateGateOpen(sym) && aiGateOpen) {
+            const intel = this.state.marketIntel[sym];
             const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + (ps.seqCount || 0);
             this.multiCand[sym] = { sym, b: ps.b, score };
           }
         }
       } else if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
         this.vlOnDigitM(sym, dig);
+        if (sym === this.config.activeSym && !this.state.tradeLock) {
+          this.config.digit = this.computeDynamicDifferDigit(sym).digit;
+        }
+        const aiGateOpen = isAiGateOpen(sym);
         if (isCandidateGateOpen(sym) && aiGateOpen) {
           const dyn = this.computeDynamicDifferDigit(sym);
           const an = this.marketAnomaly(sym);
           const exc = an ? an.excess : 0;
+          const intel = this.state.marketIntel[sym];
           const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc + (dyn.score >= 70 ? 5 : 0);
           this.multiCand[sym] = { sym, b: dyn.digit, score };
         }
       } else {
         this.vlOnDigitM(sym, dig);
+        const aiGateOpen = isAiGateOpen(sym);
         if (isCandidateGateOpen(sym) && aiGateOpen) {
           const an = this.marketAnomaly(sym);
           const exc = an ? an.excess : 0;
+          const intel = this.state.marketIntel[sym];
           const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
           this.multiCand[sym] = { sym, b: this.config.digit, score };
         }
@@ -967,6 +1084,7 @@ export class BearBotEngine {
     if (this.config.mode === 'differ' && this.config.differAutoDigit) {
       this.vlOnDigit(dig);
       const target = this.autoDigitTarget[sym];
+      const aiGateOpen = isAiGateOpen(sym);
       if (target !== null && target !== undefined && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
         if (this.config.exec === 'auto' && this.config.autoOn) {
           if (!this.canOpenTrade(true)) return;
@@ -988,6 +1106,7 @@ export class BearBotEngine {
           ps.waiting = false;
           if (dig !== ps.b) { ps.count = 0; ps.armed = false; this.addLog(`Padrão ${ps.a}→${ps.b} quebrou · reset`, 'virt'); }
         }
+        const aiGateOpen = isAiGateOpen(sym);
         if (ps.armed && dig === ps.a && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
           if (this.config.exec === 'auto' && this.config.autoOn) {
             // Do not reset VL if lock/rate would block prepareTrade
@@ -1009,22 +1128,22 @@ export class BearBotEngine {
     if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
       this.vlOnDigit(dig);
       const dyn = this.computeDynamicDifferDigit(sym);
+      if (!this.state.tradeLock) {
+        this.config.digit = dyn.digit;
+      }
+      const aiGateOpen = isAiGateOpen(sym);
       if (this.config.exec === 'auto' && this.config.autoOn) {
         if ((this.vlGateOpen() || isRecovery) && aiGateOpen) {
           if (!this.canOpenTrade(true)) return;
-          this.config.digit = dyn.digit;
           this.vlReset();
           this.triggerAutoTrade();
-        }
-      } else {
-        if (!this.state.tradeLock) {
-          this.config.digit = dyn.digit;
         }
       }
       return;
     }
 
     this.vlOnDigit(dig);
+    const aiGateOpen = isAiGateOpen(sym);
     if (this.config.exec === 'auto' && this.config.autoOn && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
       if (!this.canOpenTrade(true)) return;
       this.vlReset();
@@ -1042,19 +1161,44 @@ export class BearBotEngine {
 
     // Under vlFocusOnly, focus switches first, and trading only triggers after VL accumulates under focus
     if (this.config.vlFocusOnly && this.config.vlOn) {
-      if (pick.sym !== this.config.activeSym) {
-        const curScore = this.state.marketIntel[this.config.activeSym]?.opportunityScore ?? 50;
-        if (pick.score <= curScore && curScore >= 40) {
+      const activeSym = this.config.activeSym;
+      const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
+
+      // 1. If active market already achieved VL threshold under focus, fire the trade on activeSym!
+      if (this.vlGateOpenM(activeSym)) {
+        this.multiCand = {};
+        if (this.config.mode === 'differ' && this.config.differAutoDigit) {
+          const targetDigit = this.autoDigitTarget[activeSym] ?? pick.b;
+          if (targetDigit !== null && targetDigit !== undefined) {
+            this.config.digit = targetDigit;
+          }
+        } else if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differDynamicDigit)) {
+          const cand = cands.find((c: any) => c.sym === activeSym);
+          if (cand && cand.b !== null && cand.b !== undefined) this.config.digit = cand.b;
+          const ps = this.patState[activeSym];
+          if (ps && this.config.patTrigger) ps.waiting = true;
+        }
+        this.vlResetM(activeSym);
+        this.addLog(`🌐 MULTI · ${activeSym} atingiu ${this.config.vlQty} loss sob foco · Executando trade`, 'info');
+        this.triggerAutoTrade();
+        this.notify();
+        return;
+      }
+
+      // 2. Otherwise, if another candidate has better score, evaluate switching focus to it
+      if (pick.sym !== activeSym) {
+        const curScore = this.state.marketIntel[activeSym]?.opportunityScore ?? 50;
+        if (pick.score <= curScore && curScore >= 40 && !isRecovery) {
           return;
         }
         if (Date.now() - this.lastManualSwitch > 3000) {
           this.multiCand = {};
-          this.vlResetM(this.config.activeSym);
+          this.vlResetM(activeSym);
           this.config.activeSym = pick.sym;
           this.lastManualSwitch = Date.now();
           this.vlResetM(pick.sym);
           if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
-            this.config.digit = pick.b!;
+            if (pick.b !== null && pick.b !== undefined) this.config.digit = pick.b;
             const ps = this.patState[pick.sym];
             if (ps && this.config.patTrigger) ps.waiting = true;
           }
@@ -1064,21 +1208,6 @@ export class BearBotEngine {
         return;
       }
 
-      const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
-      if (!this.vlGateOpenM(pick.sym) && !isRecovery) {
-        return;
-      }
-
-      this.multiCand = {};
-      if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
-        this.config.digit = pick.b!;
-        const ps = this.patState[pick.sym];
-        if (ps && this.config.patTrigger) ps.waiting = true;
-      }
-      this.vlResetM(pick.sym);
-      this.addLog(`🌐 MULTI · ${pick.sym} atingiu ${this.config.vlQty} loss sob foco · Executando trade`, 'info');
-      this.triggerAutoTrade();
-      this.notify();
       return;
     }
 
@@ -1102,9 +1231,10 @@ export class BearBotEngine {
     cands.sort((a: any, b: any) => b.score - a.score);
     const pick: any = cands[0];
     if (pick.sym !== this.config.activeSym) {
+      const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
       if (this.config.vlFocusOnly && this.config.vlOn) {
         const curScore = this.state.marketIntel[this.config.activeSym]?.opportunityScore ?? 50;
-        if (pick.score <= curScore && curScore >= 40) {
+        if (pick.score <= curScore && curScore >= 40 && !isRecovery) {
           return;
         }
       }
@@ -1116,7 +1246,7 @@ export class BearBotEngine {
         this.config.activeSym = pick.sym;
         this.lastManualSwitch = Date.now();
         if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
-          this.config.digit = pick.b!;
+          if (pick.b !== null && pick.b !== undefined) this.config.digit = pick.b;
         }
         // Contagem sob Foco: reset VL for newly focused market
         if (this.config.vlFocusOnly && this.config.vlOn) {
@@ -1369,6 +1499,9 @@ export class BearBotEngine {
   startBot() {
     if (this.config.exec !== 'auto') return false;
     this.vlReset(); this.vlResetAllM(); this.state.recovery.active = false;
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
+      this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
+    }
     this.config.autoOn = true;
     this.addLog(`🤖 Robô LIGADO · ${this.config.mode.toUpperCase()}`, 'win');
     this.notify();

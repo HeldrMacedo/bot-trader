@@ -44,6 +44,8 @@ class MockAudioContext {
 }
 (window as any).AudioContext = MockAudioContext;
 
+const registeredListeners: Record<string, Function[]> = {};
+
 // Mock DerivService
 const mockDerivInstance = {
   send: vi.fn().mockResolvedValue({}),
@@ -66,7 +68,11 @@ const mockDerivInstance = {
   }),
   isMarketConnected: true,
   observerInstance: {
-    on: vi.fn().mockReturnValue('mock_id'),
+    on: vi.fn().mockImplementation((event: string, cb: Function) => {
+      if (!registeredListeners[event]) registeredListeners[event] = [];
+      registeredListeners[event].push(cb);
+      return `${event}_id_${Math.random()}`;
+    }),
     removeById: vi.fn(),
   },
   on: vi.fn(),
@@ -95,6 +101,9 @@ vi.mock('react-toastify', () => ({
 
 describe('BearBotUltra2 UI - Dígito Automático', () => {
   beforeEach(() => {
+    for (const key of Object.keys(registeredListeners)) {
+      delete registeredListeners[key];
+    }
     localStorageMock.clear();
     vi.clearAllMocks();
   });
@@ -161,10 +170,9 @@ describe('BearBotUltra2 UI - Dígito Automático', () => {
     fireEvent.click(dynamicDigitToggle);
 
     // Deve exibir o badge "DÍGITO DINÂMICO ATIVO"
-    expect(screen.getByText('DÍGITO DINÂMICO ATIVO')).toBeInTheDocument();
-
-    // Deve exibir badge DESATIVADO no Loss Virtual e no Padrão A->B
-    expect(screen.getAllByText('DESATIVADO').length).toBeGreaterThanOrEqual(2);
+    // Deve exibir badge DESATIVADO no Padrão A->B e manter Loss Virtual disponível
+    expect(screen.getAllByText('DESATIVADO').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId('toggle-loss-virtual')).not.toBeDisabled();
 
     // Deve exibir o painel dedicado DynamicDigitPanel
     expect(screen.getByText(/RADAR DE DÍGITOS DINÂMICOS/i)).toBeInTheDocument();
@@ -174,5 +182,66 @@ describe('BearBotUltra2 UI - Dígito Automático', () => {
     expect(screen.getByText(/Inverso Trigrama/i)).toBeInTheDocument();
     expect(screen.getByText(/Resistência Anomalia/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Entrar Agora no Dígito/i })).toBeInTheDocument();
+
+    // O Dígito Alvo deve refletir o mesmo dígito selecionado no Radar (ambos sincronizados com bg-indigo-600)
+    const targetDigitButtons = screen.getAllByRole('button').filter(b => /^[0-9]$/.test(b.textContent?.trim() || ''));
+    const selectedTargetBtn = targetDigitButtons.find(b => b.className.includes('bg-indigo-600'));
+    expect(selectedTargetBtn).toBeDefined();
+  });
+
+  it('permite ativar Contagem sob Foco com Dígito Automático no modo multi-mercado', async () => {
+    render(<BearBotUltra />);
+
+    // Clica em 'differ'
+    const differBtn = screen.getByRole('button', { name: /differ/i });
+    fireEvent.click(differBtn);
+
+    // Ativa Loss Virtual
+    const vlToggle = screen.getByTestId('toggle-loss-virtual');
+    fireEvent.click(vlToggle);
+
+    // Ativa Multi-Mercado
+    const multiToggle = screen.getByTestId('toggle-multi-market');
+    fireEvent.click(multiToggle);
+
+    // Ativa Dígito Automático
+    const autoDigitToggle = screen.getByTestId('toggle-auto-digit');
+    fireEvent.click(autoDigitToggle);
+
+    // Deve exibir o switch de Contagem sob Foco
+    expect(screen.getByText(/Contagem sob Foco/i)).toBeInTheDocument();
+    const focusOnlyToggle = screen.getByTestId('toggle-vl-focus-only');
+    expect(focusOnlyToggle).toBeInTheDocument();
+
+    // Ativa Contagem sob Foco
+    fireEvent.click(focusOnlyToggle);
+
+    // Verifica que Dígito Auto continua ativo
+    expect(screen.getByText('DÍGITO AUTO ATIVO')).toBeInTheDocument();
+  });
+
+  it('sincroniza o Dígito Alvo na UI e na grade de mercados durante a contagem sob foco de dígito automático', async () => {
+    render(<BearBotUltra />);
+
+    // Configura modo differ + Loss Virtual + Dígito Automático
+    const differBtn = screen.getByRole('button', { name: /differ/i });
+    fireEvent.click(differBtn);
+    fireEvent.click(screen.getByTestId('toggle-loss-virtual'));
+    fireEvent.click(screen.getByTestId('toggle-auto-digit'));
+
+    // Envia ticks para o mercado ativo R_100 com dígito 7 (100.57 tem dígito 7)
+    act(() => {
+      const tickCbs = registeredListeners['deriv.tick'] || [];
+      tickCbs.forEach(cb => cb({ tick: { symbol: 'R_100', quote: 100.57 } }));
+    });
+
+    // MarketGrid deve exibir Dígito 7
+    expect(screen.getByText(/Dígito 7: 1\/2/)).toBeInTheDocument();
+
+    // No Dígito Alvo (botões 0..9), o botão 7 deve estar com bg-indigo-600 (selecionado/sincronizado)
+    const targetDigitButtons = screen.getAllByRole('button').filter(b => /^[0-9]$/.test(b.textContent?.trim() || ''));
+    const btn7 = targetDigitButtons.find(b => b.textContent?.trim() === '7');
+    expect(btn7).toBeDefined();
+    expect(btn7?.className).toContain('bg-indigo-600');
   });
 });

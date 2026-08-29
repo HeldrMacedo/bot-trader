@@ -55,6 +55,9 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
           const intel = state.marketIntel[m.sym];
           const colors = intel ? getIntelColor(intel.opportunityScore) : getIntelColor(0);
           const vlSym = state.vlBySym?.[m.sym];
+          const activeDigitVal = state.autoDigitBySym?.[m.sym] ?? (data?.digits && data.digits.length > 0 ? data.digits[data.digits.length - 1] : null);
+          const marketTargetDigit = (config.mode === 'differ' && config.differAutoDigit && activeDigitVal !== null) ? activeDigitVal : config.digit;
+          const marketLose = buildLoserSet(config.mode, marketTargetDigit, config.comboUnder, config.comboOver);
           const lossCount = config.multiOn
             ? (vlSym?.count ?? 0)
             : (isSelected ? state.vlCount : 0);
@@ -88,7 +91,7 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
 
               <div className="flex gap-1 overflow-hidden h-7 items-center justify-start mb-2">
                 {data?.digits.slice(-8).map((d, index) => (
-                  <span key={index} className={`w-6 h-6 flex items-center justify-center text-xs font-mono font-bold rounded ${lose.has(d) ? "bg-red-500/10 border border-red-500/20 text-red-400" : "bg-green-500/10 border border-green-500/20 text-green-400"}`}>
+                  <span key={index} className={`w-6 h-6 flex items-center justify-center text-xs font-mono font-bold rounded ${marketLose.has(d) ? "bg-red-500/10 border border-red-500/20 text-red-400" : "bg-green-500/10 border border-green-500/20 text-green-400"}`}>
                     {d}
                   </span>
                 )) || <span className="text-[10px] text-gray-500">Coletando...</span>}
@@ -109,7 +112,23 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
 
               {showVlLoss && (
                 <div className="mt-1.5 text-[10px] text-[#8593aa]">
-                  Loss: <strong className="font-mono text-red-400">{lossCount}/{config.vlQty}{config.vlMode === 'accum' && ` (janela ${vlSeenDisplay}/${config.vlWindow})`}</strong>
+                  Loss: <strong className="font-mono text-red-400">
+                    {config.vlFocusOnly && !isSelected ? (
+                      '—'
+                    ) : config.mode === 'differ' && config.differAutoDigit ? (
+                      lossCount > 0 && activeDigitVal !== null ? (
+                        <>
+                          {`Dígito ${activeDigitVal}: `}
+                          {lossCount}/{config.vlQty}
+                          {config.vlMode === 'accum' && ` (janela ${vlSeenDisplay}/${config.vlWindow})`}
+                        </>
+                      ) : (
+                        '—'
+                      )
+                    ) : (
+                      `${lossCount}/${config.vlQty}${config.vlMode === 'accum' ? ` (janela ${vlSeenDisplay}/${config.vlWindow})` : ''}`
+                    )}
+                  </strong>
                 </div>
               )}
             </div>
