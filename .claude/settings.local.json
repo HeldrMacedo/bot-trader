@@ -6,5 +6,19 @@
       "Bash(grep -E \"\\\\.\\(cs|xaml|xml|json|config\\)$\")",
       "Bash(grep:*)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/helder/.local/bin/headroom wrap selfheal --marker headroom-wrap-selfheal",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }

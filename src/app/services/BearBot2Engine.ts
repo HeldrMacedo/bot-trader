@@ -131,6 +131,10 @@ export class BearBotEngine {
   private autoDigitTarget: Record<string, number | null> = {};
   private autoDigitActive: Record<string, number | null> = {};
   private vlLossHistory: Record<string, number[]> = {};
+  /** Dígito previsto (dinâmico) que sofreu a última perda virtual sob foco, por mercado. */
+  private vlLossDigit: Record<string, number | null> = {};
+  /** Dígito congelado no gatilho: barreira obrigatória até a liquidação/abort. */
+  private lockedDigit: number | null = null;
   private settled: Record<string, boolean> = {};
   private lastManualSwitch = 0;
   private listeners: Set<(state: BotState) => void> = new Set();
@@ -173,6 +177,7 @@ export class BearBotEngine {
       this.autoDigitTarget[m.sym] = null;
       this.autoDigitActive[m.sym] = null;
       this.vlLossHistory[m.sym] = [];
+      this.vlLossDigit[m.sym] = null;
     });
   }
 
@@ -229,6 +234,7 @@ export class BearBotEngine {
       this.state.tradeLock = false;
       this.comboPending = null;
       this.clearRecovery();
+      this.clearDigitLock();
       this.vlReset();
       this.vlResetAllM();
       this.addLog(updates.paperMode ? '📄 Modo Paper Trading ativado · progresso resetado' : '💼 Modo Conta Real/Demo ativado · progresso resetado', 'info');
@@ -251,7 +257,8 @@ export class BearBotEngine {
     ) {
       this.updateAllIntelligence();
     }
-    if (this.config.mode === 'differ' && this.config.differDynamicDigit && !this.state.tradeLock) {
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit && !this.state.tradeLock
+      && this.lockedDigit === null) {
       this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
     }
     if (updates.postLossOn === false && this.state.recovery.active) {
@@ -454,7 +461,14 @@ export class BearBotEngine {
       if (this.vlLossHistory[sym].length > 200) this.vlLossHistory[sym].shift();
 
       if (this.config.vlMode === 'consec') {
-        if (isLoser) st.count++; else st.count = 0;
+        // Perdas consecutivas só somam contra o MESMO dígito previsto.
+        if (isLoser) {
+          if (this.vlLossDigit[sym] === dynDigit) st.count++;
+          else { st.count = 1; this.vlLossDigit[sym] = dynDigit; }
+        } else {
+          st.count = 0;
+          this.vlLossDigit[sym] = null;
+        }
         st.seen = 0;
       } else {
         const countSinceReset = this.ticksSinceReset[sym] || 0;
@@ -465,6 +479,8 @@ export class BearBotEngine {
         slice.forEach(x => { if (x === 1) count++; });
         st.count = count;
         st.seen = slice.length;
+        if (isLoser) this.vlLossDigit[sym] = dynDigit;
+        if (count === 0) this.vlLossDigit[sym] = null;
       }
       return;
     }
@@ -565,7 +581,14 @@ export class BearBotEngine {
       if (this.vlLossHistory[sym].length > 200) this.vlLossHistory[sym].shift();
 
       if (this.config.vlMode === 'consec') {
-        if (isLoser) this.state.vlCount++; else this.state.vlCount = 0;
+        // Perdas consecutivas só somam contra o MESMO dígito previsto.
+        if (isLoser) {
+          if (this.vlLossDigit[sym] === dynDigit) this.state.vlCount++;
+          else { this.state.vlCount = 1; this.vlLossDigit[sym] = dynDigit; }
+        } else {
+          this.state.vlCount = 0;
+          this.vlLossDigit[sym] = null;
+        }
         this.state.vlSeen = 0;
       } else {
         const countSinceReset = this.ticksSinceReset[sym] || 0;
@@ -576,6 +599,8 @@ export class BearBotEngine {
         slice.forEach(x => { if (x === 1) count++; });
         this.state.vlCount = count;
         this.state.vlSeen = slice.length;
+        if (isLoser) this.vlLossDigit[sym] = dynDigit;
+        if (count === 0) this.vlLossDigit[sym] = null;
       }
       const st = this.vlM(sym); st.count = this.state.vlCount; st.seen = this.state.vlSeen;
       return;
@@ -608,6 +633,9 @@ export class BearBotEngine {
       const sym = this.config.activeSym;
       return this.autoDigitTarget[sym] !== null && this.autoDigitTarget[sym] !== undefined;
     }
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
+      return this.vlDynGateOpen(this.config.activeSym, this.state.vlCount);
+    }
     return this.state.vlCount >= this.config.vlQty;
   }
 
@@ -616,7 +644,40 @@ export class BearBotEngine {
     if (this.config.mode === 'differ' && this.config.differAutoDigit) {
       return this.autoDigitTarget[sym] !== null && this.autoDigitTarget[sym] !== undefined;
     }
+    if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
+      return this.vlDynGateOpen(sym, this.vlM(sym).count);
+    }
     return this.vlM(sym).count >= this.config.vlQty;
+  }
+
+  /**
+   * Gate do Dígito Dinâmico: exige (1) perdas suficientes, (2) contagem realmente
+   * observada sob foco (ticksSinceReset) e (3) um dígito perdedor identificado —
+   * que será a barreira obrigatória da compra.
+   */
+  private vlDynGateOpen(sym: string, count: number): boolean {
+    if (count < this.config.vlQty) return false;
+    if ((this.ticksSinceReset[sym] || 0) < this.config.vlQty) return false;
+    const lossDigit = this.vlLossDigit[sym];
+    return lossDigit !== null && lossDigit !== undefined;
+  }
+
+  /** Dígito que sofreu a última perda virtual sob foco (barreira exigida na compra). */
+  getVlLossDigit(sym?: string): number | null {
+    return this.vlLossDigit[sym ?? this.config.activeSym] ?? null;
+  }
+
+  /** Congela a barreira do Dígito Dinâmico no dígito que perdeu virtualmente. */
+  private lockDynamicDigit(sym: string): boolean {
+    const lossDigit = this.vlLossDigit[sym];
+    if (lossDigit === null || lossDigit === undefined) return false;
+    this.config.digit = lossDigit;
+    this.lockedDigit = lossDigit;
+    return true;
+  }
+
+  private clearDigitLock() {
+    this.lockedDigit = null;
   }
 
   private vlReset() {
@@ -626,6 +687,7 @@ export class BearBotEngine {
     this.autoDigitTarget[sym] = null;
     this.autoDigitActive[sym] = null;
     this.vlLossHistory[sym] = [];
+    this.vlLossDigit[sym] = null;
     const st = this.vlM(sym); st.count = 0; st.seen = 0;
   }
 
@@ -635,6 +697,7 @@ export class BearBotEngine {
     this.autoDigitTarget[sym] = null;
     this.autoDigitActive[sym] = null;
     this.vlLossHistory[sym] = [];
+    this.vlLossDigit[sym] = null;
     if (sym === this.config.activeSym) {
       this.state.vlCount = 0;
       this.state.vlSeen = 0;
@@ -648,6 +711,7 @@ export class BearBotEngine {
     this.autoDigitTarget = {};
     this.autoDigitActive = {};
     this.vlLossHistory = {};
+    this.vlLossDigit = {};
     this.state.vlCount = 0;
     this.state.vlSeen = 0;
     MARKETS.forEach(m => {
@@ -655,6 +719,7 @@ export class BearBotEngine {
       this.autoDigitTarget[m.sym] = null;
       this.autoDigitActive[m.sym] = null;
       this.vlLossHistory[m.sym] = [];
+      this.vlLossDigit[m.sym] = null;
       if (this.patState[m.sym]) {
         this.patState[m.sym].count = 0;
         this.patState[m.sym].seqCount = 0;
@@ -1044,7 +1109,7 @@ export class BearBotEngine {
         }
       } else if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
         this.vlOnDigitM(sym, dig);
-        if (sym === this.config.activeSym && !this.state.tradeLock) {
+        if (sym === this.config.activeSym && !this.state.tradeLock && this.lockedDigit === null) {
           this.config.digit = this.computeDynamicDifferDigit(sym).digit;
         }
         const aiGateOpen = isAiGateOpen(sym);
@@ -1133,8 +1198,14 @@ export class BearBotEngine {
       }
       const aiGateOpen = isAiGateOpen(sym);
       if (this.config.exec === 'auto' && this.config.autoOn) {
-        if ((this.vlGateOpen() || isRecovery) && aiGateOpen) {
+        const gateOpen = this.vlGateOpen();
+        if ((gateOpen || isRecovery) && aiGateOpen) {
           if (!this.canOpenTrade(true)) return;
+          // Loss Virtual ligado: compra obrigatoriamente o dígito que perdeu virtualmente.
+          if (this.config.vlOn && gateOpen && !this.lockDynamicDigit(sym)) {
+            this.addLog(`⛔ Gate bloqueado · ${sym} sem dígito perdedor`, 'warn');
+            return;
+          }
           this.vlReset();
           this.triggerAutoTrade();
         }
@@ -1166,17 +1237,23 @@ export class BearBotEngine {
 
       // 1. If active market already achieved VL threshold under focus, fire the trade on activeSym!
       if (this.vlGateOpenM(activeSym)) {
+        // Dígito Dinâmico: a barreira é o dígito que sofreu a perda virtual sob foco.
+        // Sem esse dígito identificado, nenhuma ordem real pode ser disparada.
+        if (this.config.mode === 'differ' && this.config.differDynamicDigit && !this.lockDynamicDigit(activeSym)) {
+          this.addLog(`⛔ Gate bloqueado · ${activeSym} sem dígito perdedor sob foco`, 'warn');
+          return;
+        }
         this.multiCand = {};
         if (this.config.mode === 'differ' && this.config.differAutoDigit) {
           const targetDigit = this.autoDigitTarget[activeSym] ?? pick.b;
           if (targetDigit !== null && targetDigit !== undefined) {
             this.config.digit = targetDigit;
           }
-        } else if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differDynamicDigit)) {
+        } else if (this.config.mode === 'differ' && this.config.patTrigger) {
           const cand = cands.find((c: any) => c.sym === activeSym);
           if (cand && cand.b !== null && cand.b !== undefined) this.config.digit = cand.b;
           const ps = this.patState[activeSym];
-          if (ps && this.config.patTrigger) ps.waiting = true;
+          if (ps) ps.waiting = true;
         }
         this.vlResetM(activeSym);
         this.addLog(`🌐 MULTI · ${activeSym} atingiu ${this.config.vlQty} loss sob foco · Executando trade`, 'info');
@@ -1211,9 +1288,21 @@ export class BearBotEngine {
       return;
     }
 
+    // Revalida o gate no instante do disparo: o candidato pode ter sido registrado
+    // em ticks anteriores e a contagem de loss virtual já ter sido zerada desde então.
+    // A Recuperação Ativa (pós-loss) segue sendo o único bypass legítimo do gate.
+    const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
+    if (!isRecovery && !this.vlGateOpenM(pick.sym)) return;
+    const useLossDigit = this.config.mode === 'differ' && this.config.differDynamicDigit
+      && this.config.vlOn && !isRecovery;
+    if (useLossDigit && !this.lockDynamicDigit(pick.sym)) {
+      this.addLog(`⛔ Gate bloqueado · ${pick.sym} sem dígito perdedor`, 'warn');
+      return;
+    }
     this.multiCand = {};
     this.config.activeSym = pick.sym;
-    if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit || this.config.differDynamicDigit)) {
+    if (this.config.mode === 'differ' && (this.config.patTrigger || this.config.differAutoDigit
+      || (this.config.differDynamicDigit && !useLossDigit))) {
       this.config.digit = pick.b!;
       const ps = this.patState[pick.sym];
       if (ps && this.config.patTrigger) ps.waiting = true;
@@ -1305,7 +1394,7 @@ export class BearBotEngine {
 
     if (this.config.paperMode) {
       if (kind === 'differ' && this.config.differDynamicDigit) {
-        this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
+        this.config.digit = this.resolveDynamicBarrier();
       }
       this.notify();
       return { payload: null, isPaper: true, kind };
@@ -1314,7 +1403,7 @@ export class BearBotEngine {
     if (kind === 'combo') return this.prepareCombo(proposals);
 
     if (kind === 'differ' && this.config.differDynamicDigit) {
-      this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
+      this.config.digit = this.resolveDynamicBarrier();
     }
 
     const ct = kind === 'over' ? 'DIGITOVER' : kind === 'under' ? 'DIGITUNDER' : 'DIGITDIFF';
@@ -1360,6 +1449,7 @@ export class BearBotEngine {
    */
   abortPendingTrade(reason?: string) {
     this.comboPending = null;
+    this.clearDigitLock();
     if (this.state.tradeLock) {
       this.state.tradeLock = false;
       if (reason) this.addLog(reason, 'warn');
@@ -1492,12 +1582,14 @@ export class BearBotEngine {
       this.addLog(`✔ WIN ${label} +${profit.toFixed(2)}`, 'win');
     }
     this.state.tradeLock = false;
+    this.clearDigitLock();
     this.notify();
   }
 
   // ── Controles ──
   startBot() {
     if (this.config.exec !== 'auto') return false;
+    this.clearDigitLock();
     this.vlReset(); this.vlResetAllM(); this.state.recovery.active = false;
     if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
       this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
@@ -1515,6 +1607,7 @@ export class BearBotEngine {
     this.state.lossAcum = 0; this.state.parcelsLeft = 0;
     this.state.tradeLock = false; this.clearRecovery();
     this.comboPending = null;
+    this.clearDigitLock();
     this.vlReset(); this.vlResetAllM();
     this.addLog('✋ Operação abortada', 'info'); this.notify();
   }
@@ -1526,6 +1619,7 @@ export class BearBotEngine {
     this.state.lastTradeTime = 0;
     this.clearRecovery();
     this.comboPending = null;
+    this.clearDigitLock();
     this.vlReset(); this.vlResetAllM();
     this.addLog('Estatísticas resetadas', 'info'); this.notify();
   }
@@ -1545,7 +1639,14 @@ export class BearBotEngine {
       return false;
     }
     if (this.config.mode === 'differ' && this.config.differDynamicDigit) {
-      this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
+      if (this.config.vlOn) {
+        if (!this.lockDynamicDigit(this.config.activeSym)) {
+          this.addLog('Sem dígito perdedor virtual · compra bloqueada', 'virt');
+          return false;
+        }
+      } else {
+        this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
+      }
     }
     if (this.config.vlOn) this.vlReset();
     return true;
@@ -1555,6 +1656,15 @@ export class BearBotEngine {
   manualFire(kind: string): TradePrep | null {
     if (!this.tryManualFire()) return null;
     return this.prepareTrade(kind);
+  }
+
+  /**
+   * Barreira efetiva do Dígito Dinâmico: se um gatilho de Loss Virtual congelou o
+   * dígito perdedor, ele é obrigatório até a liquidação; senão recalcula o radar.
+   */
+  private resolveDynamicBarrier(): number {
+    if (this.lockedDigit !== null) return this.lockedDigit;
+    return this.computeDynamicDifferDigit(this.config.activeSym).digit;
   }
 
   // ── Proposals ──
@@ -1572,7 +1682,7 @@ export class BearBotEngine {
     if (m === 'over') return [{ ct: 'DIGITOVER', barrier: d }];
     if (m === 'under') return [{ ct: 'DIGITUNDER', barrier: d }];
     if (m === 'differ') {
-      const barrier = this.config.differDynamicDigit ? this.computeDynamicDifferDigit(this.config.activeSym).digit : d;
+      const barrier = this.config.differDynamicDigit ? this.resolveDynamicBarrier() : d;
       return [{ ct: 'DIGITDIFF', barrier }];
     }
     if (m === 'combo') {

@@ -52,6 +52,7 @@ src/
     ├── bearBot2Combo.test.ts                    # Testes do Modo Combo Dual-Leg
     ├── bearBot2DynamicDigit.test.ts             # Testes do Radar de Dígitos Dinâmicos (Score Composto)
     ├── bearBot2DynamicDigitVL.test.ts           # Testes de Dígitos Dinâmicos integrados com Loss Virtual
+    ├── bearBot2FocusVirtualLossGate.test.ts     # Testes do gate de Loss Virtual sob foco e da barreira congelada
     ├── bearBot2Engine.test.ts                   # Testes Centrais do Motor de Trading
     ├── bearBot2EnginePostLoss.test.ts           # Testes da Máquina de Pós-Loss
     ├── bearBot2PatternAB.test.ts                # Testes de Padrões de Markov A -> B
@@ -324,20 +325,33 @@ Quando o Loss Virtual está ativado juntamente com o Radar de Dígitos Dinâmico
      $$\text{isLoser} = (d_t == \text{dynDigit})$$
    * O resultado binário ($1$ para perda, $0$ para vitória) é empurrado para o buffer `vlLossHistory[sym]`.
 
-2. **Modo Consecutivo (`vlMode: 'consec'`):**
-   * Se $\text{isLoser} = \text{true} \implies \text{vlCount} = \text{vlCount} + 1$.
-   * Se $\text{isLoser} = \text{false} \implies \text{vlCount} = 0$.
-   * Quando $\text{vlCount} \ge \text{vlQty}$, o portão de Loss Virtual abre e a engine dispara a ordem `DIFFER` contra o dígito dinâmico atual.
+2. **Modo Consecutivo (`vlMode: 'consec'`) — coerência de alvo obrigatória:**
+   * O dígito previsto que sofreu a perda é memorizado em `vlLossDigit[sym]`.
+   * Se $\text{isLoser} = \text{true}$ e $\text{dynDigit} = \text{vlLossDigit}[\text{sym}] \implies \text{vlCount} = \text{vlCount} + 1$.
+   * Se $\text{isLoser} = \text{true}$ e $\text{dynDigit} \ne \text{vlLossDigit}[\text{sym}] \implies \text{vlCount} = 1$ e `vlLossDigit[sym] = dynDigit` (a sequência recomeça, porque perdas consecutivas só se somam contra o **mesmo** dígito de previsão).
+   * Se $\text{isLoser} = \text{false} \implies \text{vlCount} = 0$ e `vlLossDigit[sym] = null`.
 
 3. **Modo Acumulado (`vlMode: 'accum'`):**
    * Avalia a janela deslizante de tamanho $\text{windowSize} = \min(\text{ticksSinceReset}[\text{sym}], \text{vlWindow})$.
    * Conta a quantidade de perdas no slice `vlLossHistory[sym].slice(-windowSize)`:
      $$\text{vlCount} = \sum_{x \in \text{slice}} x$$
-   * Quando $\text{vlCount} \ge \text{vlQty}$, o gatilho é liberado.
+   * `vlLossDigit[sym]` guarda o dígito previsto da perda virtual mais recente da janela e é limpo quando a janela zera.
 
-4. **Sincronização Contínua e Modo Manual:**
-   * `config.digit` é atualizado em tempo real para o dígito dinâmico a cada tick.
-   * No modo manual, a função `tryManualFire()` valida se o Loss Virtual está satisfeito (`vlCount >= vlQty`) antes de permitir a submissão da ordem, resetando a contagem de Loss Virtual após o disparo.
+4. **Portão de disparo (`vlDynGateOpen`) — as três condições obrigatórias:**
+   O gate do Dígito Dinâmico só abre quando **todas** as condições abaixo são verdadeiras, e é reavaliado no instante exato do disparo (não no instante do registro do candidato):
+   * $\text{vlCount} \ge \text{vlQty}$ — perdas virtuais suficientes;
+   * $\text{ticksSinceReset}[\text{sym}] \ge \text{vlQty}$ — as perdas foram observadas de fato **sob foco**, já que `ticksSinceReset` é zerado em toda troca de foco (`vlResetM`);
+   * $\text{vlLossDigit}[\text{sym}] \ne \text{null}$ — existe um dígito perdedor identificado.
+
+5. **Barreira congelada no dígito perdedor (`lockedDigit`):**
+   * Ao abrir o gate, `lockDynamicDigit(sym)` grava `config.digit = vlLossDigit[sym]` e congela esse valor em `lockedDigit`.
+   * `prepareTrade()` e `getRequiredProposals()` passam a resolver a barreira por `resolveDynamicBarrier()`, que devolve `lockedDigit` enquanto ele existir, em vez de recalcular o radar. Isso é indispensável porque o hook chama `prepareTrade` em `setTimeout(0)` e novos ticks podem chegar antes da compra: sem o congelamento, a ordem real era enviada contra um dígito que nunca sofreu perda virtual.
+   * O congelamento é liberado em `settleContract()`, `abortPendingTrade()`, `abortOp()`, `resetStats()`, `startBot()` e na troca entre conta real e Paper Trading.
+   * Único bypass legítimo do gate: a **Recuperação Ativa** pós-loss (`postLossOn` com `postLossMode: 'recover'`), que opera com o dígito dinâmico corrente.
+
+6. **Sincronização Contínua e Modo Manual:**
+   * `config.digit` é atualizado em tempo real para o dígito dinâmico a cada tick apenas enquanto não houver barreira congelada, para que a UI nunca mostre um alvo diferente do que será comprado.
+   * No modo manual, `tryManualFire()` valida o gate e, com Loss Virtual ativo, exige `vlLossDigit` definido — a compra manual usa o dígito perdedor, não o dígito dinâmico recalculado.
 
 ---
 
@@ -570,6 +584,7 @@ npx vitest run src/__tests__/bearBot*
 # Executar testes específicos de Dígitos Dinâmicos
 npx vitest run src/__tests__/bearBot2DynamicDigit.test.ts
 npx vitest run src/__tests__/bearBot2DynamicDigitVL.test.ts
+npx vitest run src/__tests__/bearBot2FocusVirtualLossGate.test.ts
 
 # Executar testes específicos de Dígito Automático
 npx vitest run src/__tests__/bearBot2AutoDigit.test.ts
