@@ -52,7 +52,11 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
         {MARKETS.map((m) => {
           const isSelected = config.activeSym === m.sym;
           const data = state.tickData[m.sym];
-          const intel = state.marketIntel[m.sym];
+          const rawIntel = state.marketIntel[m.sym];
+          // Only surface intelligence once the market has enough history; until then
+          // every pillar is a neutral placeholder and a score would be misleading.
+          const intel = rawIntel?.dataReady ? rawIntel : null;
+          const collecting = !!rawIntel && !rawIntel.dataReady;
           const colors = intel ? getIntelColor(intel.opportunityScore) : getIntelColor(0);
           const vlSym = state.vlBySym?.[m.sym];
           const activeDigitVal = state.autoDigitBySym?.[m.sym] ?? (data?.digits && data.digits.length > 0 ? data.digits[data.digits.length - 1] : null);
@@ -75,6 +79,11 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
                     {intel.opportunityScore}
                   </span>
                 )}
+                {collecting && (
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-[#18202f] text-[#8593aa] border border-[#2e3a52] animate-pulse">
+                    Coletando
+                  </span>
+                )}
               </div>
 
               {intel && (
@@ -86,6 +95,12 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
               {intel && (
                 <div className={`text-[9px] font-bold mb-2 ${colors.text}`}>
                   {getRecLabel(intel.recommendation)}
+                </div>
+              )}
+
+              {collecting && (
+                <div className="text-[9px] font-bold mb-2 text-[#8593aa]">
+                  ◌ AGUARDANDO HISTÓRICO
                 </div>
               )}
 

@@ -122,6 +122,8 @@ export class BearBotEngine {
   private config: BotConfig;
   private state: BotState;
   private tickData: Record<string, TickData> = {};
+  /** Monotonic tick counter per symbol; drives the intelligence recompute throttle. */
+  private tickCount: Record<string, number> = {};
   private patState: Record<string, PatternState> = {};
   private vlMState: Record<string, VLMarketState> = {};
   private props: Record<string, ProposalState> = {};
@@ -313,7 +315,10 @@ export class BearBotEngine {
     // Pattern A→B is market intelligence, not just a differ-mode trade trigger.
     this.updatePattern(sym);
 
-    if (currentDigits.length % 3 === 0) {
+    // Throttle on a monotonic counter, not on buffer length: the buffer saturates
+    // at 120 entries, which would make a length-based modulo fire on every tick.
+    this.tickCount[sym] = (this.tickCount[sym] || 0) + 1;
+    if (this.tickCount[sym] % 3 === 0) {
       this.updateAllIntelligence();
     }
 
@@ -739,8 +744,11 @@ export class BearBotEngine {
       : this.config.digit;
     const lose = buildLoserSet(this.config.mode, targetDigit, this.config.comboUnder, this.config.comboOver);
 
-    let pressure = 0;
-    if (arr.length >= 50) {
+    // Neutral until there is enough history: an unmeasured pillar must never score
+    // as a perfect one, or a market with no data reads as a buy opportunity.
+    const dataReady = arr.length >= 50;
+    let pressure = 50;
+    if (dataReady) {
       const expFrac = lose.size / 10;
       let exSum = 0;
       [10, 25, 50].forEach(n => {
@@ -767,7 +775,9 @@ export class BearBotEngine {
     let vlProgress = 0;
     if (this.config.vlOn) {
       if (this.config.vlFocusOnly && sym !== this.config.activeSym) {
-        vlProgress = 100;
+        // Unfocused markets accumulate no VL, so their VL pillar is unknown, not
+        // satisfied. Scoring it 100 let every unfocused market outrank the focused one.
+        vlProgress = 50;
       } else {
         const target = this.config.vlQty;
         const current = vlSt.count;
@@ -792,7 +802,7 @@ export class BearBotEngine {
         if (otherPs && otherPs.a === ps.a && otherPs.b === ps.b && otherPs.armed) syncCount++;
         totalMarkets++;
       });
-      syncScore = totalMarkets > 0 ? Math.min(100, Math.round((syncCount / 3) * 100)) : 0;
+      syncScore = totalMarkets > 0 ? Math.min(100, Math.round((syncCount / totalMarkets) * 100)) : 0;
     }
 
     const ai = this.config.aiMode;
@@ -812,7 +822,7 @@ export class BearBotEngine {
     else if (opportunityScore >= 20) recommendation = 'avoid';
     else recommendation = 'strong_avoid';
 
-    return { sym, pressure, patternStrength, vlProgress, syncScore, opportunityScore, recommendation, lastUpdate: Date.now() };
+    return { sym, pressure, patternStrength, vlProgress, syncScore, opportunityScore, recommendation, dataReady, lastUpdate: Date.now() };
   }
 
   private updateAllIntelligence() {
@@ -1064,7 +1074,9 @@ export class BearBotEngine {
     const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
     const isAiGateOpen = (s: string) => {
       const intel = this.state.marketIntel[s];
-      return !intel || intel.opportunityScore >= 40 || isRecovery || this.vlGateOpenM(s);
+      // A market with too little history has no measurable score yet: fall through
+      // instead of vetoing it, matching the no-intelligence-at-all case above.
+      return !intel || !intel.dataReady || intel.opportunityScore >= 40 || isRecovery || this.vlGateOpenM(s);
     };
 
     if (this.config.multiOn) {

@@ -74,6 +74,8 @@ export interface MarketIntelligence {
   syncScore: number;
   opportunityScore: number;
   recommendation: 'strong_buy' | 'buy' | 'neutral' | 'avoid' | 'strong_avoid';
+  /** False while the market has too little history to measure loser pressure. */
+  dataReady: boolean;
   lastUpdate: number;
 }
 
