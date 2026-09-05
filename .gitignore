@@ -46,4 +46,6 @@ next-env.d.ts
 /bot-ia
 /bot-ia-v2
 
-/graphify-out
+# graphify
+graphify-out/
+.graphify_*
