@@ -1,663 +1,480 @@
-# Graph Report - bot-trader  (2026-08-26)
+# Graph Report - bot-trader  (2026-09-05)
 
 ## Corpus Check
-- 211 files · ~611,332 words
-- Verdict: corpus is large enough that graph structure adds value.
+- Large corpus: 237 files · ~632,152 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
 
 ## Summary
-- 2105 nodes · 2608 edges · 168 communities (124 shown, 44 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
-- Token cost: 0 input · 0 output
-
-## Graph Freshness
-- Built from commit: `e9f527d2`
-- Run `git rev-parse HEAD` and compare to check if the graph is stale.
-- Run `graphify update .` after code changes (no API cost).
+- 1333 nodes · 2131 edges · 118 communities (69 shown, 39 thin omitted)
+- Extraction: 93% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 134 edges (avg confidence: 0.86)
+- Token cost: 963,601 input · 0 output
 
 ## Community Hubs (Navigation)
-- DerivService
-- CopyTradingService
-- WsListener
-- devDependencies
-- SideBar.tsx
-- verifyAdminToken
-- compilerOptions
-- BearBotEngine
-- DerivApiClient
-- rateLimiter.js
-- DerivConnection
-- TicksTest.tsx
-- DerivService.tsx
-- bearBotUltra.test.tsx
-- dependencies
-- BotConfig
-- buyTable.tsx
-- useAuth
-- OAuth 2.0
-- sharedRules.test.ts
-- eslint.config.mjs
-- forgot-password/route.js
-- app/layout.js
-- middleware.ts
-- reset-password/page.tsx
-- resetPassword.test.js
-- compilerOptions
-- check-token/route.js
-- operation/route.js
-- profile/route.js
-- reset-password/route.ts
-- Request Schema
-- userService.test.ts
-- bcryptjs
-- date-fns
-- @deriv/deriv-api
-- @heroicons/react
-- jose
-- json-rules-engine
-- jsonwebtoken
-- lucide-react
-- moment
-- mysql2
-- next
-- next.config.mjs
-- nextjs
-- query-string
-- react
-- react-icons
-- react-toastify
-- resend
-- @tensorflow/tfjs-backend-cpu
-- @tensorflow/tfjs-backend-webgl
-- @tensorflow/tfjs-converter
-- @types/react-dom
-- typescript
-- uuid
-- ws
-- postcss.config.mjs
-- Bot Copy Trader
-- Legacy Statement
-- Request Schema
-- Complete Workflows
-- bearbot2.types.ts
-- bearBotUltra2.test.tsx
-- Request Schema
-- Request Schema
-- Create Account
-- bearBotUltra2.tsx
-- BotConfig
-- Request Schema
-- Balance
-- Response Schema
-- WebSockets
-- Portfolio
-- Request Schema
-- Contract Update History
-- Open Contract Status
-- Estratégias da Comunidade (Community Rules)
-- Bear Bot Ultra — Guia Técnico e Manual de Referência do Sistema
-- Response Schema
-- Reset Demo Account Balance
-- Sell Contract
-- Markup Statistics
-- Active Symbols
-- Legacy Accounts
-- Migration Status
-- Forget Subscription
-- Forget All Subscriptions
-- Ping
-- Server Time
-- Trading Times
-- Cancel Contract
-- API Overview
-- Contracts For Symbol
-- Contracts List
-- Get All Accounts
-- Health Check
-- Active symbols
-- createEngine
-- Contracts for
-- Breaking changes
-- Breaking changes
-- Breaking changes
-- Breaking changes
-- useModuleAccess
-- Architecture Overview
-- Skill: Automated Testing Expert
-- Skill: Trade Configuration & Risk Management Expert
-- Profit table
-- Padrões Obrigatórios
-- Skill: Monitoring & Probability Expert
-- Options Trading (Legacy) REST
-- Balance
-- Sell
-- Statement
-- Ticks
-- Autenticação e Proteção de Rotas
-- Options Setup REST
-- Buy
-- Cancel
-- Contract update
-- Contract update history
-- Forget all
-- Portfolio
-- Skill: Legacy Bridge Expert
-- Skill: Trade Strategy Expert
-- Forget
-- userService.js
-- Relatório de Engenharia Reversa — ZeeK 3.0
-- Deriv OAuth 2.0 & WebSocket Connection
-- Authentication
-- Migração Bot Strategy (2025)
-- Pontos de BUG e Ajustes Necessários (Gaps de Funcionalidade):
-- ciclo_monitoramento_trader.md
-- explicacao_multi_mercado_com_execicao_manual.md
-- Mark-up
-- Bear Bot Ultra 2 (v10.0 Refatorado) — Guia Técnico e Manual de Referência Completo
-- bottraderx.tsx
-- Pendente
-- .prepareTrade
-- score_oportunidade.md
-- System
-- cronograma_de_ativacao_por_ticks.md
-- account.md
-- data.md
-- subscription.md
-- trading.md
-- intelPanel.test.ts
-- Contagem sob Foco — Loss Virtual Modifier
-- useBearBot2.ts
-- Especificação de Design: Dígitos Dinâmicos no Modo Differ (Bear Bot Ultra 2)
-- Global Constraints
-- Global Constraints
+- Copy Trading Deriv Connection
+- DerivService WebSocket Singleton
+- Bear Bot Engine Core
+- Copy Trading API Routes
+- Graphify Knowledge Graph Pipeline
+- Deriv Account API Endpoints
+- Build and Lint Dependencies
+- Subscription and System Endpoints
+- Modules and Operations API
+- TypeScript Compiler Config
+- Deriv API Client Types
+- Bear Bot 2 Type Definitions
+- Login and Register Routes
+- Bear Bot 2 Test Harness
+- Legacy Deriv Connection
+- Options Account REST Setup
+- Module Access and Pages
+- useBearBot2 Hook and Markets
+- Bear Bot Digit Engine Tests
+- Legacy Bridge Integration
+- Bear Bot Ultra 2 UI
+- Legacy Interceptors and Serena Config
+- Trade Execution and Barrier Locking
+- Market WebSocket Channel and CSP
+- User Profile and Sidebar
+- Auth Component and Ticks Graph
+- Monitoring Probability Algorithm
+- Bear Bot v1 UI and History
+- JWT Route Protection
+- Tick Activation Schedule
+- Copy Trader Risk Config
+- Market Grid and Intelligence
+- ZeeK Reverse Engineering
+- Contagem sob Foco (VL Focus)
+- Login Background Artwork
+- Auth Hook and Profile Pages
+- DerivService Types
+- Bear Bot Versions and Stale Closures
+- Opportunity Score Pillars
+- Dynamic Digit Spec and Plan
+- Duplicate Trade Guards and OAuth
+- Dynamic Digit Sub-Scores
+- IntelPanel Component
+- Bear Bot Engine Unit Tests
+- Runtime Dependencies
+- Trade Config localStorage Keys
+- Chi-Square and Review Gaps
+- Login Illustration Artwork
+- Login and Password Recovery UI
+- BotConfig Martingale Class
+- Gale and Soros Risk Config
+- Monitoring Service Lifecycle
+- Copy Trading Server Architecture
+- Multi-Market Auto-Focus
+- Focus Reset Interceptors
+- Bear Bot Logo Branding
+- Shared Rules API Tests
+- Simple Observer Pattern
+- Middleware Route Guard
+- Deriv API Skill and Digit Precision
+- Reset Password Route
+- OAuth Token Storage Keys
+- Strategy Cache and Rule Schema
+- ESLint Config
+- Globe Icon Asset
+- Vercel Logo Asset
+- Forgot Password Route
+- Root App Layout
+- Dynamic Digit Panel
+- Operation Service and Buy Table
+- Next.js Logo Asset
+- Window Icon Asset
+- Reset Password Page
+- JS Path Config
+- PostCSS Config
+- File Icon Asset
+- Check Token Route
+- Operation Route
+- Profile Route
+- Graph Database Exports
+- bcryptjs Dependency
+- date-fns Dependency
+- Deriv API Package
+- Chi-Square Activation Schedule
+- Heroicons Dependency
+- jose Dependency
+- json-rules-engine Dependency
+- jsonwebtoken Dependency
+- lucide-react Dependency
+- moment Dependency
+- mysql2 Dependency
+- Next Config
+- nextjs Dependency
+- next Dependency
+- query-string Dependency
+- react Dependency
+- react-icons Dependency
+- react-toastify Dependency
+- TensorFlow.js Core
+- TensorFlow CPU Backend
+- TensorFlow WebGL Backend
+- TensorFlow Converter
+- React DOM Types
+- TypeScript Dependency
+- uuid Dependency
+- ws Dependency
+- IntelPanel Test
+- SSE Polling Replacement
 
 ## God Nodes (most connected - your core abstractions)
 1. `DerivService` - 84 edges
-2. `BearBotEngine` - 67 edges
-3. `CopyTradingService` - 30 edges
-4. `WsListener` - 29 edges
-5. `TradeExecutor` - 24 edges
+2. `BearBotEngine` - 73 edges
+3. `CopyTradingService` - 32 edges
+4. `WsListener` - 30 edges
+5. `TradeExecutor` - 25 edges
 6. `DerivConnection` - 22 edges
-7. `Request Schema` - 21 edges
+7. `createEngine()` - 18 edges
 8. `DerivApiClient` - 17 edges
 9. `compilerOptions` - 17 edges
-10. `Bear Bot Ultra 2 (v10.0 Refatorado) — Guia Técnico e Manual de Referência Completo` - 15 edges
+10. `BotState` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `seedLoserPressure()` --calls--> `createEngine()`  [EXTRACTED]
-  src/__tests__/bearBot2Engine.test.ts → src/app/services/BearBot2Engine.ts
-- `BearBotUltra()` --calls--> `useBearBot()`  [EXTRACTED]
-  src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx → src/app/hooks/useBearBot2.ts
-- `TradeLogProps` --references--> `BotState`  [EXTRACTED]
-  src/app/(withSidebar)/bear-bot-ultra-2/components/TradeLog.tsx → src/app/services/bearbot2.types.ts
-- `Page()` --calls--> `useModuleAccess()`  [EXTRACTED]
-  src/app/(withSidebar)/bear-bot-ultra/page.tsx → src/app/hooks/useModuleAccess.ts
-- `BotTrade()` --calls--> `useModuleAccess()`  [EXTRACTED]
-  src/app/(withSidebar)/bottrader/page.tsx → src/app/hooks/useModuleAccess.ts
+- `M_frio — Markov Transition Inverse (30%)` --semantically_similar_to--> `Pilar: Força do Padrão A→B (patternStrength)`  [INFERRED] [semantically similar]
+  docs/superpowers/specs/2026-08-17-differ-dynamic-digit-design.md → src/app/(withSidebar)/bear-bot-ultra-2/score_oportunidade.md
+- `Strategy Cache (7-day TTL)` --semantically_similar_to--> `Semantic Extraction Cache`  [INFERRED] [semantically similar]
+  .claude/commands/trade-strategy.md → .agents/skills/graphify/SKILL.md
+- `SIMULADO/REAL Mode Switching` --semantically_similar_to--> `Quantity Loss Mode`  [INFERRED] [semantically similar]
+  .claude/commands/monitoring.md → CLAUDE.md
+- `Gale (Martingale) Algorithm` --semantically_similar_to--> `Martingale Stake Formula`  [INFERRED] [semantically similar]
+  .claude/commands/trade-config.md → CLAUDE.md
+- `Gale (Martingale) Algorithm` --semantically_similar_to--> `ZeeK Martingale/Soros Strategy Constants`  [INFERRED] [semantically similar]
+  .claude/commands/trade-config.md → ZeeK_RELATORIO.md
 
 ## Import Cycles
 - None detected.
 
-## Communities (168 total, 44 thin omitted)
+## Hyperedges (group relationships)
+- **Graphify Build Pipeline Stages** — _agents_skills_graphify_skill_detect_step, _agents_skills_graphify_skill_ast_structural_extraction, _agents_skills_graphify_skill_semantic_extraction, _agents_skills_graphify_skill_community_detection, _agents_skills_graphify_skill_graph_health_check, _agents_skills_graphify_skill_manifest_stamping [EXTRACTED 1.00]
+- **INICIAR Button to Broker Trade Flow** — ciclo_monitoramento_trader_toggle_bot, _claude_commands_legacy_bridge_configure_trade_manager, ciclo_monitoramento_trader_start_execution, _claude_commands_monitoring_on_trade_signal, ciclo_monitoramento_trader_execute_trade, ciclo_monitoramento_trader_trade_manager_js, ciclo_monitoramento_trader_trade_message_interceptor [EXTRACTED 1.00]
+- **Risk Management Configuration Triad** — _claude_commands_trade_config_trade_config_data, _claude_commands_trade_config_management_config_data, _claude_commands_trade_config_controller_config_data, _claude_commands_trade_config_gale_algorithm, _claude_commands_trade_config_soros_algorithm, _claude_commands_trade_config_validation_rules [EXTRACTED 1.00]
+- **Pipeline de Copy Trading (demo → real)** — docs_bottrader_copytradingmanager, docs_bottrader_copytradingservice, docs_bottrader_wslistener, docs_bottrader_signalprocessor, docs_bottrader_tradeexecutor, docs_bottrader_tradesignal [EXTRACTED 1.00]
+- **Os 4 Pilares do Score de Oportunidade** — docs_doc_bear_bot_ultra_2_readme_opportunity_score, docs_doc_bear_bot_ultra_2_readme_pillar_pressure, docs_doc_bear_bot_ultra_2_readme_pillar_pattern_strength, docs_doc_bear_bot_ultra_2_readme_pillar_vlprogress, docs_doc_bear_bot_ultra_2_readme_pillar_syncscore, docs_doc_bear_bot_ultra_2_readme_ai_gate [EXTRACTED 1.00]
+- **Endpoints afetados pela remoção do loginid na New API** — docs_documentacao_deriv_legacy_vs_new_api_comparison_buy_buy, docs_documentacao_deriv_legacy_vs_new_api_comparison_sell_sell, docs_documentacao_deriv_legacy_vs_new_api_comparison_cancel_cancel, docs_documentacao_deriv_legacy_vs_new_api_comparison_balance_balance, docs_documentacao_deriv_legacy_vs_new_api_comparison_portfolio_portfolio, docs_documentacao_deriv_legacy_vs_new_api_comparison_statement_statement, docs_documentacao_deriv_legacy_vs_new_api_comparison_profit_table_profit_table, docs_documentacao_deriv_legacy_vs_new_api_comparison_proposal_proposal, docs_documentacao_deriv_legacy_vs_new_api_comparison_proposal_open_contract_proposal_open_contract, docs_documentacao_deriv_legacy_vs_new_api_comparison_contract_update_contract_update, docs_documentacao_deriv_legacy_vs_new_api_comparison_contract_update_history_contract_update_history, docs_documentacao_deriv_legacy_vs_new_api_comparison_contracts_for_contracts_for, docs_documentacao_deriv_legacy_vs_new_api_comparison_transaction_transaction [EXTRACTED 1.00]
+- **OAuth 2.0 + PKCE Login Flow Participants** — docs_documentacao_deriv_api_reference_docs_intro_oauth_authorization_code_flow, docs_documentacao_deriv_api_reference_docs_intro_oauth_pkce, docs_documentacao_deriv_api_reference_docs_intro_oauth_state_csrf_protection, docs_documentacao_deriv_api_reference_docs_intro_oauth_session_storage_tip, docs_documentacao_deriv_api_reference_docs_intro_authentication_oauth2_app, docs_documentacao_deriv_api_reference_docs_api_reference_otp_workflow [EXTRACTED 1.00]
+- **Account Transaction/History Endpoint Family** — docs_documentacao_deriv_api_reference_docs_account_portfolio_portfolio, docs_documentacao_deriv_api_reference_docs_account_profit_table_profit_table, docs_documentacao_deriv_api_reference_docs_account_statement_statement, docs_documentacao_deriv_api_reference_docs_account_transaction_transaction, docs_documentacao_deriv_api_reference_docs_options_legacy_legacy_statement_legacy_statement [INFERRED 0.85]
+- **Legacy Data Retrieval Workflow (status gate → accounts → statement)** — docs_documentacao_deriv_api_reference_docs_options_legacy_legacy_migration_status_legacy_migration_status, docs_documentacao_deriv_api_reference_docs_options_legacy_legacy_accounts_legacy_accounts, docs_documentacao_deriv_api_reference_docs_options_legacy_legacy_statement_legacy_statement, docs_documentacao_deriv_api_reference_docs_options_legacy_http_409_migration_gate [EXTRACTED 1.00]
+- **Options Account Provisioning and WebSocket Handshake** — docs_documentacao_deriv_api_reference_docs_options_create_account_create_account, docs_documentacao_deriv_api_reference_docs_options_get_accounts_get_accounts, docs_documentacao_deriv_api_reference_docs_options_reset_demo_balance_reset_demo_balance, docs_documentacao_deriv_api_reference_docs_options_websocket_otp_endpoint, docs_documentacao_deriv_api_reference_docs_workflows_request_headers [EXTRACTED 1.00]
+- **Contract Lifecycle: quote, buy, monitor, adjust, exit** — docs_documentacao_deriv_api_reference_docs_trading_proposal_proposal, docs_documentacao_deriv_api_reference_docs_trading_buy_buy, docs_documentacao_deriv_api_reference_docs_trading_proposal_open_contract_proposal_open_contract, docs_documentacao_deriv_api_reference_docs_trading_contract_update_contract_update, docs_documentacao_deriv_api_reference_docs_trading_sell_sell, docs_documentacao_deriv_api_reference_docs_trading_cancel_cancel [EXTRACTED 1.00]
+- **Connection Health and Session Hygiene Endpoints** — docs_documentacao_deriv_api_reference_docs_system_ping_ping, docs_documentacao_deriv_api_reference_docs_system_time_server_time, docs_documentacao_deriv_api_reference_docs_system_health_health_check, docs_documentacao_deriv_api_reference_docs_subscription_forget_forget, docs_documentacao_deriv_api_reference_docs_subscription_forget_all_forget_all [INFERRED 0.85]
+- **Four Pillars of the Score de Oportunidade** — src_app__withsidebar__bear_bot_ultra_2_score_oportunidade_pressao_perdedores, src_app__withsidebar__bear_bot_ultra_2_score_oportunidade_forca_padrao, src_app__withsidebar__bear_bot_ultra_2_score_oportunidade_vl_progress, src_app__withsidebar__bear_bot_ultra_2_score_oportunidade_sync_pillar, src_app__withsidebar__bear_bot_ultra_2_score_oportunidade_ai_mode_weights [EXTRACTED 1.00]
+- **Four Dimensions of Composite Score S(d)** — docs_superpowers_specs_2026_08_17_differ_dynamic_digit_design_f_frio, docs_superpowers_specs_2026_08_17_differ_dynamic_digit_design_m_frio, docs_superpowers_specs_2026_08_17_differ_dynamic_digit_design_t_frio, docs_superpowers_specs_2026_08_17_differ_dynamic_digit_design_a_frio, docs_superpowers_specs_2026_08_17_differ_dynamic_digit_design_composite_score [EXTRACTED 1.00]
+- **Three activeSym Focus-Change Interception Points** — docs_superpowers_plans_2026_08_25_contagem_sob_foco_updateconfig_interceptor, docs_superpowers_plans_2026_08_25_contagem_sob_foco_tryfiremulticandidate_interceptor, docs_superpowers_plans_2026_08_25_contagem_sob_foco_tryswitchmulticandidate_interceptor, docs_superpowers_specs_2026_08_25_contagem_sob_foco_design_vlresetm [EXTRACTED 1.00]
 
-### Community 1 - "CopyTradingService"
-Cohesion: 0.06
-Nodes (18): POST(), GET(), POST(), CopyTradingManager, UserCopyTrading, UserStats, CopyTradingService, createService() (+10 more)
+## Communities (118 total, 39 thin omitted)
 
-### Community 2 - "WsListener"
+### Community 0 - "Copy Trading Deriv Connection"
 Cohesion: 0.05
 Nodes (19): buildDerivWsUrl(), DerivConnection, fetchAccountIdFromPat(), fetchOtpWebsocketUrl(), getDerivAppId(), isPatToken(), parseDerivToken(), ParsedToken (+11 more)
 
-### Community 3 - "devDependencies"
+### Community 2 - "Bear Bot Engine Core"
+Cohesion: 0.09
+Nodes (4): BotConfig, buildLoserSet(), TradePrep, BearBotEngine
+
+### Community 3 - "Copy Trading API Routes"
+Cohesion: 0.06
+Nodes (18): POST(), GET(), POST(), CopyTradingManager, UserCopyTrading, UserStats, CopyTradingService, createService() (+10 more)
+
+### Community 4 - "Graphify Knowledge Graph Pipeline"
+Cohesion: 0.05
+Nodes (53): graph.json Artifact, GRAPH_REPORT.md Audit Report, Graphify Always-On Rule, Graphify Agent Wiki, URL Ingest (graphify add), Watch Mode, Graphify MCP Server, Token Reduction Benchmark (+45 more)
+
+### Community 5 - "Deriv Account API Endpoints"
+Cohesion: 0.06
+Nodes (49): Account Management WebSocket Endpoint Group, balance Endpoint, Client loginid Identifier, Per-Application Markup Breakdown, Deriv-App-ID Header, markup_statistics REST Endpoint, Contract Type Enumeration (DIGITOVER, CALL, MULTUP, …), portfolio Endpoint (+41 more)
+
+### Community 6 - "Build and Lint Dependencies"
 Cohesion: 0.05
 Nodes (42): cross-env, eslint, eslint-config-next, @eslint/eslintrc, jsdom, devDependencies, cross-env, eslint (+34 more)
 
-### Community 4 - "SideBar.tsx"
-Cohesion: 0.33
-Nodes (7): updateUserProfile(), getUser(), logout(), Sidebar(), HomeLayout(), ProfileModal(), ProfileModalProps
+### Community 7 - "Subscription and System Endpoints"
+Cohesion: 0.10
+Nodes (33): forget_all Endpoint, forget vs forget_all Selection Guidance, Stream Types Enum (balance, candles, proposal, ticks, transaction), forget Endpoint, Subscription ID (subscription.id field), Subscription Management WebSocket, Health Check REST Endpoint (/v1/health), Health Polling Best Practices (30-60s, exponential backoff) (+25 more)
 
-### Community 5 - "verifyAdminToken"
+### Community 8 - "Modules and Operations API"
 Cohesion: 0.13
 Nodes (22): GET(), POST(), prisma, getOperations(), verifyAdminToken(), OperationsPage(), OperationWithUser, createModule() (+14 more)
 
-### Community 6 - "compilerOptions"
+### Community 9 - "TypeScript Compiler Config"
 Cohesion: 0.07
 Nodes (29): dom, dom.iterable, esnext, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules, **/*.ts (+21 more)
 
-### Community 7 - "BearBotEngine"
-Cohesion: 0.12
-Nodes (3): BearBotEngine, getBestPattern(), wilsonLB()
-
-### Community 8 - "DerivApiClient"
+### Community 10 - "Deriv API Client Types"
 Cohesion: 0.11
 Nodes (11): AnalysisResponse, ConfigResponse, ConfigUpdate, ConnectionRequest, DerivApiClient, MarketQuality, PerformanceStats, SymbolAnalysis (+3 more)
 
-### Community 9 - "rateLimiter.js"
+### Community 11 - "Bear Bot 2 Type Definitions"
+Cohesion: 0.11
+Nodes (23): AIMode, BotMode, ComboPending, DerivAccount, DerivAuthState, DynamicDigitDetail, ExecMode, GaleMode (+15 more)
+
+### Community 12 - "Login and Register Routes"
 Cohesion: 0.12
 Nodes (16): getClientIp(), POST(), prisma, getClientIp(), POST(), prisma, GET(), prisma (+8 more)
 
-### Community 11 - "TicksTest.tsx"
-Cohesion: 0.19
-Nodes (11): Authentication, AuthenticationHandle, TicksGraph(), AccountSelectorProps, extractDigit(), getDecimalPlaces(), INITIAL_TICKS, SYMBOL_LABELS (+3 more)
-
-### Community 12 - "DerivService.tsx"
-Cohesion: 0.12
-Nodes (12): AccountInfo, DerivEventMap, PendingRequest, TokenData, UserInfo, Listener, Observer, Market (+4 more)
-
-### Community 13 - "bearBotUltra.test.tsx"
-Cohesion: 0.14
-Nodes (11): BearBotUltra(), HistoryPage(), localStorageMock, mockExtractLastDigit, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend (+3 more)
-
-### Community 14 - "dependencies"
-Cohesion: 0.22
-Nodes (9): axios, dependencies, axios, @prisma/client, react-dom, @tensorflow/tfjs, @prisma/client, react-dom (+1 more)
-
-### Community 16 - "buyTable.tsx"
-Cohesion: 0.60
-Nodes (3): saveOperation(), BuyTable(), BuyTableProps
-
-### Community 17 - "useAuth"
-Cohesion: 0.27
-Nodes (7): useAuth(), HomePage(), ProfilePage(), MarkupBreakdown, MarkupStatisticsData, MarkupStatisticsReport(), MarkupStatisticsPage()
-
-### Community 18 - "OAuth 2.0"
-Cohesion: 0.06
-Nodes (33): Also maintaining a Legacy API app?, Before you start, cURL example, Example, Generating PKCE in JavaScript, How the flow works, Implementation checklist, Important (+25 more)
-
-### Community 19 - "sharedRules.test.ts"
-Cohesion: 0.33
-Nodes (4): BASE_RULE, makeRequest(), makeToken(), mocks
-
-### Community 20 - "eslint.config.mjs"
-Cohesion: 0.40
-Nodes (4): compat, __dirname, eslintConfig, __filename
-
-### Community 21 - "forgot-password/route.js"
-Cohesion: 0.50
-Nodes (4): generateSecureToken(), POST(), prisma, resend
-
-### Community 22 - "app/layout.js"
-Cohesion: 0.40
-Nodes (3): geistMono, geistSans, metadata
-
-### Community 23 - "middleware.ts"
-Cohesion: 0.60
-Nodes (4): config, isPublicPath(), middleware(), PUBLIC_PATHS
-
-### Community 31 - "Request Schema"
-Cohesion: 0.06
-Nodes (33): About proposal, `amount` — Optional `number`, `barrier2` — Optional `string`, `barrier` — Optional `string`, `basis` — Optional `string | enum`, `cancellation` — Optional `string`, `contract_type` — Required `string | enum`, `currency` — Required `string` (+25 more)
-
-### Community 68 - "Bot Copy Trader"
-Cohesion: 0.07
-Nodes (26): API Routes, Arquitetura, Arquivos, Bot Copy Trader, Ciclo de trade, Configurações, Extração de Sinais (WsListener), Fluxo de Execução (+18 more)
-
-### Community 69 - "Legacy Statement"
-Cohesion: 0.07
-Nodes (26): About legacy_statement, `action_type` — Optional `string | enum`, Action Types, Authentication Required, `count` — Required `integer`, `date_from` — Optional `integer`, Date Range, `date_to` — Optional `integer` (+18 more)
-
-### Community 70 - "Request Schema"
-Cohesion: 0.08
-Nodes (25): About ticks_history, `adjust_start_time` — Optional `integer | enum`, `candles` — Optional `array`, `count` — Optional `integer`, `echo_req` — Required `object`, `end` — Required `string`, Examples, `granularity` — Optional `integer | enum` (+17 more)
-
-### Community 71 - "Complete Workflows"
-Cohesion: 0.08
-Nodes (25): Authentication Workflows, Authorization Token, Before You Begin, Common Patterns, Complete Example, Complete Integration, Complete Trading Workflow, Complete Workflows (+17 more)
-
-### Community 72 - "bearbot2.types.ts"
-Cohesion: 0.13
-Nodes (23): AIMode, BotMode, ComboPending, DEFAULT_BOT_STATE, DerivAccount, DerivAuthState, DynamicDigitDetail, ExecMode (+15 more)
-
-### Community 73 - "bearBotUltra2.test.tsx"
+### Community 13 - "Bear Bot 2 Test Harness"
 Cohesion: 0.07
 Nodes (20): localStorageMock, MockAudioContext, mockExtractLastDigit, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend, mockSubscribe (+12 more)
 
-### Community 74 - "Request Schema"
-Cohesion: 0.08
-Nodes (24): About profit_table, Authentication Required, `contract_type` — Optional `array`, `date_from` — Optional `string`, `date_to` — Optional `string`, `description` — Optional `integer | enum`, `echo_req` — Required `object`, Examples (+16 more)
-
-### Community 75 - "Request Schema"
-Cohesion: 0.08
-Nodes (23): About statement, `action_type` — Optional `string | enum`, Authentication Required, `date_from` — Optional `integer`, `date_to` — Optional `integer`, `description` — Optional `integer | enum`, `echo_req` — Required `object`, Examples (+15 more)
-
-### Community 76 - "Create Account"
-Cohesion: 0.08
-Nodes (23): 200 OK - Account Already Exists, 201 Created - New Account, About create_account, Account Types, Authentication Required, `body` — Required `object`, Create Account, Currency Support (+15 more)
-
-### Community 77 - "bearBotUltra2.tsx"
-Cohesion: 0.11
-Nodes (17): buildLoserSet(), DEFAULT_CONFIG, BearBotUltra(), sanitizeDecimalInput(), validateNumber(), getIntelColor(), getRecLabel(), IntelPanel() (+9 more)
-
-### Community 78 - "BotConfig"
-Cohesion: 0.16
-Nodes (11): BotConfig, BotState, DynamicDigitResult, clampRateLimits(), DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor(), IntelPanelProps (+3 more)
-
-### Community 79 - "Request Schema"
-Cohesion: 0.10
-Nodes (20): About buy, Authentication Required, Buy Contract, `buy` — Optional `object`, `buy` — Required `string`, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum` (+12 more)
-
-### Community 80 - "Balance"
-Cohesion: 0.10
-Nodes (19): About balance, Authentication Required, Balance, `balance` — Optional `object`, `balance` — Required `integer | enum`, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum` (+11 more)
-
-### Community 81 - "Response Schema"
-Cohesion: 0.10
-Nodes (19): About transaction, Authentication Required, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum`, `passthrough` — Optional `object`, Real-time updates, `req_id` — Optional `integer` (+11 more)
-
-### Community 82 - "WebSockets"
-Cohesion: 0.10
-Nodes (19): About websocket, Authentication Required, `data` — Required `object`, Endpoint, Error Responses, Examples, `headers` — Required `object`, `meta` — Required `object` (+11 more)
-
-### Community 83 - "Portfolio"
-Cohesion: 0.11
-Nodes (18): About portfolio, Authentication Required, `contract_type` — Optional `array`, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum`, Open positions only, `passthrough` — Optional `object` (+10 more)
-
-### Community 84 - "Request Schema"
-Cohesion: 0.11
-Nodes (18): About contract_update, Authentication Required, `contract_id` — Required `integer`, `contract_update` — Optional `object`, `contract_update` — Required `integer | enum`, `echo_req` — Required `object`, Examples, `limit_order` — Required `object` (+10 more)
-
-### Community 85 - "Contract Update History"
-Cohesion: 0.11
-Nodes (18): About contract_update_history, Authentication Required, `contract_id` — Required `integer`, Contract Update History, `contract_update_history` — Optional `array`, `contract_update_history` — Required `integer | enum`, `echo_req` — Required `object`, Examples (+10 more)
-
-### Community 86 - "Open Contract Status"
-Cohesion: 0.11
-Nodes (18): About proposal_open_contract, `contract_id` — Optional `integer`, `echo_req` — Required `object`, Examples, `msg_type` — Optional `string | enum`, Open Contract Status, `passthrough` — Optional `object`, `proposal_open_contract` — Optional `object` (+10 more)
-
-### Community 87 - "Estratégias da Comunidade (Community Rules)"
-Cohesion: 0.11
-Nodes (17): Abas, Acesso, API — `/api/shared-rules`, API — `src/__tests__/sharedRules.test.ts`, Autenticação no cliente, Banco de Dados, Componente — `SharedRulesModal.tsx`, Componente — `src/__tests__/sharedRulesModal.test.tsx` (+9 more)
-
-### Community 88 - "Bear Bot Ultra — Guia Técnico e Manual de Referência do Sistema"
-Cohesion: 0.11
-Nodes (17): 1.1 Hydration e Rendering do Next.js, 1.2 Gerenciamento Duplo de Estado: `useState` vs `stateRef`, 1. Arquitetura e Estrutura de Estado, 2.1 Fluxo de Ticks (Market Data), 2.2 Ciclo de Proposals (Proposta de Preço), 2. Comunicação e Integração com a API Deriv, 3.1 Compra Rápida (Quick Trade), 3. Modos de Operação e Lógica de Entrada (+9 more)
-
-### Community 89 - "Response Schema"
-Cohesion: 0.11
-Nodes (17): About ticks, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum`, `passthrough` — Optional `object`, `req_id` — Optional `integer`, `req_id` — Optional `integer`, Request Example (+9 more)
-
-### Community 90 - "Reset Demo Account Balance"
-Cohesion: 0.11
-Nodes (17): About reset_demo_balance, Authentication Required, `data` — Optional `object`, Default Balance, Demo Accounts Only, Endpoint, Error Responses, Examples (+9 more)
-
-### Community 91 - "Sell Contract"
-Cohesion: 0.11
-Nodes (17): About sell, Authentication Required, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum`, `passthrough` — Optional `object`, `price` — Required `number`, `req_id` — Optional `integer` (+9 more)
-
-### Community 92 - "Markup Statistics"
-Cohesion: 0.12
-Nodes (16): Authentication Required, `data` — Required `object`, `date_from` — Required `string`, `date_to` — Required `string`, `Deriv-App-ID` — Required `string`, Endpoint, Error Responses, Examples (+8 more)
-
-### Community 93 - "Active Symbols"
-Cohesion: 0.12
-Nodes (16): About active_symbols, Active Symbols, `active_symbols` — Optional `array`, `active_symbols` — Required `string | enum`, `contract_type` — Optional `array`, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum` (+8 more)
-
-### Community 94 - "Legacy Accounts"
-Cohesion: 0.12
-Nodes (16): About legacy_accounts, Authentication Required, `Deriv-App-ID` — Required `string`, Endpoint, Error Responses, Examples, Legacy Accounts, `loginids` — Required `object` (+8 more)
-
-### Community 95 - "Migration Status"
-Cohesion: 0.12
-Nodes (16): About legacy_migration_status, Authentication Required, `Deriv-App-ID` — Required `string`, Endpoint, Error Responses, Examples, Migration Status, Polling (+8 more)
-
-### Community 96 - "Forget Subscription"
-Cohesion: 0.12
-Nodes (16): About forget, `echo_req` — Required `object`, Examples, `forget` — Optional `integer | enum`, `forget` — Required `string`, Forget Subscription, `msg_type` — Required `string | enum`, `passthrough` — Optional `object` (+8 more)
-
-### Community 97 - "Forget All Subscriptions"
-Cohesion: 0.12
-Nodes (16): About forget_all, `echo_req` — Required `object`, Examples, `forget_all` — Optional `array`, `forget_all` — Required, Forget All Subscriptions, `msg_type` — Required `string | enum`, `passthrough` — Optional `object` (+8 more)
-
-### Community 98 - "Ping"
-Cohesion: 0.12
-Nodes (16): About ping, `echo_req` — Required `object`, Examples, Keeping connections alive, `msg_type` — Required `string | enum`, `passthrough` — Optional `object`, Ping, `ping` — Optional `string | enum` (+8 more)
-
-### Community 99 - "Server Time"
-Cohesion: 0.12
-Nodes (16): About time, Clock synchronisation, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum`, `passthrough` — Optional `object`, `req_id` — Optional `integer`, `req_id` — Optional `integer` (+8 more)
-
-### Community 100 - "Trading Times"
-Cohesion: 0.12
-Nodes (16): About trading_times, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum`, `passthrough` — Optional `object`, `req_id` — Optional `integer`, `req_id` — Optional `integer`, Request Example (+8 more)
-
-### Community 101 - "Cancel Contract"
-Cohesion: 0.12
-Nodes (16): About cancel, Authentication Required, Cancel Contract, `cancel` — Optional `object`, `cancel` — Required `integer`, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum` (+8 more)
-
-### Community 102 - "API Overview"
-Cohesion: 0.12
-Nodes (15): API Architecture, API Endpoints, API Overview, [Authentication](/docs/intro/authentication/), [Complete Workflows](/docs/workflows/), Download API schemas, Introduction, Key features (+7 more)
-
-### Community 103 - "Contracts For Symbol"
-Cohesion: 0.12
-Nodes (15): About contracts_for, `contracts_for` — Optional `object`, `contracts_for` — Required `string`, Contracts For Symbol, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum`, `passthrough` — Optional `object` (+7 more)
-
-### Community 104 - "Contracts List"
-Cohesion: 0.12
-Nodes (15): About contracts_list, Contracts List, `contracts_list` — Optional `array`, `contracts_list` — Required `integer | enum`, `echo_req` — Required `object`, Examples, `msg_type` — Required `string | enum`, `passthrough` — Optional `object` (+7 more)
-
-### Community 105 - "Get All Accounts"
-Cohesion: 0.12
-Nodes (15): About get_accounts, Account Information, Authentication Required, `data` — Optional `array`, Endpoint, Error Responses, Examples, Get All Accounts (+7 more)
-
-### Community 106 - "Health Check"
-Cohesion: 0.12
-Nodes (15): About Health Checks, Best Practices, Endpoint, Error Responses, Example Usage, Examples, Health Check, Monitoring Integration (+7 more)
-
-### Community 107 - "Active symbols"
-Cohesion: 0.12
-Nodes (15): 1. Response field name changes, 2. Translated display name fields removed, 3. Spot price data removed, 4. Landing company and product type filtering removed, 5. Barrier category filtering removed, 6. Additional metadata fields removed, 6 Breaking Changes, Active symbols (+7 more)
-
-### Community 108 - "createEngine"
-Cohesion: 0.14
-Nodes (6): createEngine(), AI_WEIGHTS, AIModeName, feedABPattern(), seedLoserPressure(), seedPatternIntel()
-
-### Community 109 - "Contracts for"
+### Community 15 - "Options Account REST Setup"
 Cohesion: 0.13
-Nodes (14): 1. Request parameters removed, 2. Market data fields removed from response, 3. Display fields removed from contract items, 4. Contract metadata fields removed, 5 Breaking Changes, 5. Specialized contract options removed, Alternatives, Breaking changes (+6 more)
+Nodes (21): Demo vs Real Account Types, create_account Endpoint, Deriv REST Error Response Format (errors[] + meta), Options Account Object Schema, get_accounts Endpoint, Options OAuth2 Scopes (trade / account_manage), Options Setup REST API, Demo-Only Balance Reset Constraint ($10,000 default) (+13 more)
 
-### Community 110 - "Breaking changes"
-Cohesion: 0.13
-Nodes (14): 1. loginid parameter removed, 2. Response field types changed, 3. Required fields in response, 4. Display fields removed, 5. Deprecated fields, 6. is_forward_starting field removed, 7. Snowball contract fields removed, 8 Breaking Changes (+6 more)
-
-### Community 111 - "Breaking changes"
-Cohesion: 0.13
-Nodes (14): 1. Subscribe parameter value change, 2. LoginId parameter removed, 3. Contract barrier fields removed, 4. Display name field removed, 5. Stop loss/take profit fields removed, 6. Symbol field renamed, 7. action enum validation removed, 7 Breaking Changes (+6 more)
-
-### Community 112 - "Breaking changes"
-Cohesion: 0.14
-Nodes (13): 10 Breaking Changes, 1. Symbol parameter renamed, 2. LoginID parameter removed, 3. Multiple request parameters removed, 4. Response proposal object now required, 5. Proposal required fields reduced, 6. Response field types changed, Breaking changes (+5 more)
-
-### Community 113 - "Breaking changes"
-Cohesion: 0.14
-Nodes (13): 1. Required fields in history object changed, 2. Required fields in candles array changed, 3. echo_req no longer required in response, 4. Granularity enum restriction removed, 5. Input validation patterns removed, 6 Breaking Changes, 6. subscribe and adjust_start_time now accept 0, Breaking changes (+5 more)
-
-### Community 114 - "useModuleAccess"
-Cohesion: 0.26
-Nodes (7): useModuleAccess(), Page(), Page(), HasAcessComponet(), BotTrade(), HasAcessComponet(), mockUseModuleAccess
-
-### Community 115 - "Architecture Overview"
+### Community 16 - "Module Access and Pages"
 Cohesion: 0.15
-Nodes (11): Architecture Overview, Authentication & Route Protection, BotTrader (Copy Trader), Commands, Core Architecture Patterns, Database, Digit Precision by Symbol, Environment Variables (+3 more)
+Nodes (13): useModuleAccess(), Page(), Page(), BotTraderX(), Configure, Console, RealAccount, Stats (+5 more)
 
-### Community 116 - "Skill: Automated Testing Expert"
-Cohesion: 0.15
-Nodes (12): 1. Serviços/Singletons (ex: MonitoringService), 2. Algoritmo Gale/Soros, 3. Componentes React, 4. Integração DerivService (mock WebSocket), Configuração do Vitest, Executar Testes, O Que Testar (Prioridade), Padrões de Teste por Tipo (+4 more)
-
-### Community 117 - "Skill: Trade Configuration & Risk Management Expert"
-Cohesion: 0.15
-Nodes (12): Algoritmo Gale (Martingale), Algoritmo Soros (Reinvestimento de Lucro), Bottrader (Copy Trading) — `src/app/(withSidebar)/bottrader/`, Componentes de Configuração, Configuração Completa (localStorage), ControllerConfig — `src/app/(withSidebar)/trade-mind-pro/components/ControllerConfig.tsx`, ManagementConfig — `src/app/(withSidebar)/trade-mind-pro/components/ManagementConfig.tsx`, Persistência (+4 more)
-
-### Community 118 - "Profit table"
-Cohesion: 0.15
-Nodes (12): 1. loginid parameter removed, 2. app_id no longer nullable, 3. Response fields now required, 4. Transaction fields now required, 5 Breaking Changes, 5. Validation relaxed, Breaking changes, Code examples (+4 more)
-
-### Community 119 - "Padrões Obrigatórios"
-Cohesion: 0.17
-Nodes (11): Autenticação, Contexto do Projeto, Envio de mensagens, Extração de dígito, Padrões Obrigatórios, Ping-Pong, Reconexão automática, Skill: Deriv API Expert (+3 more)
-
-### Community 120 - "Skill: Monitoring & Probability Expert"
-Cohesion: 0.17
-Nodes (11): Ajustes aplicados, Algoritmo de Probabilidades (5 períodos ponderados), Arquivo Principal, Ciclo de Vida do MonitoringService, Cooldown, Interface ProbabilityStats, Lógica de Group Activation, Lógica de Mode Switching (ControllerConfig) (+3 more)
-
-### Community 121 - "Options Trading (Legacy) REST"
-Cohesion: 0.17
-Nodes (11): Authentication, Available Endpoints, Error Response Format, OAuth2 Scopes, OpenAPI Specification, Options Trading (Legacy) REST, Overview, Response Status Codes (+3 more)
-
-### Community 122 - "Balance"
-Cohesion: 0.17
-Nodes (11): 1. Account parameter removed, 2. Multi-account response removed, 3. Total balances removed, 4. Login ID parameter removed, Balance, Breaking Changes, Code Examples, Critical change (+3 more)
-
-### Community 123 - "Sell"
-Cohesion: 0.17
-Nodes (11): 1. Removed loginid parameter, 2. price parameter validation added, 3. sell object now required in response, 4. All sell object fields now required, 4 Breaking Changes, Breaking changes, Code examples, Quick comparison (+3 more)
-
-### Community 124 - "Statement"
-Cohesion: 0.17
-Nodes (11): 1. loginid parameter removed, 2. Transfer-related fields removed, 3. action_type enum validation removed, 4. Response fields now required, 7 Breaking Changes, Breaking changes, Code examples, Quick comparison (+3 more)
-
-### Community 125 - "Ticks"
-Cohesion: 0.17
-Nodes (11): 1. Required fields in tick response changed, 2. Tick object now required in response, 3. Subscribe parameter now accepts 0, 4 Breaking Changes, 4. Input validation pattern removed, Breaking changes, Code examples, Quick comparison (+3 more)
-
-### Community 126 - "Autenticação e Proteção de Rotas"
-Cohesion: 0.18
-Nodes (10): Arquivos Envolvidos, Autenticação e Proteção de Rotas, Cookie `auth_token`, Fluxo de autenticação, Função `logout`, JWT e Edge Runtime, Rotas Protegidas, Rotas Públicas (sem autenticação) (+2 more)
-
-### Community 127 - "Options Setup REST"
-Cohesion: 0.18
-Nodes (10): Authentication, Available Endpoints, Error Response Format, OAuth2 Scopes, OpenAPI Specification, Options Setup REST, Overview, Response Status Codes (+2 more)
-
-### Community 128 - "Buy"
-Cohesion: 0.18
-Nodes (10): 1. loginid parameter removed, 2. buy field validation relaxed, 3 Breaking Changes, 3. buy object now required in response, Breaking changes, Buy, Code examples, Quick comparison (+2 more)
-
-### Community 129 - "Cancel"
-Cohesion: 0.18
-Nodes (10): 1. Removal of loginid parameter, 2. cancel object now required in response, 3. All response fields now required, 3 Breaking Changes, Breaking changes, Cancel, Code examples, Quick comparison (+2 more)
-
-### Community 130 - "Contract update"
-Cohesion: 0.18
-Nodes (10): 1. loginid parameter removed, 2. contract_update object now required in response, 3 Breaking Changes, 3. New display_order_amount field added, Breaking changes, Code examples, Contract update, Quick comparison (+2 more)
-
-### Community 131 - "Contract update history"
-Cohesion: 0.18
-Nodes (10): 1. LoginID parameter removed, 2. Response field contract_update_history now required, 3 Breaking Changes, 3. Response array items have required fields, Breaking changes, Code examples, Contract update history, Quick comparison (+2 more)
-
-### Community 132 - "Forget all"
-Cohesion: 0.18
-Nodes (10): 1. Stream type enum validation removed, 2. Response field now required, 3 Breaking Changes, 3. Response array items now typed, Breaking changes, Code examples, Forget all, Quick comparison (+2 more)
-
-### Community 133 - "Portfolio"
-Cohesion: 0.18
-Nodes (10): 1. Symbol field renamed, 2. LoginId parameter removed, 3. app_id field can no longer be null, 3 Breaking Changes, Breaking changes, Code examples, Portfolio, Quick comparison (+2 more)
-
-### Community 134 - "Skill: Legacy Bridge Expert"
-Cohesion: 0.20
-Nodes (9): Acessando APIs Legadas, Adicionando Novos Scripts Legados, Arquivos Chave, Comunicação Legacy → React (CustomEvents), Comunicação React → Legacy, Padrão de Carregamento, Shims Obrigatórios (window globals), Skill: Legacy Bridge Expert (+1 more)
-
-### Community 135 - "Skill: Trade Strategy Expert"
-Cohesion: 0.20
-Nodes (9): Arquivos Chave, Estrutura JSON de Regras, Fluxo de Tradução de Estratégia, Indicadores Disponíveis, Regras de Negócio Importantes, Seleção de Modelo Gemini, Skill: Trade Strategy Expert, Tarefa (+1 more)
-
-### Community 136 - "Forget"
-Cohesion: 0.20
-Nodes (9): 1. Stream ID pattern validation relaxed, 2 Breaking Changes, 2. Response field always present, Breaking changes, Code examples, Forget, Quick comparison, Request structure (+1 more)
-
-### Community 137 - "userService.js"
-Cohesion: 0.40
-Nodes (6): ForgotPasswordModal(), LoginPage(), Home(), checkToken(), registerUser(), userLogin()
-
-### Community 138 - "Relatório de Engenharia Reversa — ZeeK 3.0"
-Cohesion: 0.20
-Nodes (9): Comportamento de rede (CONFIRMADO em captura ao vivo), Ferramentas usadas, Identificação do empacotamento, Limite técnico encontrado, Lógica do robô (reconstruída das constantes Nuitka), O heartbeat é telemetria/vigilância, Pontos de risco, Relatório de Engenharia Reversa — ZeeK 3.0 (+1 more)
-
-### Community 139 - "Deriv OAuth 2.0 & WebSocket Connection"
-Cohesion: 0.22
-Nodes (8): 1. Market data (público — sem login), 2. Trading autenticado (OTP), Arquitetura de Autenticação (OAuth 2.0 PKCE), Consumo de Ticks (API da aplicação), CSP (`next.config.mjs`), Deriv OAuth 2.0 & WebSocket Connection, Referências internas, WebSocket
-
-### Community 140 - "Authentication"
-Cohesion: 0.22
-Nodes (8): Authentication, Authentication Methods, OAuth 2.0 app vs PAT app, OAuth 2.0 apps, PAT apps, Token-based access, When to choose which, Why Authentication Matters
-
-### Community 141 - "Migração Bot Strategy (2025)"
-Cohesion: 0.20
-Nodes (9): 1. Arquitetura, 2. Funcionalidades, 3. Inicialização, 4. Componentes Chave, Deploy on Vercel, Getting Started, Graphity, Learn More (+1 more)
-
-### Community 142 - "Pontos de BUG e Ajustes Necessários (Gaps de Funcionalidade):"
-Cohesion: 0.25
-Nodes (7): 1. Timeout Falso de Trade Lock (Risco de Travar o Robô), 2. Funcionalidade Combo Incompatível com a API da Deriv (Real Mode), 3. Ausência de Controles Visuais para "Padrão A→B" na UI, 4. Métrica chiSquare (Anomalia de Distribuição) não é exibida, O que está de acordo com o planejado:, Pontos de BUG e Ajustes Necessários (Gaps de Funcionalidade):, Revisão de Código: Bear Bot Ultra 10.0 (Refatorado)
-
-### Community 143 - "ciclo_monitoramento_trader.md"
-Cohesion: 0.29
-Nodes (6): 1. O Clique no Botão (`page.tsx`), 2. O Fluxo de Inicialização em `toggleBot`, 3. O Ciclo de Monitoramento Ativo (`Monitoring.ts`), 4. O Callback de Trade (`page.tsx` conectando ao `LegacyBridge.ts`), 5. Execução Final (`trade-manager.js`), Resumo do Fluxo:
-
-### Community 144 - "explicacao_multi_mercado_com_execicao_manual.md"
-Cohesion: 0.29
-Nodes (6): 1. Varredura Simultânea (Paralelismo), 2. A Métrica de Exaustão (Os Cálculos), 3. A Tomada de Decisão (O Auto-Foco), 4. A Troca e Indicação na Tela (UI), A. Se você usa Padrão de Gatilho (Modo Differ com Padrão):, B. Se você NÃO usa Padrão (Estratégia Clássica):
-
-### Community 145 - "Mark-up"
-Cohesion: 0.29
-Nodes (6): Another example, Earning partner commissions, Example, Mark-up, Markup impacts user profit, Other ways to monetise the Deriv API
-
-### Community 146 - "Bear Bot Ultra 2 (v10.0 Refatorado) — Guia Técnico e Manual de Referência Completo"
-Cohesion: 0.05
-Nodes (40): 10. Execução de Baixa Latência: PropKeeper e Pre-opened Proposals, 11. Proteções de Taxa, Timeouts e Concorrência, 12. Cronograma de Ativação Progressiva por Ticks, 13. Suíte de Testes Automatizados (Vitest), 14. Guia Rápido de Consulta para Agentes de IA, 1. Visão Geral e Inovações do Bear Bot Ultra 2, 2. Estrutura de Arquivos e Arquitetura, 3. Mercados Suportados e Precisão de Dígitos (+32 more)
-
-### Community 147 - "bottraderx.tsx"
-Cohesion: 0.29
-Nodes (6): BotTraderX(), Configure, Console, RealAccount, Stats, VirtualAccount
-
-### Community 148 - "Pendente"
-Cohesion: 0.29
-Nodes (6): Concluido, Melhorias Bot Copy Trader — Baseado no ZeekBot, Pendente, Prioridade Alta, Prioridade Baixa, Prioridade Media
-
-### Community 150 - "score_oportunidade.md"
-Cohesion: 0.33
-Nodes (5): 1. Para que ele serve?, 2. Como ele funciona? (A Fórmula de Cálculo), 3. Ponderação pelos Modos de IA (`aiMode`), Os 4 Pilares do Score:, Resumo
-
-### Community 151 - "System"
-Cohesion: 0.40
-Nodes (4): Available Endpoints, System, Use Cases, WebSocket & REST Endpoints
-
-### Community 163 - "Contagem sob Foco — Loss Virtual Modifier"
-Cohesion: 0.09
-Nodes (21): 1. Tipos (`bearbot2.types.ts`), 2. Engine (`BearBot2Engine.ts`), 3. UI (`bearBotUltra2.tsx`), 4. Hook (`useBearBot2.ts`), Comparação com Comportamento Atual, Comportamento Detalhado, Contagem sob Foco — Loss Virtual Modifier, Escopo (+13 more)
-
-### Community 164 - "useBearBot2.ts"
+### Community 17 - "useBearBot2 Hook and Markets"
 Cohesion: 0.14
 Nodes (13): extractLastDigit(), isTerminalContract(), useBearBot(), MARKETS, ProposalEntry, MockAudioContext, mockGetStorageDerivAccount, mockOn (+5 more)
 
-### Community 165 - "Especificação de Design: Dígitos Dinâmicos no Modo Differ (Bear Bot Ultra 2)"
+### Community 18 - "Bear Bot Digit Engine Tests"
+Cohesion: 0.12
+Nodes (3): createEngine(), baseConfig, seedFocusOnly()
+
+### Community 19 - "Legacy Bridge Integration"
+Cohesion: 0.15
+Nodes (17): configureTradeManager, Legacy Bridge Expert Skill, Legacy Rules Cache and History API, Legacy Script Load Order, Window Global Shims, Group Activation Logic, Gemini Model Selection by Group Count, Available Strategy Indicators (+9 more)
+
+### Community 20 - "Bear Bot Ultra 2 UI"
+Cohesion: 0.15
+Nodes (10): BearBotUltra(), sanitizeDecimalInput(), validateNumber(), localStorageMock, MockAudioContext, mockDerivInstance, registeredListeners, localStorageMock (+2 more)
+
+### Community 21 - "Legacy Interceptors and Serena Config"
+Cohesion: 0.13
+Nodes (16): CustomEvent Interceptors, Trade Strategy Expert Skill, Serena Project Configuration, TypeScript Language Server Backend, window.tradeManager (trade-manager.js), setupTradeMessageInterceptor, Dual-Layer Auth and Route Protection, Bear Bot Ultra 2 (+8 more)
+
+### Community 22 - "Trade Execution and Barrier Locking"
+Cohesion: 0.17
+Nodes (15): TradeExecutor (WebSocket conta real), Canal Trading autenticado via OTP, Barreira Congelada (lockedDigit / resolveDynamicBarrier), PropKeeper e Pre-opened Proposals (<10ms), Portão vlDynGateOpen (3 condições obrigatórias), balance (Legacy vs New), buy (Legacy vs New), Remoção do parâmetro loginid (multi-conta) (+7 more)
+
+### Community 23 - "Market WebSocket Channel and CSP"
+Cohesion: 0.17
+Nodes (15): CSP connect-src em next.config.mjs, Endpoint legado websockets/v3 retorna InvalidSymbol, Canal Market Público (ws/public), TicksTest.tsx (consumo de ticks na home), bearbot2.types.ts (buildLoserSet / isWinCheck), Modo COMBO (Dual-Leg Simultâneo), extractLastDigit e Pip Size por símbolo, active_symbols (Legacy vs New) (+7 more)
+
+### Community 24 - "User Profile and Sidebar"
+Cohesion: 0.24
+Nodes (9): updateUserProfile(), getUser(), logout(), Sidebar(), HomeLayout(), ProfileModal(), ProfileModalProps, localStorageMock (+1 more)
+
+### Community 25 - "Auth Component and Ticks Graph"
+Cohesion: 0.19
+Nodes (12): Authentication, AuthenticationHandle, TicksGraph(), AccountSelectorProps, extractDigit(), getDecimalPlaces(), getSymbolLabel(), INITIAL_TICKS (+4 more)
+
+### Community 26 - "Monitoring Probability Algorithm"
+Cohesion: 0.16
+Nodes (14): Gap Bonus, Monitoring & Probability Expert Skill, ProbabilityStats Interface, Saturation Penalty, Top-N Digits, Weighted Period Scoring, localStorage Test Mock, Test Priority Matrix (+6 more)
+
+### Community 27 - "Bear Bot v1 UI and History"
+Cohesion: 0.14
+Nodes (11): BearBotUltra(), HistoryPage(), localStorageMock, mockExtractLastDigit, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend (+3 more)
+
+### Community 28 - "JWT Route Protection"
+Cohesion: 0.15
+Nodes (13): Cookie auth_token (HttpOnly, 8h), jose no Edge Runtime, Dupla Camada de Proteção JWT, logout() de userService.js, src/middleware.ts (proteção server-side), Rotas Públicas (sem autenticação), (withSidebar)/layout.js — barreira client-side, Integração onUseRule no AiChatPanel (+5 more)
+
+### Community 29 - "Tick Activation Schedule"
 Cohesion: 0.18
-Nodes (10): 1. Visão Geral, 2.1. Componentes do Score:, 2.2. Critério de Seleção, 2. Modelo Matemático do Score Composto, 3.1. Tipos (`src/app/services/bearbot2.types.ts`), 3.2. Engine (`src/app/services/BearBot2Engine.ts`), 3. Alterações na Arquitetura de Tipos e Engine, 4. Alterações na Interface Gráfica (`src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx`) (+2 more)
+Nodes (13): F_frio — Frequência Inversa Multi-Janela (40%), Fase 'Coletando Dados' (50 ticks), IntelPanel Status Transition (coletando → recomendação), 120-Tick Rolling Memory per Market, Cronograma de Ativação por Ticks, Proposed Alternative Sync Metrics, Gráfico de Sincronia (syncScore formula), Sync Test Passes Only via Identical Fed Sequences (+5 more)
 
-### Community 166 - "Global Constraints"
-Cohesion: 0.25
-Nodes (7): Differ Dynamic Digit (Score Composto) Implementation Plan, Global Constraints, Task 1: Type Definitions and Default Config, Task 2: Implement Composite Score Algorithm `computeDynamicDifferDigit`, Task 3: Integrate Dynamic Digit into Engine Tick and Trade Flow, Task 4: UI Toggle and Target Digit State in `bearBotUltra2.tsx`, Task 5: Run Full Test Suite & Validation
+### Community 30 - "Copy Trader Risk Config"
+Cohesion: 0.15
+Nodes (13): Bot Copy Trader (demo → real replication), Limite de Martingale (reset vs stop), Pause Time (cooldown between real trades), Quantity Loss (demo losses before real entry), Stake Multiple (Martingale multiplier), Stop Loss / Stop Win (real account limits), calculateNextStake Uses martingaleLevel, consecutiveLosses Scoped to Demo Only (+5 more)
 
-### Community 167 - "Global Constraints"
+### Community 31 - "Market Grid and Intelligence"
+Cohesion: 0.24
+Nodes (9): DEFAULT_BOT_STATE, DEFAULT_CONFIG, MarketIntelligence, getIntelColor(), getRecLabel(), MarketGrid(), MarketGridProps, buildState() (+1 more)
+
+### Community 32 - "ZeeK Reverse Engineering"
+Cohesion: 0.24
+Nodes (12): BotTrader Configure Interface, BotTrader Copy Trader, Martingale Stake Formula, onTrade Guard, Quantity Loss Mode, Nuitka Constant-Blob Decompilation Limit, ZeeK Heartbeat Telemetry, ZeeK License Validation (+4 more)
+
+### Community 33 - "Contagem sob Foco (VL Focus)"
+Cohesion: 0.20
+Nodes (12): Contagem sob Foco Implementation Plan, toggle-vl-focus-only UI Control, 3s Anti-Flicker Manual Switch Lock, Contagem sob Foco (Focus-Scoped VL Counting), VL as Post-Focus Confirmation (not Pre-condition), Loss Virtual Modes (consec / accum), vlFocusOnly (BotConfig field), AI Gate (Score >= 40 to authorize entry) (+4 more)
+
+### Community 34 - "Login Background Artwork"
+Cohesion: 0.23
+Nodes (12): Authentication Page Branding Asset, Businessman Holding Floating Screen, Candlestick Price Chart with Volume Bars, Coinbase Prime Institutional UI (BTC/USD), Dark Navy / Cyan Visual Palette, Holographic Trading Dashboard Visual, Login Screen Background Image, Bid/Ask Market Depth Chart (+4 more)
+
+### Community 35 - "Auth Hook and Profile Pages"
+Cohesion: 0.27
+Nodes (7): useAuth(), HomePage(), ProfilePage(), MarkupBreakdown, MarkupStatisticsData, MarkupStatisticsReport(), MarkupStatisticsPage()
+
+### Community 36 - "DerivService Types"
+Cohesion: 0.20
+Nodes (10): AccountInfo, DerivEventMap, PendingRequest, TokenData, UserInfo, Market, MARKETS, PatternState (+2 more)
+
+### Community 37 - "Bear Bot Versions and Stale Closures"
+Cohesion: 0.18
+Nodes (11): Modo Quantity Loss (isInRealMode), Bear Bot Ultra 2 (v10.0 Refatorado), Desacoplamento total Engine ↔ React, Bear Bot Ultra (v1), forgetAllProposals() e AlreadySubscribed, Loss Virtual — Janela Deslizante (modo acum), Stale Closure em listeners de WebSocket, Padrão híbrido useState vs stateRef (+3 more)
+
+### Community 38 - "Opportunity Score Pillars"
+Cohesion: 0.20
+Nodes (11): AI Gate (OpportunityScore >= 40), BearBot2Engine.ts (motor desacoplado), Martingale Multiplicador vs Parcelado, Score de Oportunidade e os 4 Pilares, Validação Rigorosa de Padrões A → B (Wilson LB + Lift), Pilar 2: Força do Padrão A → B, Pilar 1: Pressão de Perdedores, Pilar 3: Progresso de Loss Virtual (+3 more)
+
+### Community 39 - "Dynamic Digit Spec and Plan"
+Cohesion: 0.20
+Nodes (11): Backward Compatibility with differAutoDigit and patTrigger, bearBot2DynamicDigit.test.ts (planned suite), Dynamic Digit Engine Tick & Trade Integration, Differ Dynamic Digit Implementation Plan, Score Composto Multi-Dimensional S(d), computeDynamicDifferDigit (spec contract), Dígitos Dinâmicos (DIFFER Mode Feature), Independence from Loss Virtual and Padrão A→B (+3 more)
+
+### Community 40 - "Duplicate Trade Guards and OAuth"
+Cohesion: 0.20
+Nodes (10): Proteção contra duplicatas do TradeExecutor, Guard onTrade (prevenção de trade duplicado), bool_89 do ZeekBot original, client_id (alfanumérico) vs app_id (numérico), DerivService.tsx (singleton dois canais), Deriv OAuth 2.0 PKCE Flow, SAFETY_TIMEOUT_MS (30s) e abortPendingTrade, tradeLock (trava atômica de concorrência) (+2 more)
+
+### Community 41 - "Dynamic Digit Sub-Scores"
+Cohesion: 0.20
+Nodes (10): Anti-Cascade Reset (prevenção de disparos em cascata), Dígito Automático no Differ (differAutoDigit), Radar de Dígitos Dinâmicos (differDynamicDigit), Sub-Score de Resistência à Anomalia (15%), Sub-Score de Frequência Multi-Janela (40%), Sub-Score de Markov Inverso (30%), Sub-Score de Trigramas Inversos (15%), Contagem sob Foco (vlFocusOnly) (+2 more)
+
+### Community 42 - "IntelPanel Component"
 Cohesion: 0.29
-Nodes (6): Contagem sob Foco — Implementation Plan, Global Constraints, Task 1: Add `vlFocusOnly` to Types and Defaults, Task 2: Implement Focus Reset Logic in Engine, Task 3: Add UI Toggle, Task 4: Manual Verification
+Nodes (8): BotState, TradeLog, getIntelColor(), getRecLabel(), IntelPanel(), IntelPanelProps, TradeLogComponent(), TradeLogProps
+
+### Community 43 - "Bear Bot Engine Unit Tests"
+Cohesion: 0.22
+Nodes (5): AI_WEIGHTS, AIModeName, feedABPattern(), seedLoserPressure(), seedPatternIntel()
+
+### Community 44 - "Runtime Dependencies"
+Cohesion: 0.22
+Nodes (9): axios, dependencies, axios, @prisma/client, react-dom, resend, @prisma/client, react-dom (+1 more)
+
+### Community 45 - "Trade Config localStorage Keys"
+Cohesion: 0.25
+Nodes (9): _timestamp/_autoSaved Config Envelope, selectedSymbol (localStorage key), trade_config_controller, trade_config_full, trade_config_management, trade_config_trade, trade_config_user_<loginId> (per-account config), Pending: Database Persistence via Prisma/MySQL (+1 more)
+
+### Community 46 - "Chi-Square and Review Gaps"
+Cohesion: 0.25
+Nodes (9): A_frio — Anomaly Resistance (15%), Teste Qui-Quadrado (30-tick minimum), GAP: chiSquare / marketAnomaly Not Rendered, BUG: prepareCombo Payload Rejected by Deriv API, Decoupled Engine Pattern (BearBotEngine + useBearBot2), engine.onAutoTrade → executeTrade Event Bridge, Bear Bot Ultra 10.0 Refactor Code Review, BUG: Empty 10s Trade Lock Safety Timeout (+1 more)
+
+### Community 47 - "Login Illustration Artwork"
+Cohesion: 0.36
+Nodes (9): Buy / Sell Signal Iconography, Candlestick Chart Panel (STOCKS), Blue / Green / Red Trading Palette, Flat Vector Stock-Art Illustration Style, Login Page Trading Illustration, Login Page Hero Artwork Slot, Lorem Ipsum Placeholder Asset Labels, Trading Dashboard Visual Motif (+1 more)
+
+### Community 48 - "Login and Password Recovery UI"
+Cohesion: 0.36
+Nodes (6): ForgotPasswordModal(), LoginPage(), Home(), checkToken(), registerUser(), userLogin()
+
+### Community 50 - "Gale and Soros Risk Config"
+Cohesion: 0.29
+Nodes (8): Proposal and Buy Contract Flow, Gale (Martingale) Algorithm, ManagementConfigData, Soros (Profit Reinvestment) Algorithm, TradeConfigData, Trade Configuration & Risk Management Skill, Pre-Start Config Validation, Deriv Contract Types
+
+### Community 51 - "Monitoring Service Lifecycle"
+Cohesion: 0.29
+Nodes (8): Cooldown Ticks, MonitoringService Lifecycle, SIMULADO/REAL Mode Switching, onTradeSignal Callback, ControllerConfigData, LegacyBridge.executeTrade, startExecution (isExecutionActive), LegacyBridge Integration Layer
+
+### Community 52 - "Copy Trading Server Architecture"
+Cohesion: 0.29
+Nodes (8): BotTrader (Bot Copy Trader), CopyTradingManager (singleton server-side), CopyTradingService (uma instância por usuário), Martingale (progressão geométrica), Reconexão automática de WebSockets, SignalProcessor, TradeSignal (símbolo, tipo, duração, barrier), WsListener (WebSocket conta demo)
+
+### Community 53 - "Multi-Market Auto-Focus"
+Cohesion: 0.29
+Nodes (8): Pilar 4: Sincronia Cross-Market, Auto-Foco / Troca Automática de Mercado, Métrica de Exaustão (Score), Multi-Mercado ON com Execução MANUAL (radar inteligente), 7 Mercados de Volatilidade Deriv, Trava Anti-Flicker de 3 segundos, Inteligência de Multi-Mercado (Multi ON), Compra Rápida (Quick Trade)
+
+### Community 54 - "Focus Reset Interceptors"
+Cohesion: 0.29
+Nodes (8): bearBotUltra2AutoDigitUI.test.tsx (planned suite), tryFireMultiCandidate Focus-Reset (auto exec), trySwitchMultiCandidate Focus-Reset (manual exec), updateConfig Focus-Reset Interceptor (user click), differDynamicDigit (BotConfig flag), Dígitos Dinâmicos UI Toggle & Disabled Digit Grid, vlResetM(sym) — VL Counter Reset per Market, GAP: No UI for Padrão A→B (patTrigger stuck at default)
+
+### Community 55 - "Bear Bot Logo Branding"
+Cohesion: 0.43
+Nodes (8): Bear Bot Ultra Module Branding, BEAR BOT Wordmark, Bearish Trading Brand Theme, Bear Bot Pro Logo Image, White Bear Silhouette Mark, Green Rising / Red Falling Bar Chart Motif, Dark Charcoal Brand Palette, PRO Badge with Blue Bot-Face Emblem
+
+### Community 56 - "Shared Rules API Tests"
+Cohesion: 0.29
+Nodes (5): ../app/api/shared-rules/route, BASE_RULE, makeRequest(), makeToken(), mocks
+
+### Community 58 - "Middleware Route Guard"
+Cohesion: 0.29
+Nodes (4): config, isPublicPath(), middleware(), PUBLIC_PATHS
+
+### Community 59 - "Deriv API Skill and Digit Precision"
+Cohesion: 0.33
+Nodes (7): Automatic Reconnection and Request Queue, Deriv API Expert Skill, extractLastDigit, Tick/Balance Subscription Management, DerivService Test Mock, DerivService WebSocket Singleton, Digit Precision by Symbol
+
+### Community 60 - "Reset Password Route"
+Cohesion: 0.29
+Nodes (3): prisma, freshTokenSentAt, mocks
+
+### Community 61 - "OAuth Token Storage Keys"
+Cohesion: 0.60
+Nodes (5): deriv_accounts (localStorage key), token_list (localStorage key), deriv_accounts (OAuth token snapshot), OAuth Token Format (oauth:ory_at_...:loginid), token_list (OAuth token snapshot)
+
+### Community 62 - "Strategy Cache and Rule Schema"
+Cohesion: 0.40
+Nodes (5): dynamic_prediction Rule Schema, monitoring_group_activation_config_<scope>, monitoring_strategy_<loginId> (raw strategy text), parameters_ui Path-Bound Parameter Binding, strategy_cache_global (translation cache)
+
+### Community 63 - "ESLint Config"
+Cohesion: 0.40
+Nodes (4): compat, __dirname, eslintConfig, __filename
+
+### Community 64 - "Globe Icon Asset"
+Cohesion: 0.60
+Nodes (5): clipPath id="a" (16x16 square mask), Globe Glyph Path (grid-lined sphere, #666 fill), Globe Icon (globe.svg), 16x16 Monochrome Icon Convention, Next.js Starter Public Asset
+
+### Community 65 - "Vercel Logo Asset"
+Cohesion: 0.60
+Nodes (5): create-next-app Boilerplate Branding Asset, Static Public Asset (Next.js /public), Filled Triangle Path (#fff, viewBox 0 0 1155 1000), Vercel Logo Mark (SVG Triangle), Vercel Hosting Platform
+
+### Community 66 - "Forgot Password Route"
+Cohesion: 0.50
+Nodes (4): generateSecureToken(), POST(), prisma, resend
+
+### Community 67 - "Root App Layout"
+Cohesion: 0.40
+Nodes (3): geistMono, geistSans, metadata
+
+### Community 68 - "Dynamic Digit Panel"
+Cohesion: 0.60
+Nodes (4): DynamicDigitResult, DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor()
+
+### Community 69 - "Operation Service and Buy Table"
+Cohesion: 0.60
+Nodes (3): saveOperation(), BuyTable(), BuyTableProps
+
+### Community 70 - "Next.js Logo Asset"
+Cohesion: 0.67
+Nodes (4): create-next-app Default Static Asset, Next.js Framework Branding, Next.js Wordmark Logo (SVG), Monochrome Vector Wordmark Asset
+
+### Community 71 - "Window Icon Asset"
+Cohesion: 0.67
+Nodes (4): Browser Window Glyph (title bar with three dots), Monochrome 16x16 UI Icon Set (#666 fill), Next.js Starter Template Static Asset, Window Icon (window.svg)
+
+### Community 75 - "File Icon Asset"
+Cohesion: 0.67
+Nodes (3): Document Page Glyph with Folded Corner, File Icon (SVG), Next.js Starter Template Icon Asset
+
+## Ambiguous Edges - Review These
+- `DerivService WebSocket Singleton` → `Deriv API Expert Skill`  [AMBIGUOUS]
+  .claude/commands/deriv-api.md · relation: conceptually_related_to
+- `Globe Glyph Path (grid-lined sphere, #666 fill)` → `Next.js Starter Public Asset`  [AMBIGUOUS]
+  public/globe.svg · relation: conceptually_related_to
+- `Holographic Trading Dashboard Visual` → `Coinbase Prime Institutional UI (BTC/USD)`  [AMBIGUOUS]
+  public/img/background-login-2.jpg · relation: references
+- `PRO Badge with Blue Bot-Face Emblem` → `Bear Bot Ultra Module Branding`  [AMBIGUOUS]
+  public/img/bear-logo.jpg · relation: conceptually_related_to
+- `Login Page Trading Illustration` → `Trading Dashboard Visual Motif`  [AMBIGUOUS]
+  public/img/form-login.png · relation: shares_data_with
+- `Filled Triangle Path (#fff, viewBox 0 0 1155 1000)` → `Vercel Hosting Platform`  [AMBIGUOUS]
+  public/vercel.svg · relation: semantically_similar_to
+- `Browser Window Glyph (title bar with three dots)` → `Monochrome 16x16 UI Icon Set (#666 fill)`  [AMBIGUOUS]
+  public/window.svg · relation: semantically_similar_to
 
 ## Knowledge Gaps
-- **1087 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+1082 more)
-  These have ≤1 connection - possible missing edges or undocumented components.
-- **44 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **299 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+294 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 450 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **39 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `DerivService` connect `DerivService` to `useBearBot2.ts`, `TicksTest.tsx`, `DerivService.tsx`, `bearBotUltra.test.tsx`, `buyTable.tsx`, `useAuth`?**
-  _High betweenness centrality (0.010) - this node is a cross-community bridge._
-- **Why does `BearBotEngine` connect `BearBotEngine` to `useBearBot2.ts`, `bearbot2.types.ts`, `bearBotUltra2.tsx`, `BotConfig`, `.prepareTrade`?**
-  _High betweenness centrality (0.006) - this node is a cross-community bridge._
-- **Why does `createEngine()` connect `createEngine` to `bearbot2.types.ts`, `useBearBot2.ts`?**
-  _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **What connects `__filename`, `__dirname`, `compat` to the rest of the system?**
-  _1087 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `DerivService` be split into smaller, more focused modules?**
-  _Cohesion score 0.06522522522522523 - nodes in this community are weakly interconnected._
-- **Should `CopyTradingService` be split into smaller, more focused modules?**
-  _Cohesion score 0.05520614954577219 - nodes in this community are weakly interconnected._
-- **Should `WsListener` be split into smaller, more focused modules?**
-  _Cohesion score 0.05348101265822785 - nodes in this community are weakly interconnected._
+- **What is the exact relationship between `DerivService WebSocket Singleton` and `Deriv API Expert Skill`?**
+  _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
+- **What is the exact relationship between `Globe Glyph Path (grid-lined sphere, #666 fill)` and `Next.js Starter Public Asset`?**
+  _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
+- **What is the exact relationship between `Holographic Trading Dashboard Visual` and `Coinbase Prime Institutional UI (BTC/USD)`?**
+  _Edge tagged AMBIGUOUS (relation: references) - confidence is low._
+- **What is the exact relationship between `PRO Badge with Blue Bot-Face Emblem` and `Bear Bot Ultra Module Branding`?**
+  _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
+- **What is the exact relationship between `Login Page Trading Illustration` and `Trading Dashboard Visual Motif`?**
+  _Edge tagged AMBIGUOUS (relation: shares_data_with) - confidence is low._
+- **What is the exact relationship between `Filled Triangle Path (#fff, viewBox 0 0 1155 1000)` and `Vercel Hosting Platform`?**
+  _Edge tagged AMBIGUOUS (relation: semantically_similar_to) - confidence is low._
+- **What is the exact relationship between `Browser Window Glyph (title bar with three dots)` and `Monochrome 16x16 UI Icon Set (#666 fill)`?**
+  _Edge tagged AMBIGUOUS (relation: semantically_similar_to) - confidence is low._

@@ -64,3 +64,4 @@ O módulo `bot-ia` foi migrado para `src/app/(withSidebar)/bot-strategy` com as 
 ### Graphity
 
 O comando para atualizar o Graphify no diretório atual do seu projeto é: `graphify update .`
+/graphify .
