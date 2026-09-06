@@ -167,6 +167,12 @@ const Sidebar = ({
       role: ["admin", "user"],
     },
     {
+      name: "Bear Bot Differ",
+      icon: CpuChipIcon,
+      href: "/bear-bot-differ",
+      role: ["admin", "user"],
+    },
+    {
       name: "Minha Conta",
       icon: UserIcon,
       href: "/profile",
