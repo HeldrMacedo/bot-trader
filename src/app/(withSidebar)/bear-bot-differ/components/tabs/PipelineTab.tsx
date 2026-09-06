@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { EngineState, BearDifferEngine } from '@/app/services/BearDifferEngine';
 import { StrategyCandidate } from '@/app/services/beardiffer.types';
+import { driftTest } from '@/app/services/BearDifferMath';
 
 interface PipelineTabProps {
   engine: BearDifferEngine;
@@ -16,8 +17,51 @@ export default function PipelineTab({ engine, state }: PipelineTabProps) {
   const [progress, setProgress] = useState(0);
   const [pipelineSummary, setPipelineSummary] = useState<string | null>(null);
   const [approvedList, setApprovedList] = useState<StrategyCandidate[]>([]);
+  const [driftRows, setDriftRows] = useState<
+    Array<{ sym: string; pD: number; pR: number; changed: boolean }> | null
+  >(null);
+  const [driftMessage, setDriftMessage] = useState<string | null>(null);
 
   const digits = engine.getDigits(selectedSym);
+
+  const DRIFT_BLOCKS = 4;
+
+  // Fase 0: o processo gerador muda ao longo do tempo? O caminho muda sempre;
+  // a distribuição e a taxa de repetição que o produzem são outra coisa.
+  const handleRunDrift = () => {
+    const active = state.markets.filter((m) => m.on);
+    const rows: Array<{ sym: string; pD: number; pR: number; changed: boolean }> = [];
+
+    active.forEach((m) => {
+      const res = driftTest(engine.getDigits(m.sym), DRIFT_BLOCKS);
+      if (!res) return;
+      rows.push({ sym: m.sym, pD: res.pD, pR: res.pR, changed: false });
+    });
+
+    if (!rows.length) {
+      setDriftRows(null);
+      setDriftMessage(
+        `Histórico insuficiente: são necessários ao menos ${200 * DRIFT_BLOCKS} ticks por mercado.`
+      );
+      return;
+    }
+
+    // Bonferroni sobre a família inteira: mercados x 2 testes
+    const tests = rows.length * 2;
+    rows.forEach((r) => {
+      r.pD = Math.min(1, r.pD * tests);
+      r.pR = Math.min(1, r.pR * tests);
+      r.changed = Math.min(r.pD, r.pR) < state.config.labAlpha;
+    });
+
+    const changed = rows.filter((r) => r.changed).length;
+    setDriftRows(rows);
+    setDriftMessage(
+      changed
+        ? `${changed} de ${rows.length} mercados mostram estatística diferente entre blocos de tempo.`
+        : `Nenhum dos ${rows.length} mercados mostra mudança estatística entre os blocos de tempo. Readaptar a cada mudança de caminho seria ajustar a ruído.`
+    );
+  };
 
   const handleRunPipeline = () => {
     if (digits.length < 600) {
@@ -97,6 +141,50 @@ export default function PipelineTab({ engine, state }: PipelineTabProps) {
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="border border-[#222c3f] rounded p-3 mb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <span className="text-[#8593aa]">
+              Fase 0 — o gerador muda com o tempo? ({DRIFT_BLOCKS} blocos, χ² de homogeneidade)
+            </span>
+            <button
+              type="button"
+              onClick={handleRunDrift}
+              className="bg-[#18202f] border border-[#2e3a52] text-[#eef2f8] px-3 py-1.5 rounded hover:border-[#4aa3ff]"
+            >
+              Testar mudança de regime
+            </button>
+          </div>
+
+          {driftMessage && (
+            <p className="text-[11px] text-[#8593aa] mb-2">{driftMessage}</p>
+          )}
+
+          {driftRows && (
+            <table className="w-full font-mono text-[11px]">
+              <thead>
+                <tr className="text-[#54627d] text-left">
+                  <th className="py-1">Mercado</th>
+                  <th className="py-1">Distribuição</th>
+                  <th className="py-1">Repetição</th>
+                  <th className="py-1">Veredito</th>
+                </tr>
+              </thead>
+              <tbody>
+                {driftRows.map((r) => (
+                  <tr key={r.sym} className="border-t border-[#222c3f]">
+                    <td className="py-1">{r.sym}</td>
+                    <td className="py-1">{r.pD.toExponential(2)}</td>
+                    <td className="py-1">{r.pR.toExponential(2)}</td>
+                    <td className={`py-1 ${r.changed ? 'text-amber-400' : 'text-[#8593aa]'}`}>
+                      {r.changed ? 'mudou' : 'estável'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 font-mono">

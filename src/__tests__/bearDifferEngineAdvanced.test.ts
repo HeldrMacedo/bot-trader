@@ -249,6 +249,243 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     });
   });
 
+  describe('Auto-trade idle reason', () => {
+    const seed = (count = 400) => {
+      const digits: number[] = [];
+      let s = 7;
+      for (let i = 0; i < count; i++) {
+        s = (s * 1103515245 + 12345) % 2147483648;
+        digits.push(Math.floor((s / 2147483648) * 10));
+      }
+      engine.setHistory('R_10', digits);
+    };
+
+    it('says the bias gate is what holds the automatic mode', () => {
+      engine.updateConfig({ autoOn: true, gateBias: true, minScore: 0, minTicks: 50 });
+      seed();
+
+      engine.processTick('R_10', 4);
+
+      expect(engine.getState().autoIdleReason).toMatch(/viés/i);
+    });
+
+    it('says the score is what holds it when the gate is open', () => {
+      engine.updateConfig({ autoOn: true, gateBias: false, minScore: 999, minTicks: 50 });
+      seed();
+
+      engine.processTick('R_10', 4);
+
+      expect(engine.getState().autoIdleReason).toMatch(/score/i);
+    });
+
+    it('reports no reason once an entry actually fires', () => {
+      engine.updateConfig({
+        autoOn: true,
+        gateBias: false,
+        minScore: 0,
+        minTicks: 50,
+        cooldown: 0,
+      });
+      seed();
+
+      let fired = 0;
+      engine.onAutoTrade(() => {
+        fired++;
+      });
+      engine.processTick('R_10', 4);
+
+      expect(fired).toBe(1);
+      expect(engine.getState().autoIdleReason).toBeNull();
+    });
+
+    it('logs the reason once instead of on every tick', () => {
+      engine.updateConfig({ autoOn: true, gateBias: true, minScore: 0, minTicks: 50 });
+      seed();
+
+      for (let i = 0; i < 5; i++) engine.processTick('R_10', i);
+
+      const hits = engine.getState().logs.filter((l) => /viés/i.test(l.msg));
+      expect(hits.length).toBe(1);
+    });
+  });
+
+  describe('runWatch (market surveillance)', () => {
+    it('reports markets that are still collecting sample', () => {
+      engine.setHistory('R_10', Array.from({ length: 300 }, (_, i) => i % 10));
+
+      engine.runWatch();
+
+      expect(engine.getState().watch['R_10'].status).toBe('amostra');
+    });
+
+    it('flags a market whose generator is provably not random', () => {
+      // A perfectly cyclic sequence is fully Markov-dependent: the lab must
+      // catch it even after the Bonferroni correction
+      engine.setHistory('R_10', Array.from({ length: 2500 }, (_, i) => i % 10));
+
+      engine.runWatch();
+
+      expect(engine.getState().watch['R_10'].status).toBe('quebra');
+      expect(engine.getState().alerts.length).toBeGreaterThan(0);
+    });
+
+    it('raises an alert only on the transition into a break', () => {
+      engine.setHistory('R_10', Array.from({ length: 2500 }, (_, i) => i % 10));
+
+      engine.runWatch();
+      const afterFirst = engine.getState().alerts.length;
+      engine.runWatch();
+
+      expect(engine.getState().alerts.length).toBe(afterFirst);
+    });
+  });
+
+  describe('Partial martingale level cap', () => {
+    it('resets the partial ladder once it passes the configured ceiling', () => {
+      engine.updateConfig({
+        opMode: 'sim',
+        mgMode: 'partial',
+        mgMax: 2,
+        mgParts: 3,
+        stake: 1,
+        stopLoss: 0,
+        stopWin: 0,
+      });
+
+      engine.settleContract(-1, true, 'R_10', 3, 3);
+      engine.settleContract(-1, true, 'R_10', 3, 3);
+      expect(engine.getState().mgLevel).toBe(2);
+
+      // Level 3 passes the ceiling of 2: back to the base stake
+      engine.settleContract(-1, true, 'R_10', 3, 3);
+
+      expect(engine.getState().mgLevel).toBe(0);
+      expect(engine.getState().curStake).toBe(1);
+    });
+  });
+
+  describe('resolveLogic refuses instead of guessing', () => {
+    it('returns null for the rotation mode while no logic has the minimum sample', () => {
+      expect(engine.resolveLogic('rotate')).toBeNull();
+    });
+
+    it('returns null for the recent-performance mode while no logic has enough signals', () => {
+      expect(engine.resolveLogic('recent')).toBeNull();
+    });
+
+    it('still resolves a logic picked by hand', () => {
+      expect(engine.resolveLogic('rep')).toBe('rep');
+    });
+  });
+
+  describe('Bias gate on the single-operation scan', () => {
+    const seedMarket = (sym: string, count: number) => {
+      const digits: number[] = [];
+      let seed = 7;
+      for (let i = 0; i < count; i++) {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        digits.push(Math.floor(seed / 2147483648 * 10));
+      }
+      engine.setHistory(sym, digits);
+      // A couple of ticks to populate the live picks
+      engine.processTick(sym, 3);
+      engine.processTick(sym, 8);
+    };
+
+    it('returns a target when the bias gate is off', () => {
+      engine.updateConfig({ gateBias: false, minTicks: 300, onceLogic: 'rep' });
+      seedMarket('R_10', 400);
+
+      expect(engine.deepScan('rep')).not.toBeNull();
+    });
+
+    it('refuses every market that has not proven bias while the gate is on', () => {
+      engine.updateConfig({ gateBias: true, minTicks: 300, onceLogic: 'rep' });
+      seedMarket('R_10', 400);
+
+      // 400 ticks is far below labMin, so no market can be proven
+      expect(engine.isMarketProven('R_10')).toBe(false);
+      expect(engine.deepScan('rep')).toBeNull();
+    });
+  });
+
+  describe('exhaustBlock (reversal filter)', () => {
+    beforeEach(() => {
+      // 100 ticks where the digit 7 never shows up
+      const digits = Array.from({ length: 100 }, (_, i) => i % 7);
+      engine.setHistory('R_10', digits);
+    });
+
+    it('lets the entry through while the filter is off', () => {
+      engine.updateConfig({ exFilter: false });
+      expect(engine.exhaustBlock('R_10', 7)).toBeNull();
+    });
+
+    it('blocks a digit that is not exhausted', () => {
+      engine.updateConfig({ exFilter: true });
+      expect(engine.exhaustBlock('R_10', 7)).toMatch(/exaust/i);
+    });
+
+    it('blocks a digit that never caused a loss when only losers are allowed', () => {
+      const digits: number[] = [];
+      for (let i = 0; i < 60; i++) digits.push(i % 4 === 0 ? 7 : (i % 5) + 1);
+      engine.setHistory('R_10', digits);
+      engine.updateConfig({ exFilter: true, exOnlyLosers: true });
+
+      expect(engine.getExhaustion('R_10', 7)?.ok).toBe(true);
+      expect(engine.exhaustBlock('R_10', 7)).toMatch(/loss/i);
+    });
+  });
+
+  describe('Stop Loss / Stop Win boundaries', () => {
+    it('keeps simulated and real results in separate books for the stop checks', () => {
+      engine.updateConfig({ opMode: 'sim', stopLoss: 5, stopWin: 100 });
+
+      // A simulated loss of -4: below the limit, nothing stops
+      engine.settleContract(-4.0, true, 'R_10', 3, 3);
+      expect(engine.getState().stopped).toBe(false);
+
+      // Switching to real starts a fresh book. gateOps/gateAcc are not part
+      // of this check, only the stop accounting.
+      engine.updateConfig({ opMode: 'real' });
+      engine.settleContract(-2.0, true, 'R_10', 3, 3);
+
+      // Real book is at -2, far from the -5 stop. The simulated -4 must not
+      // count towards it.
+      expect(engine.getState().stopped).toBe(false);
+      expect(engine.getState().pnl).toBe(-2);
+    });
+
+    it('still stops when the active book alone reaches the stop loss', () => {
+      engine.updateConfig({ opMode: 'real', stopLoss: 5, stopWin: 100 });
+
+      engine.settleContract(-3.0, true, 'R_10', 3, 3);
+      expect(engine.getState().stopped).toBe(false);
+
+      engine.settleContract(-2.0, true, 'R_10', 3, 3);
+      expect(engine.getState().stopped).toBe(true);
+      expect(engine.getState().stoppedReason).toMatch(/Stop Loss/i);
+    });
+
+    it('treats a stop set to zero as disabled instead of firing immediately', () => {
+      engine.updateConfig({ opMode: 'sim', stopLoss: 0, stopWin: 0 });
+
+      engine.settleContract(0.11, false, 'R_10', 3, 4);
+
+      expect(engine.getState().stopped).toBe(false);
+      expect(engine.getConfig().autoOn).toBe(false);
+    });
+
+    it('stops on a take profit that was actually configured', () => {
+      engine.updateConfig({ opMode: 'sim', stopLoss: 0, stopWin: 1 });
+
+      engine.settleContract(1.5, false, 'R_10', 3, 4);
+
+      expect(engine.getState().stopped).toBe(true);
+      expect(engine.getState().stoppedReason).toMatch(/Stop Win/i);
+    });
+  });
+
   describe('checkGuards (Safety & Real Mode Gate)', () => {
     it('blocks Real mode if simulated trades are below gateOps', () => {
       engine.updateConfig({ opMode: 'real', gateOps: 50, gateAcc: 91 });

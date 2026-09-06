@@ -14,11 +14,14 @@ import {
   DifferLogItem,
   AnomalyLogItem,
   DifferTradeRecord,
+  WatchEntry,
+  WatchAlertItem,
 } from './beardiffer.types';
 import {
   benjaminiHochberg,
   binomP,
   chiP,
+  shuffle,
   zP,
 } from './BearDifferMath';
 
@@ -54,6 +57,10 @@ export interface EngineState {
   trades: DifferTradeRecord[];
   logs: DifferLogItem[];
   anomalies: AnomalyLogItem[];
+  watch: Record<string, WatchEntry>;
+  alerts: WatchAlertItem[];
+  /** Por que o automático não entrou no último tick avaliado, ou null */
+  autoIdleReason: string | null;
 }
 
 export class BearDifferEngine {
@@ -64,7 +71,9 @@ export class BearDifferEngine {
   private pips: Map<string, number> = new Map();
   private losers: Map<string, Record<number, number>> = new Map();
   private payout = 1.10;
-  private pnl = 0;
+  // Não existe PnL global: simulação e real têm livros separados, como no
+  // legado. Misturar os dois faria o resultado simulado consumir o stop loss
+  // da conta real.
   private curStake: number;
   private mgLevel = 0;
   private mgDebt = 0;
@@ -82,6 +91,10 @@ export class BearDifferEngine {
   private trades: DifferTradeRecord[] = [];
   private logs: DifferLogItem[] = [];
   private anomalies: AnomalyLogItem[] = [];
+  private autoIdleReason: string | null = null;
+  private watch: Record<string, WatchEntry> = {};
+  private watchPrev: Record<string, string> = {};
+  private alerts: WatchAlertItem[] = [];
 
   // Lógicas e Sinais Virtuais
   private logics: LogicDef[] = [];
@@ -108,12 +121,16 @@ export class BearDifferEngine {
     this.initLogics();
   }
 
+  private activeBook(): { win: number; loss: number; pnl: number; recent: number[] } {
+    return this.config.opMode === 'real' ? this.realStats : this.simStats;
+  }
+
   public getState(): EngineState {
     return {
       markets: [...this.markets],
       config: { ...this.config },
       payout: this.payout,
-      pnl: this.pnl,
+      pnl: this.activeBook().pnl,
       curStake: this.curStake,
       mgLevel: this.mgLevel,
       tradeLock: this.tradeLock,
@@ -125,6 +142,9 @@ export class BearDifferEngine {
       trades: [...this.trades],
       logs: [...this.logs],
       anomalies: [...this.anomalies],
+      watch: { ...this.watch },
+      alerts: [...this.alerts],
+      autoIdleReason: this.autoIdleReason,
     };
   }
 
@@ -162,7 +182,6 @@ export class BearDifferEngine {
   }
 
   public resetSession(): void {
-    this.pnl = 0;
     this.mgLevel = 0;
     this.mgDebt = 0;
     this.mgPartsLeft = 0;
@@ -178,6 +197,10 @@ export class BearDifferEngine {
     this.trades = [];
     this.logs = [];
     this.anomalies = [];
+    this.autoIdleReason = null;
+    this.watch = {};
+    this.watchPrev = {};
+    this.alerts = [];
     this.losers.clear();
     this.vsignal.clear();
     this.rotateIdx = 0;
@@ -286,46 +309,53 @@ export class BearDifferEngine {
       }
 
       // Continuous Auto-Trade Trigger (Modo Automático 3.0)
-      if (this.config.autoOn && !this.tradeLock && !this.stopped && !this.checkGuards()) {
+      if (this.config.autoOn) {
         const isMarketOn = this.markets.find((m) => m.sym === sym)?.on ?? true;
-        if (isMarketOn && buf.length >= this.config.minTicks && a.best.score >= this.config.minScore) {
-          let passGate = true;
-          if (this.config.gateBias) {
-            const bias = this.runBiasTests(sym);
-            if (!bias) {
-              passGate = false;
-            } else {
-              const activeM = Math.max(1, this.markets.filter((m) => m.on).length * 4);
-              const minP = Math.min(bias.pU, bias.pM, bias.pR, bias.pA) * activeM;
-              if (bias.n < 200 || minP >= 0.05) {
-                passGate = false;
-              }
-            }
-          }
+        const guard = this.checkGuards();
+        let reason: string | null = null;
+        let fire = false;
 
-          if (passGate && this.config.exFilter) {
-            const exh = this.getExhaustion(sym, a.best.digit);
-            if (exh && !exh.ok) passGate = false;
-          }
-
-          if (passGate && this.config.exOnlyLosers) {
-            if (this.getLoserCount(sym, a.best.digit) === 0) passGate = false;
-          }
-
-          if (passGate) {
-            const now = Date.now();
-            if (now - this.lastTradeTime >= this.config.cooldown * 1000) {
-              this.lastTradeTime = now;
-              this.autoTradeSubscribers.forEach((cb) => {
-                try {
-                  cb(sym, a.best.digit);
-                } catch (e) {
-                  console.error('Error in autoTrade subscriber:', e);
-                }
-              });
-            }
+        if (!isMarketOn) {
+          reason = `${sym} está desligado`;
+        } else if (this.tradeLock) {
+          reason = 'operação em aberto — uma por vez';
+        } else if (guard) {
+          reason = guard;
+        } else if (buf.length < this.config.minTicks) {
+          reason = `amostra insuficiente em ${sym} (${buf.length}/${this.config.minTicks} ticks)`;
+        } else if (a.best.score < this.config.minScore) {
+          reason = `score ${a.best.score} abaixo do mínimo de ${this.config.minScore} em ${sym}`;
+        } else if (this.config.gateBias && !this.isMarketProven(sym)) {
+          reason = `trava de viés: ${sym} não passou no laboratório (exige ${this.config.labMin} ticks e p corrigido < ${this.config.labAlpha})`;
+        } else {
+          const blocked = this.exhaustBlock(sym, a.best.digit);
+          if (blocked) {
+            reason = `filtro de exaustão: ${blocked}`;
+          } else if (Date.now() - this.lastTradeTime < this.config.cooldown * 1000) {
+            reason = `aguardando o intervalo mínimo de ${this.config.cooldown}s`;
+          } else {
+            fire = true;
           }
         }
+
+        // Log só na mudança de motivo: por tick inundaria o histórico
+        if (reason && reason !== this.autoIdleReason) {
+          this.addLog(`Automático parado: ${reason}.`, 'am');
+        }
+        this.autoIdleReason = reason;
+
+        if (fire) {
+          this.lastTradeTime = Date.now();
+          this.autoTradeSubscribers.forEach((cb) => {
+            try {
+              cb(sym, a.best.digit);
+            } catch (e) {
+              console.error('Error in autoTrade subscriber:', e);
+            }
+          });
+        }
+      } else {
+        this.autoIdleReason = null;
       }
     } else {
       this.vsignal.delete(sym);
@@ -337,6 +367,10 @@ export class BearDifferEngine {
   public setTradeLock(locked: boolean): void {
     this.tradeLock = locked;
     this.notify();
+  }
+
+  public isTradeLocked(): boolean {
+    return this.tradeLock;
   }
 
   // ── Motor 2.0 (scoreAll / analyze) ──
@@ -472,6 +506,108 @@ export class BearDifferEngine {
       mean,
       pct: Math.max(0, Math.min(100, Math.round(mean * 100))),
     };
+  }
+
+  /**
+   * Um mercado só é dado como enviesado com amostra suficiente e p corrigido
+   * por Bonferroni sobre a família inteira (mercados ligados × 4 testes).
+   */
+  public isMarketProven(sym: string): boolean {
+    const t = this.runBiasTests(sym);
+    if (!t || t.n < this.config.labMin) return false;
+    const tests = Math.max(1, this.markets.filter((m) => m.on).length * 4);
+    const minP = Math.min(t.pU, t.pM, t.pR, t.pA) * tests;
+    return minP < this.config.labAlpha;
+  }
+
+  /**
+   * Vigilância contínua: cruza a bateria do laboratório com o desempenho
+   * medido de cada lógica naquele mercado. Um mercado só é marcado como
+   * quebra depois da correção de Bonferroni sobre a família inteira
+   * (mercados × lógicas). Com gerador honesto tudo fica normal — isso é o
+   * funcionamento correto, não falta de sensibilidade.
+   */
+  public runWatch(): void {
+    const on = this.markets.filter((m) => m.on);
+    const acts = this.logics.filter((L) => !L.wide || this.config.wideScan);
+    const fam = Math.max(1, on.length * acts.length);
+    const be = 1 / this.payout;
+    const watch: Record<string, WatchEntry> = {};
+
+    on.forEach((m) => {
+      const bias = this.runBiasTests(m.sym);
+      const enough = !!bias && bias.n >= this.config.labMin;
+      const labTests = Math.max(1, on.length * 4);
+      const minP = bias
+        ? Math.min(bias.pU, bias.pM, bias.pR, bias.pA) * labTests
+        : 1;
+
+      let breach: { name: string; acc: number; n: number; p: number } | null = null;
+      acts.forEach((L) => {
+        const st = this.lStatsM[L.id]?.[m.sym];
+        if (!st || st.n < this.config.wtMinN) return;
+        const p = Math.min(1, binomP(st.w, st.n, be) * fam);
+        if (p < this.config.wtAlpha && st.w / st.n > be && (!breach || p < breach.p)) {
+          breach = { name: L.name, acc: (st.w / st.n) * 100, n: st.n, p };
+        }
+      });
+
+      let status: WatchEntry['status'] = 'normal';
+      let txt = 'dentro do comportamento esperado';
+
+      if (enough && minP < this.config.labAlpha) {
+        status = 'quebra';
+        txt = `viés estatístico no laboratório (p corrigido ${minP.toExponential(1)})`;
+      } else if (breach) {
+        const b = breach as { name: string; acc: number; n: number; p: number };
+        status = 'quebra';
+        txt = `${b.name} a ${b.acc.toFixed(2)}% em ${b.n} sinais (p ${b.p.toExponential(1)})`;
+      } else if (enough && minP < 0.15) {
+        status = 'observacao';
+        txt = `p corrigido em ${minP.toFixed(3)} — perto do limiar, sem confirmar`;
+      } else if (!enough) {
+        status = 'amostra';
+        txt = `juntando ticks (${this.getDigits(m.sym).length})`;
+      }
+
+      watch[m.sym] = { status, txt };
+
+      // Alerta só na transição para quebra, para não inundar o histórico
+      if (status === 'quebra' && this.watchPrev[m.sym] !== 'quebra') {
+        this.alerts.unshift({
+          id: `${Date.now()}-${m.sym}`,
+          time: new Date().toLocaleTimeString('pt-BR'),
+          sym: m.sym,
+          txt,
+        });
+        if (this.alerts.length > 40) this.alerts.pop();
+        this.addAnomaly(`${m.sym} — QUEBRA: ${txt}.`);
+      }
+    });
+
+    this.watch = watch;
+    this.watchPrev = {};
+    on.forEach((m) => {
+      this.watchPrev[m.sym] = watch[m.sym].status;
+    });
+    this.notify();
+  }
+
+  /**
+   * Filtro de exaustão aplicado antes de qualquer entrada, manual ou
+   * automática. Devolve o motivo do bloqueio, ou null se a entrada passa.
+   */
+  public exhaustBlock(sym: string, digit: number): string | null {
+    if (!this.config.exFilter) return null;
+    const e = this.getExhaustion(sym, digit);
+    if (!e) return 'sem amostra para medir a exaustão';
+    if (!e.ok) {
+      return `dígito ${digit} não está exausto (excesso médio ${(e.mean * 100).toFixed(0)}%, exige 50% nas três janelas)`;
+    }
+    if (this.config.exOnlyLosers && this.getLoserCount(sym, digit) === 0) {
+      return `dígito ${digit} está exausto mas ainda não deu loss nesta sessão`;
+    }
+    return null;
   }
 
   public getLoserCount(sym: string, digit: number): number {
@@ -1096,20 +1232,23 @@ export class BearDifferEngine {
     if (mode === 'auto') {
       return this.leaderLogic();
     } else if (mode === 'rotate') {
+      // Sem amostra, recusa. Escolher uma lógica qualquer contraria a tese do
+      // bot: alternar entre estratégias de esperança negativa não cria
+      // vantagem, só muda como o resultado oscila.
       const pool = active.filter((L) => (this.lStats[L.id]?.n || 0) >= minN);
-      if (!pool.length) return active.length > 0 ? active[0].id : null;
+      if (!pool.length) return null;
       this.rotateIdx = (this.rotateIdx + 1) % pool.length;
       return pool[this.rotateIdx].id;
     } else if (mode === 'recent') {
       let best: { id: string; acc: number } | null = null;
       active.forEach((L) => {
         const r = this.lStats[L.id]?.recent || [];
-        if (r.length >= 20) {
+        if (r.length >= 60) {
           const acc = r.reduce((a, b) => a + b, 0) / r.length;
           if (!best || acc > best.acc) best = { id: L.id, acc };
         }
       });
-      return best ? best.id : (active.length > 0 ? active[0].id : null);
+      return best ? best.id : null;
     }
     return mode;
   }
@@ -1125,7 +1264,11 @@ export class BearDifferEngine {
     const chosenId = this.resolveLogic(logicId);
     if (!chosenId) return null;
 
-    const eligible = this.markets.filter((m) => m.on);
+    // Mesma trava de viés do caminho automático: com o gate ligado, só
+    // mercados aprovados no laboratório podem ser operados.
+    const eligible = this.markets.filter(
+      (m) => m.on && (!this.config.gateBias || this.isMarketProven(m.sym))
+    );
     let best: {
       sym: string;
       digit: number;
@@ -1310,7 +1453,6 @@ export class BearDifferEngine {
       book.win++;
       book.pnl += profit;
       book.recent.push(1);
-      this.pnl += profit;
 
       // Reseta Martingale
       if (this.config.mgMode === 'partial' && this.mgPartsLeft > 0) {
@@ -1334,7 +1476,6 @@ export class BearDifferEngine {
       book.loss++;
       book.pnl += profit; // profit é negativo
       book.recent.push(0);
-      this.pnl += profit;
       this.mgLevel++;
       this.recordLoss(sym, digit);
 
@@ -1350,14 +1491,24 @@ export class BearDifferEngine {
           this.curStake = this.config.stake;
         }
       } else if (this.config.mgMode === 'partial') {
-        this.mgDebt += Math.abs(profit);
-        this.mgPartsLeft = this.config.mgParts;
-        const b = Math.max(0.05, this.payout - 1);
-        this.mgPartStake = +(
-          this.config.stake +
-          this.mgDebt / this.config.mgParts / b
-        ).toFixed(2);
-        this.curStake = this.mgPartStake;
+        if (this.mgLevel > this.config.mgMax) {
+          // Teto de níveis vale para o parcial também, senão a stake cresce
+          // sem limite
+          this.mgLevel = 0;
+          this.mgDebt = 0;
+          this.mgPartsLeft = 0;
+          this.mgPartStake = 0;
+          this.curStake = this.config.stake;
+        } else {
+          this.mgDebt += Math.abs(profit);
+          this.mgPartsLeft = this.config.mgParts;
+          const b = Math.max(0.05, this.payout - 1);
+          this.mgPartStake = +(
+            this.config.stake +
+            this.mgDebt / this.config.mgParts / b
+          ).toFixed(2);
+          this.curStake = this.mgPartStake;
+        }
       }
     }
 
@@ -1386,15 +1537,17 @@ export class BearDifferEngine {
       isLoss ? 'dn' : 'up'
     );
 
-    // Conferência de Stop Loss e Stop Win
-    if (this.pnl <= -this.config.stopLoss) {
+    // Conferência de Stop Loss e Stop Win sobre o livro do modo ativo.
+    // Valor zero significa limite desligado, não limite atingido.
+    const bookPnl = book.pnl;
+    if (this.config.stopLoss > 0 && bookPnl <= -this.config.stopLoss) {
       this.stopped = true;
-      this.stoppedReason = `Stop Loss atingido: -$${Math.abs(this.pnl).toFixed(2)}`;
+      this.stoppedReason = `Stop Loss atingido: -$${Math.abs(bookPnl).toFixed(2)}`;
       this.config.autoOn = false;
       this.addLog(this.stoppedReason, 'dn');
-    } else if (this.pnl >= this.config.stopWin) {
+    } else if (this.config.stopWin > 0 && bookPnl >= this.config.stopWin) {
       this.stopped = true;
-      this.stoppedReason = `Stop Win atingido: +$${this.pnl.toFixed(2)}`;
+      this.stoppedReason = `Stop Win atingido: +$${bookPnl.toFixed(2)}`;
       this.config.autoOn = false;
       this.addLog(this.stoppedReason, 'up');
     }
@@ -1658,7 +1811,7 @@ export class BearDifferEngine {
       const runs = 50;
       const sliceC = buf.slice(C[0] - minT, C[1]);
       for (let k = 0; k < runs; k++) {
-        const sb = [...sliceC].sort(() => Math.random() - 0.5);
+        const sb = shuffle(sliceC);
         const rr = this.runStrategy(sb, minT, c.G.minScore, mg, pay, minT, sb.length, c.G);
         if (rr.t && rr.win / rr.t >= (c.accC || 0)) above++;
       }

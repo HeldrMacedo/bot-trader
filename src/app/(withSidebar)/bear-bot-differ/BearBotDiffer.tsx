@@ -28,6 +28,7 @@ export default function BearBotDiffer() {
     resetSession,
     armVirtualLoss,
     cancelVirtualLoss,
+    setWarmTarget,
     vlossState,
     exportCSV,
   } = useBearDiffer();
@@ -164,6 +165,7 @@ export default function BearBotDiffer() {
               resetSession={resetSession}
               armVirtualLoss={armVirtualLoss}
               cancelVirtualLoss={cancelVirtualLoss}
+              setWarmTarget={setWarmTarget}
               vlossState={vlossState}
             />
           </div>

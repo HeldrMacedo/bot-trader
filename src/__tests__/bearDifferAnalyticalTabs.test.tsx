@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 import { createDifferEngine } from '../app/services/BearDifferEngine';
+import OperationTab from '../app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab';
 import LogicsTab from '../app/(withSidebar)/bear-bot-differ/components/tabs/LogicsTab';
 import VigilanceTab from '../app/(withSidebar)/bear-bot-differ/components/tabs/VigilanceTab';
 import LabTab from '../app/(withSidebar)/bear-bot-differ/components/tabs/LabTab';
@@ -18,6 +19,219 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
     const sample = Array.from({ length: 700 }, (_, i) => i % 10);
     engine.setHistory('R_10', sample);
     engine.setHistory('R_25', sample);
+  });
+
+  describe('OperationTab proposal warming', () => {
+    const renderOperationTab = (
+      setWarmTarget: (sym: string | null, digit?: number) => void
+    ) => {
+      const props: React.ComponentProps<typeof OperationTab> = {
+        engine,
+        state: engine.getState(),
+        config: engine.getConfig(),
+        updateConfig: vi.fn(),
+        executeTrade: vi.fn().mockResolvedValue(undefined),
+        resetSession: vi.fn(),
+        armVirtualLoss: vi.fn(),
+        cancelVirtualLoss: vi.fn(),
+        setWarmTarget,
+        vlossState: {
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 1,
+          seenLosses: 0,
+          ticksChecked: 0,
+        },
+      };
+      return render(<OperationTab {...props} />);
+    };
+
+    it('warms a proposal for the target as soon as the scan finds one', () => {
+      const setWarmTarget = vi.fn();
+      vi.spyOn(engine, 'deepScan').mockReturnValue({
+        sym: 'R_10',
+        digit: 4,
+        conf: 88,
+        why: 'teste',
+        n: 700,
+      });
+
+      renderOperationTab(setWarmTarget);
+      fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
+
+      expect(setWarmTarget).toHaveBeenCalledWith('R_10', 4);
+    });
+
+    it('refuses a target whose confidence is below the configured minimum', () => {
+      engine.updateConfig({ onceMinConf: 70 });
+      vi.spyOn(engine, 'deepScan').mockReturnValue({
+        sym: 'R_10',
+        digit: 4,
+        conf: 60,
+        why: 'teste',
+        n: 700,
+      });
+
+      renderOperationTab(vi.fn());
+      fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
+
+      expect(screen.queryByRole('button', { name: /Confirmar entrada/i })).toBeNull();
+      expect(screen.getByText(/abaixo do mínimo/i)).toBeInTheDocument();
+    });
+
+    it('does not send a manual entry that the exhaustion filter blocks', () => {
+      const digits = Array.from({ length: 100 }, (_, i) => i % 7);
+      engine.setHistory('R_10', digits);
+      engine.updateConfig({ exFilter: true, onceMinConf: 50 });
+
+      vi.spyOn(engine, 'deepScan').mockReturnValue({
+        sym: 'R_10',
+        digit: 7,
+        conf: 88,
+        why: 'teste',
+        n: 700,
+      });
+
+      const executeTrade = vi.fn().mockResolvedValue(undefined);
+      const props: React.ComponentProps<typeof OperationTab> = {
+        engine,
+        state: engine.getState(),
+        config: engine.getConfig(),
+        updateConfig: vi.fn(),
+        executeTrade,
+        resetSession: vi.fn(),
+        armVirtualLoss: vi.fn(),
+        cancelVirtualLoss: vi.fn(),
+        setWarmTarget: vi.fn(),
+        vlossState: {
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 1,
+          seenLosses: 0,
+          ticksChecked: 0,
+        },
+      };
+      render(<OperationTab {...props} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirmar entrada/i }));
+
+      expect(executeTrade).not.toHaveBeenCalled();
+    });
+
+    it('carries the analysis tick count into the entry so it can go stale', () => {
+      engine.updateConfig({ onceMinConf: 50 });
+      vi.spyOn(engine, 'deepScan').mockReturnValue({
+        sym: 'R_10',
+        digit: 4,
+        conf: 88,
+        why: 'teste',
+        n: 700,
+      });
+
+      const executeTrade = vi.fn().mockResolvedValue(undefined);
+      const props: React.ComponentProps<typeof OperationTab> = {
+        engine,
+        state: engine.getState(),
+        config: engine.getConfig(),
+        updateConfig: vi.fn(),
+        executeTrade,
+        resetSession: vi.fn(),
+        armVirtualLoss: vi.fn(),
+        cancelVirtualLoss: vi.fn(),
+        setWarmTarget: vi.fn(),
+        vlossState: {
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 1,
+          seenLosses: 0,
+          ticksChecked: 0,
+        },
+      };
+      render(<OperationTab {...props} />);
+
+      const tickCount = engine.getMarketData('R_10').tickCount;
+      fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirmar entrada/i }));
+
+      expect(executeTrade).toHaveBeenCalledWith('R_10', 4, tickCount);
+    });
+
+    it('shows on screen why the automatic mode is idle', () => {
+      engine.updateConfig({ allowAuto: true, autoOn: true, gateBias: true, minScore: 0, minTicks: 50 });
+      engine.processTick('R_10', 4);
+
+      const props: React.ComponentProps<typeof OperationTab> = {
+        engine,
+        state: engine.getState(),
+        config: engine.getConfig(),
+        updateConfig: vi.fn(),
+        executeTrade: vi.fn().mockResolvedValue(undefined),
+        resetSession: vi.fn(),
+        armVirtualLoss: vi.fn(),
+        cancelVirtualLoss: vi.fn(),
+        setWarmTarget: vi.fn(),
+        vlossState: {
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 1,
+          seenLosses: 0,
+          ticksChecked: 0,
+        },
+      };
+      render(<OperationTab {...props} />);
+
+      const status = screen.getByTestId('auto-idle-status');
+      expect(status).toHaveTextContent(/trava de viés/i);
+    });
+
+    it('hides the idle banner while the automatic mode is off', () => {
+      engine.updateConfig({ allowAuto: true, autoOn: false });
+
+      const props: React.ComponentProps<typeof OperationTab> = {
+        engine,
+        state: engine.getState(),
+        config: engine.getConfig(),
+        updateConfig: vi.fn(),
+        executeTrade: vi.fn().mockResolvedValue(undefined),
+        resetSession: vi.fn(),
+        armVirtualLoss: vi.fn(),
+        cancelVirtualLoss: vi.fn(),
+        setWarmTarget: vi.fn(),
+        vlossState: {
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 1,
+          seenLosses: 0,
+          ticksChecked: 0,
+        },
+      };
+      render(<OperationTab {...props} />);
+
+      expect(screen.queryByTestId('auto-idle-status')).toBeNull();
+    });
+
+    it('drops the warm target when the operator discards the entry', () => {
+      const setWarmTarget = vi.fn();
+      vi.spyOn(engine, 'deepScan').mockReturnValue({
+        sym: 'R_10',
+        digit: 4,
+        conf: 88,
+        why: 'teste',
+        n: 700,
+      });
+
+      renderOperationTab(setWarmTarget);
+      fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Descartar/i }));
+
+      expect(setWarmTarget).toHaveBeenLastCalledWith(null);
+    });
   });
 
   describe('LogicsTab', () => {
@@ -62,6 +276,22 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
       expect(select).toBeInTheDocument();
       fireEvent.change(select, { target: { value: 'R_25' } });
       expect(select).toHaveValue('R_25');
+    });
+  });
+
+  describe('PipelineTab regime drift (Fase 0)', () => {
+    it('runs the drift test and reports a verdict per market', () => {
+      // 1600 ticks so each of the 4 blocks clears the 200-tick floor
+      const sample = Array.from({ length: 1600 }, (_, i) => (i * 7 + 3) % 10);
+      engine.setHistory('R_10', sample);
+      engine.setHistory('R_25', sample);
+
+      render(<PipelineTab engine={engine} state={engine.getState()} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Testar mudança de regime/i }));
+
+      expect(screen.getByText(/Distribuição/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/estável|mudou/i).length).toBeGreaterThan(0);
     });
   });
 

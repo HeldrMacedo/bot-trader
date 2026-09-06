@@ -148,6 +148,8 @@ describe('BearDifferEngine - Core Analysis & Differ Trading Engine', () => {
 
   describe('Operação Única (deepScan)', () => {
     it('finds best market target for a selected logic', () => {
+      // Bias gate off: this case is about picking a target, not about the lab
+      engine.updateConfig({ gateBias: false });
       // Set up R_10 and R_25 with 400 ticks
       const s1 = Array.from({ length: 400 }, (_, i) => i % 10);
       const s2 = Array.from({ length: 400 }, (_, i) => (i * 2) % 10);

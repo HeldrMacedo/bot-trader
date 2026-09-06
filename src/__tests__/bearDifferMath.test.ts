@@ -10,8 +10,10 @@ import {
   benjaminiHochberg,
   calculateKelly,
   simulateMonteCarloRuin,
+  shuffle,
   driftTest,
 } from '../app/services/BearDifferMath';
+import { MonteCarloResult } from '../app/services/beardiffer.types';
 
 describe('BearDifferMath - Statistical and Mathematical Library', () => {
   describe('lgamma', () => {
@@ -151,6 +153,38 @@ describe('BearDifferMath - Statistical and Mathematical Library', () => {
       expect(typeof res.medianPnl).toBe('number');
       expect(res.medianDrawdown).toBeGreaterThanOrEqual(0);
       expect(res.p05).toBeLessThanOrEqual(res.p95);
+    });
+
+    it('reports the worst drawdown as part of the declared result contract', () => {
+      const res: MonteCarloResult = simulateMonteCarloRuin(
+        0.90,
+        1.10,
+        1,
+        100,
+        { mode: 'normal', factor: 2.2, maxLvl: 3, parts: 3, base: 1 },
+        100,
+        100
+      );
+
+      expect(typeof res.worstDrawdown).toBe('number');
+      expect(res.worstDrawdown).toBeGreaterThanOrEqual(res.medianDrawdown);
+    });
+  });
+
+  describe('shuffle (permutation for the Monte Carlo tests)', () => {
+    it('performs an unbiased Fisher-Yates pass', () => {
+      // rnd always 0 makes every draw pick index 0, so the walk is known
+      const res = shuffle([1, 2, 3, 4], () => 0);
+      expect(res).toEqual([2, 3, 4, 1]);
+    });
+
+    it('keeps every element exactly once and leaves the input untouched', () => {
+      const input = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      const res = shuffle(input, Math.random);
+
+      expect(res).not.toBe(input);
+      expect(input).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      expect([...res].sort((a, b) => a - b)).toEqual(input);
     });
   });
 

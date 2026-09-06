@@ -78,6 +78,14 @@ export interface DifferConfig {
   minTicks: number;
   cooldown: number;
   gateBias: boolean;
+  /** Amostra mínima de ticks para um mercado poder ser julgado no laboratório */
+  labMin: number;
+  /** Alfa do laboratório, já sob correção de Bonferroni */
+  labAlpha: number;
+  /** Sinais virtuais mínimos por lógica e mercado para a vigilância opinar */
+  wtMinN: number;
+  /** Alfa da vigilância, sob Bonferroni na família mercados × lógicas */
+  wtAlpha: number;
   opMode: OpMode;
   gateOps: number;
   gateAcc: number;
@@ -111,6 +119,10 @@ export const DEFAULT_DIFFER_CONFIG: DifferConfig = {
   minTicks: 300,
   cooldown: 15,
   gateBias: true,
+  labMin: 2000,
+  labAlpha: 0.01,
+  wtMinN: 500,
+  wtAlpha: 0.01,
   opMode: 'sim',
   gateOps: 50,
   gateAcc: 91,
@@ -196,6 +208,20 @@ export interface DifferLogItem {
   cls?: 'up' | 'dn' | 'nt' | 'am';
 }
 
+export type WatchStatus = 'normal' | 'observacao' | 'quebra' | 'amostra';
+
+export interface WatchEntry {
+  status: WatchStatus;
+  txt: string;
+}
+
+export interface WatchAlertItem {
+  id: string;
+  time: string;
+  sym: string;
+  txt: string;
+}
+
 export interface AnomalyLogItem {
   id: string;
   time: string;
@@ -239,6 +265,7 @@ export interface MonteCarloResult {
   p05: number;
   p95: number;
   medianDrawdown: number;
+  worstDrawdown: number;
   runs: number;
 }
 

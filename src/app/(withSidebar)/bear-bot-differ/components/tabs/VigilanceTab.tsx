@@ -1,88 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { EngineState, BearDifferEngine } from '@/app/services/BearDifferEngine';
-import { binomP } from '@/app/services/BearDifferMath';
+import { WatchStatus } from '@/app/services/beardiffer.types';
 
 interface VigilanceTabProps {
   engine: BearDifferEngine;
   state: EngineState;
 }
 
-export default function VigilanceTab({ engine, state }: VigilanceTabProps) {
-  const [minSignals, setMinSignals] = useState(500);
-  const [alpha, setAlpha] = useState(0.01);
-  const [lastCheckTime, setLastCheckTime] = useState<string>(new Date().toLocaleTimeString('pt-BR'));
-  const [alerts, setAlerts] = useState<Array<{ id: string; time: string; msg: string; type: 'ok' | 'warn' }>>([]);
+const STATUS_LABEL: Record<WatchStatus, string> = {
+  normal: 'ESTÁVEL',
+  observacao: 'EM OBSERVAÇÃO',
+  quebra: 'QUEBRA DETECTADA',
+  amostra: 'COLETANDO AMOSTRA',
+};
 
+const STATUS_CLASS: Record<WatchStatus, string> = {
+  normal: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+  observacao: 'bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold',
+  quebra: 'bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold',
+  amostra: 'bg-[#18202f] text-[#8593aa] border border-[#222c3f]',
+};
+
+export default function VigilanceTab({ engine, state }: VigilanceTabProps) {
   const activeMarkets = state.markets.filter((m) => m.on);
   const activeLogics = engine.getLogics().filter((L) => !L.wide || state.config.wideScan);
-  // Bonferroni family: 4 lab tests + logic performance per active market
-  const familyTests = Math.max(1, activeMarkets.length * (4 + activeLogics.length));
+  // Bonferroni family: markets x logics, as in the legacy scanner
+  const familyTests = Math.max(1, activeMarkets.length * activeLogics.length);
 
-  const handleRunNow = () => {
-    setLastCheckTime(new Date().toLocaleTimeString('pt-BR'));
-    let detectedBreak = false;
-
-    activeMarkets.forEach((m) => {
-      const bias = engine.runBiasTests(m.sym);
-      const digits = engine.getDigits(m.sym);
-
-      // Fonte 1: Bateria do laboratório
-      if (bias && digits.length >= 300) {
-        const minP = Math.min(bias.pU, bias.pM, bias.pR, bias.pA) * familyTests;
-        if (minP < alpha) {
-          detectedBreak = true;
-          setAlerts((prev) => [
-            {
-              id: `${Date.now()}-${m.sym}-lab`,
-              time: new Date().toLocaleTimeString('pt-BR'),
-              msg: `${m.sym} — quebra detectada na bateria do laboratório (p=${minP.toExponential(2)})`,
-              type: 'warn',
-            },
-            ...prev.slice(0, 50),
-          ]);
-        }
-      }
-
-      // Fonte 2: Desempenho medido das lógicas
-      activeLogics.forEach((L) => {
-        const st = engine.getLogicMarketStats(L.id, m.sym);
-        if (st.n >= minSignals) {
-          const be = 1 / state.payout;
-          const pVal = binomP(st.w, st.n, be) * familyTests;
-          if (pVal < alpha) {
-            detectedBreak = true;
-            setAlerts((prev) => [
-              {
-                id: `${Date.now()}-${m.sym}-${L.id}`,
-                time: new Date().toLocaleTimeString('pt-BR'),
-                msg: `${m.sym} — quebra detectada na lógica ${L.name} (p=${pVal.toExponential(2)})`,
-                type: 'warn',
-              },
-              ...prev.slice(0, 50),
-            ]);
-          }
-        }
-      });
-    });
-
-    if (!detectedBreak && alerts.length === 0) {
-      setAlerts([
-        {
-          id: `${Date.now()}`,
-          time: new Date().toLocaleTimeString('pt-BR'),
-          msg: 'Varredura concluída: todos os mercados operando dentro da normalidade estocástica.',
-          type: 'ok',
-        },
-      ]);
-    }
-  };
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      handleRunNow();
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [minSignals, alpha, activeMarkets.length, activeLogics.length]);
+  const breaches = activeMarkets.filter(
+    (m) => state.watch[m.sym]?.status === 'quebra'
+  ).length;
 
   return (
     <div className="space-y-4 text-xs">
@@ -91,9 +38,9 @@ export default function VigilanceTab({ engine, state }: VigilanceTabProps) {
           Vigilância dos mercados
         </h3>
         <p className="text-[11px] text-[#8593aa] mb-3">
-          Roda sozinha a cada 5 segundos em todos os mercados ligados. Cruza a bateria do laboratório com o
-          desempenho medido de cada lógica. Um mercado só é marcado como quebra quando passa no teste após a
-          correção de Bonferroni para a família inteira de testes ({familyTests} testes simultâneos).
+          Roda sozinha a cada 5 segundos em todos os mercados ligados, mesmo com esta aba fechada. Cruza a
+          bateria do laboratório com o desempenho medido de cada lógica. Um mercado só é marcado como quebra
+          depois da correção de Bonferroni sobre a família inteira ({familyTests} testes simultâneos).
         </p>
 
         <div className="flex flex-wrap items-center gap-4 py-2 border-y border-[#222c3f] mb-3 font-mono">
@@ -102,8 +49,10 @@ export default function VigilanceTab({ engine, state }: VigilanceTabProps) {
             <input
               type="number"
               min="100"
-              value={minSignals}
-              onChange={(e) => setMinSignals(parseInt(e.target.value, 10) || 500)}
+              value={state.config.wtMinN}
+              onChange={(e) =>
+                engine.updateConfig({ wtMinN: parseInt(e.target.value, 10) || 500 })
+              }
               className="w-20 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-0.5 rounded text-center"
             />
           </div>
@@ -114,27 +63,43 @@ export default function VigilanceTab({ engine, state }: VigilanceTabProps) {
               step="0.005"
               min="0.001"
               max="0.1"
-              value={alpha}
-              onChange={(e) => setAlpha(parseFloat(e.target.value) || 0.01)}
+              value={state.config.wtAlpha}
+              onChange={(e) =>
+                engine.updateConfig({ wtAlpha: parseFloat(e.target.value) || 0.01 })
+              }
               className="w-20 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-0.5 rounded text-center"
             />
           </div>
           <button
             type="button"
-            onClick={handleRunNow}
+            onClick={() => engine.runWatch()}
             className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded shadow transition-colors ml-auto"
           >
             Rodar agora
           </button>
         </div>
 
-        <div className="p-3 bg-[#18202f] rounded border border-[#222c3f] text-emerald-400 font-mono mb-4 flex justify-between">
-          <span>✓ Monitoramento ativo · Última checagem às {lastCheckTime}.</span>
-          <span className="text-[#8593aa]">{activeMarkets.length} mercados ativos</span>
+        <div
+          className={`p-3 rounded border font-mono mb-4 ${
+            breaches
+              ? 'bg-rose-950/30 border-rose-500/40 text-rose-300'
+              : 'bg-[#18202f] border-[#222c3f] text-emerald-400'
+          }`}
+        >
+          {breaches ? (
+            <span>
+              <b>{breaches} mercado(s) com quebra confirmada.</b> Confira no laboratório antes de operar —
+              quebra detectada é hipótese com evidência, não certeza.
+            </span>
+          ) : (
+            <span>
+              Nenhum mercado fora do padrão. Num gerador honesto é isso que tem que aparecer — a tela ficar
+              verde o tempo todo é o funcionamento correto, não falta de sensibilidade.
+            </span>
+          )}
         </div>
 
-        {/* Tabela de Status */}
-        <h4 className="font-bold text-[#eef2f8] uppercase text-[11px] tracking-wider text-[#8593aa] mb-2">
+        <h4 className="font-bold uppercase text-[11px] tracking-wider text-[#8593aa] mb-2">
           Status dos Mercados Monitorados
         </h4>
         <div className="overflow-x-auto">
@@ -144,49 +109,25 @@ export default function VigilanceTab({ engine, state }: VigilanceTabProps) {
                 <th className="py-1.5 px-2">Mercado</th>
                 <th className="py-1.5 px-2">Ticks</th>
                 <th className="py-1.5 px-2">Status</th>
-                <th className="py-1.5 px-2">P-Valor Corrigido</th>
-                <th className="py-1.5 px-2">Repetição</th>
                 <th className="py-1.5 px-2">Leitura</th>
               </tr>
             </thead>
             <tbody>
               {activeMarkets.map((m) => {
-                const bias = engine.runBiasTests(m.sym);
-                const digits = engine.getDigits(m.sym);
-                const pMin = bias ? Math.min(bias.pU, bias.pM, bias.pR, bias.pA) * familyTests : 1;
-
-                let label = 'ESTÁVEL';
-                let badgeClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-                let reading = 'Dentro do ruído normal';
-
-                if (digits.length < 300) {
-                  label = 'COLETANDO AMOSTRA';
-                  badgeClass = 'bg-[#18202f] text-[#8593aa] border border-[#222c3f]';
-                  reading = 'Aguardando 300 ticks mínimos';
-                } else if (pMin < alpha) {
-                  label = 'QUEBRA DETECTADA';
-                  badgeClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold';
-                  reading = 'Desvio estatístico relevante com Bonferroni';
-                } else if (pMin < alpha * 3 || (bias && Math.abs(bias.zR) > 2.0)) {
-                  label = 'EM OBSERVAÇÃO';
-                  badgeClass = 'bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold';
-                  reading = 'Flutuação próxima do limiar crítico';
-                }
-
+                const w = state.watch[m.sym];
+                const status: WatchStatus = w?.status || 'amostra';
                 return (
                   <tr key={m.sym} className="border-b border-[#222c3f]/40 hover:bg-[#18202f]/50">
                     <td className="py-2 px-2 font-bold text-[#eef2f8]">{m.sym}</td>
-                    <td className="py-2 px-2 text-[#8593aa]">{digits.length}</td>
+                    <td className="py-2 px-2 text-[#8593aa]">{engine.getDigits(m.sym).length}</td>
                     <td className="py-2 px-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] ${badgeClass}`}>
-                        {label}
+                      <span className={`px-2 py-0.5 rounded text-[10px] ${STATUS_CLASS[status]}`}>
+                        {STATUS_LABEL[status]}
                       </span>
                     </td>
-                    <td className="py-2 px-2">{bias ? pMin.toFixed(4) : '—'}</td>
-                    <td className="py-2 px-2">
-                      {bias ? `${(bias.repRate * 100).toFixed(2)}%` : '—'}
+                    <td className="py-2 px-2 text-[#8593aa]">
+                      {w?.txt || 'aguardando a primeira varredura'}
                     </td>
-                    <td className="py-2 px-2 text-[#8593aa]">{reading}</td>
                   </tr>
                 );
               })}
@@ -195,23 +136,18 @@ export default function VigilanceTab({ engine, state }: VigilanceTabProps) {
         </div>
       </div>
 
-      {/* Alertas da Sessão */}
       <div className="bg-[#131925] border border-[#222c3f] rounded-lg p-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#8593aa] mb-2">
           Alertas da sessão
         </h3>
         <div className="max-h-48 overflow-y-auto font-mono text-[11px] space-y-1">
-          {alerts.length > 0 ? (
-            alerts.map((al) => (
+          {state.alerts.length > 0 ? (
+            state.alerts.map((al) => (
               <div
                 key={al.id}
-                className={`py-1 px-2 rounded border ${
-                  al.type === 'warn'
-                    ? 'bg-rose-950/30 border-rose-500/40 text-rose-300'
-                    : 'bg-[#18202f] border-[#222c3f] text-[#8593aa]'
-                }`}
+                className="py-1 px-2 rounded border bg-rose-950/30 border-rose-500/40 text-rose-300"
               >
-                <b>{al.time}</b> · {al.msg}
+                <b>{al.time}</b> · {al.sym} — {al.txt}
               </div>
             ))
           ) : (
