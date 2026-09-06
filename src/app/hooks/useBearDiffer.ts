@@ -15,6 +15,10 @@ export function extractDifferDigit(price: number, symbol: string): number | null
   return isNaN(digit) ? null : digit;
 }
 
+export function propKey(sym: string, barrier: number, stake: number): string {
+  return `${sym}|DIGITDIFF|${barrier}|${stake.toFixed(2)}`;
+}
+
 export function useBearDiffer() {
   const engineRef = useRef<BearDifferEngine>(createDifferEngine());
   const [state, setState] = useState<EngineState>(engineRef.current.getState());
@@ -27,8 +31,12 @@ export function useBearDiffer() {
   );
 
   // Proposal Keeper para compra rápida ⚡
-  const proposalIdRef = useRef<string | null>(null);
-  const proposalKeyRef = useRef<string | null>(null);
+  // Propostas ficam indexadas pela chave sym|DIGITDIFF|barreira|stake. O
+  // DerivService é um singleton compartilhado com os outros bots, então só a
+  // chave devolvida no passthrough distingue uma proposta nossa da de outro
+  // módulo — e o preço da proposta é amarrado à stake, de modo que um degrau
+  // de martingale invalida a proposta anterior.
+  const propsRef = useRef<Map<string, string | null>>(new Map());
   const pendingTradeRef = useRef<{ sym: string; digit: number; t0: number } | null>(null);
   const openContractsRef = useRef<Map<number, { sym: string; digit: number }>>(new Map());
   const simPendingOrderRef = useRef<{ sym: string; digit: number; stake: number } | null>(null);
@@ -50,6 +58,16 @@ export function useBearDiffer() {
     ticksChecked: 0,
   });
 
+  // Alvo em foco na tela, mantido aquecido pelo proposal keeper
+  const warmTargetRef = useRef<{ sym: string; digit: number } | null>(null);
+  const vlossRef = useRef(vlossState);
+  vlossRef.current = vlossState;
+
+  const setWarmTarget = useCallback((sym: string | null, digit?: number) => {
+    warmTargetRef.current =
+      sym && digit !== undefined ? { sym, digit } : null;
+  }, []);
+
   const updateConfig = useCallback((newConfig: Partial<DifferConfig>) => {
     engineRef.current.updateConfig(newConfig);
     setConfigState(engineRef.current.getConfig());
@@ -60,9 +78,14 @@ export function useBearDiffer() {
     async (isVirtual: boolean) => {
       const derivService = DerivService.getInstance();
       const targetToken = accountInfo?.tokens?.find((t: any) => t.is_virtual === isVirtual)?.token;
-      if (targetToken) {
-        await derivService.switchAccount(targetToken);
+      // Sem token não há troca. Sair em silêncio faria a interface anunciar
+      // sucesso numa conta que continua a mesma.
+      if (!targetToken) {
+        throw new Error(
+          `Nenhuma conta ${isVirtual ? 'demo' : 'real'} disponível nesta sessão.`
+        );
       }
+      await derivService.switchAccount(targetToken);
     },
     [accountInfo]
   );
@@ -76,7 +99,9 @@ export function useBearDiffer() {
       .forEach((m) => {
         derivService.subscribe({
           ticks_history: m.sym,
-          count: 1000,
+          // 5000 é o teto da Deriv e o valor do legado: abaixo disso o
+          // laboratório nunca alcança a amostra mínima de 2000 ticks.
+          count: 5000,
           end: 'latest',
           style: 'ticks',
           subscribe: 1,
@@ -86,8 +111,29 @@ export function useBearDiffer() {
 
   // Execução de Trade
   const executeTrade = useCallback(
-    async (sym: string, digit: number) => {
+    async (sym: string, digit: number, analysisTickCount?: number) => {
       const engine = engineRef.current;
+
+      // Trava de ticks vencidos: entre a análise e a confirmação o mercado
+      // pode ter andado. Executar com leitura vencida era um furo silencioso.
+      if (analysisTickCount !== undefined) {
+        const stale = engine.getMarketData(sym).tickCount - analysisTickCount;
+        if (stale > engine.getConfig().maxStale) {
+          engine.addLog(
+            `Entrada abortada: ${stale} ticks passaram desde a análise (limite ${engine.getConfig().maxStale}).`,
+            'dn'
+          );
+          return;
+        }
+      }
+
+      // Uma operação por vez. Sem esta trava a segunda ordem sobrescreve a
+      // primeira, que desaparece sem liquidar.
+      if (engine.isTradeLocked()) {
+        engine.addLog(`Ignorado: já existe uma operação aberta em ${sym}.`, 'am');
+        return;
+      }
+
       const guardErr = engine.checkGuards();
       if (guardErr) {
         engine.addLog(`Bloqueado: ${guardErr}`, 'dn');
@@ -96,24 +142,14 @@ export function useBearDiffer() {
 
       const cfg = engine.getConfig();
       const prep = engine.prepareTrade(sym, digit);
+      engine.setTradeLock(true);
 
       if (prep.isPaper) {
         engine.addLog(`[SIM] Operação enviada em ${sym} ≠${digit} · $${prep.stake}`, 'nt');
+        // O contrato fica aberto até chegar o próximo tick deste mercado. É o
+        // listener de 'deriv.tick' que liquida — um Digit Differ só se resolve
+        // na cotação seguinte, nunca no tick que originou a análise.
         simPendingOrderRef.current = { sym, digit, stake: prep.stake };
-        setTimeout(() => {
-          if (simPendingOrderRef.current && simPendingOrderRef.current.sym === sym) {
-            const pending = simPendingOrderRef.current;
-            simPendingOrderRef.current = null;
-            const digits = engine.getDigits(sym);
-            const nextDigit =
-              digits.length > 0 ? digits[digits.length - 1] : Math.floor(Math.random() * 10);
-            const isLoss = nextDigit === pending.digit;
-            const profit = isLoss
-              ? -pending.stake
-              : +(pending.stake * (engine.getState().payout - 1)).toFixed(2);
-            engine.settleContract(profit, isLoss, sym, pending.digit, nextDigit);
-          }
-        }, 800);
         return;
       }
 
@@ -124,13 +160,19 @@ export function useBearDiffer() {
       try {
         let buyResponse: any = null;
 
-        // Se tiver proposta pré-aberta pronta compatível, compra pelo proposal_id
-        if (cfg.fastExec && proposalIdRef.current) {
+        // Só usa a proposta pré-aberta cuja chave bate exatamente com esta
+        // ordem: mesmo mercado, mesma barreira e mesma stake.
+        const warmId = cfg.fastExec
+          ? propsRef.current.get(propKey(sym, digit, prep.stake))
+          : null;
+
+        if (warmId) {
           buyResponse = await derivService.send({
-            buy: proposalIdRef.current,
+            buy: warmId,
             price: prep.stake,
           });
-          proposalIdRef.current = null;
+          // Uma proposta só serve para uma compra
+          propsRef.current.clear();
         } else {
           // Compra direta com parâmetros
           buyResponse = await derivService.send({
@@ -159,9 +201,12 @@ export function useBearDiffer() {
           engine.addLog(`▶ Ordem Differ enviada em ${sym} ≠${digit} · $${prep.stake}`, 'nt');
         } else {
           engine.addLog(`Erro ao enviar ordem: ${buyResponse?.error?.message || 'Falha na Deriv'}`, 'dn');
+          // Nenhum contrato foi aberto: liberar a trava, senão o bot congela
+          engine.setTradeLock(false);
         }
       } catch (err: any) {
         engine.addLog(`Erro na compra: ${err?.message || err}`, 'dn');
+        engine.setTradeLock(false);
       }
     },
     []
@@ -330,11 +375,17 @@ export function useBearDiffer() {
 
     // Resposta de proposal pré-aberta
     const onProposal = derivService.observerInstance.on('message', (data: any) => {
-      if (data?.msg_type === 'proposal' && data.proposal?.id) {
-        proposalIdRef.current = data.proposal.id;
-        if (data.proposal.payout && data.proposal.ask_price) {
-          engine.setPayout(data.proposal.payout / data.proposal.ask_price);
-        }
+      if (data?.msg_type !== 'proposal' || !data.proposal?.id) return;
+
+      // Aceita apenas propostas abertas por este módulo. Sem essa checagem,
+      // uma proposta de outro bot no mesmo socket seria comprada no lugar da
+      // nossa, e o payout dela corromperia o ponto de equilíbrio do Differ.
+      const pkey = data.passthrough?.pkey;
+      if (!pkey || !propsRef.current.has(pkey)) return;
+
+      propsRef.current.set(pkey, data.proposal.id);
+      if (data.proposal.payout && data.proposal.ask_price) {
+        engine.setPayout(data.proposal.payout / data.proposal.ask_price);
       }
     });
 
@@ -372,10 +423,12 @@ export function useBearDiffer() {
     (sym: string, barrier: number, stake: number) => {
       const derivService = DerivService.getInstance();
       const cur = activeAccount?.currency || 'USD';
-      const key = `${sym}_${barrier}_${stake}`;
-      if (proposalKeyRef.current === key && proposalIdRef.current) return;
+      const key = propKey(sym, barrier, stake);
+      if (propsRef.current.has(key)) return;
 
-      proposalKeyRef.current = key;
+      // Registra a chave antes de enviar: é ela que autoriza a resposta a ser
+      // aceita quando voltar pelo passthrough.
+      propsRef.current.set(key, null);
       derivService
         .send({
           proposal: 1,
@@ -388,6 +441,7 @@ export function useBearDiffer() {
           duration_unit: 't',
           symbol: sym,
           barrier: String(barrier),
+          passthrough: { pkey: key },
         })
         .catch((err) => {
           console.error('Error subscribing to proposal:', err);
@@ -395,6 +449,34 @@ export function useBearDiffer() {
     },
     [activeAccount]
   );
+
+  // Vigilância contínua dos mercados, a cada 5s. Roda no hook e não na aba:
+  // no legado o scanner era global, e alertas só apareciam se a aba
+  // Vigilância estivesse aberta seriam alertas que ninguém vê.
+  useEffect(() => {
+    const id = setInterval(() => {
+      engineRef.current.runWatch();
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Proposal keeper: mantém uma proposta subscrita e quente para o alvo em
+  // foco, renovada a cada 4s como na 7.7.9. Na hora de operar a compra sai
+  // pelo id já pronto, sem a ida-e-volta do cálculo de preço.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const engine = engineRef.current;
+      if (!engine.getConfig().fastExec) return;
+
+      const stake = engine.getState().curStake;
+      const target = warmTargetRef.current;
+      if (target) ensureProposal(target.sym, target.digit, stake);
+
+      const v = vlossRef.current;
+      if (v.armed) ensureProposal(v.sym, v.targetDigit, stake);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [ensureProposal]);
 
   return {
     engine: engineRef.current,
@@ -408,6 +490,7 @@ export function useBearDiffer() {
     executeTrade,
     resetSession,
     ensureProposal,
+    setWarmTarget,
     armVirtualLoss,
     cancelVirtualLoss,
     vlossState,

@@ -9,10 +9,11 @@ interface OperationTabProps {
   state: EngineState;
   config: DifferConfig;
   updateConfig: (newConfig: Partial<DifferConfig>) => void;
-  executeTrade: (sym: string, digit: number) => Promise<void>;
+  executeTrade: (sym: string, digit: number, analysisTickCount?: number) => Promise<void>;
   resetSession?: () => void;
   armVirtualLoss: (sym: string, digit: number, n: number) => void;
   cancelVirtualLoss: () => void;
+  setWarmTarget: (sym: string | null, digit?: number) => void;
   vlossState: {
     armed: boolean;
     sym: string;
@@ -32,6 +33,7 @@ export default function OperationTab({
   resetSession,
   armVirtualLoss,
   cancelVirtualLoss,
+  setWarmTarget,
   vlossState,
 }: OperationTabProps) {
   const [currentPick, setCurrentPick] = useState<{
@@ -40,6 +42,8 @@ export default function OperationTab({
     conf: number;
     why: string;
     n: number;
+    // Contagem de ticks no instante da análise, para a trava de ticks vencidos
+    tickCount: number;
   } | null>(null);
 
   const [scanMessage, setScanMessage] = useState<string>(
@@ -60,6 +64,7 @@ export default function OperationTab({
     const pick = engine.deepScan(config.onceLogic);
     if (!pick) {
       setCurrentPick(null);
+      setWarmTarget(null);
       if (config.onceLogic === 'auto' && !engine.leaderLogic()) {
         setScanMessage('Nenhuma lógica passou no teste de significância (Benjamini-Hochberg).');
       } else {
@@ -67,23 +72,46 @@ export default function OperationTab({
       }
       return;
     }
-    setCurrentPick(pick);
+    if (pick.conf < config.onceMinConf) {
+      setCurrentPick(null);
+      setWarmTarget(null);
+      setScanMessage(
+        `Melhor alvo em ${pick.sym}, fora do ${pick.digit} — confiança ${pick.conf.toFixed(0)}%, abaixo do mínimo de ${config.onceMinConf}%.`
+      );
+      return;
+    }
+
+    setCurrentPick({ ...pick, tickCount: engine.getMarketData(pick.sym).tickCount });
+    // Abre e mantém quente a proposta desse alvo enquanto ele estiver na tela
+    setWarmTarget(pick.sym, pick.digit);
     setScanMessage(`Alvo detectado em ${pick.sym}: Fora do dígito ${pick.digit} (${pick.conf}% confiança)`);
   };
 
   const handleConfirm = () => {
     if (!currentPick) return;
+
+    // O filtro de exaustão vale também na confirmação manual
+    const blocked = engine.exhaustBlock(currentPick.sym, currentPick.digit);
+    if (blocked) {
+      setScanMessage(`Barrado pelo filtro de exaustão: ${blocked}.`);
+      setCurrentPick(null);
+      setWarmTarget(null);
+      return;
+    }
+
     if (config.vlossOn) {
       armVirtualLoss(currentPick.sym, currentPick.digit, config.vlossN);
       setCurrentPick(null);
     } else {
-      executeTrade(currentPick.sym, currentPick.digit);
+      executeTrade(currentPick.sym, currentPick.digit, currentPick.tickCount);
       setCurrentPick(null);
+      setWarmTarget(null);
     }
   };
 
   const handleDiscard = () => {
     setCurrentPick(null);
+    setWarmTarget(null);
     setScanMessage('Entrada descartada pelo usuário.');
   };
 
@@ -247,11 +275,10 @@ export default function OperationTab({
               return (
                 <div
                   key={d}
-                  className={`p-1 rounded border transition-colors ${
-                    isExhausted
+                  className={`p-1 rounded border transition-colors ${isExhausted
                       ? 'border-emerald-500 bg-emerald-950/40 text-emerald-300'
                       : 'border-[#222c3f] bg-[#18202f] text-[#8593aa]'
-                  }`}
+                    }`}
                 >
                   <div className="font-bold">{d}</div>
                   <div className="text-[9px]">{ex ? `${ex.pct}%` : '—'}</div>
@@ -281,11 +308,10 @@ export default function OperationTab({
 
         {/* Caixa de Veredito / Alvo Detectado */}
         <div
-          className={`mt-3 p-3 rounded border text-xs leading-relaxed ${
-            currentPick
+          className={`mt-3 p-3 rounded border text-xs leading-relaxed ${currentPick
               ? 'bg-emerald-950/30 border-emerald-500/50 text-emerald-300'
               : 'bg-[#18202f] border-[#222c3f] text-[#8593aa]'
-          }`}
+            }`}
         >
           {currentPick ? (
             <div>
@@ -352,17 +378,16 @@ export default function OperationTab({
           </div>
           <div>
             <span
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide ${
-                virtAcc !== null && virtAcc >= breakeven
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide ${virtAcc !== null && virtAcc >= breakeven
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-[#18202f] text-[#8593aa] border border-[#222c3f]'
-              }`}
+                }`}
             >
               {state.virt.total < 50
                 ? 'aguardando amostra'
                 : virtAcc !== null && virtAcc >= breakeven
-                ? 'acima do equilíbrio'
-                : 'dentro do acaso'}
+                  ? 'acima do equilíbrio'
+                  : 'dentro do acaso'}
             </span>
             <p className="text-[11px] text-[#8593aa] mt-1">
               A cada tick em que o score fecha, o bot registra um sinal virtual e confere no tick seguinte.
@@ -405,9 +430,8 @@ export default function OperationTab({
           </div>
           <div className="bg-[#18202f] p-2 rounded text-center">
             <b
-              className={`block font-mono text-sm ${
-                state.sim.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
-              }`}
+              className={`block font-mono text-sm ${state.sim.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}
             >
               {state.sim.pnl >= 0 ? `+$${state.sim.pnl.toFixed(2)}` : `-$${Math.abs(state.sim.pnl).toFixed(2)}`}
             </b>
@@ -425,9 +449,8 @@ export default function OperationTab({
           </div>
           <div className="bg-[#18202f] p-2 rounded text-center">
             <b
-              className={`block font-mono text-sm ${
-                state.real.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
-              }`}
+              className={`block font-mono text-sm ${state.real.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}
             >
               {state.real.pnl >= 0 ? `+$${state.real.pnl.toFixed(2)}` : `-$${Math.abs(state.real.pnl).toFixed(2)}`}
             </b>
@@ -484,22 +507,35 @@ export default function OperationTab({
               }
               className="accent-amber-500"
             />
-            <span>habilitar o automático da 3.0 (legado)</span>
+            <span>habilitar o automático</span>
           </label>
           {config.allowAuto && (
             <button
               type="button"
               onClick={() => updateConfig({ autoOn: !config.autoOn })}
-              className={`px-3 py-1.5 rounded font-bold transition-colors shadow ${
-                config.autoOn
+              className={`px-3 py-1.5 rounded font-bold transition-colors shadow ${config.autoOn
                   ? 'bg-rose-600 hover:bg-rose-700 text-white'
                   : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
+                }`}
             >
               {config.autoOn ? 'Desligar automático' : 'Ligar automático'}
             </button>
           )}
         </div>
+
+        {config.autoOn && (
+          <div
+            data-testid="auto-idle-status"
+            className={`mt-3 p-2.5 rounded border font-mono text-[11px] ${state.autoIdleReason
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              }`}
+          >
+            {state.autoIdleReason
+              ? `Automático ligado, sem entrar: ${state.autoIdleReason}.`
+              : 'Automático ligado e liberado para entrar no próximo sinal.'}
+          </div>
+        )}
       </div>
 
       {/* Card: Leitura dos Mercados */}
@@ -549,11 +585,10 @@ export default function OperationTab({
                     <td className="py-2 px-2 text-[#8593aa]">{a ? a.best.gap : '—'}</td>
                     <td className="py-2 px-2">
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[9.5px] ${
-                          m.proven
+                        className={`px-1.5 py-0.5 rounded text-[9.5px] ${m.proven
                             ? 'bg-emerald-500/20 text-emerald-400'
                             : 'bg-[#18202f] text-[#8593aa]'
-                        }`}
+                          }`}
                       >
                         {m.proven ? 'COMPROVADO' : 'NÃO DETECTADO'}
                       </span>
@@ -563,13 +598,12 @@ export default function OperationTab({
                         {freq.map((f, i) => (
                           <div
                             key={i}
-                            className={`flex-1 h-3 rounded-xs text-[7.5px] flex items-center justify-center ${
-                              f > 15
+                            className={`flex-1 h-3 rounded-xs text-[7.5px] flex items-center justify-center ${f > 15
                                 ? 'bg-rose-500/40 text-rose-300'
                                 : f < 5
-                                ? 'bg-emerald-500/40 text-emerald-300'
-                                : 'bg-[#222c3f] text-[#8593aa]'
-                            }`}
+                                  ? 'bg-emerald-500/40 text-emerald-300'
+                                  : 'bg-[#222c3f] text-[#8593aa]'
+                              }`}
                             title={`Dígito ${i}: ${f}%`}
                           >
                             {i}
@@ -618,10 +652,10 @@ export default function OperationTab({
                       l.cls === 'up'
                         ? 'text-emerald-400'
                         : l.cls === 'dn'
-                        ? 'text-rose-400'
-                        : l.cls === 'am'
-                        ? 'text-amber-400'
-                        : 'text-[#eef2f8]'
+                          ? 'text-rose-400'
+                          : l.cls === 'am'
+                            ? 'text-amber-400'
+                            : 'text-[#eef2f8]'
                     }
                   >
                     {l.msg}

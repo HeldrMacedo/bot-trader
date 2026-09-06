@@ -1,8 +1,21 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import BearBotDiffer from '../app/(withSidebar)/bear-bot-differ/BearBotDiffer';
+
+const mockSwitchAccount = vi.fn().mockResolvedValue({});
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
+const toastInfo = vi.fn();
+
+vi.mock('react-toastify', () => ({
+  toast: {
+    success: (...a: unknown[]) => toastSuccess(...a),
+    error: (...a: unknown[]) => toastError(...a),
+    info: (...a: unknown[]) => toastInfo(...a),
+  },
+}));
 
 // Mock do DerivService
 vi.mock('../app/services/DerivService', () => ({
@@ -10,7 +23,7 @@ vi.mock('../app/services/DerivService', () => ({
     getInstance: () => ({
       send: vi.fn().mockResolvedValue({}),
       subscribe: vi.fn().mockResolvedValue({}),
-      switchAccount: vi.fn().mockResolvedValue({}),
+      switchAccount: (...a: unknown[]) => mockSwitchAccount(...a),
       isMarketConnected: true,
       observerInstance: {
         on: vi.fn(() => 'sub_id'),
@@ -22,6 +35,7 @@ vi.mock('../app/services/DerivService', () => ({
           activeToken: 'vrtc_demo',
           tokens: [
             { token: 'vrtc_demo', is_virtual: true, balance: 10000, currency: 'USD' },
+            { token: 'real_456', is_virtual: false, balance: 500, currency: 'USD' },
           ],
         },
       ],
@@ -82,7 +96,7 @@ describe('BearBotDiffer - Main Component & Navigation', () => {
   it('toggles continuous auto-trade mode (3.0 legado) in Operação tab', () => {
     render(<BearBotDiffer />);
 
-    const allowCheckbox = screen.getByLabelText(/habilitar o automático da 3\.0 \(legado\)/i);
+    const allowCheckbox = screen.getByLabelText(/habilitar o automático/i);
     expect(allowCheckbox).toBeInTheDocument();
     expect(allowCheckbox).not.toBeChecked();
 
@@ -111,5 +125,33 @@ describe('BearBotDiffer - Main Component & Navigation', () => {
     const resetLogicsBtn = screen.getByRole('button', { name: /Zerar medição/i });
     expect(resetLogicsBtn).toBeInTheDocument();
     fireEvent.click(resetLogicsBtn);
+  });
+
+  it('switches to the real account from the header', async () => {
+    mockSwitchAccount.mockResolvedValueOnce({});
+    render(<BearBotDiffer />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Mudar p\/ Real/i }));
+
+    await waitFor(() => {
+      expect(toastSuccess).toHaveBeenCalledWith(
+        expect.stringMatching(/Conta alterada com sucesso/i)
+      );
+    });
+    expect(toastInfo).toHaveBeenCalledWith(expect.stringMatching(/Alternando para conta Real/i));
+    expect(mockSwitchAccount).toHaveBeenCalledWith('real_456');
+  });
+
+  it('reports a failure to switch the account instead of failing silently', async () => {
+    mockSwitchAccount.mockRejectedValueOnce(new Error('token recusado'));
+    render(<BearBotDiffer />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Mudar p\/ Real/i }));
+
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledWith(
+        expect.stringMatching(/Falha ao alterar conta: token recusado/i)
+      );
+    });
   });
 });

@@ -253,6 +253,21 @@ export function simulateMonteCarloRuin(
   };
 }
 
+/**
+ * Embaralhamento Fisher-Yates. Um `sort` com comparador aleatório não produz
+ * permutação uniforme, e isso invalidaria o p-valor dos testes de permutação.
+ */
+export function shuffle<T>(arr: T[], rnd: () => number = Math.random): T[] {
+  const b = arr.slice();
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    const t = b[i];
+    b[i] = b[j];
+    b[j] = t;
+  }
+  return b;
+}
+
 export interface DriftTestResult {
   K: number;
   per: number;
