@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import React from 'react';
 import { createDifferEngine } from '../app/services/BearDifferEngine';
 import OperationTab from '../app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab';
@@ -21,6 +21,68 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
     engine.setHistory('R_25', sample);
   });
 
+  describe('OperationTab layout regions', () => {
+    const renderTab = () => {
+      const props: React.ComponentProps<typeof OperationTab> = {
+        engine,
+        state: engine.getState(),
+        config: engine.getConfig(),
+        updateConfig: vi.fn(),
+        executeTrade: vi.fn().mockResolvedValue(undefined),
+        resetSession: vi.fn(),
+        armVirtualLoss: vi.fn(),
+        cancelVirtualLoss: vi.fn(),
+        setWarmTarget: vi.fn(),
+        exportCSV: vi.fn(),
+        vlossState: {
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 1,
+          seenLosses: 0,
+          ticksChecked: 0,
+        },
+      };
+      render(<OperationTab {...props} />);
+    };
+
+    it('keeps the action card, the market reading and the results in the main column', () => {
+      renderTab();
+      const center = screen.getByTestId('op-col-center');
+
+      expect(within(center).getByText(/Operação única/i)).toBeInTheDocument();
+      expect(within(center).getByText(/Melhor alvo/i)).toBeInTheDocument();
+      expect(within(center).getByText(/Leitura dos mercados/i)).toBeInTheDocument();
+      expect(within(center).getByText(/Últimas operações/i)).toBeInTheDocument();
+    });
+
+    it('keeps the readings and the logs in the side column', () => {
+      renderTab();
+      const side = screen.getByTestId('op-col-side');
+
+      expect(within(side).getByText(/Assertividade/i)).toBeInTheDocument();
+      expect(within(side).getByText(/Exaustão/i)).toBeInTheDocument();
+      expect(within(side).getByText(/Anomalias/i)).toBeInTheDocument();
+      expect(within(side).getByText(/Histórico/i)).toBeInTheDocument();
+    });
+
+    it('spans the probability warning across both columns', () => {
+      renderTab();
+      const warning = screen.getByTestId('op-probability-warning');
+
+      expect(warning).toBeInTheDocument();
+      expect(screen.getByTestId('op-col-center')).not.toContainElement(warning);
+      expect(screen.getByTestId('op-col-side')).not.toContainElement(warning);
+    });
+
+    it('moves the exhaustion thermometer out of the action card', () => {
+      renderTab();
+      const action = screen.getByTestId('op-card-single');
+
+      expect(within(action).queryByText(/Termômetro de exaustão/i)).toBeNull();
+    });
+  });
+
   describe('OperationTab proposal warming', () => {
     const renderOperationTab = (
       setWarmTarget: (sym: string | null, digit?: number) => void
@@ -35,6 +97,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         armVirtualLoss: vi.fn(),
         cancelVirtualLoss: vi.fn(),
         setWarmTarget,
+        exportCSV: vi.fn(),
         vlossState: {
           armed: false,
           sym: '',
@@ -55,6 +118,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         conf: 88,
         why: 'teste',
         n: 700,
+        lid: 'rep',
       });
 
       renderOperationTab(setWarmTarget);
@@ -71,6 +135,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         conf: 60,
         why: 'teste',
         n: 700,
+        lid: 'rep',
       });
 
       renderOperationTab(vi.fn());
@@ -91,6 +156,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         conf: 88,
         why: 'teste',
         n: 700,
+        lid: 'rep',
       });
 
       const executeTrade = vi.fn().mockResolvedValue(undefined);
@@ -104,6 +170,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         armVirtualLoss: vi.fn(),
         cancelVirtualLoss: vi.fn(),
         setWarmTarget: vi.fn(),
+        exportCSV: vi.fn(),
         vlossState: {
           armed: false,
           sym: '',
@@ -129,6 +196,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         conf: 88,
         why: 'teste',
         n: 700,
+        lid: 'rep',
       });
 
       const executeTrade = vi.fn().mockResolvedValue(undefined);
@@ -142,6 +210,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         armVirtualLoss: vi.fn(),
         cancelVirtualLoss: vi.fn(),
         setWarmTarget: vi.fn(),
+        exportCSV: vi.fn(),
         vlossState: {
           armed: false,
           sym: '',
@@ -157,7 +226,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
       fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
       fireEvent.click(screen.getByRole('button', { name: /Confirmar entrada/i }));
 
-      expect(executeTrade).toHaveBeenCalledWith('R_10', 4, tickCount);
+      expect(executeTrade).toHaveBeenCalledWith('R_10', 4, tickCount, 'rep');
     });
 
     it('shows on screen why the automatic mode is idle', () => {
@@ -174,6 +243,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         armVirtualLoss: vi.fn(),
         cancelVirtualLoss: vi.fn(),
         setWarmTarget: vi.fn(),
+        exportCSV: vi.fn(),
         vlossState: {
           armed: false,
           sym: '',
@@ -202,6 +272,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         armVirtualLoss: vi.fn(),
         cancelVirtualLoss: vi.fn(),
         setWarmTarget: vi.fn(),
+        exportCSV: vi.fn(),
         vlossState: {
           armed: false,
           sym: '',
@@ -216,6 +287,87 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
       expect(screen.queryByTestId('auto-idle-status')).toBeNull();
     });
 
+    it('sends the logic that produced the target along with the entry', () => {
+      engine.updateConfig({ onceMinConf: 50, onceLogic: 'auto' });
+      vi.spyOn(engine, 'deepScan').mockReturnValue({
+        sym: 'R_10',
+        digit: 4,
+        conf: 88,
+        why: 'teste',
+        n: 700,
+        lid: 'mk1',
+      });
+
+      const executeTrade = vi.fn().mockResolvedValue(undefined);
+      const props: React.ComponentProps<typeof OperationTab> = {
+        engine,
+        state: engine.getState(),
+        config: engine.getConfig(),
+        updateConfig: vi.fn(),
+        executeTrade,
+        resetSession: vi.fn(),
+        armVirtualLoss: vi.fn(),
+        cancelVirtualLoss: vi.fn(),
+        setWarmTarget: vi.fn(),
+        exportCSV: vi.fn(),
+        vlossState: {
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 1,
+          seenLosses: 0,
+          ticksChecked: 0,
+        },
+      };
+      render(<OperationTab {...props} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirmar entrada/i }));
+
+      // The concrete logic, not the 'auto' alternation mode
+      expect(executeTrade).toHaveBeenCalledWith('R_10', 4, expect.any(Number), 'mk1');
+    });
+
+    it('arms the virtual loss with the logic that produced the target', () => {
+      engine.updateConfig({ onceMinConf: 50, vlossOn: true, vlossN: 2 });
+      vi.spyOn(engine, 'deepScan').mockReturnValue({
+        sym: 'R_10',
+        digit: 4,
+        conf: 88,
+        why: 'teste',
+        n: 700,
+        lid: 'aus',
+      });
+
+      const armVirtualLoss = vi.fn();
+      const props: React.ComponentProps<typeof OperationTab> = {
+        engine,
+        state: engine.getState(),
+        config: engine.getConfig(),
+        updateConfig: vi.fn(),
+        executeTrade: vi.fn().mockResolvedValue(undefined),
+        resetSession: vi.fn(),
+        armVirtualLoss,
+        cancelVirtualLoss: vi.fn(),
+        setWarmTarget: vi.fn(),
+        exportCSV: vi.fn(),
+        vlossState: {
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 1,
+          seenLosses: 0,
+          ticksChecked: 0,
+        },
+      };
+      render(<OperationTab {...props} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Armar com/i }));
+
+      expect(armVirtualLoss).toHaveBeenCalledWith('R_10', 4, 2, 'aus');
+    });
+
     it('drops the warm target when the operator discards the entry', () => {
       const setWarmTarget = vi.fn();
       vi.spyOn(engine, 'deepScan').mockReturnValue({
@@ -224,6 +376,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
         conf: 88,
         why: 'teste',
         n: 700,
+        lid: 'rep',
       });
 
       renderOperationTab(setWarmTarget);

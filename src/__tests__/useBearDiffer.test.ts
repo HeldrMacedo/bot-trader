@@ -787,6 +787,121 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
     });
   });
 
+  describe('logic attribution end to end', () => {
+    it('carries the logic from a manual entry into the settled trade', async () => {
+      const { result } = renderHook(() => useBearDiffer());
+      act(() => {
+        result.current.updateConfig({ opMode: 'sim', stake: 1 });
+      });
+
+      await act(async () => {
+        await result.current.executeTrade('R_10', 4, undefined, 'mk1');
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.561 } });
+      });
+
+      expect(result.current.state.trades[0].logicId).toBe('mk1');
+    });
+
+    it('marks an automatic entry as coming from the reference engine', async () => {
+      const { result } = renderHook(() => useBearDiffer());
+      act(() => {
+        result.current.updateConfig({ opMode: 'sim', stake: 1 });
+      });
+
+      await act(async () => {
+        await result.current.executeTrade('R_10', 4);
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.561 } });
+      });
+
+      const trade = result.current.state.trades[0];
+      expect(result.current.engine.getLogicName(trade.logicId)).toBe('Motor 2.0');
+    });
+
+    it('keeps the armed logic on a virtual-loss entry', () => {
+      const { result } = renderHook(() => useBearDiffer());
+      act(() => {
+        result.current.updateConfig({ opMode: 'sim', vlossRepick: false, stake: 1 });
+      });
+
+      act(() => {
+        result.current.armVirtualLoss('R_10', 7, 1, 'par');
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.567 } });
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.561 } });
+      });
+
+      expect(result.current.state.trades[0].logicId).toBe('par');
+    });
+
+    it('takes the logic from the repick when it recalculates at fire time', () => {
+      const { result } = renderHook(() => useBearDiffer());
+      act(() => {
+        result.current.updateConfig({ opMode: 'sim', vlossRepick: true, stake: 1 });
+      });
+      vi.spyOn(result.current.engine, 'deepScan').mockReturnValue({
+        sym: 'R_10',
+        digit: 2,
+        conf: 90,
+        why: 'repick',
+        n: 700,
+        lid: 'flong',
+      });
+
+      act(() => {
+        result.current.armVirtualLoss('R_10', 7, 1, 'par');
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.567 } });
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.561 } });
+      });
+
+      expect(result.current.state.trades[0].logicId).toBe('flong');
+      expect(result.current.state.trades[0].digit).toBe(2);
+    });
+
+    it('carries the logic through a real contract settlement', async () => {
+      const { result } = renderHook(() => useBearDiffer());
+      act(() => {
+        result.current.updateConfig({
+          opMode: 'real',
+          gateOps: 0,
+          gateAcc: 0,
+          fastExec: false,
+          stake: 1,
+          stopLoss: 0,
+          stopWin: 0,
+        });
+      });
+
+      mockSend.mockResolvedValueOnce({ buy: { contract_id: 777, buy_price: 1 } });
+      await act(async () => {
+        await result.current.executeTrade('R_10', 4, undefined, 'aus');
+      });
+
+      act(() => {
+        mockObserver.emit('deriv.proposal_open_contract', {
+          proposal_open_contract: {
+            contract_id: 777,
+            is_sold: 1,
+            profit: 0.11,
+            exit_spot: '1234.567',
+          },
+        });
+      });
+
+      expect(result.current.state.trades[0].logicId).toBe('aus');
+    });
+  });
+
   describe('virtual loss firing', () => {
     const tick = (quote: number) =>
       act(() => {
@@ -833,6 +948,7 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
         conf: 90,
         why: 'repick',
         n: 700,
+        lid: 'flong',
       });
 
       act(() => {

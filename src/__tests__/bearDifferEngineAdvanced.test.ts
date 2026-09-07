@@ -249,6 +249,42 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     });
   });
 
+  describe('Logic attribution on trades', () => {
+    it('records which logic produced the entry', () => {
+      engine.updateConfig({ opMode: 'sim', stopLoss: 0, stopWin: 0 });
+
+      engine.settleContract(0.11, false, 'R_10', 4, 7, undefined, 'mk1');
+
+      expect(engine.getState().trades[0].logicId).toBe('mk1');
+    });
+
+    it('names the reference engine when no logic drove the entry', () => {
+      expect(engine.getLogicName(undefined)).toBe('Motor 2.0');
+      expect(engine.getLogicName('motor2')).toBe('Motor 2.0');
+    });
+
+    it('resolves a logic id to the name shown to the operator', () => {
+      expect(engine.getLogicName('mk1')).toBe('Markov 1ª ordem');
+      expect(engine.getLogicName('exaust')).toBe('Exaustão de perdedores');
+    });
+
+    it('reports the logic the scan settled on, not the alternation mode', () => {
+      engine.updateConfig({ gateBias: false, minTicks: 300, onceLogic: 'rep' });
+      const digits: number[] = [];
+      let s = 7;
+      for (let i = 0; i < 400; i++) {
+        s = (s * 1103515245 + 12345) % 2147483648;
+        digits.push(Math.floor((s / 2147483648) * 10));
+      }
+      engine.setHistory('R_10', digits);
+      engine.processTick('R_10', 3);
+
+      const pick = engine.deepScan('rep');
+      expect(pick).not.toBeNull();
+      expect(pick!.lid).toBe('rep');
+    });
+  });
+
   describe('Auto-trade idle reason', () => {
     const seed = (count = 400) => {
       const digits: number[] = [];

@@ -1221,6 +1221,16 @@ export class BearDifferEngine {
     return rows;
   }
 
+  /**
+   * Nome da lógica para exibição. Entradas do modo automático não passam por
+   * lógica nenhuma: elas disparam pelo score do motor de referência, que o
+   * legado chama de "Motor 2.0 (referência)".
+   */
+  public getLogicName(lid?: string | null): string {
+    if (!lid || lid === 'motor2') return 'Motor 2.0';
+    return this.logics.find((L) => L.id === lid)?.name ?? 'Motor 2.0';
+  }
+
   public leaderLogic(): string | null {
     const r = this.getLogicRanking().find((x) => x.pass);
     return r ? r.lid : null;
@@ -1260,6 +1270,7 @@ export class BearDifferEngine {
     conf: number;
     why: string;
     n: number;
+    lid: string;
   } | null {
     const chosenId = this.resolveLogic(logicId);
     if (!chosenId) return null;
@@ -1275,6 +1286,7 @@ export class BearDifferEngine {
       conf: number;
       why: string;
       n: number;
+      lid: string;
     } | null = null;
 
     eligible.forEach((m) => {
@@ -1292,6 +1304,8 @@ export class BearDifferEngine {
           conf: p.conf,
           why: p.why,
           n: digits.length,
+          // A lógica de fato resolvida, não o modo de alternância pedido
+          lid: chosenId,
         };
       }
     });
@@ -1444,7 +1458,8 @@ export class BearDifferEngine {
     sym: string,
     digit: number,
     exitDigit: number | null,
-    audit?: any
+    audit?: any,
+    logicId?: string
   ): void {
     const isSim = this.config.opMode === 'sim';
     const book = isSim ? this.simStats : this.realStats;
@@ -1528,6 +1543,7 @@ export class BearDifferEngine {
       paper: isSim,
       fast: this.config.fastExec,
       audit,
+      logicId,
     };
     this.trades.unshift(tradeItem);
     if (this.trades.length > 300) this.trades.pop();
