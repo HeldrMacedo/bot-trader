@@ -38,8 +38,15 @@ export function useBearDiffer() {
   // de martingale invalida a proposta anterior.
   const propsRef = useRef<Map<string, string | null>>(new Map());
   const pendingTradeRef = useRef<{ sym: string; digit: number; t0: number } | null>(null);
-  const openContractsRef = useRef<Map<number, { sym: string; digit: number }>>(new Map());
-  const simPendingOrderRef = useRef<{ sym: string; digit: number; stake: number } | null>(null);
+  const openContractsRef = useRef<Map<number, { sym: string; digit: number; logicId?: string }>>(
+    new Map()
+  );
+  const simPendingOrderRef = useRef<{
+    sym: string;
+    digit: number;
+    stake: number;
+    logicId?: string;
+  } | null>(null);
 
   // Loss Virtual
   const [vlossState, setVlossState] = useState<{
@@ -49,6 +56,7 @@ export function useBearDiffer() {
     targetLosses: number;
     seenLosses: number;
     ticksChecked: number;
+    logicId?: string;
   }>({
     armed: false,
     sym: '',
@@ -111,7 +119,7 @@ export function useBearDiffer() {
 
   // Execução de Trade
   const executeTrade = useCallback(
-    async (sym: string, digit: number, analysisTickCount?: number) => {
+    async (sym: string, digit: number, analysisTickCount?: number, logicId?: string) => {
       const engine = engineRef.current;
 
       // Trava de ticks vencidos: entre a análise e a confirmação o mercado
@@ -149,7 +157,7 @@ export function useBearDiffer() {
         // O contrato fica aberto até chegar o próximo tick deste mercado. É o
         // listener de 'deriv.tick' que liquida — um Digit Differ só se resolve
         // na cotação seguinte, nunca no tick que originou a análise.
-        simPendingOrderRef.current = { sym, digit, stake: prep.stake };
+        simPendingOrderRef.current = { sym, digit, stake: prep.stake, logicId };
         return;
       }
 
@@ -193,7 +201,7 @@ export function useBearDiffer() {
 
         if (buyResponse?.buy?.contract_id) {
           const contractId = Number(buyResponse.buy.contract_id);
-          openContractsRef.current.set(contractId, { sym, digit });
+          openContractsRef.current.set(contractId, { sym, digit, logicId });
           derivService.subscribe({
             proposal_open_contract: 1,
             contract_id: contractId,
@@ -213,17 +221,24 @@ export function useBearDiffer() {
   );
 
   // Armar Loss Virtual
-  const armVirtualLoss = useCallback((sym: string, targetDigit: number, targetLosses: number) => {
-    setVlossState({
-      armed: true,
-      sym,
-      targetDigit,
-      targetLosses,
-      seenLosses: 0,
-      ticksChecked: 0,
-    });
-    engineRef.current.addLog(`Loss Virtual armado em ${sym} ≠${targetDigit} (aguardando ${targetLosses} loss(es))`, 'am');
-  }, []);
+  const armVirtualLoss = useCallback(
+    (sym: string, targetDigit: number, targetLosses: number, logicId?: string) => {
+      setVlossState({
+        armed: true,
+        sym,
+        targetDigit,
+        targetLosses,
+        seenLosses: 0,
+        ticksChecked: 0,
+        logicId,
+      });
+      engineRef.current.addLog(
+        `Loss Virtual armado em ${sym} ≠${targetDigit} (aguardando ${targetLosses} loss(es))`,
+        'am'
+      );
+    },
+    []
+  );
 
   const cancelVirtualLoss = useCallback(() => {
     setVlossState((prev) => ({ ...prev, armed: false }));
@@ -291,7 +306,15 @@ export function useBearDiffer() {
             const profit = isLoss
               ? -pending.stake
               : +(pending.stake * (engine.getState().payout - 1)).toFixed(2);
-            engine.settleContract(profit, isLoss, symbol, pending.digit, lastDigit);
+            engine.settleContract(
+              profit,
+              isLoss,
+              symbol,
+              pending.digit,
+              lastDigit,
+              undefined,
+              pending.logicId
+            );
           }
 
           engine.processTick(symbol, lastDigit);
@@ -306,9 +329,13 @@ export function useBearDiffer() {
             if (newSeen >= prev.targetLosses) {
               // Dispara ordem real
               let tradeDigit = prev.targetDigit;
+              let tradeLogicId = prev.logicId;
               if (engine.getConfig().vlossRepick) {
                 const repick = engine.deepScan(engine.getConfig().onceLogic);
-                if (repick && repick.sym === symbol) tradeDigit = repick.digit;
+                if (repick && repick.sym === symbol) {
+                  tradeDigit = repick.digit;
+                  tradeLogicId = repick.lid;
+                }
               }
 
               // Conferência do filtro de exaustão antes de disparar
@@ -333,7 +360,7 @@ export function useBearDiffer() {
                 }
               }
 
-              executeTrade(symbol, tradeDigit);
+              executeTrade(symbol, tradeDigit, undefined, tradeLogicId);
               return { ...prev, armed: false, seenLosses: newSeen, ticksChecked: newChecked };
             }
             return { ...prev, seenLosses: newSeen, ticksChecked: newChecked };
@@ -368,7 +395,15 @@ export function useBearDiffer() {
           if (poc.exit_spot !== undefined) {
             exitDigit = Number(String(poc.exit_spot).slice(-1));
           }
-          engine.settleContract(profit, isLoss, open.sym, open.digit, exitDigit, poc.audit_details);
+          engine.settleContract(
+            profit,
+            isLoss,
+            open.sym,
+            open.digit,
+            exitDigit,
+            poc.audit_details,
+            open.logicId
+          );
         }
       }
     });

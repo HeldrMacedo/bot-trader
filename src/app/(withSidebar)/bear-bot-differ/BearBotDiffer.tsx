@@ -147,15 +147,19 @@ export default function BearBotDiffer() {
         ))}
       </div>
 
-      {/* Conteúdo Principal */}
-      <div className="max-w-[1600px] mx-auto">
+      {/* Conteúdo Principal: barra de configuração fixa à esquerda, aba à direita */}
+      <div className="w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <div className="lg:col-span-3">
+          <ConfigSidebar
+            markets={state.markets}
+            config={config}
+            updateConfig={updateConfig}
+          />
+        </div>
+
+        <div className="lg:col-span-9">
         {activeTab === 'op' && (
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 p-4 items-start">
-            <ConfigSidebar
-              markets={state.markets}
-              config={config}
-              updateConfig={updateConfig}
-            />
+          <div>
             <OperationTab
               engine={engine}
               state={state}
@@ -166,52 +170,54 @@ export default function BearBotDiffer() {
               armVirtualLoss={armVirtualLoss}
               cancelVirtualLoss={cancelVirtualLoss}
               setWarmTarget={setWarmTarget}
+              exportCSV={exportCSV}
               vlossState={vlossState}
             />
           </div>
         )}
 
         {activeTab === 'lg' && (
-          <div className="p-4">
+          <div>
             <LogicsTab engine={engine} state={state} />
           </div>
         )}
 
         {activeTab === 'wt' && (
-          <div className="p-4">
+          <div>
             <VigilanceTab engine={engine} state={state} />
           </div>
         )}
 
         {activeTab === 'stat' && (
-          <div className="p-4">
+          <div>
             <LabTab engine={engine} state={state} />
           </div>
         )}
 
         {activeTab === 'val' && (
-          <div className="p-4">
+          <div>
             <ValidationTab engine={engine} state={state} />
           </div>
         )}
 
         {activeTab === 'risk' && (
-          <div className="p-4">
+          <div>
             <RiskTab engine={engine} state={state} />
           </div>
         )}
 
         {activeTab === 'fab' && (
-          <div className="p-4">
+          <div>
             <PipelineTab engine={engine} state={state} />
           </div>
         )}
 
         {activeTab === 'sys' && (
-          <div className="p-4">
+          <div>
             <SystemTab engine={engine} state={state} exportCSV={exportCSV} />
           </div>
         )}
+        </div>
       </div>
     </div>
   );
