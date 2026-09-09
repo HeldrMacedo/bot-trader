@@ -45,3 +45,5 @@ next-env.d.ts
 /ZeekBot
 /bot-ia
 /bot-ia-v2
+
+/graphify-out
