@@ -133,7 +133,7 @@ export default function BearBotUltra() {
     setGaleStr(clean);
     if (clean !== '' && !clean.endsWith('.')) {
       const n = Number(clean);
-      if (!isNaN(n) && n >= 1.01 && n <= 10) {
+      if (!isNaN(n) && n >= 1 && n <= 99999) {
         updateConfig({ gale: n });
       }
     }
@@ -141,8 +141,8 @@ export default function BearBotUltra() {
 
   const handleGaleBlur = () => {
     let n = Number(galeStr);
-    if (isNaN(n) || n < 1.01) n = 1.01;
-    else if (n > 10) n = 10;
+    if (isNaN(n) || n < 1) n = 1;
+    else if (n > 99999) n = 99999;
     setGaleStr(String(n));
     updateConfig({ gale: n });
   };

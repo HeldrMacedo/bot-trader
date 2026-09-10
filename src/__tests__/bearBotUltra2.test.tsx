@@ -215,15 +215,15 @@ describe('BearBotUltra 2.0 Component', () => {
     fireEvent.change(galeInput, { target: { value: '2,5' } });
     expect(galeInput.value).toBe('2.5');
 
-    // 5. No blur com valor abaixo do mínimo (ex: 0.5), ajusta para 1.01
+    // 5. No blur com valor abaixo do mínimo (ex: 0.5), ajusta para 1
     fireEvent.change(galeInput, { target: { value: '0.5' } });
     fireEvent.blur(galeInput);
-    expect(galeInput.value).toBe('1.01');
+    expect(galeInput.value).toBe('1');
 
-    // 6. No blur com valor acima do máximo (ex: 15), ajusta para 10
+    // 6. No blur com valor acima de 10 (ex: 15), permite livremente sem limitar a 10
     fireEvent.change(galeInput, { target: { value: '15' } });
     fireEvent.blur(galeInput);
-    expect(galeInput.value).toBe('10');
+    expect(galeInput.value).toBe('15');
   });
 
   it('permite alterar Entrada Inicial, Stop Loss e Stop Win livremente', () => {
