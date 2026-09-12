@@ -113,6 +113,9 @@ export class BearDifferEngine {
   // Uma chave por mercado: sete símbolos ticam intercalados, e um campo único
   // faria a causa de cada um parecer nova em relação à do mercado anterior.
   private autoIdleKeys: Map<string, string> = new Map();
+  // O automático foi desligado pelo próprio robô, não pelo operador: o motivo
+  // precisa sobreviver aos ticks seguintes para continuar explicando a parada.
+  private autoHalted = false;
   private watch: Record<string, WatchEntry> = {};
   private watchPrev: Record<string, string> = {};
   private alerts: WatchAlertItem[] = [];
@@ -174,6 +177,12 @@ export class BearDifferEngine {
   }
 
   public updateConfig(newConfig: Partial<DifferConfig>): void {
+    // Religar o automático é o operador dizendo que tratou a causa.
+    if (newConfig.autoOn === true && !this.config.autoOn) {
+      this.autoHalted = false;
+      this.autoIdleReason = null;
+      this.autoIdleKeys.clear();
+    }
     this.config = { ...this.config, ...newConfig };
     if (newConfig.stake !== undefined && this.mgLevel === 0) {
       this.curStake = newConfig.stake;
@@ -220,6 +229,7 @@ export class BearDifferEngine {
     this.anomalies = [];
     this.autoIdleReason = null;
     this.autoIdleKeys.clear();
+    this.autoHalted = false;
     this.watch = {};
     this.watchPrev = {};
     this.alerts = [];
@@ -339,6 +349,12 @@ export class BearDifferEngine {
         // carrega score e p-valor, que variam sempre; deduplicar por ele
         // reimprimiria a mesma causa a cada tick e afogaria o histórico.
         let key: string | null = null;
+        // Onde a causa vale. Trava do robô inteiro (guard, operação aberta,
+        // intervalo) vale em '*': sete mercados ticando não podem virar sete
+        // linhas idênticas. Causa de mercado vale no próprio símbolo.
+        let scope = sym;
+        // Guard é parada dura: o legado faz `S.auto=false` e avisa uma vez.
+        let halt = false;
         let fire = false;
 
         if (!isMarketOn) {
@@ -347,9 +363,12 @@ export class BearDifferEngine {
         } else if (this.tradeLock) {
           reason = 'operação em aberto — uma por vez';
           key = 'lock';
+          scope = '*';
         } else if (guard) {
           reason = guard;
           key = `guard:${guard}`;
+          scope = '*';
+          halt = true;
         } else if (buf.length < this.config.minTicks) {
           reason = `amostra insuficiente em ${sym} (${buf.length}/${this.config.minTicks} ticks)`;
           key = `sample:${sym}`;
@@ -364,6 +383,9 @@ export class BearDifferEngine {
               : `trava de viés: ${sym} se comporta como gerador honesto (p corrigido ${v.p.toFixed(
                   3
                 )}, exigido < ${this.config.labAlpha})`;
+          if (v.p !== null) {
+            reason += '. Desligue a trava de viés para operar mesmo assim';
+          }
           key = `bias:${sym}:${v.p === null ? 'amostra' : 'honesto'}`;
         } else {
           const blocked = this.exhaustBlock(sym, a.best.digit);
@@ -373,18 +395,25 @@ export class BearDifferEngine {
           } else if (Date.now() - this.lastTradeTime < this.config.cooldown * 1000) {
             reason = `aguardando o intervalo mínimo de ${this.config.cooldown}s`;
             key = 'cooldown';
+            scope = '*';
           } else {
             fire = true;
           }
         }
 
         // Log só na mudança de causa: por tick inundaria o histórico
-        if (reason && key !== this.autoIdleKeys.get(sym)) {
+        if (reason && key !== this.autoIdleKeys.get(scope)) {
           this.addLog(`Automático parado: ${reason}.`, 'am');
         }
-        if (key) this.autoIdleKeys.set(sym, key);
-        else this.autoIdleKeys.delete(sym);
+        if (key) this.autoIdleKeys.set(scope, key);
+        else this.autoIdleKeys.delete(scope);
         this.autoIdleReason = reason;
+
+        // Parada dura desliga o automático e preserva a explicação na tela.
+        if (halt) {
+          this.config.autoOn = false;
+          this.autoHalted = true;
+        }
 
         if (fire) {
           this.lastTradeTime = Date.now();
@@ -396,7 +425,7 @@ export class BearDifferEngine {
             }
           });
         }
-      } else {
+      } else if (!this.autoHalted) {
         this.autoIdleReason = null;
         this.autoIdleKeys.clear();
       }
