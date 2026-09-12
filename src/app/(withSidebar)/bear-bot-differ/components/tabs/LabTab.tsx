@@ -10,8 +10,11 @@ interface LabTabProps {
 
 export default function LabTab({ engine, state }: LabTabProps) {
   const [selectedSym, setSelectedSym] = useState<string>(state.markets[0]?.sym || 'R_10');
-  const [minN, setMinN] = useState(2000);
-  const [alpha, setAlpha] = useState(0.01);
+  // Amostra mínima e alfa moram na configuração do motor, não em estado local:
+  // são a mesma trava que o modo automático consulta para liberar um mercado, e
+  // trocar de aba desmonta este componente.
+  const minN = state.config.labMin;
+  const alpha = state.config.labAlpha;
 
   const activeMarkets = state.markets.filter((m) => m.on);
   const familyTests = Math.max(1, activeMarkets.length * 4);
@@ -48,8 +51,11 @@ export default function LabTab({ engine, state }: LabTabProps) {
             <input
               type="number"
               min="200"
+              aria-label="Amostra mínima por mercado"
               value={minN}
-              onChange={(e) => setMinN(parseInt(e.target.value, 10) || 2000)}
+              onChange={(e) =>
+                engine.updateConfig({ labMin: parseInt(e.target.value, 10) || 2000 })
+              }
               className="w-24 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-0.5 rounded text-center"
             />
           </div>
@@ -60,8 +66,11 @@ export default function LabTab({ engine, state }: LabTabProps) {
               step="0.001"
               min="0.0001"
               max="0.2"
+              aria-label="Significância exigida"
               value={alpha}
-              onChange={(e) => setAlpha(parseFloat(e.target.value) || 0.01)}
+              onChange={(e) =>
+                engine.updateConfig({ labAlpha: parseFloat(e.target.value) || 0.01 })
+              }
               className="w-24 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-0.5 rounded text-center"
             />
           </div>
@@ -75,7 +84,7 @@ export default function LabTab({ engine, state }: LabTabProps) {
           }`}
         >
           {readyCount === 0
-            ? 'Ainda sem amostra suficiente. O laboratório precisa de pelo menos 2.000 ticks para emitir veredito rigoroso.'
+            ? `Ainda sem amostra suficiente. O laboratório precisa de pelo menos ${minN.toLocaleString('pt-BR')} ticks para emitir veredito rigoroso.`
             : provenCount > 0
             ? `✓ Viés estatístico comprovado em ${provenCount} mercado(s) com significância estatística após correção de Bonferroni.`
             : 'Nenhum viés estatístico detectado. Os mercados analisados comportam-se como geradores aleatórios honestos.'}
