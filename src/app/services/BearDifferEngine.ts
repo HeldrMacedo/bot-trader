@@ -25,6 +25,24 @@ import {
   zP,
 } from './BearDifferMath';
 
+/**
+ * Piso de amostra da bateria de aleatoriedade. O teste de Markov é um χ² de 81
+ * graus de liberdade: abaixo disto a maioria das células esperadas fica perto
+ * de zero e o p-valor deixa de significar coisa alguma. Pedir menos que isto na
+ * tela não faz a bateria rodar com menos — só faria o número mentir.
+ */
+export const BIAS_MIN_SAMPLE = 200;
+
+export interface BiasVerdict {
+  /** Ticks disponíveis no mercado */
+  n: number;
+  /** Ticks efetivamente exigidos: o maior entre o piso e o que a tela pediu */
+  need: number;
+  /** Menor p da bateria já corrigido por Bonferroni, ou null sem amostra */
+  p: number | null;
+  proven: boolean;
+}
+
 export interface ScoreResult {
   best: {
     digit: number;
@@ -92,6 +110,9 @@ export class BearDifferEngine {
   private logs: DifferLogItem[] = [];
   private anomalies: AnomalyLogItem[] = [];
   private autoIdleReason: string | null = null;
+  // Uma chave por mercado: sete símbolos ticam intercalados, e um campo único
+  // faria a causa de cada um parecer nova em relação à do mercado anterior.
+  private autoIdleKeys: Map<string, string> = new Map();
   private watch: Record<string, WatchEntry> = {};
   private watchPrev: Record<string, string> = {};
   private alerts: WatchAlertItem[] = [];
@@ -198,6 +219,7 @@ export class BearDifferEngine {
     this.logs = [];
     this.anomalies = [];
     this.autoIdleReason = null;
+    this.autoIdleKeys.clear();
     this.watch = {};
     this.watchPrev = {};
     this.alerts = [];
@@ -313,35 +335,55 @@ export class BearDifferEngine {
         const isMarketOn = this.markets.find((m) => m.sym === sym)?.on ?? true;
         const guard = this.checkGuards();
         let reason: string | null = null;
+        // A causa, sem os números que mudam a cada tick. O texto do motivo
+        // carrega score e p-valor, que variam sempre; deduplicar por ele
+        // reimprimiria a mesma causa a cada tick e afogaria o histórico.
+        let key: string | null = null;
         let fire = false;
 
         if (!isMarketOn) {
           reason = `${sym} está desligado`;
+          key = `off:${sym}`;
         } else if (this.tradeLock) {
           reason = 'operação em aberto — uma por vez';
+          key = 'lock';
         } else if (guard) {
           reason = guard;
+          key = `guard:${guard}`;
         } else if (buf.length < this.config.minTicks) {
           reason = `amostra insuficiente em ${sym} (${buf.length}/${this.config.minTicks} ticks)`;
+          key = `sample:${sym}`;
         } else if (a.best.score < this.config.minScore) {
           reason = `score ${a.best.score} abaixo do mínimo de ${this.config.minScore} em ${sym}`;
-        } else if (this.config.gateBias && !this.isMarketProven(sym)) {
-          reason = `trava de viés: ${sym} não passou no laboratório (exige ${this.config.labMin} ticks e p corrigido < ${this.config.labAlpha})`;
+          key = `score:${sym}`;
+        } else if (this.config.gateBias && !this.biasVerdict(sym).proven) {
+          const v = this.biasVerdict(sym);
+          reason =
+            v.p === null
+              ? `trava de viés: ${sym} tem ${v.n} de ${v.need} ticks para a bateria do laboratório rodar`
+              : `trava de viés: ${sym} se comporta como gerador honesto (p corrigido ${v.p.toFixed(
+                  3
+                )}, exigido < ${this.config.labAlpha})`;
+          key = `bias:${sym}:${v.p === null ? 'amostra' : 'honesto'}`;
         } else {
           const blocked = this.exhaustBlock(sym, a.best.digit);
           if (blocked) {
             reason = `filtro de exaustão: ${blocked}`;
+            key = `exhaust:${sym}`;
           } else if (Date.now() - this.lastTradeTime < this.config.cooldown * 1000) {
             reason = `aguardando o intervalo mínimo de ${this.config.cooldown}s`;
+            key = 'cooldown';
           } else {
             fire = true;
           }
         }
 
-        // Log só na mudança de motivo: por tick inundaria o histórico
-        if (reason && reason !== this.autoIdleReason) {
+        // Log só na mudança de causa: por tick inundaria o histórico
+        if (reason && key !== this.autoIdleKeys.get(sym)) {
           this.addLog(`Automático parado: ${reason}.`, 'am');
         }
+        if (key) this.autoIdleKeys.set(sym, key);
+        else this.autoIdleKeys.delete(sym);
         this.autoIdleReason = reason;
 
         if (fire) {
@@ -356,6 +398,7 @@ export class BearDifferEngine {
         }
       } else {
         this.autoIdleReason = null;
+        this.autoIdleKeys.clear();
       }
     } else {
       this.vsignal.delete(sym);
@@ -513,11 +556,23 @@ export class BearDifferEngine {
    * por Bonferroni sobre a família inteira (mercados ligados × 4 testes).
    */
   public isMarketProven(sym: string): boolean {
-    const t = this.runBiasTests(sym);
-    if (!t || t.n < this.config.labMin) return false;
+    return this.biasVerdict(sym).proven;
+  }
+
+  /**
+   * Situação da trava de viés num mercado, com o que ela de fato exige e o
+   * p-valor observado. A trava não é uma espera: com gerador honesto o p fica
+   * perto de 1 para sempre, e é isso que o operador precisa enxergar.
+   */
+  public biasVerdict(sym: string): BiasVerdict {
+    const need = Math.max(BIAS_MIN_SAMPLE, this.config.labMin);
+    const n = this.getDigits(sym).length;
+    const t = n >= need ? this.runBiasTests(sym) : null;
+    if (!t) return { n, need, p: null, proven: false };
+
     const tests = Math.max(1, this.markets.filter((m) => m.on).length * 4);
-    const minP = Math.min(t.pU, t.pM, t.pR, t.pA) * tests;
-    return minP < this.config.labAlpha;
+    const p = Math.min(1, Math.min(t.pU, t.pM, t.pR, t.pA) * tests);
+    return { n, need, p, proven: p < this.config.labAlpha };
   }
 
   /**
@@ -1179,8 +1234,8 @@ export class BearDifferEngine {
   // Ranking das Lógicas com Benjamini-Hochberg (FDR)
   public getLogicRanking(): LogicRankingRow[] {
     const be = 1 / this.payout;
-    const minN = 150;
-    const q = 0.10;
+    const minN = this.config.lgMinN;
+    const q = this.config.lgQ;
     const active = this.logics.filter((L) => !L.wide || this.config.wideScan);
 
     const rows: LogicRankingRow[] = active.map((L) => {
@@ -1238,7 +1293,7 @@ export class BearDifferEngine {
 
   public resolveLogic(mode: string): string | null {
     const active = this.logics.filter((L) => !L.wide || this.config.wideScan);
-    const minN = 150;
+    const minN = this.config.lgMinN;
     if (mode === 'auto') {
       return this.leaderLogic();
     } else if (mode === 'rotate') {
@@ -1318,7 +1373,7 @@ export class BearDifferEngine {
   public runBiasTests(sym: string): BiasTestResult | null {
     const buf = this.getDigits(sym);
     const n = buf.length;
-    if (n < 200) return null;
+    if (n < BIAS_MIN_SAMPLE) return null;
 
     // 1. Uniformidade (χ², 9 gl)
     const f = new Array(10).fill(0);

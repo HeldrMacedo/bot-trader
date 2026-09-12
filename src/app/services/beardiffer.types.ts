@@ -82,6 +82,10 @@ export interface DifferConfig {
   labMin: number;
   /** Alfa do laboratório, já sob correção de Bonferroni */
   labAlpha: number;
+  /** Sinais virtuais mínimos para uma lógica entrar no ranking e no rodízio */
+  lgMinN: number;
+  /** Taxa de descoberta falsa (q) do Benjamini-Hochberg no ranking de lógicas */
+  lgQ: number;
   /** Sinais virtuais mínimos por lógica e mercado para a vigilância opinar */
   wtMinN: number;
   /** Alfa da vigilância, sob Bonferroni na família mercados × lógicas */
@@ -121,6 +125,8 @@ export const DEFAULT_DIFFER_CONFIG: DifferConfig = {
   gateBias: true,
   labMin: 2000,
   labAlpha: 0.01,
+  lgMinN: 150,
+  lgQ: 0.1,
   wtMinN: 500,
   wtAlpha: 0.01,
   opMode: 'sim',

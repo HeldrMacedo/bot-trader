@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { EngineState, BearDifferEngine } from '@/app/services/BearDifferEngine';
 import { benjaminiHochberg, binomP } from '@/app/services/BearDifferMath';
 
@@ -10,8 +10,10 @@ interface LogicsTabProps {
 }
 
 export default function LogicsTab({ engine, state }: LogicsTabProps) {
-  const [minN, setMinN] = useState(150);
-  const [qFdr, setQFdr] = useState(0.10);
+  // Os mesmos parâmetros que o motor usa para eleger a lógica líder e montar o
+  // rodízio. Em estado local eles mentiriam: a tela mudaria, o bot não.
+  const minN = state.config.lgMinN;
+  const qFdr = state.config.lgQ;
 
   const activeLogics = engine.getLogics().filter((L) => !L.wide || state.config.wideScan);
   const be = 1 / state.payout;
@@ -72,12 +74,15 @@ export default function LogicsTab({ engine, state }: LogicsTabProps) {
 
         <div className="flex flex-wrap items-center gap-4 py-2 border-y border-[#222c3f] mb-3 font-mono">
           <div className="flex items-center gap-2">
-            <span className="text-[#8593aa]">Amostra mínima:</span>
+            <span className="text-[#8593aa]">Sinais mínimos:</span>
             <input
               type="number"
               min="50"
+              aria-label="Sinais mínimos"
               value={minN}
-              onChange={(e) => setMinN(parseInt(e.target.value, 10) || 150)}
+              onChange={(e) =>
+                engine.updateConfig({ lgMinN: parseInt(e.target.value, 10) || 150 })
+              }
               className="w-20 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-0.5 rounded text-center"
             />
           </div>
@@ -88,8 +93,11 @@ export default function LogicsTab({ engine, state }: LogicsTabProps) {
               step="0.01"
               min="0.01"
               max="0.5"
+              aria-label="Taxa de descoberta falsa (q)"
               value={qFdr}
-              onChange={(e) => setQFdr(parseFloat(e.target.value) || 0.10)}
+              onChange={(e) =>
+                engine.updateConfig({ lgQ: parseFloat(e.target.value) || 0.1 })
+              }
               className="w-20 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-0.5 rounded text-center"
             />
           </div>
