@@ -1,6 +1,6 @@
 "use client";
 
-import { BotConfig, BotState, MARKETS, buildLoserSet } from '../../../services/bearbot2.types';
+import { BotConfig, BotState, MARKETS, buildLoserSet, AIMode, AIWeights, AI_MODE_WEIGHTS } from '../../../services/bearbot2.types';
 
 interface MarketGridProps {
   config: BotConfig;
@@ -27,7 +27,44 @@ function getRecLabel(rec: string) {
   }
 }
 
+const AI_MODE_LABELS: Record<AIMode, string> = {
+  conservative: 'Conservador',
+  balanced: 'Equilibrado',
+  aggressive: 'Agressivo',
+  custom: 'Personalizado',
+};
+
+const AI_WEIGHT_FIELDS: { key: keyof AIWeights; label: string }[] = [
+  { key: 'pressure', label: 'Pressão' },
+  { key: 'pattern', label: 'Padrão A→B' },
+  { key: 'vl', label: 'Loss Virtual' },
+  { key: 'sync', label: 'Sincronia' },
+];
+
+/** Converte o peso (fração 0..1) para o inteiro em % mostrado no campo. */
+function toPercent(w: number) {
+  return Math.round((w || 0) * 100);
+}
+
 export default function MarketGrid({ config, state, updateConfig }: MarketGridProps) {
+  const weights: AIWeights = config.aiWeights ?? AI_MODE_WEIGHTS.balanced;
+  const weightSum = toPercent(weights.pressure) + toPercent(weights.pattern) + toPercent(weights.vl) + toPercent(weights.sync);
+
+  const selectAiMode = (m: AIMode) => {
+    if (m === 'custom') {
+      // Semeia o personalizado com os pesos do preset ativo: o clique não move o score.
+      const seed = config.aiMode === 'custom' ? weights : (AI_MODE_WEIGHTS[config.aiMode] ?? AI_MODE_WEIGHTS.balanced);
+      updateConfig({ aiMode: 'custom', aiWeights: { ...seed } });
+      return;
+    }
+    updateConfig({ aiMode: m, aiWeights: { ...AI_MODE_WEIGHTS[m] } });
+  };
+
+  const setWeight = (key: keyof AIWeights, raw: string) => {
+    const pct = Math.max(0, Math.min(100, Number(raw) || 0));
+    updateConfig({ aiWeights: { ...weights, [key]: pct / 100 } });
+  };
+
   const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
 
   return (
@@ -39,14 +76,41 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-[#8593aa]">Modo IA:</span>
           <div className="flex bg-[#070b14] border border-[#2e3a52] rounded-lg p-0.5">
-            {(['conservative', 'balanced', 'aggressive'] as const).map(m => (
-              <button key={m} onClick={() => updateConfig({ aiMode: m })} className={`px-2 py-1 text-[10px] font-bold rounded transition-all uppercase ${config.aiMode === m ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"}`}>
-                {m === 'conservative' ? 'Conservador' : m === 'balanced' ? 'Equilibrado' : 'Agressivo'}
+            {(['conservative', 'balanced', 'aggressive', 'custom'] as const).map(m => (
+              <button key={m} data-testid={`ai-mode-${m}`} onClick={() => selectAiMode(m)} className={`px-2 py-1 text-[10px] font-bold rounded transition-all uppercase ${config.aiMode === m ? "bg-indigo-600 text-white" : "text-[#8593aa] hover:text-[#eef2f8]"}`}>
+                {AI_MODE_LABELS[m]}
               </button>
             ))}
           </div>
         </div>
       </div>
+
+      {config.aiMode === 'custom' && (
+        <div className="mb-4 p-3 rounded-lg bg-[#0e131d] border border-[#222c3f]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8593aa]">Pesos dos pilares (%)</span>
+            <span data-testid="ai-weight-sum" className={`text-[10px] font-mono ${weightSum === 0 ? 'text-yellow-400' : 'text-[#8593aa]'}`}>
+              {weightSum === 0 ? 'Soma 0 · usando preset Equilibrado' : `Soma ${weightSum}% · normalizada`}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {AI_WEIGHT_FIELDS.map(f => (
+              <label key={f.key} className="flex flex-col gap-1">
+                <span className="text-[10px] text-[#8593aa]">{f.label}</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  data-testid={`ai-weight-${f.key}`}
+                  value={toPercent(weights[f.key])}
+                  onChange={(e) => setWeight(f.key, e.target.value)}
+                  className="w-full bg-[#070b14] border border-[#2e3a52] text-white px-2 py-1.5 rounded-lg font-mono text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {MARKETS.map((m) => {

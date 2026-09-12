@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import MarketGrid from '../app/(withSidebar)/bear-bot-ultra-2/components/MarketGrid';
-import { DEFAULT_CONFIG, DEFAULT_BOT_STATE } from '../app/services/bearbot2.types';
+import { DEFAULT_CONFIG, DEFAULT_BOT_STATE, AI_MODE_WEIGHTS } from '../app/services/bearbot2.types';
 
 describe('MarketGrid AI modes', () => {
   it('renders Conservador, Equilibrado and Agressivo and writes aiMode', () => {
@@ -20,13 +20,13 @@ describe('MarketGrid AI modes', () => {
     expect(screen.getByText('Agressivo')).toBeDefined();
 
     fireEvent.click(screen.getByText('Conservador'));
-    expect(updateConfig).toHaveBeenCalledWith({ aiMode: 'conservative' });
+    expect(updateConfig).toHaveBeenCalledWith({ aiMode: 'conservative', aiWeights: AI_MODE_WEIGHTS.conservative });
 
     fireEvent.click(screen.getByText('Equilibrado'));
-    expect(updateConfig).toHaveBeenCalledWith({ aiMode: 'balanced' });
+    expect(updateConfig).toHaveBeenCalledWith({ aiMode: 'balanced', aiWeights: AI_MODE_WEIGHTS.balanced });
 
     fireEvent.click(screen.getByText('Agressivo'));
-    expect(updateConfig).toHaveBeenCalledWith({ aiMode: 'aggressive' });
+    expect(updateConfig).toHaveBeenCalledWith({ aiMode: 'aggressive', aiWeights: AI_MODE_WEIGHTS.aggressive });
   });
 
   it('highlights the active aiMode button', () => {

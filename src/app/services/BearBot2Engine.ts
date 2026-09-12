@@ -6,6 +6,7 @@ import {
   RecoveryState, TickData, ProposalState, DEFAULT_BOT_STATE,
   TradePrep, TradeLeg, buildLoserSet, isWinCheck,
   DynamicDigitDetail, DynamicDigitResult,
+  AI_MODE_WEIGHTS, resolveAIWeights,
 } from './bearbot2.types';
 
 function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
@@ -166,7 +167,8 @@ export class BearBotEngine {
       differDynamicDigit: false,
       postLossOn: false, postLossMode: 'recover', recoverMaxAttempts: 3,
       recoverDelay: 1500, cooldownSec: 5, maxTradesHour: 50,
-      tradeCooldownMs: 2000, aiMode: 'balanced', soundOn: true,
+      tradeCooldownMs: 2000, aiMode: 'balanced',
+      aiWeights: { ...AI_MODE_WEIGHTS.balanced }, soundOn: true,
     };
   }
 
@@ -246,6 +248,7 @@ export class BearBotEngine {
     }
     if (
       updates.aiMode !== undefined ||
+      updates.aiWeights !== undefined ||
       updates.mode !== undefined ||
       updates.comboUnder !== undefined ||
       updates.comboOver !== undefined ||
@@ -805,10 +808,8 @@ export class BearBotEngine {
       syncScore = totalMarkets > 0 ? Math.min(100, Math.round((syncCount / totalMarkets) * 100)) : 0;
     }
 
-    const ai = this.config.aiMode;
-    let wPressure = 0.35, wPattern = 0.25, wVL = 0.25, wSync = 0.15;
-    if (ai === 'conservative') { wPressure = 0.45; wPattern = 0.20; wVL = 0.25; wSync = 0.10; }
-    if (ai === 'aggressive') { wPressure = 0.25; wPattern = 0.30; wVL = 0.20; wSync = 0.25; }
+    const { pressure: wPressure, pattern: wPattern, vl: wVL, sync: wSync } =
+      resolveAIWeights(this.config.aiMode, this.config.aiWeights);
 
     const pressureScore = 100 - pressure;
     const opportunityScore = Math.round(

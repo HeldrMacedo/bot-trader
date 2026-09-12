@@ -60,3 +60,14 @@ Os pesos de cada pilar variam de acordo com o perfil de risco selecionado ([Bear
 
 ### Resumo
 Em resumo, o Score de Oportunidade sintetiza de forma simples (0 a 100) se o momento atual tem **estatística a favor**, garantindo que o bot execute operações apenas quando as probabilidades jogam a seu favor.
+
+**Modo Personalizado (`aiMode: 'custom'`):**
+Quarto perfil. Os quatro pesos passam a vir de `config.aiWeights` e são editáveis no painel IA Cross-Market (campos em %). Regras de resolução (`resolveAIWeights` em `bearbot2.types.ts`):
+
+- Os pesos são **normalizados** pela própria soma — a proporção importa, a escala não (50/50/50/50 equivale a 25/25/25/25), então o score continua no intervalo 0..100.
+- Peso negativo conta como zero.
+- Soma zero cai para o preset **Equilibrado**, evitando score NaN.
+- Clicar em qualquer preset reescreve `aiWeights` com os valores daquele preset: voltar ao padrão é um clique.
+- Selecionar "Personalizado" semeia os pesos com os do preset ativo, então o score não salta no clique.
+
+O limiar do AI Gate (score ≥ 40) **não** é afetado pelo modo de IA: os pesos decidem como o score é composto, o limiar decide o corte.

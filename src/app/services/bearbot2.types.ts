@@ -22,7 +22,43 @@ export type GaleMode = 'mult' | 'parc';
 export type VLMode = 'consec' | 'accum';
 export type PatMode = 'accum' | 'seq';
 export type PostLossMode = 'recover' | 'analyze';
-export type AIMode = 'conservative' | 'balanced' | 'aggressive';
+export type AIMode = 'conservative' | 'balanced' | 'aggressive' | 'custom';
+
+/** Pesos dos quatro pilares do Score de Oportunidade. */
+export interface AIWeights {
+  pressure: number;
+  pattern: number;
+  vl: number;
+  sync: number;
+}
+
+/**
+ * Pesos de cada preset de IA. Fonte única para motor e UI: clicar num preset
+ * grava estes valores em `config.aiWeights`, e o modo 'custom' os edita.
+ */
+export const AI_MODE_WEIGHTS: Record<Exclude<AIMode, 'custom'>, AIWeights> = {
+  conservative: { pressure: 0.45, pattern: 0.20, vl: 0.25, sync: 0.10 },
+  balanced: { pressure: 0.35, pattern: 0.25, vl: 0.25, sync: 0.15 },
+  aggressive: { pressure: 0.25, pattern: 0.30, vl: 0.20, sync: 0.25 },
+};
+
+/**
+ * Resolve os pesos efetivos: presets vêm da tabela; 'custom' usa os pesos do
+ * usuário normalizados (a proporção importa, a escala não). Pesos negativos
+ * contam como zero e soma zero cai para o preset equilibrado, de modo que o
+ * score nunca escapa de 0..100 nem vira NaN.
+ */
+export function resolveAIWeights(mode: AIMode, weights?: AIWeights): AIWeights {
+  if (mode !== 'custom') return AI_MODE_WEIGHTS[mode] ?? AI_MODE_WEIGHTS.balanced;
+  const w = weights ?? AI_MODE_WEIGHTS.balanced;
+  const pressure = Math.max(0, w.pressure || 0);
+  const pattern = Math.max(0, w.pattern || 0);
+  const vl = Math.max(0, w.vl || 0);
+  const sync = Math.max(0, w.sync || 0);
+  const sum = pressure + pattern + vl + sync;
+  if (sum <= 0) return AI_MODE_WEIGHTS.balanced;
+  return { pressure: pressure / sum, pattern: pattern / sum, vl: vl / sum, sync: sync / sum };
+}
 
 export interface TradeLog {
   t: string;
@@ -184,6 +220,7 @@ export interface BotConfig {
   maxTradesHour: number;
   tradeCooldownMs: number;
   aiMode: AIMode;
+  aiWeights: AIWeights;
   soundOn: boolean;
 }
 
@@ -263,6 +300,7 @@ export const DEFAULT_CONFIG: BotConfig = {
   maxTradesHour: 50,
   tradeCooldownMs: 2000,
   aiMode: 'balanced',
+  aiWeights: { ...AI_MODE_WEIGHTS.balanced },
   soundOn: true,
 };
 
