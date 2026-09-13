@@ -108,7 +108,6 @@ export interface DifferConfig {
   maxLoss: number;
   minAcc: number;
   maxStale: number;
-  wideScan: boolean;
   fastExec: boolean;
   exFilter: boolean;
   exOnlyLosers: boolean;
@@ -148,7 +147,6 @@ export const DEFAULT_DIFFER_CONFIG: DifferConfig = {
   maxLoss: 4,
   minAcc: 80,
   maxStale: 2,
-  wideScan: false,
   fastExec: true,
   exFilter: false,
   exOnlyLosers: false,
@@ -175,7 +173,6 @@ export interface LogicDef {
   name: string;
   tag: string;
   desc: string;
-  wide?: boolean;
   pick: (sym: string, getBuf: (sym: string) => number[], helpers?: any) => LogicPick | null;
 }
 

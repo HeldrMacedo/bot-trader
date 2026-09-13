@@ -15,7 +15,6 @@
   "13": "compilerOptions",
   "14": "BearDifferEngine.ts",
   "15": "DerivApiClient",
-  "16": "LogicsTab.tsx",
   "17": "login/route.js",
   "18": "bearBotUltra2.test.tsx",
   "19": "DerivConnection",
@@ -125,11 +124,9 @@
   "123": "vitest.config.ts",
   "124": "createDifferEngine",
   "125": "derivConfig.ts",
-  "126": "VigilanceTab.tsx",
   "127": "copyTrading.test.ts",
   "128": "MonitoringService Lifecycle",
   "129": "Observer",
-  "130": "useBearDiffer.test.ts",
   "131": "useBearDiffer.ts",
   "132": "buyTable.tsx"
 }

@@ -410,7 +410,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
     it('renders ranking, allows changing FDR q and displays market breakdown', () => {
       render(<LogicsTab engine={engine} state={engine.getState()} />);
 
-      expect(screen.getByText(/Dez lógicas em disputa/i)).toBeInTheDocument();
+      expect(screen.getByText(/Dezessete lógicas em disputa/i)).toBeInTheDocument();
       expect(screen.getByText(/Desempenho por mercado/i)).toBeInTheDocument();
       expect(screen.getByText(/O que cada uma faz/i)).toBeInTheDocument();
 

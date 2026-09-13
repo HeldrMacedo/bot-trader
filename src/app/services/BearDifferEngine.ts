@@ -923,7 +923,7 @@ export class BearDifferEngine {
    */
   public runWatch(): void {
     const on = this.markets.filter((m) => m.on);
-    const acts = this.logics.filter((L) => !L.wide || this.config.wideScan);
+    const acts = this.logics;
     const fam = Math.max(1, on.length * acts.length);
     const be = 1 / this.payout;
     const watch: Record<string, WatchEntry> = {};
@@ -1338,7 +1338,6 @@ export class BearDifferEngine {
         id: 'flong300',
         name: 'Frequência · janela 300',
         tag: 'variante',
-        wide: true,
         desc: 'Frequência longa em 300 ticks.',
         pick: (sym) => {
           const b = this.getDigits(sym);
@@ -1358,7 +1357,6 @@ export class BearDifferEngine {
         id: 'flong3k',
         name: 'Frequência · janela 3.000',
         tag: 'variante',
-        wide: true,
         desc: 'Frequência longa em 3.000 ticks.',
         pick: (sym) => {
           const b = this.getDigits(sym);
@@ -1378,7 +1376,6 @@ export class BearDifferEngine {
         id: 'div60',
         name: 'Divergência · 60↔500',
         tag: 'variante',
-        wide: true,
         desc: 'Divergência em escala curta.',
         pick: (sym) => {
           const b = this.getDigits(sym);
@@ -1406,7 +1403,6 @@ export class BearDifferEngine {
         id: 'par600',
         name: 'Paridade · janela 600',
         tag: 'variante',
-        wide: true,
         desc: 'Paridade e faixa em 600 ticks.',
         pick: (sym) => {
           const b = this.getDigits(sym);
@@ -1440,7 +1436,6 @@ export class BearDifferEngine {
         id: 'mk1c',
         name: 'Markov · regime curto',
         tag: 'variante',
-        wide: true,
         desc: 'Markov 1ª ordem nas 600 transições mais recentes.',
         pick: (sym) => {
           const b = this.getDigits(sym).slice(-600);
@@ -1468,7 +1463,6 @@ export class BearDifferEngine {
         id: 'aus30',
         name: 'Ausência · gap longo',
         tag: 'variante',
-        wide: true,
         desc: 'Ausência persistente com gap >= 30 ticks.',
         pick: (sym) => {
           const b = this.getDigits(sym);
@@ -1548,7 +1542,7 @@ export class BearDifferEngine {
     }
 
     const out: Record<string, LogicPick> = {};
-    const active = this.logics.filter((L) => !L.wide || this.config.wideScan);
+    const active = this.logics;
     for (const L of active) {
       try {
         const p = L.pick(sym, (s) => this.getDigits(s));
@@ -1575,7 +1569,7 @@ export class BearDifferEngine {
     const be = 1 / this.payout;
     const minN = this.config.lgMinN;
     const q = this.config.lgQ;
-    const active = this.logics.filter((L) => !L.wide || this.config.wideScan);
+    const active = this.logics;
 
     const rows: LogicRankingRow[] = active.map((L) => {
       const s = this.lStats[L.id] || { n: 0, w: 0, recent: [] };
@@ -1631,7 +1625,7 @@ export class BearDifferEngine {
   }
 
   public resolveLogic(mode: string): string | null {
-    const active = this.logics.filter((L) => !L.wide || this.config.wideScan);
+    const active = this.logics;
     const minN = this.config.lgMinN;
     if (mode === 'auto') {
       return this.leaderLogic();

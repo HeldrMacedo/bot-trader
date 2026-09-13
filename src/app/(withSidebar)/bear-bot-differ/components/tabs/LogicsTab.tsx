@@ -15,7 +15,7 @@ export default function LogicsTab({ engine, state }: LogicsTabProps) {
   const minN = state.config.lgMinN;
   const qFdr = state.config.lgQ;
 
-  const activeLogics = engine.getLogics().filter((L) => !L.wide || state.config.wideScan);
+  const activeLogics = engine.getLogics();
   const be = 1 / state.payout;
 
   // Custom calculation for ranking based on local minN and qFdr
@@ -64,7 +64,7 @@ export default function LogicsTab({ engine, state }: LogicsTabProps) {
       {/* Card 1: Ranking */}
       <div className="bg-[#131925] border border-[#222c3f] rounded-lg p-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#8593aa] mb-2">
-          Dez lógicas em disputa
+          Dezessete lógicas em disputa
         </h3>
         <p className="text-[11px] text-[#8593aa] mb-3">
           Todas rodam ao mesmo tempo em todos os mercados ligados. A cada tick cada uma registra um sinal virtual e

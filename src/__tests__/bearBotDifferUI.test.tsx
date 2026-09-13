@@ -76,7 +76,7 @@ describe('BearBotDiffer - Main Component & Navigation', () => {
     const logicsTabBtn = screen.getByRole('button', { name: /Lógicas/i });
     fireEvent.click(logicsTabBtn);
 
-    expect(screen.getByText(/Dez lógicas em disputa/i)).toBeInTheDocument();
+    expect(screen.getByText(/Dezessete lógicas em disputa/i)).toBeInTheDocument();
 
     // Click Laboratório tab
     const labTabBtn = screen.getByRole('button', { name: /Laboratório/i });

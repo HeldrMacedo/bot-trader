@@ -23,7 +23,7 @@ const STATUS_CLASS: Record<WatchStatus, string> = {
 
 export default function VigilanceTab({ engine, state }: VigilanceTabProps) {
   const activeMarkets = state.markets.filter((m) => m.on);
-  const activeLogics = engine.getLogics().filter((L) => !L.wide || state.config.wideScan);
+  const activeLogics = engine.getLogics();
   // Bonferroni family: markets x logics, as in the legacy scanner
   const familyTests = Math.max(1, activeMarkets.length * activeLogics.length);
 

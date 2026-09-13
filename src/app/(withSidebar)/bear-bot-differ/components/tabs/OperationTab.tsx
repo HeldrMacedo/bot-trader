@@ -35,6 +35,14 @@ interface OperationTabProps {
   };
 }
 
+/**
+ * Confiança da lógica. Sem palpite a confiança é desconhecida, não é zero:
+ * escrever "0%" faria uma lógica calada parecer uma lógica sem convicção.
+ */
+function textoConf(conf: number | null): string {
+  return conf === null ? '—' : `${conf.toFixed(0)}%`;
+}
+
 /** Métrica que faz sentido para a fonte que produziu o alvo. */
 function descreveMetrica(alvo: ResolvedTarget): string {
   const partes: string[] = [];
@@ -278,15 +286,6 @@ export default function OperationTab({
             <label className="flex items-center gap-2 text-[#8593aa]">
               <input
                 type="checkbox"
-                checked={config.wideScan}
-                onChange={(e) => updateConfig({ wideScan: e.target.checked })}
-                className="accent-amber-500"
-              />
-              <span>Varredura ampla (16 lógicas)</span>
-            </label>
-            <label className="flex items-center gap-2 text-[#8593aa]">
-              <input
-                type="checkbox"
                 checked={config.fastExec}
                 onChange={(e) => updateConfig({ fastExec: e.target.checked })}
                 className="accent-amber-500"
@@ -465,12 +464,12 @@ export default function OperationTab({
                 className="text-[11px] text-[#8593aa] mt-0.5"
               >
                 {config.autoSource === 'motor2'
-                  ? `score ${liveTarget.score ?? 0} · mínimo ${config.minScore}`
+                  ? `score ${liveTarget.score ?? '—'} · mínimo ${config.minScore}`
                   : config.autoSource === 'logic'
-                  ? `confiança ${liveTarget.conf?.toFixed(0) ?? 0}% · mínimo ${config.onceMinConf}%`
-                  : `score ${liveTarget.score ?? 0} (mín. ${config.minScore}) · confiança ${
-                      liveTarget.conf?.toFixed(0) ?? 0
-                    }% (mín. ${config.onceMinConf}%)`}
+                  ? `confiança ${textoConf(liveTarget.conf)} · mínimo ${config.onceMinConf}%`
+                  : `score ${liveTarget.score ?? '—'} (mín. ${config.minScore}) · confiança ${textoConf(
+                      liveTarget.conf
+                    )} (mín. ${config.onceMinConf}%)`}
               </div>
               <div className="h-2 bg-[#18202f] rounded-full overflow-hidden mt-2">
                 <div

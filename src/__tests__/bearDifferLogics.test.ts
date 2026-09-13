@@ -145,8 +145,7 @@ describe('BearDifferEngine - Logic picks', () => {
     expect(p!.why).toMatch(/voto ponderado/);
   });
 
-  it('feeds every active logic through a tick and records per-market stats', () => {
-    engine.updateConfig({ wideScan: true });
+  it('feeds every logic through a tick and records per-market stats', () => {
     engine.setHistory('R_10', makeDigits(3000));
     makeDigits(60, 4242).forEach((d) => engine.processTick('R_10', d));
 
@@ -154,7 +153,7 @@ describe('BearDifferEngine - Logic picks', () => {
       .getLogics()
       .filter((L) => engine.getLogicMarketStats(L.id, 'R_10').n > 0);
 
-    // The wide scan puts all 17 in the family; most must have produced signals
+    // All 17 are always in the family; most must have produced signals
     expect(withSample.length).toBeGreaterThanOrEqual(12);
     withSample.forEach((L) => {
       const st = engine.getLogicMarketStats(L.id, 'R_10');

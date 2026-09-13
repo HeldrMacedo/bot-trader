@@ -132,9 +132,9 @@ Duas diferenças propositais em relação ao automático:
 
 ---
 
-### Aba 2: Lógicas (Disputa das 10 Lógicas & FDR)
+### Aba 2: Lógicas (Disputa das 17 Lógicas & FDR)
 
-O sistema possui 10 algoritmos de inteligência em constante competição:
+O sistema possui 17 algoritmos de inteligência em constante competição, todos medidos a cada tick, em todos os mercados ligados — não há configuração que restrinja quais entram na disputa:
 
 1. **Tabela de Ranking FDR (Taxa de Falsas Descobertas):**  
    Aplica o rigoroso teste estatístico de **Benjamini-Hochberg** com $q = 0.10$. Apenas as lógicas que possuem significância matemática comprovada recebem o selo verde **"APROVADA"**. Lógicas que estão vencendo por mera sorte ou ruído são marcadas como **"DESCARTE"**.

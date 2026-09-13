@@ -163,3 +163,81 @@ describe('BearDiffer - entrada manual no alvo recomendado', () => {
     expect(screen.getByTestId('logic-select')).not.toBeDisabled();
   });
 });
+
+describe('BearDiffer - leitura honesta da confiança no card', () => {
+  let engine: ReturnType<typeof createDifferEngine>;
+
+  const render1 = () =>
+    render(
+      <OperationTab
+        engine={engine}
+        state={engine.getState()}
+        config={engine.getConfig()}
+        updateConfig={vi.fn()}
+        executeTrade={vi.fn() as never}
+        resetSession={vi.fn()}
+        armVirtualLoss={vi.fn() as never}
+        cancelVirtualLoss={vi.fn()}
+        setWarmTarget={vi.fn()}
+        exportCSV={vi.fn()}
+        vlossState={{
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 0,
+          seenLosses: 0,
+          ticksChecked: 0,
+        }}
+      />
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    engine = createDifferEngine();
+    engine.updateConfig({ opMode: 'sim', minTicks: 300, gateBias: false });
+  });
+
+  it('não apresenta ausência de palpite como confiança zero', () => {
+    // Sem palpite da lógica: a confiança é desconhecida, não é zero.
+    vi.spyOn(engine, 'manualTarget').mockReturnValue({
+      sym: 'R_10',
+      digit: null,
+      conf: null,
+      score: 67,
+      logicId: 'mk2',
+      reason: 'Markov 2ª ordem sem palpite em R_10',
+      key: 'logicpick',
+      stage: 2,
+    });
+    engine.updateConfig({ autoSource: 'both', onceMinConf: 70, minScore: 72 });
+
+    render1();
+
+    const metrica = screen.getByTestId('target-card-metric').textContent || '';
+    expect(metrica).not.toMatch(/confiança 0%/i);
+    expect(metrica).toMatch(/confiança —|sem palpite/i);
+  });
+
+  it('mostra a confiança quando ela existe de verdade', () => {
+    vi.spyOn(engine, 'manualTarget').mockReturnValue({
+      sym: 'R_10',
+      digit: 4,
+      conf: 0,
+      score: 80,
+      logicId: 'rep',
+      reason: 'confiança de 0% em Anti-repetição (R_10) abaixo do mínimo de 70%',
+      key: 'logicconf',
+      stage: 2,
+    });
+    engine.updateConfig({ autoSource: 'logic', onceMinConf: 70 });
+
+    render1();
+
+    expect(screen.getByTestId('target-card-metric').textContent).toMatch(/confiança 0%/i);
+  });
+
+  it('não mostra mais o seletor de varredura ampla', () => {
+    render1();
+    expect(screen.queryByText(/varredura ampla/i)).toBeNull();
+  });
+});

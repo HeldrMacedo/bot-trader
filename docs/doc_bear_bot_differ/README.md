@@ -95,7 +95,7 @@ Calcula a probabilidade exata da cauda superior de obter $\ge k$ sucessos em $n$
 $$P(X \ge k) = \sum_{j=k}^{n} \binom{n}{j} p^j (1-p)^{n-j}$$
 
 ### 3.6. Controle de Taxa de Falsas Descobertas de Benjamini-Hochberg (`benjaminiHochberg`)
-Ao avaliar simultaneamente 10 lógicas em competição, o teste de hipótese clássico gera uma proliferação de falsos positivos (descobertas espúrias). O procedimento BH ordena os $m$ $p$-valores em ordem crescente $p_{(1)} \le p_{(2)} \le \dots \le p_{(m)}$ e encontra o maior índice $k$ tal que:
+Ao avaliar simultaneamente 17 lógicas em competição, o teste de hipótese clássico gera uma proliferação de falsos positivos (descobertas espúrias). O procedimento BH ordena os $m$ $p$-valores em ordem crescente $p_{(1)} \le p_{(2)} \le \dots \le p_{(m)}$ e encontra o maior índice $k$ tal que:
 $$p_{(k)} \le \frac{k}{m} q$$
 Todas as lógicas com $p_{(i)} \le p_{(k)}$ são consideradas estatisticamente válidas sob a taxa controlada $q = 0.10$.
 
@@ -125,7 +125,7 @@ O coração operacional do módulo é a classe [`BearDifferEngine`](file:///home
 ### 4.1. Arquitetura das 17 Lógicas
 O sistema subdivide sua inteligência analítica em 3 categorias:
 
-#### A. 10 Lógicas em Competição Ativa (Disputa FDR):
+#### A. 10 Lógicas Base:
 1. **L1 — Frequência Mínima (Fmin):** Seleciona o dígito menos sorteado na janela analisada.
 2. **L2 — Inércia de Markov (M-Inertia):** Avalia a menor probabilidade de transição a partir do último dígito observado na matriz de Markov $10 \times 10$.
 3. **L3 — Transição Anti-Persistente (Anti-Persist):** Penaliza sequências que tentam continuar tendências lineares consecutivas.
@@ -137,7 +137,7 @@ O sistema subdivide sua inteligência analítica em 3 categorias:
 9. **L9 — Saturação de Entropia (Entropy-Sat):** Mede a entropia de Shannon da distribuição local de dígitos.
 10. **L10 — Pivô Residual (Residual-Pivot):** Analisa a dispersão dos resíduos modulares dos últimos 3 ticks.
 
-#### B. 6 Lógicas Wide (Blocos):
+#### B. 6 Variantes de Janela:
 - **L11 — Bloco Par:** Agrupa dígitos pares $\{0, 2, 4, 6, 8\}$.
 - **L12 — Bloco Ímpar:** Agrupa dígitos ímpares $\{1, 3, 5, 7, 9\}$.
 - **L13 — Bloco Inferior:** Agrupa $\{0, 1, 2, 3, 4\}$.
@@ -147,6 +147,10 @@ O sistema subdivide sua inteligência analítica em 3 categorias:
 
 #### C. 1 Lógica de Exaustão:
 - **L17 — Exaustão Extrema:** Monitora o esgotamento probabilístico de cadeias repetitivas após picos de desvio padrão.
+
+**Todas as 17 competem sempre.** As seis variantes de janela já foram condicionadas a um seletor de "varredura ampla" que as excluía da medição, do ranking e da vigilância. Isso produzia três defeitos: escolher uma variante no seletor não gerava palpite algum, a líder do ranking nunca podia ser uma variante, e — o mais grave — o Benjamini-Hochberg passava a controlar falsa descoberta sobre um subconjunto escolhido na tela, que é precisamente o viés de seleção que ele deveria eliminar. O custo medido de avaliar as 17 a cada tick é de 0,19 ms, idêntico ao de avaliar 11, de modo que o filtro não economizava nada.
+
+Como consequência correta, a família do FDR passou de 11 para 17 lógicas, e a da vigilância para mercados × 17: o corte de significância ficou mais duro, que é o preço devido por testar mais hipóteses.
 
 ### 4.2. Pontuação Composta do Motor 2.0 (`scoreAll`)
 A cada novo tick, o motor calcula um score para cada dígito $d \in \{0..9\}$ baseado em 4 fatores ponderados pelo genoma da estratégia:
@@ -268,7 +272,7 @@ Se habilitado:
 - Tabela de operações da sessão com status, mercado, barreira, stake, payout e resultado financeiro.
 
 ### Aba 2: Lógicas (`LogicsTab.tsx`)
-- Tabela de ranking dinâmico das 10 lógicas sob controle FDR de Benjamini-Hochberg.
+- Tabela de ranking dinâmico das 17 lógicas sob controle FDR de Benjamini-Hochberg.
 - Seletor do parâmetro $q$ do FDR ($0.05$, $0.10$, $0.15$).
 - Tabela de desempenho discriminada por ativo (`R_10` até `1HZ100V`).
 - Descrição conceitual das 17 lógicas do sistema.
