@@ -28,6 +28,7 @@ describe('BearDiffer - alvo recomendado compartilhado por automático e manual',
     engine = createDifferEngine();
     engine.updateConfig({
       opMode: 'sim',
+      autoSource: 'motor2',
       minTicks: 300,
       gateBias: false,
       cooldown: 0,

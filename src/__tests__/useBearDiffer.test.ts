@@ -164,6 +164,7 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
     act(() => {
       result.current.updateConfig({
         autoOn: true,
+        autoSource: 'motor2',
         gateBias: false,
         minScore: 60,
         minTicks: 50,
@@ -877,6 +878,7 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
           opMode: 'sim',
           stake: 1,
           autoOn: true,
+        autoSource: 'motor2',
           autoSource: 'logic',
           onceLogic: 'rep',
           onceMinConf: 70,

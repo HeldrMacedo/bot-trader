@@ -155,7 +155,7 @@ export const DEFAULT_DIFFER_CONFIG: DifferConfig = {
   vlossRepick: true,
   allowAuto: false,
   autoOn: false,
-  autoSource: 'motor2',
+  autoSource: 'both',
   onceLogic: 'auto',
   onceMinConf: 70,
   beep: true,

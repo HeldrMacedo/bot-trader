@@ -56,6 +56,7 @@ describe('BearDiffer - trava de viés diz a verdade sobre o que exige', () => {
       labAlpha: 0.01,
       gateBias: true,
       autoOn: true,
+      autoSource: 'motor2',
       minScore: 0,
       minTicks: 100,
       opMode: 'sim',
@@ -74,6 +75,7 @@ describe('BearDiffer - trava de viés diz a verdade sobre o que exige', () => {
   it('não repete o mesmo motivo a cada tick só porque o número dentro dele mudou', () => {
     engine.updateConfig({
       autoOn: true,
+      autoSource: 'motor2',
       gateBias: false,
       minScore: 99,
       minTicks: 50,
@@ -91,6 +93,7 @@ describe('BearDiffer - trava de viés diz a verdade sobre o que exige', () => {
     const syms = ['R_10', 'R_25', 'R_50', 'R_75', 'R_100', 'RDBEAR', 'RDBULL'];
     engine.updateConfig({
       autoOn: true,
+      autoSource: 'motor2',
       gateBias: false,
       minScore: 99,
       minTicks: 50,

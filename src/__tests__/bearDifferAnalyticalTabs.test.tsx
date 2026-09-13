@@ -243,7 +243,7 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
     });
 
     it('shows on screen why the automatic mode is idle', () => {
-      engine.updateConfig({ allowAuto: true, autoOn: true, gateBias: true, minScore: 0, minTicks: 50 });
+      engine.updateConfig({ allowAuto: true, autoOn: true, autoSource: 'motor2', gateBias: true, minScore: 0, minTicks: 50 });
       engine.processTick('R_10', 4);
 
       const props: React.ComponentProps<typeof OperationTab> = {
@@ -501,5 +501,17 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
       expect(screen.getByRole('button', { name: /Exportar Perfil \(JSON\)/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Importar Perfil \(JSON\)/i })).toBeInTheDocument();
     });
+  });
+});
+
+describe('BearDiffer - LogicsTab rotula o p-valor sem prometer correção', () => {
+  it('não chama de corrigido o p bruto do teste binomial', () => {
+    const engine = createDifferEngine();
+    render(<LogicsTab engine={engine} state={engine.getState()} />);
+
+    // Benjamini-Hochberg produz decisão, não p ajustado: chamar a coluna de
+    // "corrigido" faz 0.2166 parecer já penalizado pela família.
+    expect(screen.queryByText(/P-Valor Corrigido/i)).toBeNull();
+    expect(screen.getByText(/P-Valor \(bruto\)/i)).toBeInTheDocument();
   });
 });

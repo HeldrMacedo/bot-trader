@@ -1434,9 +1434,9 @@
     "semantic_hash": "5026973f6b0c34a77b2e841ab5aaa5a1"
   },
   "src/app/services/beardiffer.types.ts": {
-    "mtime": 1789324901.716166,
-    "seen": 1789325050.404116,
-    "ast_hash": "88e977ca65e2e6d0c7a726f8e22e99f5",
+    "mtime": 1789337182.605691,
+    "seen": 1789337335.1537876,
+    "ast_hash": "3cf969f73e6c9d46674444f54b3303e4",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferEngine.test.ts": {
@@ -1446,9 +1446,9 @@
     "semantic_hash": ""
   },
   "src/app/services/BearDifferEngine.ts": {
-    "mtime": 1789324893.1410728,
-    "seen": 1789325050.4040017,
-    "ast_hash": "0c6f95980471a21ba6bf3975ea78b66d",
+    "mtime": 1789336887.4019215,
+    "seen": 1789337335.153678,
+    "ast_hash": "4cab089bdf040cc48956dfb669b5dbc3",
     "semantic_hash": ""
   },
   "src/__tests__/bearBotDifferPageAccess.test.tsx": {
@@ -1464,9 +1464,9 @@
     "semantic_hash": ""
   },
   "src/__tests__/useBearDiffer.test.ts": {
-    "mtime": 1789320929.0346725,
-    "seen": 1789321857.2727087,
-    "ast_hash": "3eedd97365ad7ea229d899cd8857092c",
+    "mtime": 1789337235.2278585,
+    "seen": 1789337335.1515605,
+    "ast_hash": "2e70176bb7849063a134b917a52719eb",
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/BearBotDiffer.tsx": {
@@ -1488,15 +1488,15 @@
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/components/tabs/LogicsTab.tsx": {
-    "mtime": 1789324969.4725032,
-    "seen": 1789325050.4019341,
-    "ast_hash": "9024f78378dfbb48ae927af2a08c298a",
+    "mtime": 1789337096.93552,
+    "seen": 1789337335.151714,
+    "ast_hash": "327013bb8092e3d4d6abbd4c0ce55569",
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx": {
-    "mtime": 1789324918.7813632,
-    "seen": 1789325050.4019353,
-    "ast_hash": "8383095bd8d29acf0285b6b003d7654a",
+    "mtime": 1789337078.7050865,
+    "seen": 1789337335.1517153,
+    "ast_hash": "bfe7150e9a4c5448ca133cc0940baa6c",
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx": {
@@ -1542,15 +1542,15 @@
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferAnalyticalTabs.test.tsx": {
-    "mtime": 1789325013.0903363,
-    "seen": 1789325050.4011328,
-    "ast_hash": "190b087270b21e83f12bc50f4716233b",
+    "mtime": 1789337248.6737554,
+    "seen": 1789337335.1510732,
+    "ast_hash": "4cd6cf916defeb1b3db94e71524d8276",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferEngineAdvanced.test.ts": {
-    "mtime": 1789321732.2411592,
-    "seen": 1789321857.2722495,
-    "ast_hash": "5ee76ec9e2dd99826436f235e65652c6",
+    "mtime": 1789337235.2269166,
+    "seen": 1789337335.1511056,
+    "ast_hash": "98bb5b14900d0fdcdd5dfa760720a6e7",
     "semantic_hash": ""
   },
   "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md": {
@@ -1560,15 +1560,15 @@
     "semantic_hash": "ac0fe03f44ffc9687aff79ad4628e56a"
   },
   "docs/doc_bear_bot_differ/MANUAL_DO_USUARIO.md": {
-    "mtime": 1789324985.668728,
-    "seen": 1789325050.4053166,
-    "ast_hash": "6cfd44633642b803ea559a2051a1f2a8",
+    "mtime": 1789337331.6776083,
+    "seen": 1789337335.15496,
+    "ast_hash": "a0cfcde96fa4e3a18f1a715a7fa512ad",
     "semantic_hash": ""
   },
   "docs/doc_bear_bot_differ/README.md": {
-    "mtime": 1789324985.668105,
-    "seen": 1789325050.4053187,
-    "ast_hash": "5a93a822c18cefdbaa738b119d7aab35",
+    "mtime": 1789337331.6766052,
+    "seen": 1789337335.1549613,
+    "ast_hash": "c5156045c28733d4594ba896841eaaa7",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferLogics.test.ts": {
@@ -1620,15 +1620,15 @@
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferBiasGate.test.ts": {
-    "mtime": 1789225927.337943,
-    "seen": 1789246194.7342086,
-    "ast_hash": "59147b9f0da1e72a305553c061e04c1b",
+    "mtime": 1789337223.029646,
+    "seen": 1789337335.1510787,
+    "ast_hash": "276d4b621bd5fc73386c80919d5f2cc6",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferAutoHalt.test.ts": {
-    "mtime": 1789225927.3609433,
-    "seen": 1789246194.7342072,
-    "ast_hash": "befaf0521cd288b4af7cdec99c756087",
+    "mtime": 1789337203.1288745,
+    "seen": 1789337335.1510754,
+    "ast_hash": "b4e9cb58e2ec8d50fbab3894a296be7f",
     "semantic_hash": ""
   },
   "src/__tests__/bearBot2AiCustomWeights.test.ts": {
@@ -1650,33 +1650,45 @@
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferAutoSource.test.ts": {
-    "mtime": 1789314217.6210248,
-    "seen": 1789314386.7472844,
-    "ast_hash": "1d74a2c87c2a4de45a4901c9514894f1",
+    "mtime": 1789337301.0240371,
+    "seen": 1789337335.1510766,
+    "ast_hash": "6c652f579f0e4ca89d754d60b4af60e7",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferAutoSourceUI.test.tsx": {
-    "mtime": 1789314341.9082162,
-    "seen": 1789314386.7472858,
-    "ast_hash": "c158eea47e666ec34749664ea87ff5fb",
+    "mtime": 1789337301.0243285,
+    "seen": 1789337335.1510777,
+    "ast_hash": "360ee20ec027014d794bbf9f12afdf59",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferManualEntryUI.test.tsx": {
-    "mtime": 1789324883.2194395,
-    "seen": 1789325050.401303,
-    "ast_hash": "fc7a70807312121b2ebe1ce78d9df621",
+    "mtime": 1789337272.8867123,
+    "seen": 1789337335.151134,
+    "ast_hash": "928c9c90704d31224b05020f03b680d3",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferManualTarget.test.ts": {
-    "mtime": 1789320870.0938246,
-    "seen": 1789321857.2722783,
-    "ast_hash": "2af0c2a9608f4883211ae833c94e0f43",
+    "mtime": 1789337272.8837554,
+    "seen": 1789337335.1511352,
+    "ast_hash": "1154eaaf8344154fb09fc07cb1b95f8e",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferAllLogicsMeasured.test.ts": {
     "mtime": 1789324867.9893157,
     "seen": 1789325050.4011304,
     "ast_hash": "bcc6b3de8404d8cefae2a7304e2631b3",
+    "semantic_hash": ""
+  },
+  "src/__tests__/bearDifferLeaderModes.test.ts": {
+    "mtime": 1789336855.7967305,
+    "seen": 1789337335.151107,
+    "ast_hash": "cf1b40a14fd4217de61fb762f70c31fd",
+    "semantic_hash": ""
+  },
+  "erro.md": {
+    "mtime": 1789325716.7003388,
+    "seen": 1789337335.1570296,
+    "ast_hash": "2ef2f73acef1685d0a9c3a8accb23d83",
     "semantic_hash": ""
   }
 }

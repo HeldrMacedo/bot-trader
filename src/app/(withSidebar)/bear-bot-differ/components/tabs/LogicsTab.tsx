@@ -134,7 +134,7 @@ export default function LogicsTab({ engine, state }: LogicsTabProps) {
                 <th className="py-1.5 px-2">Tag</th>
                 <th className="py-1.5 px-2">Amostra</th>
                 <th className="py-1.5 px-2">Acerto</th>
-                <th className="py-1.5 px-2">P-Valor Corrigido</th>
+                <th className="py-1.5 px-2">P-Valor (bruto)</th>
                 <th className="py-1.5 px-2">Situação</th>
               </tr>
             </thead>

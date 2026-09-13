@@ -107,11 +107,22 @@ O seletor **Fonte do sinal**, no card do automático, define o critério de reco
 
 | Fonte | Quando entra |
 | :--- | :--- |
-| **Motor 2.0** (padrão) | Quando o score composto de saturação atinge o mínimo configurado. As lógicas seguem apenas medindo. |
+| **Motor 2.0** | Quando o score composto de saturação atinge o mínimo configurado. As lógicas seguem apenas medindo. |
 | **Lógica medida** | Quando a lógica escolhida no seletor "Lógica" atinge a confiança mínima. O score do motor deixa de valer. |
-| **As duas, no mesmo dígito** | Confirmação dupla: score e confiança acima dos mínimos **e** os dois apontando o mesmo dígito. |
+| **As duas, no mesmo dígito** (padrão) | Confirmação dupla: score e confiança acima dos mínimos **e** os dois apontando o mesmo dígito. |
 
 Com a fonte no Motor 2.0, o seletor "Lógica" fica desabilitado, porque nesse modo ele não influencia entrada nenhuma.
+
+#### Os dois sentidos de "a líder do ranking"
+
+O seletor "Lógica" oferece duas leituras do topo da tabela, e elas não são a mesma coisa:
+
+- **Por evidência — a líder aprovada no teste (FDR):** só considera lógicas que passaram no Benjamini-Hochberg. Em índices sintéticos, o normal é nenhuma passar, e então o robô não entra. Isso é o funcionamento correto, não uma falha.
+- **A líder por acerto medido — sem prova estatística:** pega o topo da tabela por taxa de acerto, exigindo apenas amostra mínima e acerto acima do empate técnico. Não há prova de vantagem aqui; você está operando a medição bruta, e o rótulo diz isso.
+
+Um exemplo real: a primeira colocada tinha 92,52% de acerto em 254 sinais, acima do empate técnico de 90,91%, com p = 0,2166 — ou seja, uma chance em cinco de esse resultado ser puro acaso. O modo por evidência recusa operar; o modo por acerto medido aceita.
+
+A coluna **Acerto** na aba Lógicas e a **confiança** no card do alvo são coisas diferentes: acerto é a taxa medida dos sinais passados daquela lógica, confiança é a convicção do palpite que ela está fazendo agora.
 
 #### As três formas de entrar
 

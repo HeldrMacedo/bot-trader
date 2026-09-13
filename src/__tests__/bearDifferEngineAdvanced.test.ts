@@ -49,6 +49,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
 
       engine.updateConfig({
         autoOn: true,
+        autoSource: 'motor2',
         gateBias: false,
         minScore: 60,
         minTicks: 50,
@@ -80,6 +81,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
 
       engine.updateConfig({
         autoOn: true,
+        autoSource: 'motor2',
         gateBias: false,
         minScore: 60,
         minTicks: 50,
@@ -108,6 +110,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
 
       engine.updateConfig({
         autoOn: true,
+        autoSource: 'motor2',
         gateBias: false,
         minScore: 60,
         minTicks: 50,
@@ -139,6 +142,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
 
       engine.updateConfig({
         autoOn: true,
+        autoSource: 'motor2',
         gateBias: false,
         stopLoss: 5,
         minScore: 60,
@@ -301,7 +305,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     };
 
     it('says the bias gate is what holds the automatic mode', () => {
-      engine.updateConfig({ autoOn: true, gateBias: true, minScore: 0, minTicks: 50 });
+      engine.updateConfig({ autoOn: true, autoSource: 'motor2', gateBias: true, minScore: 0, minTicks: 50 });
       seed();
 
       engine.processTick('R_10', 4);
@@ -310,7 +314,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     });
 
     it('says the score is what holds it when the gate is open', () => {
-      engine.updateConfig({ autoOn: true, gateBias: false, minScore: 999, minTicks: 50 });
+      engine.updateConfig({ autoOn: true, autoSource: 'motor2', gateBias: false, minScore: 999, minTicks: 50 });
       seed();
 
       engine.processTick('R_10', 4);
@@ -321,6 +325,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     it('reports no reason once an entry actually fires', () => {
       engine.updateConfig({
         autoOn: true,
+        autoSource: 'motor2',
         gateBias: false,
         minScore: 0,
         minTicks: 50,
@@ -339,7 +344,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     });
 
     it('logs the reason once instead of on every tick', () => {
-      engine.updateConfig({ autoOn: true, gateBias: true, minScore: 0, minTicks: 50 });
+      engine.updateConfig({ autoOn: true, autoSource: 'motor2', gateBias: true, minScore: 0, minTicks: 50 });
       seed();
 
       for (let i = 0; i < 5; i++) engine.processTick('R_10', i);

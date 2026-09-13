@@ -169,9 +169,25 @@ A fonte do sinal rege **tanto o modo automático quanto as entradas manuais**: o
 
 | Valor | Comportamento |
 | :--- | :--- |
-| `'motor2'` (padrão) | Alvo pelo score composto do Motor 2.0, exigindo `score ≥ minScore`. As 17 lógicas seguem apenas medindo sinais virtuais, e o seletor de lógica fica desabilitado na tela. |
+| `'motor2'` | Alvo pelo score composto do Motor 2.0, exigindo `score ≥ minScore`. As 17 lógicas seguem apenas medindo sinais virtuais, e o seletor de lógica fica desabilitado na tela. |
 | `'logic'` | Alvo pelo palpite da lógica resolvida a partir de `onceLogic`, exigindo `conf ≥ onceMinConf`. O `minScore` do motor deixa de valer. |
-| `'both'` | Confirmação dupla: exige `score ≥ minScore`, `conf ≥ onceMinConf` **e** que as duas fontes apontem o mesmo dígito. |
+| `'both'` (padrão) | Confirmação dupla: exige `score ≥ minScore`, `conf ≥ onceMinConf` **e** que as duas fontes apontem o mesmo dígito. |
+
+### 4.4.1. Modos de escolha da lógica
+
+Quando a fonte envolve lógica, `onceLogic` decide qual:
+
+| Modo | Critério | Garantia |
+| :--- | :--- | :--- |
+| `'auto'` | A líder **aprovada** no Benjamini-Hochberg | Evidência estatística de vantagem |
+| `'top'` | A líder por **acerto medido**, exigindo amostra mínima e acerto acima do empate técnico (`1/payout`) | Nenhuma — é a medição bruta |
+| `'rotate'` | Rodízio entre lógicas com amostra mínima, avançando a cada entrada | Nenhuma |
+| `'recent'` | Melhor acerto nos últimos 60 sinais | Nenhuma |
+| id fixo | A lógica escolhida à mão | Nenhuma |
+
+O modo `'auto'` costuma não devolver nada em índices sintéticos, e isso é o funcionamento correto: com gerador honesto nenhuma lógica bate o empate técnico com significância. Um ranking real observado em produção ilustra a diferença — a líder tinha 92,52% de acerto em 254 sinais, acima do empate técnico de 90,91%, mas com p = 0,2166: uma chance em cinco de o resultado vir do acaso. O `'auto'` recusa; o `'top'` opera, e o operador sabe que está agindo sobre medição sem prova.
+
+**Atenção ao rótulo do p-valor:** a aba Lógicas mostra o p **bruto** do teste binomial. O Benjamini-Hochberg produz uma decisão de aprovação, não um p ajustado.
 
 ### 4.5. `resolveTarget` — o alvo recomendado
 

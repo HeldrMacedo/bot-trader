@@ -28,6 +28,7 @@ describe('BearDiffer - trava dura desliga o automático como no legado', () => {
     // ticando não podem virar sete linhas idênticas no histórico.
     engine.updateConfig({
       autoOn: true,
+      autoSource: 'motor2',
       opMode: 'real',
       gateOps: 50,
       minScore: 0,
@@ -45,6 +46,7 @@ describe('BearDiffer - trava dura desliga o automático como no legado', () => {
   it('desliga o automático quando uma trava de segurança bloqueia', () => {
     engine.updateConfig({
       autoOn: true,
+      autoSource: 'motor2',
       opMode: 'real',
       gateOps: 50,
       minScore: 0,
@@ -63,6 +65,7 @@ describe('BearDiffer - trava dura desliga o automático como no legado', () => {
   it('mantém o motivo na tela depois de desligar o automático', () => {
     engine.updateConfig({
       autoOn: true,
+      autoSource: 'motor2',
       opMode: 'real',
       gateOps: 50,
       minScore: 0,
@@ -82,6 +85,7 @@ describe('BearDiffer - trava dura desliga o automático como no legado', () => {
   it('limpa o motivo quando o operador religa o automático', () => {
     engine.updateConfig({
       autoOn: true,
+      autoSource: 'motor2',
       opMode: 'real',
       gateOps: 50,
       minScore: 0,
@@ -101,6 +105,7 @@ describe('BearDiffer - trava dura desliga o automático como no legado', () => {
     // mercado e segue tentando nos outros.
     engine.updateConfig({
       autoOn: true,
+      autoSource: 'motor2',
       opMode: 'sim',
       gateBias: true,
       labMin: 200,

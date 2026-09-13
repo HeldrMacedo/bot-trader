@@ -44,13 +44,16 @@ describe('BearDiffer - seletor da fonte do automático', () => {
     updateConfig = vi.fn((patch: Partial<DifferConfig>) => engine.updateConfig(patch));
   });
 
-  it('não mostra a fonte enquanto o automático não estiver habilitado', () => {
+  it('mostra a fonte mesmo com o automático desabilitado', () => {
+    // A fonte rege também a entrada manual, então esconder o seletor atrás do
+    // automático deixaria o operador sem como mudar o critério do próprio
+    // clique.
     renderTab();
-    expect(screen.queryByTestId('auto-source-select')).toBeNull();
+    expect(screen.getByTestId('auto-source-select')).toBeInTheDocument();
   });
 
-  it('oferece as três fontes com o motor de referência selecionado', () => {
-    engine.updateConfig({ allowAuto: true });
+  it('oferece as três fontes e reflete a que está configurada', () => {
+    engine.updateConfig({ allowAuto: true, autoSource: 'motor2' });
     renderTab();
 
     const select = screen.getByTestId('auto-source-select') as HTMLSelectElement;

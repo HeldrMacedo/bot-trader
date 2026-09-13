@@ -500,6 +500,25 @@ export class BearDifferEngine {
   }
 
   /**
+   * Por que não há lógica escolhida, em termos do modo pedido. Cada modo falha
+   * por uma razão diferente, e dizer "sem amostra" quando o caso é falta de
+   * significância manda o operador esperar por algo que não vai chegar.
+   */
+  private motivoSemLogica(sym: string): string {
+    const bePct = ((1 / this.payout) * 100).toFixed(1);
+    switch (this.config.onceLogic) {
+      case 'auto':
+        return `nenhuma lógica aprovada no teste de significância para operar ${sym}. Use a líder por acerto medido, escolha uma à mão, ou espere mais amostra`;
+      case 'top':
+        return `nenhuma lógica com amostra suficiente e acerto acima do empate técnico de ${bePct}% para operar ${sym}`;
+      case 'recent':
+        return `nenhuma lógica com 60 sinais recentes para operar ${sym}`;
+      default:
+        return `nenhuma lógica com amostra suficiente para operar ${sym}`;
+    }
+  }
+
+  /**
    * Alvo recomendado. Sem símbolo, varre os mercados ligados e devolve o
    * melhor; com símbolo, avalia só aquele mercado. É o mesmo funil para o
    * automático e para a entrada manual: amostra mínima, fonte do sinal, trava
@@ -618,10 +637,7 @@ export class BearDifferEngine {
           ...base,
           digit: a.best.digit,
           score: a.best.score,
-          reason:
-            this.config.onceLogic === 'auto'
-              ? `nenhuma lógica passou no teste de significância para operar ${sym}`
-              : `nenhuma lógica com amostra suficiente para operar ${sym}`,
+          reason: this.motivoSemLogica(sym),
           key: 'logicnone',
           stage: STAGE.source,
         };
@@ -1624,11 +1640,31 @@ export class BearDifferEngine {
     return r ? r.lid : null;
   }
 
+  /**
+   * Topo da tabela por acerto medido, sem exigir aprovação no teste. Continua
+   * pedindo amostra mínima e acerto acima do empate técnico (1/payout): abaixo
+   * disso não há o que operar, só a escolha de perder mais devagar. Este modo
+   * não prova vantagem nenhuma — é o operador dizendo que aceita agir sobre a
+   * medição bruta.
+   */
+  public topAccuracyLogic(): string | null {
+    const be = 1 / this.payout;
+    const candidatas = this.getLogicRanking().filter(
+      (r) => r.n >= this.config.lgMinN && r.acc !== null && r.acc > be
+    );
+    if (!candidatas.length) return null;
+    return candidatas.reduce((melhor, r) =>
+      (r.acc as number) > (melhor.acc as number) ? r : melhor
+    ).lid;
+  }
+
   public resolveLogic(mode: string): string | null {
     const active = this.logics;
     const minN = this.config.lgMinN;
     if (mode === 'auto') {
       return this.leaderLogic();
+    } else if (mode === 'top') {
+      return this.topAccuracyLogic();
     } else if (mode === 'rotate') {
       // Sem amostra, recusa. Escolher uma lógica qualquer contraria a tese do
       // bot: alternar entre estratégias de esperança negativa não cria

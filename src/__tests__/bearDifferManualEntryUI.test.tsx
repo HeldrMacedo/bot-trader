@@ -59,7 +59,13 @@ describe('BearDiffer - entrada manual no alvo recomendado', () => {
     executeTrade = vi.fn().mockResolvedValue(undefined);
     armVirtualLoss = vi.fn();
     updateConfig = vi.fn((patch: Partial<DifferConfig>) => engine.updateConfig(patch));
-    engine.updateConfig({ opMode: 'sim', minTicks: 300, gateBias: false, cooldown: 0 });
+    engine.updateConfig({
+      opMode: 'sim',
+      autoSource: 'motor2',
+      minTicks: 300,
+      gateBias: false,
+      cooldown: 0,
+    });
   });
 
   it('mostra o dígito do alvo no rótulo do botão', () => {
@@ -239,5 +245,78 @@ describe('BearDiffer - leitura honesta da confiança no card', () => {
   it('não mostra mais o seletor de varredura ampla', () => {
     render1();
     expect(screen.queryByText(/varredura ampla/i)).toBeNull();
+  });
+});
+
+describe('BearDiffer - rótulos honestos dos modos de alternância', () => {
+  let engine: ReturnType<typeof createDifferEngine>;
+
+  const render2 = () =>
+    render(
+      <OperationTab
+        engine={engine}
+        state={engine.getState()}
+        config={engine.getConfig()}
+        updateConfig={vi.fn()}
+        executeTrade={vi.fn() as never}
+        resetSession={vi.fn()}
+        armVirtualLoss={vi.fn() as never}
+        cancelVirtualLoss={vi.fn()}
+        setWarmTarget={vi.fn()}
+        exportCSV={vi.fn()}
+        vlossState={{
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 0,
+          seenLosses: 0,
+          ticksChecked: 0,
+        }}
+      />
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    engine = createDifferEngine();
+    engine.updateConfig({ autoSource: 'logic', minTicks: 300, gateBias: false });
+  });
+
+  it('não promete a líder do ranking quando entrega a líder aprovada', () => {
+    render2();
+    const opcao = screen
+      .getByTestId('logic-select')
+      .querySelector('option[value="auto"]') as HTMLOptionElement;
+
+    expect(opcao.textContent).toMatch(/aprovada/i);
+  });
+
+  it('oferece a líder por acerto medido, avisando que não há prova', () => {
+    render2();
+    const opcao = screen
+      .getByTestId('logic-select')
+      .querySelector('option[value="top"]') as HTMLOptionElement;
+
+    expect(opcao).not.toBeNull();
+    expect(opcao.textContent).toMatch(/acerto medido/i);
+    expect(opcao.textContent).toMatch(/sem prova|sem significância/i);
+  });
+
+  it('mostra a causa no lugar da métrica quando nenhuma lógica foi escolhida', () => {
+    vi.spyOn(engine, 'manualTarget').mockReturnValue({
+      sym: 'R_10',
+      digit: null,
+      conf: null,
+      score: 65,
+      logicId: 'motor2',
+      reason: 'nenhuma lógica aprovada no teste de significância para operar R_10',
+      key: 'logicnone',
+      stage: 2,
+    });
+
+    render2();
+
+    const metrica = screen.getByTestId('target-card-metric').textContent || '';
+    expect(metrica).toMatch(/nenhuma lógica aprovada/i);
+    expect(metrica).not.toMatch(/mín\. 70%/);
   });
 });

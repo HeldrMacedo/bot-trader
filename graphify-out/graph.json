@@ -483,43 +483,17 @@
       "source_location": "L66"
     },
     {
-      "id": "src_app_services_beardiffer_types_autosource",
-      "label": "AutoSource",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "autosource",
-      "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L69"
-    },
-    {
       "id": "src_app_services_beardiffer_types_differconfig",
       "label": "DifferConfig",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "differconfig",
       "source_file": "src/app/services/beardiffer.types.ts",
       "source_location": "L81"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_labtab_labtabprops",
-      "label": "LabTabProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "labtabprops",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LabTab.tsx",
-      "source_location": "L6"
     },
     {
       "id": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_operationtabprops",
@@ -528,7 +502,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "operationtabprops",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
@@ -541,7 +515,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "traderesultstableprops",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/TradeResultsTable.tsx",
@@ -600,6 +574,32 @@
       "source_location": "L3"
     },
     {
+      "id": "src_app_services_beardiffer_types_differgenome",
+      "label": "DifferGenome",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 131,
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
+      "file_type": "code",
+      "norm_label": "differgenome",
+      "source_file": "src/app/services/beardiffer.types.ts",
+      "source_location": "L31"
+    },
+    {
+      "id": "src_app_services_beardifferengine_pipelinecandidate",
+      "label": "PipelineCandidate",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 131,
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
+      "file_type": "code",
+      "norm_label": "pipelinecandidate",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L2228"
+    },
+    {
       "id": "src_app_withsidebar_home_components_buytable_buytableprops",
       "label": "BuyTableProps",
       "_callable": true,
@@ -613,17 +613,17 @@
       "source_location": "L8"
     },
     {
-      "id": "src_app_services_beardiffer_types_anomalylogitem",
-      "label": "AnomalyLogItem",
+      "id": "src_app_services_beardiffer_types_autosource",
+      "label": "AutoSource",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 14,
       "community_name": "BearDifferEngine.ts",
       "file_type": "code",
-      "norm_label": "anomalylogitem",
+      "norm_label": "autosource",
       "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L236"
+      "source_location": "L69"
     },
     {
       "id": "src_app_services_beardiffer_types_biastestresult",
@@ -652,30 +652,17 @@
       "source_location": "L251"
     },
     {
-      "id": "src_app_services_beardiffer_types_differlogitem",
-      "label": "DifferLogItem",
+      "id": "src_app_services_beardiffer_types_logicdef",
+      "label": "LogicDef",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 14,
       "community_name": "BearDifferEngine.ts",
       "file_type": "code",
-      "norm_label": "differlogitem",
+      "norm_label": "logicdef",
       "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L215"
-    },
-    {
-      "id": "src_app_services_beardiffer_types_differtraderecord",
-      "label": "DifferTradeRecord",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "BearDifferEngine.ts",
-      "file_type": "code",
-      "norm_label": "differtraderecord",
-      "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L257"
+      "source_location": "L171"
     },
     {
       "id": "src_app_services_beardiffer_types_logicpick",
@@ -821,32 +808,6 @@
       "source_location": "L283"
     },
     {
-      "id": "src_app_services_beardiffer_types_watchalertitem",
-      "label": "WatchAlertItem",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "BearDifferEngine.ts",
-      "file_type": "code",
-      "norm_label": "watchalertitem",
-      "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L229"
-    },
-    {
-      "id": "src_app_services_beardiffer_types_watchentry",
-      "label": "WatchEntry",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "BearDifferEngine.ts",
-      "file_type": "code",
-      "norm_label": "watchentry",
-      "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L224"
-    },
-    {
       "id": "src_app_services_beardifferengine_biasverdict",
       "label": "BiasVerdict",
       "_callable": true,
@@ -860,19 +821,6 @@
       "source_location": "L41"
     },
     {
-      "id": "src_app_services_beardifferengine_enginestate",
-      "label": "EngineState",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "BearDifferEngine.ts",
-      "file_type": "code",
-      "norm_label": "enginestate",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L103"
-    },
-    {
       "id": "src_app_services_beardifferengine_pipelineresult",
       "label": "PipelineResult",
       "_callable": true,
@@ -883,7 +831,7 @@
       "file_type": "code",
       "norm_label": "pipelineresult",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2209"
+      "source_location": "L2245"
     },
     {
       "id": "src_app_services_beardifferengine_resolvedtarget",
@@ -910,32 +858,6 @@
       "norm_label": "scoreresult",
       "source_file": "src/app/services/BearDifferEngine.ts",
       "source_location": "L51"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_pipelinetab_pipelinetabprops",
-      "label": "PipelineTabProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "BearDifferEngine.ts",
-      "file_type": "code",
-      "norm_label": "pipelinetabprops",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_risktab_risktabprops",
-      "label": "RiskTabProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "BearDifferEngine.ts",
-      "file_type": "code",
-      "norm_label": "risktabprops",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/RiskTab.tsx",
-      "source_location": "L8"
     },
     {
       "id": "src_tests_beardifferautosource_test_fired",
@@ -1094,6 +1016,19 @@
       "source_location": "L20"
     },
     {
+      "id": "src_tests_bearbotultra2postloss_test_mockaudiocontext",
+      "label": "MockAudioContext",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "mockaudiocontext",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L20"
+    },
+    {
       "id": "src_app_services_derivconnection_derivconnection",
       "label": "DerivConnection",
       "_callable": true,
@@ -1105,32 +1040,6 @@
       "norm_label": "derivconnection",
       "source_file": "src/app/services/derivConnection.js",
       "source_location": "L1"
-    },
-    {
-      "id": "src_app_services_beardiffer_types_differgenome",
-      "label": "DifferGenome",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": ".runPipeline",
-      "file_type": "code",
-      "norm_label": "differgenome",
-      "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L31"
-    },
-    {
-      "id": "src_app_services_beardifferengine_pipelinecandidate",
-      "label": "PipelineCandidate",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 20,
-      "community_name": ".runPipeline",
-      "file_type": "code",
-      "norm_label": "pipelinecandidate",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2192"
     },
     {
       "id": "src_app_services_bearbot2_types_botconfig",
@@ -1352,19 +1261,6 @@
       "norm_label": "marketintelligence",
       "source_file": "src/app/services/bearbot2.types.ts",
       "source_location": "L105"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mockaudiocontext",
-      "label": "MockAudioContext",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "mockaudiocontext",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L20"
     },
     {
       "id": "src_app_services_signalprocessor_signalprocessor",
@@ -1672,7 +1568,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "aimodename",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
@@ -1952,17 +1848,82 @@
       "source_location": "L22"
     },
     {
+      "id": "src_app_services_beardiffer_types_anomalylogitem",
+      "label": "AnomalyLogItem",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "anomalylogitem",
+      "source_file": "src/app/services/beardiffer.types.ts",
+      "source_location": "L236"
+    },
+    {
+      "id": "src_app_services_beardiffer_types_differlogitem",
+      "label": "DifferLogItem",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "differlogitem",
+      "source_file": "src/app/services/beardiffer.types.ts",
+      "source_location": "L215"
+    },
+    {
       "id": "src_app_services_beardiffer_types_differmarket",
       "label": "DifferMarket",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "differmarket",
       "source_file": "src/app/services/beardiffer.types.ts",
       "source_location": "L3"
+    },
+    {
+      "id": "src_app_services_beardiffer_types_differtraderecord",
+      "label": "DifferTradeRecord",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "differtraderecord",
+      "source_file": "src/app/services/beardiffer.types.ts",
+      "source_location": "L257"
+    },
+    {
+      "id": "src_app_services_beardiffer_types_watchalertitem",
+      "label": "WatchAlertItem",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "watchalertitem",
+      "source_file": "src/app/services/beardiffer.types.ts",
+      "source_location": "L229"
+    },
+    {
+      "id": "src_app_services_beardiffer_types_watchentry",
+      "label": "WatchEntry",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "watchentry",
+      "source_file": "src/app/services/beardiffer.types.ts",
+      "source_location": "L224"
     },
     {
       "id": "src_app_services_beardiffer_types_watchstatus",
@@ -1971,11 +1932,24 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "watchstatus",
       "source_file": "src/app/services/beardiffer.types.ts",
       "source_location": "L222"
+    },
+    {
+      "id": "src_app_services_beardifferengine_enginestate",
+      "label": "EngineState",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "enginestate",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L103"
     },
     {
       "id": "src_app_withsidebar_bear_bot_differ_components_configsidebar_configsidebarprops",
@@ -1984,11 +1958,63 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "configsidebarprops",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/ConfigSidebar.tsx",
       "source_location": "L6"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_labtab_labtabprops",
+      "label": "LabTabProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "labtabprops",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LabTab.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_logicstab_logicstabprops",
+      "label": "LogicsTabProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "logicstabprops",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LogicsTab.tsx",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_pipelinetab_pipelinetabprops",
+      "label": "PipelineTabProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "pipelinetabprops",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_risktab_risktabprops",
+      "label": "RiskTabProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "risktabprops",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/RiskTab.tsx",
+      "source_location": "L8"
     },
     {
       "id": "src_app_withsidebar_bear_bot_differ_components_tabs_systemtab_systemtabprops",
@@ -1997,7 +2023,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "systemtabprops",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/SystemTab.tsx",
@@ -2010,7 +2036,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "validationtabprops",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/ValidationTab.tsx",
@@ -2023,7 +2049,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "vigilancetabprops",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/VigilanceTab.tsx",
@@ -2067,32 +2093,6 @@
       "norm_label": "drifttestresult",
       "source_file": "src/app/services/BearDifferMath.ts",
       "source_location": "L271"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_logicstab_logicstabprops",
-      "label": "LogicsTabProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "BearDifferMath.ts",
-      "file_type": "code",
-      "norm_label": "logicstabprops",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LogicsTab.tsx",
-      "source_location": "L7"
-    },
-    {
-      "id": "src_app_services_beardiffer_types_logicdef",
-      "label": "LogicDef",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "BearDifferEngine",
-      "file_type": "code",
-      "norm_label": "logicdef",
-      "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L171"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine",
@@ -3661,7 +3661,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": ".getconfig()",
       "source_file": "src/app/services/BearDifferEngine.ts",
@@ -3673,35 +3673,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": ".updateconfig()",
       "source_file": "src/app/services/BearDifferEngine.ts",
       "source_location": "L223"
-    },
-    {
-      "id": "src_app_services_beardifferengine_createdifferengine",
-      "label": "createDifferEngine()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "createdifferengine()",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2218"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_labtab_labtab",
-      "label": "LabTab()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "labtab()",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LabTab.tsx",
-      "source_location": "L11"
     },
     {
       "id": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_descrevemetrica",
@@ -3709,11 +3685,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "descrevemetrica()",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L47"
+      "source_location": "L56"
     },
     {
       "id": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_operationtab",
@@ -3721,11 +3697,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "operationtab()",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L54"
+      "source_location": "L63"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_primeirafrase",
+      "label": "primeiraFrase()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 124,
+      "community_name": "OperationTab.tsx",
+      "file_type": "code",
+      "norm_label": "primeirafrase()",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
+      "source_location": "L42"
     },
     {
       "id": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_textoconf",
@@ -3733,11 +3721,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "textoconf()",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L42"
+      "source_location": "L51"
     },
     {
       "id": "src_app_withsidebar_bear_bot_differ_components_traderesultstable_traderesultstable",
@@ -3745,35 +3733,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "traderesultstable()",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/TradeResultsTable.tsx",
       "source_location": "L18"
-    },
-    {
-      "id": "src_tests_beardifferalllogicsmeasured_test_rnd",
-      "label": "rnd()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "rnd()",
-      "source_file": "src/__tests__/bearDifferAllLogicsMeasured.test.ts",
-      "source_location": "L4"
-    },
-    {
-      "id": "src_tests_beardifferautohalt_test_honest",
-      "label": "honest()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "honest()",
-      "source_file": "src/__tests__/bearDifferAutoHalt.test.ts",
-      "source_location": "L6"
     },
     {
       "id": "src_tests_beardiffermanualentryui_test_saturated",
@@ -3781,35 +3745,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "saturated()",
       "source_file": "src/__tests__/bearDifferManualEntryUI.test.tsx",
       "source_location": "L13"
-    },
-    {
-      "id": "src_tests_beardiffermanualtarget_test_cycle",
-      "label": "cycle()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "cycle()",
-      "source_file": "src/__tests__/bearDifferManualTarget.test.ts",
-      "source_location": "L4"
-    },
-    {
-      "id": "src_tests_beardiffermanualtarget_test_saturated",
-      "label": "saturated()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "saturated()",
-      "source_file": "src/__tests__/bearDifferManualTarget.test.ts",
-      "source_location": "L7"
     },
     {
       "id": "src_app_services_derivconfig_buildderivwsurl",
@@ -3968,40 +3908,76 @@
       "source_location": "L29"
     },
     {
-      "id": "src_app_hooks_usebeardiffer_extractdifferdigit",
-      "label": "extractDifferDigit()",
+      "id": "src_app_services_beardifferengine_beardifferengine_analyze",
+      "label": ".analyze()",
       "_callable": true,
       "_origin": "ast",
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "file_type": "code",
-      "norm_label": "extractdifferdigit()",
-      "source_file": "src/app/hooks/useBearDiffer.ts",
-      "source_location": "L10"
+      "norm_label": ".analyze()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L837"
     },
     {
-      "id": "src_app_hooks_usebeardiffer_propkey",
-      "label": "propKey()",
+      "id": "src_app_services_beardifferengine_beardifferengine_mutategenome",
+      "label": ".mutateGenome()",
       "_callable": true,
       "_origin": "ast",
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "file_type": "code",
-      "norm_label": "propkey()",
-      "source_file": "src/app/hooks/useBearDiffer.ts",
-      "source_location": "L18"
+      "norm_label": ".mutategenome()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L2089"
     },
     {
-      "id": "src_app_hooks_usebeardiffer_usebeardiffer",
-      "label": "useBearDiffer()",
+      "id": "src_app_services_beardifferengine_beardifferengine_randgenome",
+      "label": ".randGenome()",
       "_callable": true,
       "_origin": "ast",
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "file_type": "code",
-      "norm_label": "usebeardiffer()",
-      "source_file": "src/app/hooks/useBearDiffer.ts",
-      "source_location": "L22"
+      "norm_label": ".randgenome()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L2067"
+    },
+    {
+      "id": "src_app_services_beardifferengine_beardifferengine_runpipeline",
+      "label": ".runPipeline()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 131,
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
+      "file_type": "code",
+      "norm_label": ".runpipeline()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L2112"
+    },
+    {
+      "id": "src_app_services_beardifferengine_beardifferengine_runstrategy",
+      "label": ".runStrategy()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 131,
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
+      "file_type": "code",
+      "norm_label": ".runstrategy()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1949"
+    },
+    {
+      "id": "src_app_services_beardifferengine_beardifferengine_scoreall",
+      "label": ".scoreAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 131,
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
+      "file_type": "code",
+      "norm_label": ".scoreall()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L776"
     },
     {
       "id": "src_app_services_operationservice_saveoperation",
@@ -4028,16 +4004,52 @@
       "source_location": "L20"
     },
     {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_pipelinetab_pipelinetab",
-      "label": "PipelineTab()",
+      "id": "src_app_services_beardifferengine_beardifferengine_getlogics",
+      "label": ".getLogics()",
       "_callable": true,
       "_origin": "ast",
       "community": 14,
       "community_name": "BearDifferEngine.ts",
       "file_type": "code",
-      "norm_label": "pipelinetab()",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx",
-      "source_location": "L13"
+      "norm_label": ".getlogics()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1040"
+    },
+    {
+      "id": "src_app_services_beardifferengine_createdifferengine",
+      "label": "createDifferEngine()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "createdifferengine()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L2254"
+    },
+    {
+      "id": "src_tests_beardifferalllogicsmeasured_test_rnd",
+      "label": "rnd()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "rnd()",
+      "source_file": "src/__tests__/bearDifferAllLogicsMeasured.test.ts",
+      "source_location": "L4"
+    },
+    {
+      "id": "src_tests_beardifferautohalt_test_honest",
+      "label": "honest()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "honest()",
+      "source_file": "src/__tests__/bearDifferAutoHalt.test.ts",
+      "source_location": "L6"
     },
     {
       "id": "src_tests_beardifferautosource_test_cycle",
@@ -4074,6 +4086,54 @@
       "norm_label": "honest()",
       "source_file": "src/__tests__/bearDifferBiasGate.test.ts",
       "source_location": "L6"
+    },
+    {
+      "id": "src_tests_beardifferleadermodes_test_linha",
+      "label": "linha()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "linha()",
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_tests_beardifferleadermodes_test_rnd",
+      "label": "rnd()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "rnd()",
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L5"
+    },
+    {
+      "id": "src_tests_beardiffermanualtarget_test_cycle",
+      "label": "cycle()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "cycle()",
+      "source_file": "src/__tests__/bearDifferManualTarget.test.ts",
+      "source_location": "L4"
+    },
+    {
+      "id": "src_tests_beardiffermanualtarget_test_saturated",
+      "label": "saturated()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "saturated()",
+      "source_file": "src/__tests__/bearDifferManualTarget.test.ts",
+      "source_location": "L7"
     },
     {
       "id": "src_lib_deriv_api_client_derivapiclient_connect",
@@ -4280,6 +4340,42 @@
       "source_location": "L17"
     },
     {
+      "id": "src_app_hooks_usebeardiffer_extractdifferdigit",
+      "label": "extractDifferDigit()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "file_type": "code",
+      "norm_label": "extractdifferdigit()",
+      "source_file": "src/app/hooks/useBearDiffer.ts",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_app_hooks_usebeardiffer_propkey",
+      "label": "propKey()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "file_type": "code",
+      "norm_label": "propkey()",
+      "source_file": "src/app/hooks/useBearDiffer.ts",
+      "source_location": "L18"
+    },
+    {
+      "id": "src_app_hooks_usebeardiffer_usebeardiffer",
+      "label": "useBearDiffer()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "file_type": "code",
+      "norm_label": "usebeardiffer()",
+      "source_file": "src/app/hooks/useBearDiffer.ts",
+      "source_location": "L22"
+    },
+    {
       "id": "src_app_api_login_route_getclientip",
       "label": "getClientIp()",
       "_callable": true,
@@ -4433,6 +4529,30 @@
       "file_type": "code",
       "norm_label": ".createoscillator()",
       "source_file": "src/__tests__/bearBotUltra2.test.tsx",
+      "source_location": "L21"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mockaudiocontext_creategain",
+      "label": ".createGain()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": ".creategain()",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L30"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mockaudiocontext_createoscillator",
+      "label": ".createOscillator()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": ".createoscillator()",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
       "source_location": "L21"
     },
     {
@@ -4688,76 +4808,88 @@
       "source_location": "L162"
     },
     {
-      "id": "src_app_services_beardifferengine_beardifferengine_analyze",
-      "label": ".analyze()",
+      "id": "src_app_services_bearbot2engine_bearbotengine_constructor",
+      "label": ".constructor()",
       "_callable": true,
       "_origin": "ast",
-      "community": 20,
-      "community_name": ".runPipeline",
+      "community": 23,
+      "community_name": "BotConfig",
       "file_type": "code",
-      "norm_label": ".analyze()",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L821"
+      "norm_label": ".constructor()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L147"
     },
     {
-      "id": "src_app_services_beardifferengine_beardifferengine_mutategenome",
-      "label": ".mutateGenome()",
+      "id": "src_app_services_bearbot2engine_bearbotengine_getconfig",
+      "label": ".getConfig()",
       "_callable": true,
       "_origin": "ast",
-      "community": 20,
-      "community_name": ".runPipeline",
+      "community": 23,
+      "community_name": "BotConfig",
       "file_type": "code",
-      "norm_label": ".mutategenome()",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2053"
+      "norm_label": ".getconfig()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L189"
     },
     {
-      "id": "src_app_services_beardifferengine_beardifferengine_randgenome",
-      "label": ".randGenome()",
+      "id": "src_app_services_bearbot2engine_bearbotengine_getdefaultconfig",
+      "label": ".getDefaultConfig()",
       "_callable": true,
       "_origin": "ast",
-      "community": 20,
-      "community_name": ".runPipeline",
+      "community": 23,
+      "community_name": "BotConfig",
       "file_type": "code",
-      "norm_label": ".randgenome()",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2031"
+      "norm_label": ".getdefaultconfig()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L158"
     },
     {
-      "id": "src_app_services_beardifferengine_beardifferengine_runpipeline",
-      "label": ".runPipeline()",
+      "id": "src_app_services_bearbot2engine_bearbotengine_getstate",
+      "label": ".getState()",
       "_callable": true,
       "_origin": "ast",
-      "community": 20,
-      "community_name": ".runPipeline",
+      "community": 23,
+      "community_name": "BotConfig",
       "file_type": "code",
-      "norm_label": ".runpipeline()",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2076"
+      "norm_label": ".getstate()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L190"
     },
     {
-      "id": "src_app_services_beardifferengine_beardifferengine_runstrategy",
-      "label": ".runStrategy()",
+      "id": "src_app_services_bearbot2engine_bearbotengine_initmarkets",
+      "label": ".initMarkets()",
       "_callable": true,
       "_origin": "ast",
-      "community": 20,
-      "community_name": ".runPipeline",
+      "community": 23,
+      "community_name": "BotConfig",
       "file_type": "code",
-      "norm_label": ".runstrategy()",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1913"
+      "norm_label": ".initmarkets()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L175"
     },
     {
-      "id": "src_app_services_beardifferengine_beardifferengine_scoreall",
-      "label": ".scoreAll()",
+      "id": "src_app_services_bearbot2engine_bearbotengine_subscribe",
+      "label": ".subscribe()",
       "_callable": true,
       "_origin": "ast",
-      "community": 20,
-      "community_name": ".runPipeline",
+      "community": 23,
+      "community_name": "BotConfig",
       "file_type": "code",
-      "norm_label": ".scoreall()",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L760"
+      "norm_label": ".subscribe()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L276"
+    },
+    {
+      "id": "src_app_services_bearbot2engine_clampratelimits",
+      "label": "clampRateLimits()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "BotConfig",
+      "file_type": "code",
+      "norm_label": "clampratelimits()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L12"
     },
     {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_dynamicdigitpanel_dynamicdigitpanel",
@@ -4782,6 +4914,42 @@
       "norm_label": "getscorecolor()",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/DynamicDigitPanel.tsx",
       "source_location": "L21"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getintelcolor",
+      "label": "getIntelColor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "BotConfig",
+      "file_type": "code",
+      "norm_label": "getintelcolor()",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getreclabel",
+      "label": "getRecLabel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "BotConfig",
+      "file_type": "code",
+      "norm_label": "getreclabel()",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L18"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanel",
+      "label": "IntelPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "BotConfig",
+      "file_type": "code",
+      "norm_label": "intelpanel()",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L29"
     },
     {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_tradelog_tradelogcomponent",
@@ -5408,30 +5576,6 @@
       "source_location": "L8"
     },
     {
-      "id": "src_tests_bearbotultra2postloss_test_mockaudiocontext_creategain",
-      "label": ".createGain()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": ".creategain()",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L30"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mockaudiocontext_createoscillator",
-      "label": ".createOscillator()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": ".createoscillator()",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L21"
-    },
-    {
       "id": "src_app_services_signalprocessor_signalprocessor_addmarketmapping",
       "label": ".addMarketMapping()",
       "_callable": true,
@@ -5538,6 +5682,18 @@
       "norm_label": ".validatesignaladvanced()",
       "source_file": "src/app/services/signalProcessor.ts",
       "source_location": "L142"
+    },
+    {
+      "id": "src_app_services_bearbot2_types_buildloserset",
+      "label": "buildLoserSet()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "BearBotEngine",
+      "file_type": "code",
+      "norm_label": "buildloserset()",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L330"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_abortop",
@@ -5684,18 +5840,6 @@
       "source_location": "L741"
     },
     {
-      "id": "src_app_services_bearbot2engine_bearbotengine_constructor",
-      "label": ".constructor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": ".constructor()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L147"
-    },
-    {
       "id": "src_app_services_bearbot2engine_bearbotengine_demotecombotosingle",
       "label": ".demoteComboToSingle()",
       "_callable": true,
@@ -5730,42 +5874,6 @@
       "norm_label": ".finishtrade()",
       "source_file": "src/app/services/BearBot2Engine.ts",
       "source_location": "L1534"
-    },
-    {
-      "id": "src_app_services_bearbot2engine_bearbotengine_getconfig",
-      "label": ".getConfig()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": ".getconfig()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L189"
-    },
-    {
-      "id": "src_app_services_bearbot2engine_bearbotengine_getdefaultconfig",
-      "label": ".getDefaultConfig()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": ".getdefaultconfig()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L158"
-    },
-    {
-      "id": "src_app_services_bearbot2engine_bearbotengine_getobservedrate",
-      "label": ".getObservedRate()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": ".getobservedrate()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L974"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_getpressurerate",
@@ -5804,18 +5912,6 @@
       "source_location": "L1693"
     },
     {
-      "id": "src_app_services_bearbot2engine_bearbotengine_getstate",
-      "label": ".getState()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": ".getstate()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L190"
-    },
-    {
       "id": "src_app_services_bearbot2engine_bearbotengine_gettheoreticalrate",
       "label": ".getTheoreticalRate()",
       "_callable": true,
@@ -5850,18 +5946,6 @@
       "norm_label": ".handlerecoverytick()",
       "source_file": "src/app/services/BearBot2Engine.ts",
       "source_location": "L1047"
-    },
-    {
-      "id": "src_app_services_bearbot2engine_bearbotengine_initmarkets",
-      "label": ".initMarkets()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": ".initmarkets()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L175"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_iscombopending",
@@ -6044,18 +6128,6 @@
       "source_location": "L1518"
     },
     {
-      "id": "src_app_services_bearbot2engine_bearbotengine_simulatetrade",
-      "label": ".simulateTrade()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": ".simulatetrade()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1484"
-    },
-    {
       "id": "src_app_services_bearbot2engine_bearbotengine_startbot",
       "label": ".startBot()",
       "_callable": true,
@@ -6078,18 +6150,6 @@
       "norm_label": ".stopbot()",
       "source_file": "src/app/services/BearBot2Engine.ts",
       "source_location": "L1616"
-    },
-    {
-      "id": "src_app_services_bearbot2engine_bearbotengine_subscribe",
-      "label": ".subscribe()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": ".subscribe()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L276"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_triggerautotrade",
@@ -6282,18 +6342,6 @@
       "norm_label": ".vlresetm()",
       "source_file": "src/app/services/BearBot2Engine.ts",
       "source_location": "L702"
-    },
-    {
-      "id": "src_app_services_bearbot2engine_clampratelimits",
-      "label": "clampRateLimits()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "BearBotEngine",
-      "file_type": "code",
-      "norm_label": "clampratelimits()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L12"
     },
     {
       "id": "src_app_hooks_useauth_useauth",
@@ -6500,24 +6548,12 @@
       "source_location": "L73"
     },
     {
-      "id": "src_app_services_bearbot2engine_createengine",
-      "label": "createEngine()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "createengine()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1722"
-    },
-    {
       "id": "src_tests_bearbot2engine_test_feedabpattern",
       "label": "feedABPattern()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "feedabpattern()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
@@ -6529,7 +6565,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "loseonce()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
@@ -6541,7 +6577,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "scorefromspec()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
@@ -6553,7 +6589,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "seedloserpressure()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
@@ -6565,7 +6601,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "seedpatternintel()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
@@ -6577,7 +6613,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "settleopenover()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
@@ -6589,59 +6625,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "winonce()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
       "source_location": "L451"
-    },
-    {
-      "id": "src_tests_bearbot2enginepostloss_test_loseonce",
-      "label": "loseOnce()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "loseonce()",
-      "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
-      "source_location": "L4"
-    },
-    {
-      "id": "src_tests_bearbot2enginepostloss_test_winonce",
-      "label": "winOnce()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "winonce()",
-      "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "src_tests_bearbot2intelaccuracy_test_feedabpattern",
-      "label": "feedABPattern()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "feedabpattern()",
-      "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_tests_bearbot2intelaccuracy_test_seedfocusonly",
-      "label": "seedFocusOnly()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "seedfocusonly()",
-      "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
-      "source_location": "L96"
     },
     {
       "id": "src_app_login_components_forgotpasswordmodal_forgotpasswordmodal",
@@ -6788,18 +6776,6 @@
       "source_location": "L165"
     },
     {
-      "id": "src_app_services_bearbot2_types_buildloserset",
-      "label": "buildLoserSet()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "bearBotUltra2.tsx",
-      "file_type": "code",
-      "norm_label": "buildloserset()",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L330"
-    },
-    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_bearbotultra2_bearbotultra",
       "label": "BearBotUltra()",
       "_callable": true,
@@ -6834,42 +6810,6 @@
       "norm_label": "validatenumber()",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx",
       "source_location": "L26"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getintelcolor",
-      "label": "getIntelColor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "bearBotUltra2.tsx",
-      "file_type": "code",
-      "norm_label": "getintelcolor()",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getreclabel",
-      "label": "getRecLabel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "bearBotUltra2.tsx",
-      "file_type": "code",
-      "norm_label": "getreclabel()",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L18"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanel",
-      "label": "IntelPanel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "bearBotUltra2.tsx",
-      "file_type": "code",
-      "norm_label": "intelpanel()",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L29"
     },
     {
       "id": "src_tests_bearbotultra2autodigitui_test_mockaudiocontext_creategain",
@@ -6944,6 +6884,42 @@
       "source_location": "L51"
     },
     {
+      "id": "src_app_services_bearbot2engine_bearbotengine_getobservedrate",
+      "label": ".getObservedRate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": ".getobservedrate()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L974"
+    },
+    {
+      "id": "src_app_services_bearbot2engine_bearbotengine_simulatetrade",
+      "label": ".simulateTrade()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": ".simulatetrade()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1484"
+    },
+    {
+      "id": "src_app_services_bearbot2engine_createengine",
+      "label": "createEngine()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "createengine()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1722"
+    },
+    {
       "id": "src_app_services_bearbot2engine_getbestpattern",
       "label": "getBestPattern()",
       "_callable": true,
@@ -7016,6 +6992,54 @@
       "source_location": "L17"
     },
     {
+      "id": "src_tests_bearbot2enginepostloss_test_loseonce",
+      "label": "loseOnce()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "loseonce()",
+      "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
+      "source_location": "L4"
+    },
+    {
+      "id": "src_tests_bearbot2enginepostloss_test_winonce",
+      "label": "winOnce()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "winonce()",
+      "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_tests_bearbot2intelaccuracy_test_feedabpattern",
+      "label": "feedABPattern()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "feedabpattern()",
+      "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_tests_bearbot2intelaccuracy_test_seedfocusonly",
+      "label": "seedFocusOnly()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "seedfocusonly()",
+      "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
+      "source_location": "L96"
+    },
+    {
       "id": "src_tests_sharedrules_test_makeexpiredtoken",
       "label": "makeExpiredToken()",
       "_callable": true,
@@ -7064,16 +7088,64 @@
       "source_location": "L32"
     },
     {
+      "id": "src_app_services_beardiffermath_benjaminihochberg",
+      "label": "benjaminiHochberg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "benjaminihochberg()",
+      "source_file": "src/app/services/BearDifferMath.ts",
+      "source_location": "L123"
+    },
+    {
       "id": "src_app_withsidebar_bear_bot_differ_components_configsidebar_configsidebar",
       "label": "ConfigSidebar()",
       "_callable": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "configsidebar()",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/ConfigSidebar.tsx",
       "source_location": "L14"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_labtab_labtab",
+      "label": "LabTab()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "labtab()",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LabTab.tsx",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_logicstab_logicstab",
+      "label": "LogicsTab()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "logicstab()",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LogicsTab.tsx",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_pipelinetab_pipelinetab",
+      "label": "PipelineTab()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "pipelinetab()",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx",
+      "source_location": "L13"
     },
     {
       "id": "src_app_withsidebar_bear_bot_differ_components_tabs_systemtab_systemtab",
@@ -7081,7 +7153,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "systemtab()",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/SystemTab.tsx",
@@ -7093,7 +7165,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "validationtab()",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/ValidationTab.tsx",
@@ -7105,7 +7177,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "vigilancetab()",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/VigilanceTab.tsx",
@@ -7508,18 +7580,6 @@
       "source_location": "L8"
     },
     {
-      "id": "src_app_services_beardiffermath_benjaminihochberg",
-      "label": "benjaminiHochberg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "BearDifferMath.ts",
-      "file_type": "code",
-      "norm_label": "benjaminihochberg()",
-      "source_file": "src/app/services/BearDifferMath.ts",
-      "source_location": "L123"
-    },
-    {
       "id": "src_app_services_beardiffermath_binomp",
       "label": "binomP()",
       "_callable": true,
@@ -7652,18 +7712,6 @@
       "source_location": "L100"
     },
     {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_logicstab_logicstab",
-      "label": "LogicsTab()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "BearDifferMath.ts",
-      "file_type": "code",
-      "norm_label": "logicstab()",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LogicsTab.tsx",
-      "source_location": "L12"
-    },
-    {
       "id": "src_app_withsidebar_bear_bot_differ_components_tabs_risktab_risktab",
       "label": "RiskTab()",
       "_callable": true,
@@ -7769,7 +7817,7 @@
       "file_type": "code",
       "norm_label": ".bettertarget()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L549"
+      "source_location": "L568"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_biasverdict",
@@ -7781,7 +7829,7 @@
       "file_type": "code",
       "norm_label": ".biasverdict()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L906"
+      "source_location": "L922"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_checkguards",
@@ -7793,7 +7841,7 @@
       "file_type": "code",
       "norm_label": ".checkguards()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1741"
+      "source_location": "L1777"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_constructor",
@@ -7817,7 +7865,7 @@
       "file_type": "code",
       "norm_label": ".exhaustblock()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L994"
+      "source_location": "L1010"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_getalllogicmarketstats",
@@ -7829,7 +7877,7 @@
       "file_type": "code",
       "norm_label": ".getalllogicmarketstats()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1563"
+      "source_location": "L1579"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_getdigits",
@@ -7853,7 +7901,7 @@
       "file_type": "code",
       "norm_label": ".getexhaustion()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L860"
+      "source_location": "L876"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_getlogicmarketstats",
@@ -7865,7 +7913,7 @@
       "file_type": "code",
       "norm_label": ".getlogicmarketstats()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1559"
+      "source_location": "L1575"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_getlogicname",
@@ -7877,7 +7925,7 @@
       "file_type": "code",
       "norm_label": ".getlogicname()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1617"
+      "source_location": "L1633"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_getlogicranking",
@@ -7889,19 +7937,7 @@
       "file_type": "code",
       "norm_label": ".getlogicranking()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1568"
-    },
-    {
-      "id": "src_app_services_beardifferengine_beardifferengine_getlogics",
-      "label": ".getLogics()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "BearDifferEngine",
-      "file_type": "code",
-      "norm_label": ".getlogics()",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1024"
+      "source_location": "L1584"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_getlosercount",
@@ -7913,7 +7949,7 @@
       "file_type": "code",
       "norm_label": ".getlosercount()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1007"
+      "source_location": "L1023"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_getmarketdata",
@@ -7949,7 +7985,7 @@
       "file_type": "code",
       "norm_label": ".initlogics()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1028"
+      "source_location": "L1044"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_ismarketproven",
@@ -7961,7 +7997,7 @@
       "file_type": "code",
       "norm_label": ".ismarketproven()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L897"
+      "source_location": "L913"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_istradelocked",
@@ -7973,7 +8009,7 @@
       "file_type": "code",
       "norm_label": ".istradelocked()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L754"
+      "source_location": "L770"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_leaderlogic",
@@ -7985,7 +8021,7 @@
       "file_type": "code",
       "norm_label": ".leaderlogic()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1622"
+      "source_location": "L1638"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_logicstick",
@@ -7997,7 +8033,7 @@
       "file_type": "code",
       "norm_label": ".logicstick()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1524"
+      "source_location": "L1540"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_manualtarget",
@@ -8009,7 +8045,19 @@
       "file_type": "code",
       "norm_label": ".manualtarget()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L719"
+      "source_location": "L735"
+    },
+    {
+      "id": "src_app_services_beardifferengine_beardifferengine_motivosemlogica",
+      "label": ".motivoSemLogica()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "BearDifferEngine",
+      "file_type": "code",
+      "norm_label": ".motivosemlogica()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L507"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_noteentryfired",
@@ -8021,7 +8069,7 @@
       "file_type": "code",
       "norm_label": ".noteentryfired()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L744"
+      "source_location": "L760"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_notify",
@@ -8057,7 +8105,7 @@
       "file_type": "code",
       "norm_label": ".preparetrade()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1776"
+      "source_location": "L1812"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_processtick",
@@ -8081,7 +8129,7 @@
       "file_type": "code",
       "norm_label": ".recordloss()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1012"
+      "source_location": "L1028"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_resetlogicsmeasurement",
@@ -8093,7 +8141,7 @@
       "file_type": "code",
       "norm_label": ".resetlogicsmeasurement()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1513"
+      "source_location": "L1529"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_resetsession",
@@ -8117,7 +8165,7 @@
       "file_type": "code",
       "norm_label": ".resolvelogic()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1627"
+      "source_location": "L1661"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_resolvetarget",
@@ -8129,7 +8177,7 @@
       "file_type": "code",
       "norm_label": ".resolvetarget()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L510"
+      "source_location": "L529"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_runbiastests",
@@ -8141,7 +8189,7 @@
       "file_type": "code",
       "norm_label": ".runbiastests()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1656"
+      "source_location": "L1692"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_runwatch",
@@ -8153,7 +8201,7 @@
       "file_type": "code",
       "norm_label": ".runwatch()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L924"
+      "source_location": "L940"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_sethistory",
@@ -8201,7 +8249,7 @@
       "file_type": "code",
       "norm_label": ".settlecontract()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1793"
+      "source_location": "L1829"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_settradelock",
@@ -8213,7 +8261,7 @@
       "file_type": "code",
       "norm_label": ".settradelock()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L749"
+      "source_location": "L765"
     },
     {
       "id": "src_app_services_beardifferengine_beardifferengine_subscribe",
@@ -8237,7 +8285,19 @@
       "file_type": "code",
       "norm_label": ".targetformarket()",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L561"
+      "source_location": "L580"
+    },
+    {
+      "id": "src_app_services_beardifferengine_beardifferengine_topaccuracylogic",
+      "label": ".topAccuracyLogic()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "BearDifferEngine",
+      "file_type": "code",
+      "norm_label": ".topaccuracylogic()",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1650"
     },
     {
       "id": "package_dependencies_query_string",
@@ -8933,22 +8993,11 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_labtab",
-      "label": "LabTab.tsx",
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "labtab.tsx",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LabTab.tsx",
-      "source_location": "L1"
-    },
-    {
       "id": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab",
       "label": "OperationTab.tsx",
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "operationtab.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
@@ -8959,62 +9008,18 @@
       "label": "TradeResultsTable.tsx",
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "traderesultstable.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/TradeResultsTable.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_tests_beardifferalllogicsmeasured_test",
-      "label": "bearDifferAllLogicsMeasured.test.ts",
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "beardifferalllogicsmeasured.test.ts",
-      "source_file": "src/__tests__/bearDifferAllLogicsMeasured.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_beardifferanalyticaltabs_test",
-      "label": "bearDifferAnalyticalTabs.test.tsx",
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "beardifferanalyticaltabs.test.tsx",
-      "source_file": "src/__tests__/bearDifferAnalyticalTabs.test.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_beardifferautohalt_test",
-      "label": "bearDifferAutoHalt.test.ts",
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "beardifferautohalt.test.ts",
-      "source_file": "src/__tests__/bearDifferAutoHalt.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_beardifferautohalt_test_syms",
-      "label": "SYMS",
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "syms",
-      "source_file": "src/__tests__/bearDifferAutoHalt.test.ts",
-      "source_location": "L14"
-    },
-    {
       "id": "src_tests_beardifferautosourceui_test",
       "label": "bearDifferAutoSourceUI.test.tsx",
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "beardifferautosourceui.test.tsx",
       "source_file": "src/__tests__/bearDifferAutoSourceUI.test.tsx",
@@ -9025,43 +9030,10 @@
       "label": "bearDifferManualEntryUI.test.tsx",
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "beardiffermanualentryui.test.tsx",
       "source_file": "src/__tests__/bearDifferManualEntryUI.test.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_beardiffermanualtarget_test",
-      "label": "bearDifferManualTarget.test.ts",
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "beardiffermanualtarget.test.ts",
-      "source_file": "src/__tests__/bearDifferManualTarget.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_beardiffermanualtarget_test_syms",
-      "label": "SYMS",
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "syms",
-      "source_file": "src/__tests__/bearDifferManualTarget.test.ts",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_tests_beardiffertabconfigpersistence_test",
-      "label": "bearDifferTabConfigPersistence.test.tsx",
-      "_origin": "ast",
-      "community": 124,
-      "community_name": "createDifferEngine",
-      "file_type": "code",
-      "norm_label": "beardiffertabconfigpersistence.test.tsx",
-      "source_file": "src/__tests__/bearDifferTabConfigPersistence.test.tsx",
       "source_location": "L1"
     },
     {
@@ -9069,7 +9041,7 @@
       "label": "bearDifferTradeResults.test.tsx",
       "_origin": "ast",
       "community": 124,
-      "community_name": "createDifferEngine",
+      "community_name": "OperationTab.tsx",
       "file_type": "code",
       "norm_label": "beardiffertraderesults.test.tsx",
       "source_file": "src/__tests__/bearDifferTradeResults.test.tsx",
@@ -9538,94 +9510,6 @@
       "source_location": "L39"
     },
     {
-      "id": "src_app_hooks_usebeardiffer",
-      "label": "useBearDiffer.ts",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "file_type": "code",
-      "norm_label": "usebeardiffer.ts",
-      "source_file": "src/app/hooks/useBearDiffer.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_services_beardiffer_types_pip_fallback",
-      "label": "PIP_FALLBACK",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "file_type": "code",
-      "norm_label": "pip_fallback",
-      "source_file": "src/app/services/beardiffer.types.ts",
-      "source_location": "L21"
-    },
-    {
-      "id": "src_tests_usebeardiffer_test",
-      "label": "useBearDiffer.test.ts",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "file_type": "code",
-      "norm_label": "usebeardiffer.test.ts",
-      "source_file": "src/__tests__/useBearDiffer.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_usebeardiffer_test_mocklisteners",
-      "label": "mockListeners",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "file_type": "code",
-      "norm_label": "mocklisteners",
-      "source_file": "src/__tests__/useBearDiffer.test.ts",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_tests_usebeardiffer_test_mockobserver",
-      "label": "mockObserver",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "file_type": "code",
-      "norm_label": "mockobserver",
-      "source_file": "src/__tests__/useBearDiffer.test.ts",
-      "source_location": "L12"
-    },
-    {
-      "id": "src_tests_usebeardiffer_test_mocksend",
-      "label": "mockSend",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "file_type": "code",
-      "norm_label": "mocksend",
-      "source_file": "src/__tests__/useBearDiffer.test.ts",
-      "source_location": "L7"
-    },
-    {
-      "id": "src_tests_usebeardiffer_test_mocksubscribe",
-      "label": "mockSubscribe",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "file_type": "code",
-      "norm_label": "mocksubscribe",
-      "source_file": "src/__tests__/useBearDiffer.test.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_tests_usebeardiffer_test_mockswitchaccount",
-      "label": "mockSwitchAccount",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "file_type": "code",
-      "norm_label": "mockswitchaccount",
-      "source_file": "src/__tests__/useBearDiffer.test.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "src_app_services_operationservice",
       "label": "operationService.js",
       "_origin": "ast",
@@ -9725,15 +9609,37 @@
       "source_location": "L95"
     },
     {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_pipelinetab",
-      "label": "PipelineTab.tsx",
+      "id": "src_tests_beardifferalllogicsmeasured_test",
+      "label": "bearDifferAllLogicsMeasured.test.ts",
       "_origin": "ast",
       "community": 14,
       "community_name": "BearDifferEngine.ts",
       "file_type": "code",
-      "norm_label": "pipelinetab.tsx",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx",
+      "norm_label": "beardifferalllogicsmeasured.test.ts",
+      "source_file": "src/__tests__/bearDifferAllLogicsMeasured.test.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "src_tests_beardifferautohalt_test",
+      "label": "bearDifferAutoHalt.test.ts",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "beardifferautohalt.test.ts",
+      "source_file": "src/__tests__/bearDifferAutoHalt.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_beardifferautohalt_test_syms",
+      "label": "SYMS",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "syms",
+      "source_file": "src/__tests__/bearDifferAutoHalt.test.ts",
+      "source_location": "L14"
     },
     {
       "id": "src_tests_beardifferautosource_test",
@@ -9780,6 +9686,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_tests_beardifferleadermodes_test",
+      "label": "bearDifferLeaderModes.test.ts",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "beardifferleadermodes.test.ts",
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_tests_beardifferlogics_test",
       "label": "bearDifferLogics.test.ts",
       "_origin": "ast",
@@ -9789,6 +9706,28 @@
       "norm_label": "beardifferlogics.test.ts",
       "source_file": "src/__tests__/bearDifferLogics.test.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "src_tests_beardiffermanualtarget_test",
+      "label": "bearDifferManualTarget.test.ts",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "beardiffermanualtarget.test.ts",
+      "source_file": "src/__tests__/bearDifferManualTarget.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_beardiffermanualtarget_test_syms",
+      "label": "SYMS",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "BearDifferEngine.ts",
+      "file_type": "code",
+      "norm_label": "syms",
+      "source_file": "src/__tests__/bearDifferManualTarget.test.ts",
+      "source_location": "L10"
     },
     {
       "id": "src_tests_beardifferstrategypipeline_test",
@@ -9822,6 +9761,28 @@
       "norm_label": "use-deriv-websocket.ts",
       "source_file": "src/lib/use-deriv-websocket.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "src_app_hooks_usebeardiffer",
+      "label": "useBearDiffer.ts",
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "file_type": "code",
+      "norm_label": "usebeardiffer.ts",
+      "source_file": "src/app/hooks/useBearDiffer.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_services_beardiffer_types_pip_fallback",
+      "label": "PIP_FALLBACK",
+      "_origin": "ast",
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "file_type": "code",
+      "norm_label": "pip_fallback",
+      "source_file": "src/app/services/beardiffer.types.ts",
+      "source_location": "L21"
     },
     {
       "id": "src_app_api_login_route",
@@ -10110,6 +10071,116 @@
       "source_location": "L65"
     },
     {
+      "id": "src_tests_bearbotultra2postloss_test",
+      "label": "bearBotUltra2PostLoss.test.tsx",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "bearbotultra2postloss.test.tsx",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_localstoragemock",
+      "label": "localStorageMock",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "localstoragemock",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mockextractlastdigit",
+      "label": "mockExtractLastDigit",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "mockextractlastdigit",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L61"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mockgetstoragederivaccount",
+      "label": "mockGetStorageDerivAccount",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "mockgetstoragederivaccount",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L51"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mockon",
+      "label": "mockOn",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "mockon",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L67"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mockremovebyid",
+      "label": "mockRemoveById",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "mockremovebyid",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L73"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mocksend",
+      "label": "mockSend",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "mocksend",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L48"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mocksubscribe",
+      "label": "mockSubscribe",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "mocksubscribe",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L49"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_mockswitchaccount",
+      "label": "mockSwitchAccount",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "mockswitchaccount",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L50"
+    },
+    {
+      "id": "src_tests_bearbotultra2postloss_test_registeredlisteners",
+      "label": "registeredListeners",
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "registeredlisteners",
+      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "source_location": "L65"
+    },
+    {
       "id": "src_app_services_derivconnection",
       "label": "derivConnection.js",
       "_origin": "ast",
@@ -10121,6 +10192,72 @@
       "source_location": "L1"
     },
     {
+      "id": "src_tests_usebeardiffer_test",
+      "label": "useBearDiffer.test.ts",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "useBearDiffer.test.ts",
+      "file_type": "code",
+      "norm_label": "usebeardiffer.test.ts",
+      "source_file": "src/__tests__/useBearDiffer.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_usebeardiffer_test_mocklisteners",
+      "label": "mockListeners",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "useBearDiffer.test.ts",
+      "file_type": "code",
+      "norm_label": "mocklisteners",
+      "source_file": "src/__tests__/useBearDiffer.test.ts",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_tests_usebeardiffer_test_mockobserver",
+      "label": "mockObserver",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "useBearDiffer.test.ts",
+      "file_type": "code",
+      "norm_label": "mockobserver",
+      "source_file": "src/__tests__/useBearDiffer.test.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_tests_usebeardiffer_test_mocksend",
+      "label": "mockSend",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "useBearDiffer.test.ts",
+      "file_type": "code",
+      "norm_label": "mocksend",
+      "source_file": "src/__tests__/useBearDiffer.test.ts",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_tests_usebeardiffer_test_mocksubscribe",
+      "label": "mockSubscribe",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "useBearDiffer.test.ts",
+      "file_type": "code",
+      "norm_label": "mocksubscribe",
+      "source_file": "src/__tests__/useBearDiffer.test.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_tests_usebeardiffer_test_mockswitchaccount",
+      "label": "mockSwitchAccount",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "useBearDiffer.test.ts",
+      "file_type": "code",
+      "norm_label": "mockswitchaccount",
+      "source_file": "src/__tests__/useBearDiffer.test.ts",
+      "source_location": "L9"
+    },
+    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_dynamicdigitpanel",
       "label": "DynamicDigitPanel.tsx",
       "_origin": "ast",
@@ -10129,6 +10266,17 @@
       "file_type": "code",
       "norm_label": "dynamicdigitpanel.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/DynamicDigitPanel.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel",
+      "label": "IntelPanel.tsx",
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "BotConfig",
+      "file_type": "code",
+      "norm_label": "intelpanel.tsx",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
       "source_location": "L1"
     },
     {
@@ -10660,114 +10808,28 @@
       "source_location": "L1"
     },
     {
-      "id": "src_tests_bearbotultra2postloss_test",
-      "label": "bearBotUltra2PostLoss.test.tsx",
+      "id": "erro",
+      "label": "erro.md",
       "_origin": "ast",
       "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "bearbotultra2postloss.test.tsx",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
+      "community_name": "erro.md",
+      "file_type": "document",
+      "node_kind": "page",
+      "norm_label": "erro.md",
+      "source_file": "erro.md",
       "source_location": "L1"
     },
     {
-      "id": "src_tests_bearbotultra2postloss_test_localstoragemock",
-      "label": "localStorageMock",
+      "id": "erro_l\u00f3gica_tag_amostra_acerto_p_valor_corrigido_situa\u00e7\u00e3o",
+      "label": "L\u00f3gica\tTag\tAmostra\tAcerto\tP-Valor Corrigido\tSitua\u00e7\u00e3o",
       "_origin": "ast",
       "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "localstoragemock",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mockextractlastdigit",
-      "label": "mockExtractLastDigit",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "mockextractlastdigit",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L61"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mockgetstoragederivaccount",
-      "label": "mockGetStorageDerivAccount",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "mockgetstoragederivaccount",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L51"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mockon",
-      "label": "mockOn",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "mockon",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L67"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mockremovebyid",
-      "label": "mockRemoveById",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "mockremovebyid",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L73"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mocksend",
-      "label": "mockSend",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "mocksend",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L48"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mocksubscribe",
-      "label": "mockSubscribe",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "mocksubscribe",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L49"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_mockswitchaccount",
-      "label": "mockSwitchAccount",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "mockswitchaccount",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L50"
-    },
-    {
-      "id": "src_tests_bearbotultra2postloss_test_registeredlisteners",
-      "label": "registeredListeners",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "bearBotUltra2PostLoss.test.tsx",
-      "file_type": "code",
-      "norm_label": "registeredlisteners",
-      "source_file": "src/__tests__/bearBotUltra2PostLoss.test.tsx",
-      "source_location": "L65"
+      "community_name": "erro.md",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "logica\ttag\tamostra\tacerto\tp-valor corrigido\tsituacao",
+      "source_file": "erro.md",
+      "source_location": "L2"
     },
     {
       "id": "src_app_services_copytradingservice",
@@ -10968,55 +11030,11 @@
       "source_location": "L1"
     },
     {
-      "id": "src_tests_bearbot2autodigit_test",
-      "label": "bearBot2AutoDigit.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "bearbot2autodigit.test.ts",
-      "source_file": "src/__tests__/bearBot2AutoDigit.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2autodigitfocus_test",
-      "label": "bearBot2AutoDigitFocus.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "bearbot2autodigitfocus.test.ts",
-      "source_file": "src/__tests__/bearBot2AutoDigitFocus.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2dynamicdigit_test",
-      "label": "bearBot2DynamicDigit.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "bearbot2dynamicdigit.test.ts",
-      "source_file": "src/__tests__/bearBot2DynamicDigit.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2dynamicdigitvl_test",
-      "label": "bearBot2DynamicDigitVL.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "bearbot2dynamicdigitvl.test.ts",
-      "source_file": "src/__tests__/bearBot2DynamicDigitVL.test.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_tests_bearbot2engine_test",
       "label": "bearBot2Engine.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "bearbot2engine.test.ts",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
@@ -11027,44 +11045,11 @@
       "label": "AI_WEIGHTS",
       "_origin": "ast",
       "community": 50,
-      "community_name": "createEngine",
+      "community_name": "bearBot2Engine.test.ts",
       "file_type": "code",
       "norm_label": "ai_weights",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
       "source_location": "L189"
-    },
-    {
-      "id": "src_tests_bearbot2enginepostloss_test",
-      "label": "bearBot2EnginePostLoss.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "bearbot2enginepostloss.test.ts",
-      "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2intelaccuracy_test",
-      "label": "bearBot2IntelAccuracy.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "bearbot2intelaccuracy.test.ts",
-      "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2patternab_test",
-      "label": "bearBot2PatternAB.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "bearbot2patternab.test.ts",
-      "source_file": "src/__tests__/bearBot2PatternAB.test.ts",
-      "source_location": "L1"
     },
     {
       "id": "package_dependencies",
@@ -11221,17 +11206,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel",
-      "label": "IntelPanel.tsx",
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "bearBotUltra2.tsx",
-      "file_type": "code",
-      "norm_label": "intelpanel.tsx",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L1"
-    },
-    {
       "id": "src_tests_bearbotultra2autodigitui_test",
       "label": "bearBotUltra2AutoDigitUI.test.tsx",
       "_origin": "ast",
@@ -11353,6 +11327,28 @@
       "source_location": "L1"
     },
     {
+      "id": "src_tests_bearbot2autodigit_test",
+      "label": "bearBot2AutoDigit.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2autodigit.test.ts",
+      "source_file": "src/__tests__/bearBot2AutoDigit.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2autodigitfocus_test",
+      "label": "bearBot2AutoDigitFocus.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2autodigitfocus.test.ts",
+      "source_file": "src/__tests__/bearBot2AutoDigitFocus.test.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_tests_bearbot2combo_test",
       "label": "bearBot2Combo.test.ts",
       "_origin": "ast",
@@ -11372,6 +11368,61 @@
       "file_type": "code",
       "norm_label": "bearbot2coveragegaps.test.ts",
       "source_file": "src/__tests__/bearBot2CoverageGaps.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2dynamicdigit_test",
+      "label": "bearBot2DynamicDigit.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2dynamicdigit.test.ts",
+      "source_file": "src/__tests__/bearBot2DynamicDigit.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2dynamicdigitvl_test",
+      "label": "bearBot2DynamicDigitVL.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2dynamicdigitvl.test.ts",
+      "source_file": "src/__tests__/bearBot2DynamicDigitVL.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2enginepostloss_test",
+      "label": "bearBot2EnginePostLoss.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2enginepostloss.test.ts",
+      "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2intelaccuracy_test",
+      "label": "bearBot2IntelAccuracy.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2intelaccuracy.test.ts",
+      "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2patternab_test",
+      "label": "bearBot2PatternAB.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2patternab.test.ts",
+      "source_file": "src/__tests__/bearBot2PatternAB.test.ts",
       "source_location": "L1"
     },
     {
@@ -11423,7 +11474,7 @@
       "label": "BearBotDiffer.tsx",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "bearbotdiffer.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/BearBotDiffer.tsx",
@@ -11434,10 +11485,43 @@
       "label": "ConfigSidebar.tsx",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "configsidebar.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/ConfigSidebar.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_labtab",
+      "label": "LabTab.tsx",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "labtab.tsx",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LabTab.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_logicstab",
+      "label": "LogicsTab.tsx",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "logicstab.tsx",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LogicsTab.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_pipelinetab",
+      "label": "PipelineTab.tsx",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "pipelinetab.tsx",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx",
       "source_location": "L1"
     },
     {
@@ -11445,7 +11529,7 @@
       "label": "SystemTab.tsx",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "systemtab.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/SystemTab.tsx",
@@ -11456,7 +11540,7 @@
       "label": "ValidationTab.tsx",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "validationtab.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/ValidationTab.tsx",
@@ -11467,7 +11551,7 @@
       "label": "VigilanceTab.tsx",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "vigilancetab.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/VigilanceTab.tsx",
@@ -11478,7 +11562,7 @@
       "label": "STATUS_CLASS",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "status_class",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/VigilanceTab.tsx",
@@ -11489,18 +11573,29 @@
       "label": "STATUS_LABEL",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "status_label",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/VigilanceTab.tsx",
       "source_location": "L10"
     },
     {
+      "id": "src_tests_beardifferanalyticaltabs_test",
+      "label": "bearDifferAnalyticalTabs.test.tsx",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "beardifferanalyticaltabs.test.tsx",
+      "source_file": "src/__tests__/bearDifferAnalyticalTabs.test.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_tests_beardifferpanels_test",
       "label": "bearDifferPanels.test.tsx",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "beardifferpanels.test.tsx",
       "source_file": "src/__tests__/bearDifferPanels.test.tsx",
@@ -11511,7 +11606,7 @@
       "label": "toastError",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "toasterror",
       "source_file": "src/__tests__/bearDifferPanels.test.tsx",
@@ -11522,11 +11617,22 @@
       "label": "toastSuccess",
       "_origin": "ast",
       "community": 63,
-      "community_name": "BearBotDiffer.tsx",
+      "community_name": "EngineState",
       "file_type": "code",
       "norm_label": "toastsuccess",
       "source_file": "src/__tests__/bearDifferPanels.test.tsx",
       "source_location": "L11"
+    },
+    {
+      "id": "src_tests_beardiffertabconfigpersistence_test",
+      "label": "bearDifferTabConfigPersistence.test.tsx",
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "EngineState",
+      "file_type": "code",
+      "norm_label": "beardiffertabconfigpersistence.test.tsx",
+      "source_file": "src/__tests__/bearDifferTabConfigPersistence.test.tsx",
+      "source_location": "L1"
     },
     {
       "id": "src_middleware",
@@ -12340,17 +12446,6 @@
       "file_type": "code",
       "norm_label": "beardiffermath.ts",
       "source_file": "src/app/services/BearDifferMath.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_differ_components_tabs_logicstab",
-      "label": "LogicsTab.tsx",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "BearDifferMath.ts",
-      "file_type": "code",
-      "norm_label": "logicstab.tsx",
-      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/LogicsTab.tsx",
       "source_location": "L1"
     },
     {
@@ -13404,61 +13499,13 @@
       "source_url": null
     },
     {
-      "id": "docs_code_review_bear_bot_differ_fast_exec_proposal_keeper",
-      "label": "Fast Execution via Proposal Keeper",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "contributor": null,
-      "file_type": "concept",
-      "norm_label": "fast execution via proposal keeper",
-      "rationale": "Assinatura proativa de propostas abertas no WebSocket (proposal: 1, subscribe: 1) para permitir execu\u00e7\u00e3o imediata sub-10ms no disparo da ordem.",
-      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "docs_code_review_bear_bot_differ_live_tracking_virtstats",
-      "label": "Live Tracking de Assertividade Virtual (virtStats)",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "contributor": null,
-      "file_type": "concept",
-      "norm_label": "live tracking de assertividade virtual (virtstats)",
-      "rationale": "Prev\u00ea o d\u00edgito alvo a cada tick e resolve no tick seguinte com vsignal para alimentar o medidor de assertividade em tempo real.",
-      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "docs_code_review_bear_bot_differ_next_tick_settlement",
-      "label": "Next-Tick Settlement em Simula\u00e7\u00e3o",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "contributor": null,
-      "file_type": "concept",
-      "norm_label": "next-tick settlement em simulacao",
-      "rationale": "Garantir fidelidade estrita ao mercado aguardando a cota\u00e7\u00e3o do tick seguinte via deriv.tick antes de liquidar o contrato simulado.",
-      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
       "id": "docs_code_review_bear_bot_differ_pipeline_genetico_drift",
       "label": "Pipeline Gen\u00e9tico com Drift Test",
       "_origin": "semantic",
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "pipeline genetico com drift test",
@@ -13474,7 +13521,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "contrato differ na deriv",
@@ -13490,7 +13537,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "gestao de martingale normal e parcial",
@@ -13506,7 +13553,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "arquitetura das 8 abas analiticas",
@@ -13522,28 +13569,12 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "scanner de vigilancia multivariado (5s)",
       "rationale": "Varredura peri\u00f3dica a cada 5s classificando ativos em Normal, Observa\u00e7\u00e3o, Quebra de Regime ou Amostra Baixa para guiar a sele\u00e7\u00e3o de mercado.",
       "source_file": "docs/doc_bear_bot_differ/MANUAL_DO_USUARIO.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "docs_doc_bear_bot_differ_readme_extracao_digito_pip_size",
-      "label": "Extra\u00e7\u00e3o de D\u00edgitos via Pip Size por Ativo",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "contributor": null,
-      "file_type": "concept",
-      "norm_label": "extracao de digitos via pip size por ativo",
-      "rationale": "Tratamento de precis\u00e3o decimal com multiplica\u00e7\u00e3o inteira evitando imprecis\u00f5es de float (pip_size=3 para R_10-R_100, pip_size=2 para 1HZ).",
-      "source_file": "docs/doc_bear_bot_differ/README.md",
       "source_location": null,
       "source_url": null
     },
@@ -13554,7 +13585,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "modelagem estatistica pura (lanczos, chi2, gamma, binomial)",
@@ -13570,11 +13601,27 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "motor 2.0 e classificacao das 17 logicas",
       "rationale": "Divis\u00e3o em 10 l\u00f3gicas FDR (Fmin, Markov, Paridade, Gaps, etc.), 6 l\u00f3gicas Wide em bloco e 1 de Exaust\u00e3o Extrema com pontua\u00e7\u00e3o composta ponderada por genoma.",
+      "source_file": "docs/doc_bear_bot_differ/README.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_doc_bear_bot_differ_readme_pipeline_genetico_cascata",
+      "label": "Esteira Gen\u00e9tica e Valida\u00e7\u00e3o Tripla",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 131,
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
+      "contributor": null,
+      "file_type": "concept",
+      "norm_label": "esteira genetica e validacao tripla",
+      "rationale": "Garante estrat\u00e9gias robustas contra overfitting particionando dados em A (descoberta), B (valida\u00e7\u00e3o FDR) e C (reserva com 50 permuta\u00e7\u00f5es de Monte Carlo).",
       "source_file": "docs/doc_bear_bot_differ/README.md",
       "source_location": null,
       "source_url": null
@@ -13586,7 +13633,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "pontuacao composta de digitos (scoreall)",
@@ -13602,7 +13649,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "simulacao de ruina de monte carlo",
@@ -13618,27 +13665,12 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "concept",
       "norm_label": "teste de quebra de regime (drift test)",
       "rationale": "Compara distribui\u00e7\u00f5es da 1\u00aa e 2\u00aa metade da amostra via dist\u00e2ncia estat\u00edstica para detectar altera\u00e7\u00f5es estruturais no gerador da corretora.",
       "source_file": "docs/doc_bear_bot_differ/README.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "docs_code_review_bear_bot_differ_relatorio_code_review",
-      "label": "Relat\u00f3rio de Code Review Bear Bot Differ v3.5",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "contributor": null,
-      "file_type": "document",
-      "norm_label": "relatorio de code review bear bot differ v3.5",
-      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
       "source_location": null,
       "source_url": null
     },
@@ -13649,7 +13681,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "document",
       "norm_label": "manual do usuario bear bot differ",
@@ -13664,43 +13696,11 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "document",
       "norm_label": "manual tecnico de arquitetura bear bot differ",
       "source_file": "docs/doc_bear_bot_differ/README.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "docs_code_review_bear_bot_differ_paridade_funcional",
-      "label": "Paridade Funcional e Matem\u00e1tica Bear Differ",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "contributor": null,
-      "file_type": "rationale",
-      "norm_label": "paridade funcional e matematica bear differ",
-      "rationale": "Garantir 100% de paridade conceitual, matem\u00e1tica e funcional com o legado bearDifferIA.html e manuais, seguindo o padr\u00e3o desacoplado do Bear Bot Ultra 2.",
-      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "docs_code_review_bear_bot_differ_safety_guards_gating",
-      "label": "Safety Guards e Gating de Modo Real",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "contributor": null,
-      "file_type": "rationale",
-      "norm_label": "safety guards e gating de modo real",
-      "rationale": "Valida\u00e7\u00e3o impeditiva via checkGuards para travar execu\u00e7\u00f5es reais e autom\u00e1ticas se a assertividade m\u00ednima da sess\u00e3o ou limites de perda forem ultrapassados.",
-      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
       "source_location": null,
       "source_url": null
     },
@@ -13711,27 +13711,11 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "rationale",
       "norm_label": "regras de ouro de gestao de risco differ",
       "rationale": "Respeito incondicional ao Stop Loss, uso obrigat\u00f3rio de Loss Virtual em conta real, metas di\u00e1rias de 1-3% e prefer\u00eancia por Martingale Parcial.",
-      "source_file": "docs/doc_bear_bot_differ/MANUAL_DO_USUARIO.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "docs_doc_bear_bot_differ_manual_do_usuario_virtual_loss_gating",
-      "label": "Gatilho de Loss Virtual com Repick",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 131,
-      "community_name": "useBearDiffer.ts",
-      "contributor": null,
-      "file_type": "rationale",
-      "norm_label": "gatilho de loss virtual com repick",
-      "rationale": "Calcula entradas em segundo plano e aguarda derrotas simuladas consecutivas para armar o gatilho, isolando o d\u00edgito perdedor com repick antes de arriscar saldo real.",
       "source_file": "docs/doc_bear_bot_differ/MANUAL_DO_USUARIO.md",
       "source_location": null,
       "source_url": null
@@ -13743,7 +13727,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "rationale",
       "norm_label": "separacao de responsabilidades (soc) bear differ",
@@ -13759,7 +13743,7 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "rationale",
       "norm_label": "controle fdr de benjamini-hochberg (q=0.10)",
@@ -13775,12 +13759,139 @@
       "author": null,
       "captured_at": null,
       "community": 131,
-      "community_name": "useBearDiffer.ts",
+      "community_name": "Manual T\u00e9cnico de Arquitetura Bear Bot Differ",
       "contributor": null,
       "file_type": "rationale",
       "norm_label": "criterio de kelly fracionario (half & quarter kelly)",
       "rationale": "Determina\u00e7\u00e3o matem\u00e1tica da fra\u00e7\u00e3o ideal de aloca\u00e7\u00e3o de banca ajustada para o payout assim\u00e9trico do Differ, mitigando volatilidade extrema.",
       "source_file": "docs/doc_bear_bot_differ/README.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_code_review_bear_bot_differ_fast_exec_proposal_keeper",
+      "label": "Fast Execution via Proposal Keeper",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "contributor": null,
+      "file_type": "concept",
+      "norm_label": "fast execution via proposal keeper",
+      "rationale": "Assinatura proativa de propostas abertas no WebSocket (proposal: 1, subscribe: 1) para permitir execu\u00e7\u00e3o imediata sub-10ms no disparo da ordem.",
+      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_code_review_bear_bot_differ_live_tracking_virtstats",
+      "label": "Live Tracking de Assertividade Virtual (virtStats)",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "contributor": null,
+      "file_type": "concept",
+      "norm_label": "live tracking de assertividade virtual (virtstats)",
+      "rationale": "Prev\u00ea o d\u00edgito alvo a cada tick e resolve no tick seguinte com vsignal para alimentar o medidor de assertividade em tempo real.",
+      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_code_review_bear_bot_differ_next_tick_settlement",
+      "label": "Next-Tick Settlement em Simula\u00e7\u00e3o",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "contributor": null,
+      "file_type": "concept",
+      "norm_label": "next-tick settlement em simulacao",
+      "rationale": "Garantir fidelidade estrita ao mercado aguardando a cota\u00e7\u00e3o do tick seguinte via deriv.tick antes de liquidar o contrato simulado.",
+      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_doc_bear_bot_differ_readme_extracao_digito_pip_size",
+      "label": "Extra\u00e7\u00e3o de D\u00edgitos via Pip Size por Ativo",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "contributor": null,
+      "file_type": "concept",
+      "norm_label": "extracao de digitos via pip size por ativo",
+      "rationale": "Tratamento de precis\u00e3o decimal com multiplica\u00e7\u00e3o inteira evitando imprecis\u00f5es de float (pip_size=3 para R_10-R_100, pip_size=2 para 1HZ).",
+      "source_file": "docs/doc_bear_bot_differ/README.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_code_review_bear_bot_differ_relatorio_code_review",
+      "label": "Relat\u00f3rio de Code Review Bear Bot Differ v3.5",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "contributor": null,
+      "file_type": "document",
+      "norm_label": "relatorio de code review bear bot differ v3.5",
+      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_code_review_bear_bot_differ_paridade_funcional",
+      "label": "Paridade Funcional e Matem\u00e1tica Bear Differ",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "contributor": null,
+      "file_type": "rationale",
+      "norm_label": "paridade funcional e matematica bear differ",
+      "rationale": "Garantir 100% de paridade conceitual, matem\u00e1tica e funcional com o legado bearDifferIA.html e manuais, seguindo o padr\u00e3o desacoplado do Bear Bot Ultra 2.",
+      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_code_review_bear_bot_differ_safety_guards_gating",
+      "label": "Safety Guards e Gating de Modo Real",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "contributor": null,
+      "file_type": "rationale",
+      "norm_label": "safety guards e gating de modo real",
+      "rationale": "Valida\u00e7\u00e3o impeditiva via checkGuards para travar execu\u00e7\u00f5es reais e autom\u00e1ticas se a assertividade m\u00ednima da sess\u00e3o ou limites de perda forem ultrapassados.",
+      "source_file": "docs/CODE_REVIEW_BEAR_BOT_DIFFER.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
+      "id": "docs_doc_bear_bot_differ_manual_do_usuario_virtual_loss_gating",
+      "label": "Gatilho de Loss Virtual com Repick",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "useBearDiffer.ts",
+      "contributor": null,
+      "file_type": "rationale",
+      "norm_label": "gatilho de loss virtual com repick",
+      "rationale": "Calcula entradas em segundo plano e aguarda derrotas simuladas consecutivas para armar o gatilho, isolando o d\u00edgito perdedor com repick antes de arriscar saldo real.",
+      "source_file": "docs/doc_bear_bot_differ/MANUAL_DO_USUARIO.md",
       "source_location": null,
       "source_url": null
     },
@@ -14611,22 +14722,6 @@
       "norm_label": "graph.json shrink guard",
       "rationale": "to_json returns False rather than writing a graph smaller than the existing one (#479); the report and analysis sidecar are only written when the graph was actually written, so they never describe a graph graph.json doesn't contain (#1392).",
       "source_file": ".agents/skills/graphify/SKILL.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "docs_doc_bear_bot_differ_readme_pipeline_genetico_cascata",
-      "label": "Esteira Gen\u00e9tica e Valida\u00e7\u00e3o Tripla",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 20,
-      "community_name": ".runPipeline",
-      "contributor": null,
-      "file_type": "concept",
-      "norm_label": "esteira genetica e validacao tripla",
-      "rationale": "Garante estrat\u00e9gias robustas contra overfitting particionando dados em A (descoberta), B (valida\u00e7\u00e3o FDR) e C (reserva com 50 permuta\u00e7\u00f5es de Monte Carlo).",
-      "source_file": "docs/doc_bear_bot_differ/README.md",
       "source_location": null,
       "source_url": null
     },
@@ -22316,7 +22411,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L841",
+      "source_location": "L857",
       "weight": 1.0
     },
     {
@@ -22340,7 +22435,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L908",
+      "source_location": "L924",
       "weight": 1.0
     },
     {
@@ -22352,7 +22447,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L909",
+      "source_location": "L925",
       "weight": 1.0
     },
     {
@@ -22369,18 +22464,6 @@
     },
     {
       "source": "src_app_services_beardifferengine_beardifferengine_exhaustblock",
-      "target": "src_app_services_beardifferengine_beardifferengine_getlosercount",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1001",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_beardifferengine_beardifferengine_exhaustblock",
       "target": "src_app_services_beardifferengine_beardifferengine_getexhaustion",
       "relation": "calls",
       "_origin": "ast",
@@ -22388,7 +22471,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L996",
+      "source_location": "L1012",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine_exhaustblock",
+      "target": "src_app_services_beardifferengine_beardifferengine_getlosercount",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1017",
       "weight": 1.0
     },
     {
@@ -22400,7 +22495,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1577",
+      "source_location": "L1593",
       "weight": 1.0
     },
     {
@@ -22412,7 +22507,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1589",
+      "source_location": "L1605",
       "weight": 1.0
     },
     {
@@ -22436,7 +22531,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1062",
+      "source_location": "L1078",
       "weight": 1.0
     },
     {
@@ -22448,7 +22543,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1077",
+      "source_location": "L1093",
       "weight": 1.0
     },
     {
@@ -22460,7 +22555,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1492",
+      "source_location": "L1508",
       "weight": 1.0
     },
     {
@@ -22472,7 +22567,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1501",
+      "source_location": "L1517",
       "weight": 1.0
     },
     {
@@ -22484,7 +22579,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L898",
+      "source_location": "L914",
       "weight": 1.0
     },
     {
@@ -22496,7 +22591,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1623",
+      "source_location": "L1639",
       "weight": 1.0
     },
     {
@@ -22508,7 +22603,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1548",
+      "source_location": "L1564",
       "weight": 1.0
     },
     {
@@ -22520,7 +22615,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L732",
+      "source_location": "L748",
       "weight": 1.0
     },
     {
@@ -22532,7 +22627,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L735",
+      "source_location": "L751",
       "weight": 1.0
     },
     {
@@ -22652,7 +22747,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1019",
+      "source_location": "L1035",
       "weight": 1.0
     },
     {
@@ -22664,7 +22759,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1519",
+      "source_location": "L1535",
       "weight": 1.0
     },
     {
@@ -22676,7 +22771,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1520",
+      "source_location": "L1536",
       "weight": 1.0
     },
     {
@@ -22712,7 +22807,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1631",
+      "source_location": "L1665",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine_resolvelogic",
+      "target": "src_app_services_beardifferengine_beardifferengine_topaccuracylogic",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1667",
       "weight": 1.0
     },
     {
@@ -22724,7 +22831,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L511",
+      "source_location": "L530",
       "weight": 1.0
     },
     {
@@ -22736,7 +22843,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L521",
+      "source_location": "L540",
       "weight": 1.0
     },
     {
@@ -22748,7 +22855,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1657",
+      "source_location": "L1693",
       "weight": 1.0
     },
     {
@@ -22760,7 +22867,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1670",
+      "source_location": "L1706",
       "weight": 1.0
     },
     {
@@ -22772,7 +22879,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1702",
+      "source_location": "L1738",
       "weight": 1.0
     },
     {
@@ -22784,7 +22891,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2082",
+      "source_location": "L2118",
       "weight": 1.0
     },
     {
@@ -22796,7 +22903,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2109",
+      "source_location": "L2145",
       "weight": 1.0
     },
     {
@@ -22808,7 +22915,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2110",
+      "source_location": "L2146",
       "weight": 1.0
     },
     {
@@ -22820,7 +22927,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2112",
+      "source_location": "L2148",
       "weight": 1.0
     },
     {
@@ -22832,7 +22939,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2145",
+      "source_location": "L2181",
       "weight": 1.0
     },
     {
@@ -22844,7 +22951,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2149",
+      "source_location": "L2185",
       "weight": 1.0
     },
     {
@@ -22856,7 +22963,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2168",
+      "source_location": "L2204",
       "weight": 1.0
     },
     {
@@ -22868,55 +22975,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1959",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_beardifferengine_beardifferengine_runwatch",
-      "target": "src_app_services_beardifferengine_beardifferengine_runbiastests",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L932",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_beardifferengine_beardifferengine_runwatch",
-      "target": "src_app_services_beardiffermath_binomp",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L943",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_beardifferengine_beardifferengine_runwatch",
-      "target": "src_app_services_beardifferengine_beardifferengine_getdigits",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L964",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_beardifferengine_beardifferengine_runwatch",
-      "target": "src_app_services_beardifferengine_beardifferengine_addanomaly",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L978",
+      "source_location": "L1995",
       "weight": 1.0
     },
     {
@@ -22928,7 +22987,55 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L987",
+      "source_location": "L1003",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine_runwatch",
+      "target": "src_app_services_beardifferengine_beardifferengine_runbiastests",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L948",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine_runwatch",
+      "target": "src_app_services_beardiffermath_binomp",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L959",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine_runwatch",
+      "target": "src_app_services_beardifferengine_beardifferengine_getdigits",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L980",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine_runwatch",
+      "target": "src_app_services_beardifferengine_beardifferengine_addanomaly",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L994",
       "weight": 1.0
     },
     {
@@ -22976,7 +23083,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1833",
+      "source_location": "L1869",
       "weight": 1.0
     },
     {
@@ -22988,7 +23095,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1889",
+      "source_location": "L1925",
       "weight": 1.0
     },
     {
@@ -23000,7 +23107,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1910",
+      "source_location": "L1946",
       "weight": 1.0
     },
     {
@@ -23012,7 +23119,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L751",
+      "source_location": "L767",
       "weight": 1.0
     },
     {
@@ -23024,7 +23131,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L575",
+      "source_location": "L594",
       "weight": 1.0
     },
     {
@@ -23036,7 +23143,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L585",
+      "source_location": "L604",
       "weight": 1.0
     },
     {
@@ -23048,7 +23155,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L615",
+      "source_location": "L634",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine_targetformarket",
+      "target": "src_app_services_beardifferengine_beardifferengine_motivosemlogica",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L640",
       "weight": 1.0
     },
     {
@@ -23060,7 +23179,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L630",
+      "source_location": "L646",
       "weight": 1.0
     },
     {
@@ -23072,7 +23191,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L680",
+      "source_location": "L696",
       "weight": 1.0
     },
     {
@@ -23084,7 +23203,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L699",
+      "source_location": "L715",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine_topaccuracylogic",
+      "target": "src_app_services_beardifferengine_beardifferengine_getlogicranking",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1652",
       "weight": 1.0
     },
     {
@@ -23108,7 +23239,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2221",
+      "source_location": "L2257",
       "weight": 1.0
     },
     {
@@ -25652,7 +25783,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L126",
+      "source_location": "L135",
       "weight": 1.0
     },
     {
@@ -25664,7 +25795,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L251",
+      "source_location": "L260",
       "weight": 1.0
     },
     {
@@ -25676,7 +25807,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L430",
+      "source_location": "L443",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_operationtab",
+      "target": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_primeirafrase",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
+      "source_location": "L480",
       "weight": 1.0
     },
     {
@@ -25688,7 +25831,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L469",
+      "source_location": "L484",
       "weight": 1.0
     },
     {
@@ -26744,7 +26887,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2193",
+      "source_location": "L2229",
       "weight": 1.0
     },
     {
@@ -31236,6 +31379,30 @@
       "weight": 1.0
     },
     {
+      "source": "src_tests_beardifferleadermodes_test",
+      "target": "src_app_services_beardifferengine_createdifferengine",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_beardifferleadermodes_test",
+      "target": "src_app_services_beardiffer_types_logicrankingrow",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
       "source": "src_tests_beardifferlogics_test",
       "target": "src_app_services_beardifferengine_beardifferengine",
       "relation": "imports",
@@ -33828,6 +33995,30 @@
       "weight": 1.0
     },
     {
+      "source": "src_tests_beardifferleadermodes_test",
+      "target": "src_app_services_beardifferengine",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_beardifferleadermodes_test",
+      "target": "src_app_services_beardiffer_types",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
       "source": "src_tests_beardifferlogics_test",
       "target": "src_app_services_beardifferengine",
       "relation": "imports_from",
@@ -34221,7 +34412,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L821",
+      "source_location": "L837",
       "weight": 1.0
     },
     {
@@ -34233,7 +34424,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1913",
+      "source_location": "L1949",
       "weight": 1.0
     },
     {
@@ -34245,7 +34436,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1913",
+      "source_location": "L1949",
       "weight": 1.0
     },
     {
@@ -34257,7 +34448,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L760",
+      "source_location": "L776",
       "weight": 1.0
     },
     {
@@ -34473,7 +34664,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1568",
+      "source_location": "L1584",
       "weight": 1.0
     },
     {
@@ -34485,7 +34676,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1024",
+      "source_location": "L1040",
       "weight": 1.0
     },
     {
@@ -34497,7 +34688,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2053",
+      "source_location": "L2089",
       "weight": 1.0
     },
     {
@@ -34509,7 +34700,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2031",
+      "source_location": "L2067",
       "weight": 1.0
     },
     {
@@ -34521,7 +34712,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1656",
+      "source_location": "L1692",
       "weight": 1.0
     },
     {
@@ -34654,6 +34845,17 @@
       "context": "type",
       "source_file": "src/app/models/BotConfig.ts",
       "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "erro",
+      "target": "erro_l\u00f3gica_tag_amostra_acerto_p_valor_corrigido_situa\u00e7\u00e3o",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "erro.md",
+      "source_location": "L2",
       "weight": 1.0
     },
     {
@@ -36765,7 +36967,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2192",
+      "source_location": "L2228",
       "weight": 1.0
     },
     {
@@ -36776,7 +36978,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2209",
+      "source_location": "L2245",
       "weight": 1.0
     },
     {
@@ -36787,7 +36989,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2218",
+      "source_location": "L2254",
       "weight": 1.0
     },
     {
@@ -37540,7 +37742,7 @@
     },
     {
       "source": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab",
-      "target": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_textoconf",
+      "target": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_primeirafrase",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -37551,13 +37753,24 @@
     },
     {
       "source": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab",
+      "target": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_textoconf",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab",
       "target": "src_app_withsidebar_bear_bot_differ_components_tabs_operationtab_descrevemetrica",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L47",
+      "source_location": "L56",
       "weight": 1.0
     },
     {
@@ -37568,7 +37781,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L54",
+      "source_location": "L63",
       "weight": 1.0
     },
     {
@@ -39673,6 +39886,28 @@
       "weight": 1.0
     },
     {
+      "source": "src_tests_beardifferleadermodes_test",
+      "target": "src_tests_beardifferleadermodes_test_linha",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_beardifferleadermodes_test",
+      "target": "src_tests_beardifferleadermodes_test_rnd",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/__tests__/bearDifferLeaderModes.test.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "src_tests_beardiffermanualentryui_test",
       "target": "src_tests_beardiffermanualentryui_test_saturated",
       "relation": "contains",
@@ -41165,13 +41400,24 @@
     },
     {
       "source": "src_app_services_beardifferengine_beardifferengine",
+      "target": "src_app_services_beardifferengine_beardifferengine_exhaustblock",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1010",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine",
       "target": "src_app_services_beardifferengine_beardifferengine_getlosercount",
       "relation": "method",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1007",
+      "source_location": "L1023",
       "weight": 1.0
     },
     {
@@ -41182,7 +41428,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1012",
+      "source_location": "L1028",
       "weight": 1.0
     },
     {
@@ -41193,7 +41439,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1024",
+      "source_location": "L1040",
       "weight": 1.0
     },
     {
@@ -41204,7 +41450,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1028",
+      "source_location": "L1044",
       "weight": 1.0
     },
     {
@@ -41215,7 +41461,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1513",
+      "source_location": "L1529",
       "weight": 1.0
     },
     {
@@ -41226,7 +41472,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1524",
+      "source_location": "L1540",
       "weight": 1.0
     },
     {
@@ -41237,7 +41483,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1559",
+      "source_location": "L1575",
       "weight": 1.0
     },
     {
@@ -41248,7 +41494,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1563",
+      "source_location": "L1579",
       "weight": 1.0
     },
     {
@@ -41259,7 +41505,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1568",
+      "source_location": "L1584",
       "weight": 1.0
     },
     {
@@ -41270,7 +41516,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1617",
+      "source_location": "L1633",
       "weight": 1.0
     },
     {
@@ -41281,7 +41527,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1622",
+      "source_location": "L1638",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine",
+      "target": "src_app_services_beardifferengine_beardifferengine_topaccuracylogic",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1650",
       "weight": 1.0
     },
     {
@@ -41292,7 +41549,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1627",
+      "source_location": "L1661",
       "weight": 1.0
     },
     {
@@ -41303,7 +41560,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1656",
+      "source_location": "L1692",
       "weight": 1.0
     },
     {
@@ -41314,18 +41571,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1741",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_beardifferengine_beardifferengine",
-      "target": "src_app_services_beardifferengine_beardifferengine_preparetrade",
-      "relation": "method",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1776",
+      "source_location": "L1777",
       "weight": 1.0
     },
     {
@@ -41341,24 +41587,24 @@
     },
     {
       "source": "src_app_services_beardifferengine_beardifferengine",
+      "target": "src_app_services_beardifferengine_beardifferengine_preparetrade",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1812",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine",
       "target": "src_app_services_beardifferengine_beardifferengine_settlecontract",
       "relation": "method",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1793",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_beardifferengine_beardifferengine",
-      "target": "src_app_services_beardifferengine_beardifferengine_runstrategy",
-      "relation": "method",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L1913",
+      "source_location": "L1829",
       "weight": 1.0
     },
     {
@@ -41370,6 +41616,17 @@
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
       "source_location": "L192",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine",
+      "target": "src_app_services_beardifferengine_beardifferengine_runstrategy",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L1949",
       "weight": 1.0
     },
     {
@@ -41391,7 +41648,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2031",
+      "source_location": "L2067",
       "weight": 1.0
     },
     {
@@ -41402,7 +41659,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2053",
+      "source_location": "L2089",
       "weight": 1.0
     },
     {
@@ -41413,7 +41670,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L2076",
+      "source_location": "L2112",
       "weight": 1.0
     },
     {
@@ -41583,13 +41840,24 @@
     },
     {
       "source": "src_app_services_beardifferengine_beardifferengine",
+      "target": "src_app_services_beardifferengine_beardifferengine_motivosemlogica",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/BearDifferEngine.ts",
+      "source_location": "L507",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_beardifferengine_beardifferengine",
       "target": "src_app_services_beardifferengine_beardifferengine_resolvetarget",
       "relation": "method",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L510",
+      "source_location": "L529",
       "weight": 1.0
     },
     {
@@ -41600,7 +41868,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L549",
+      "source_location": "L568",
       "weight": 1.0
     },
     {
@@ -41611,7 +41879,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L561",
+      "source_location": "L580",
       "weight": 1.0
     },
     {
@@ -41622,7 +41890,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L719",
+      "source_location": "L735",
       "weight": 1.0
     },
     {
@@ -41633,7 +41901,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L744",
+      "source_location": "L760",
       "weight": 1.0
     },
     {
@@ -41644,7 +41912,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L749",
+      "source_location": "L765",
       "weight": 1.0
     },
     {
@@ -41655,7 +41923,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L754",
+      "source_location": "L770",
       "weight": 1.0
     },
     {
@@ -41666,7 +41934,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L760",
+      "source_location": "L776",
       "weight": 1.0
     },
     {
@@ -41677,7 +41945,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L821",
+      "source_location": "L837",
       "weight": 1.0
     },
     {
@@ -41688,7 +41956,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L860",
+      "source_location": "L876",
       "weight": 1.0
     },
     {
@@ -41699,7 +41967,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L897",
+      "source_location": "L913",
       "weight": 1.0
     },
     {
@@ -41710,7 +41978,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L906",
+      "source_location": "L922",
       "weight": 1.0
     },
     {
@@ -41721,18 +41989,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L924",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_beardifferengine_beardifferengine",
-      "target": "src_app_services_beardifferengine_beardifferengine_exhaustblock",
-      "relation": "method",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/services/BearDifferEngine.ts",
-      "source_location": "L994",
+      "source_location": "L940",
       "weight": 1.0
     },
     {
@@ -51910,5 +52167,5 @@
       "source_file": "docs/documentacao_deriv/api_reference/docs/system.md"
     }
   ],
-  "built_at_commit": "f460908661bc1ceabad3fe8d726ca581d67b90a2"
+  "built_at_commit": "644e733f467b6593f00ba8c7ee6bcb213cc26c8d"
 }

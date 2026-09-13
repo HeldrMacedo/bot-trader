@@ -31,8 +31,10 @@ describe('BearDiffer - fonte do sinal do modo automático', () => {
     capture();
   });
 
-  it('nasce em motor2 para não mudar o comportamento de quem já opera', () => {
-    expect(DEFAULT_DIFFER_CONFIG.autoSource).toBe('motor2');
+  it('nasce exigindo concordância entre motor e lógica', () => {
+    // O padrão é o modo mais restritivo: só entra quando as duas fontes
+    // independentes apontam o mesmo dígito.
+    expect(DEFAULT_DIFFER_CONFIG.autoSource).toBe('both');
   });
 
   it('em motor2 dispara no dígito do motor e atribui a entrada a ele', () => {
