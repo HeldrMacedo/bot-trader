@@ -9,7 +9,8 @@
     "lint": "eslint \"src/app/(withSidebar)/bot-strategy/**/*.{ts,tsx}\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@deriv/deriv-api": "^1.0.15",

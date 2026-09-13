@@ -337,16 +337,48 @@ Se habilitado:
 
 ## 7. Verificação de Qualidade e Cobertura de Testes
 
-O módulo foi integralmente desenvolvido e validado por meio de Test-Driven Development (TDD). A suíte de testes contempla:
+O módulo é desenvolvido por Test-Driven Development: cada mudança começa por um teste que falha pelo motivo certo.
 
-| Arquivo de Teste | Escopo dos Testes | Cobertura |
-| :--- | :--- | :---: |
-| `bearDifferMath.test.ts` | Fórmulas matemáticas, Lanczos, Chi², FDR, Binomial, Kelly e Ruína | 100% |
-| `bearDifferEngine.test.ts` | Ingestão de ticks, histórico, score Motor 2.0, Martingale normal e parcial | 100% |
-| `bearDifferEngineAdvanced.test.ts` | 17 lógicas, ranking FDR, lStatsM por mercado, runBiasTests e pipeline | 100% |
-| `useBearDiffer.test.ts` | Hook reativo, Deriv WebSocket, fastExec, virtual loss gating e guards | 100% |
-| `bearBotDifferUI.test.tsx` | Renderização do layout, abas, ConfigSidebar e eventos de usuário | 100% |
-| `bearDifferAnalyticalTabs.test.tsx` | Renderização e comportamento interativo das 8 abas analíticas | 100% |
-| `bearBotDifferPageAccess.test.tsx` | Rota Next.js, proteção de rota e autenticação | 100% |
+### 7.1. Piso de cobertura verificado por máquina
 
-**Total de Testes:** **238 testes unitários e de integração aprovados (0 falhas).**
+O `vitest.config.ts` mede cobertura apenas dos arquivos deste trabalho e exige **90% por arquivo** em `statements`, `lines` e `functions`:
+
+```
+npm run test:coverage
+```
+
+Ramos ficam medidos e visíveis, porém sem travar: cobrir todo ramo de apresentação custa testes que não provam comportamento algum.
+
+O piso é **por arquivo** (`perFile: true`). Uma média deixaria o motor, já bem coberto, carregar os demais sem que o arquivo mais fraco melhorasse — e o arquivo mais fraco costuma ser justamente o que acabou de mudar.
+
+**Armadilha documentada:** o `include` não pode conter o segmento literal `(withSidebar)`. Parênteses são sintaxe de grupo em glob, e o padrão deixa de casar **em silêncio** — a cobertura passa a reportar sucesso sobre um arquivo que nunca foi medido. Por isso o padrão usado é `src/app/**/bear-bot-differ/components/tabs/OperationTab.tsx`. Para confirmar que o piso está ativo, eleve-o temporariamente e verifique que a execução falha nomeando os três arquivos.
+
+### 7.2. Medição atual
+
+| Arquivo | Statements | Functions | Lines | Branches |
+| :--- | :---: | :---: | :---: | :---: |
+| `BearDifferEngine.ts` | 96.94% | 98.52% | 97.81% | 89.25% |
+| `useBearDiffer.ts` | 99.14% | 92.85% | 99.54% | 80.00% |
+| `OperationTab.tsx` | 96.00% | 100% | 97.87% | 83.98% |
+
+### 7.3. Suíte
+
+| Arquivo de Teste | Escopo |
+| :--- | :--- |
+| `bearDifferMath.test.ts` | Fórmulas: Lanczos, χ², FDR, binomial, Kelly e ruína |
+| `bearDifferEngine.test.ts` | Ingestão de ticks, histórico, score do Motor 2.0, Martingale |
+| `bearDifferEngineAdvanced.test.ts` | Lógicas, ranking FDR, estatística por mercado, bateria e pipeline |
+| `bearDifferAllLogicsMeasured.test.ts` | As 17 lógicas medidas e ranqueadas sem configuração extra |
+| `bearDifferLeaderModes.test.ts` | Líder aprovada no teste versus líder por acerto medido |
+| `bearDifferAutoSource.test.ts` | Fonte do sinal no modo automático |
+| `bearDifferManualTarget.test.ts` | Varredura de alvo, desempate e travas da entrada manual |
+| `bearDifferManualEntryUI.test.tsx` | Botão de entrada manual e leitura honesta do card |
+| `bearDifferOperationControls.test.tsx` | Controles do painel de operação |
+| `useBearDiffer.test.ts` | Hook reativo, WebSocket, execução rápida, loss virtual e guards |
+| `useBearDifferPaths.test.ts` | Assinatura de mercados, propostas, conta e exportação |
+| `bearBotDifferUI.test.tsx` | Layout, abas e barra de configuração |
+| `bearDifferAnalyticalTabs.test.tsx` | Comportamento das abas analíticas |
+| `bearBotDifferPageAccess.test.tsx` | Rota Next.js e proteção de acesso |
+
+**669 testes aprovados.** A falha de `sharedRules.test.ts` é anterior a este trabalho e não tem relação com o módulo: o arquivo importa `src/app/api/shared-rules/route`, que não existe no repositório.
+
