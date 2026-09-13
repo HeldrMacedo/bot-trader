@@ -1,7 +1,7 @@
 {
   ".claude/settings.local.json": {
-    "mtime": 1789244836.474865,
-    "seen": 1789246194.7335305,
+    "mtime": 1789311241.9113925,
+    "seen": 1789314386.746482,
     "ast_hash": "375e0fb68971a67211cb4bcff449bd0f",
     "semantic_hash": ""
   },
@@ -1434,9 +1434,9 @@
     "semantic_hash": "5026973f6b0c34a77b2e841ab5aaa5a1"
   },
   "src/app/services/beardiffer.types.ts": {
-    "mtime": 1789225927.3389432,
-    "seen": 1789246194.7364118,
-    "ast_hash": "ca9be90f4577c97b6997b7f77b1752d2",
+    "mtime": 1789314323.8936794,
+    "seen": 1789314386.7500741,
+    "ast_hash": "f9f30981a699530ef1264474340d3d61",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferEngine.test.ts": {
@@ -1446,9 +1446,9 @@
     "semantic_hash": "012a7501cfd7f4a536c0c05a2fd0a188"
   },
   "src/app/services/BearDifferEngine.ts": {
-    "mtime": 1789225927.3609433,
-    "seen": 1789246194.736347,
-    "ast_hash": "9dd4060c526f5b8a4619cdfdb8e30d41",
+    "mtime": 1789314323.8936794,
+    "seen": 1789314386.7499626,
+    "ast_hash": "8f5cda25e5216a3d62a7cf3ffe090441",
     "semantic_hash": ""
   },
   "src/__tests__/bearBotDifferPageAccess.test.tsx": {
@@ -1464,10 +1464,10 @@
     "semantic_hash": "61cacf71843ce64fd033b9a28504ce0b"
   },
   "src/__tests__/useBearDiffer.test.ts": {
-    "mtime": 1789225927.2819428,
-    "seen": 1789246194.7345083,
-    "ast_hash": "03f42dffac49c8f246a20cbb24230312",
-    "semantic_hash": "03f42dffac49c8f246a20cbb24230312"
+    "mtime": 1789314323.8930523,
+    "seen": 1789314386.7478101,
+    "ast_hash": "37b2a4d51129991d46018b9b3356e720",
+    "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/BearBotDiffer.tsx": {
     "mtime": 1789225927.2819428,
@@ -1494,10 +1494,10 @@
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx": {
-    "mtime": 1789225927.2819428,
-    "seen": 1789246194.7345436,
-    "ast_hash": "a48674a6462d7aa488f8a894f958a61b",
-    "semantic_hash": "a48674a6462d7aa488f8a894f958a61b"
+    "mtime": 1789317260.6338875,
+    "seen": 1789317473.499684,
+    "ast_hash": "120bb08eabab9862df7273b0526169b4",
+    "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx": {
     "mtime": 1789225927.2599425,
@@ -1536,10 +1536,10 @@
     "semantic_hash": "0ff1f82e1dae241e359fc1c8e2eb5aa2"
   },
   "src/app/hooks/useBearDiffer.ts": {
-    "mtime": 1789225927.2819428,
-    "seen": 1789246194.736022,
-    "ast_hash": "f6af77b5e1e8200ac37282a7f87864fa",
-    "semantic_hash": "f6af77b5e1e8200ac37282a7f87864fa"
+    "mtime": 1789314323.8930523,
+    "seen": 1789314386.7496412,
+    "ast_hash": "4ac5645fd8a967de66ec8407077ab389",
+    "semantic_hash": ""
   },
   "src/__tests__/bearDifferAnalyticalTabs.test.tsx": {
     "mtime": 1789225927.2809427,
@@ -1566,10 +1566,10 @@
     "semantic_hash": "629396d520dd2fda1f604e771bdbf2d8"
   },
   "docs/doc_bear_bot_differ/README.md": {
-    "mtime": 1789225927.2237566,
-    "seen": 1789246194.737326,
-    "ast_hash": "fce9c19f5f1812449ac9011dab0a89fa",
-    "semantic_hash": "fce9c19f5f1812449ac9011dab0a89fa"
+    "mtime": 1789314377.7787673,
+    "seen": 1789314386.7512972,
+    "ast_hash": "3eb00a8cf73370a66a99a66ba995b7ce",
+    "semantic_hash": ""
   },
   "src/__tests__/bearDifferLogics.test.ts": {
     "mtime": 1789225927.2589426,
@@ -1602,15 +1602,15 @@
     "semantic_hash": "7201bbaf81c882b281b030911b3830bc"
   },
   ".claude/.headroom_wrap_marker.json": {
-    "mtime": 1789244836.4656324,
-    "seen": 1789246194.73352,
-    "ast_hash": "35a195ca74630b18bb2d919ab518523b",
+    "mtime": 1789311241.9049091,
+    "seen": 1789314386.7464192,
+    "ast_hash": "82584d1454b92a62db3f35a6b6f172e3",
     "semantic_hash": ""
   },
   ".claude/.headroom_wrap_owners.json": {
-    "mtime": 1789244836.4713073,
-    "seen": 1789246194.7335255,
-    "ast_hash": "3540c145e5eeba000ceb687456b9e4a4",
+    "mtime": 1789311241.9079225,
+    "seen": 1789314386.7464244,
+    "ast_hash": "a907e11e3ab1b4e274b01d75d8079973",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferTabConfigPersistence.test.tsx": {
@@ -1647,6 +1647,18 @@
     "mtime": 1789246141.5325196,
     "seen": 1789246194.7340996,
     "ast_hash": "4e78ddfde80c674201c34c023db4b857",
+    "semantic_hash": ""
+  },
+  "src/__tests__/bearDifferAutoSource.test.ts": {
+    "mtime": 1789314217.6210248,
+    "seen": 1789314386.7472844,
+    "ast_hash": "1d74a2c87c2a4de45a4901c9514894f1",
+    "semantic_hash": ""
+  },
+  "src/__tests__/bearDifferAutoSourceUI.test.tsx": {
+    "mtime": 1789314341.9082162,
+    "seen": 1789314386.7472858,
+    "ast_hash": "c158eea47e666ec34749664ea87ff5fb",
     "semantic_hash": ""
   }
 }

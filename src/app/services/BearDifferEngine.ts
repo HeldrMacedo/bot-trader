@@ -33,6 +33,11 @@ import {
  */
 export const BIAS_MIN_SAMPLE = 200;
 
+/**
+ * Validade da lógica resolvida para o modo automático, em milissegundos.
+ */
+const AUTO_LOGIC_TTL = 5000;
+
 export interface BiasVerdict {
   /** Ticks disponíveis no mercado */
   n: number;
@@ -57,6 +62,20 @@ export interface ScoreResult {
   freq?: number[];
   w?: number;
   sym?: string;
+}
+
+/**
+ * Alvo resolvido do modo automático. Ou traz o dígito a operar e a lógica que
+ * responde por ele, ou traz o motivo de não haver alvo.
+ */
+export interface AutoTarget {
+  /** Por que esta fonte não produziu alvo, ou null quando produziu */
+  reason: string | null;
+  /** Causa sem os números que mudam a cada tick, para deduplicar o log */
+  key: string;
+  digit: number;
+  /** 'motor2' ou o id da lógica que escolheu o dígito */
+  logicId: string;
 }
 
 export interface EngineState {
@@ -127,9 +146,12 @@ export class BearDifferEngine {
   private liveP: Record<string, Record<string, LogicPick>> = {};
   private vsignal = new Map<string, { digit: number; score: number }>();
   private rotateIdx = 0;
+  private autoLogicCache: { id: string | null; at: number } | null = null;
 
   private subscribers: Array<(state: EngineState) => void> = [];
-  private autoTradeSubscribers: Array<(sym: string, digit: number) => void> = [];
+  private autoTradeSubscribers: Array<
+    (sym: string, digit: number, logicId: string) => void
+  > = [];
 
   constructor(initialConfig?: Partial<DifferConfig>) {
     this.config = { ...DEFAULT_DIFFER_CONFIG, ...initialConfig };
@@ -183,6 +205,9 @@ export class BearDifferEngine {
       this.autoIdleReason = null;
       this.autoIdleKeys.clear();
     }
+    if (newConfig.onceLogic !== undefined || newConfig.autoSource !== undefined) {
+      this.autoLogicCache = null;
+    }
     this.config = { ...this.config, ...newConfig };
     if (newConfig.stake !== undefined && this.mgLevel === 0) {
       this.curStake = newConfig.stake;
@@ -204,7 +229,9 @@ export class BearDifferEngine {
     };
   }
 
-  public onAutoTrade(cb: (sym: string, digit: number) => void): () => void {
+  public onAutoTrade(
+    cb: (sym: string, digit: number, logicId: string) => void
+  ): () => void {
     this.autoTradeSubscribers.push(cb);
     return () => {
       this.autoTradeSubscribers = this.autoTradeSubscribers.filter((s) => s !== cb);
@@ -236,6 +263,7 @@ export class BearDifferEngine {
     this.losers.clear();
     this.vsignal.clear();
     this.rotateIdx = 0;
+    this.autoLogicCache = null;
     this.initLogics();
     this.notify();
   }
@@ -356,6 +384,10 @@ export class BearDifferEngine {
         // Guard é parada dura: o legado faz `S.auto=false` e avisa uma vez.
         let halt = false;
         let fire = false;
+        // Alvo da entrada segundo a fonte configurada. Precisa ser resolvido
+        // antes do filtro de exaustão: quem filtra é o dígito que será operado,
+        // não o do motor quando a fonte é outra.
+        let target: AutoTarget = { reason: null, key: '', digit: a.best.digit, logicId: 'motor2' };
 
         if (!isMarketOn) {
           reason = `${sym} está desligado`;
@@ -372,9 +404,9 @@ export class BearDifferEngine {
         } else if (buf.length < this.config.minTicks) {
           reason = `amostra insuficiente em ${sym} (${buf.length}/${this.config.minTicks} ticks)`;
           key = `sample:${sym}`;
-        } else if (a.best.score < this.config.minScore) {
-          reason = `score ${a.best.score} abaixo do mínimo de ${this.config.minScore} em ${sym}`;
-          key = `score:${sym}`;
+        } else if ((target = this.autoTarget(sym, a)).reason) {
+          reason = target.reason;
+          key = `${target.key}:${sym}`;
         } else if (this.config.gateBias && !this.biasVerdict(sym).proven) {
           const v = this.biasVerdict(sym);
           reason =
@@ -388,7 +420,7 @@ export class BearDifferEngine {
           }
           key = `bias:${sym}:${v.p === null ? 'amostra' : 'honesto'}`;
         } else {
-          const blocked = this.exhaustBlock(sym, a.best.digit);
+          const blocked = this.exhaustBlock(sym, target.digit);
           if (blocked) {
             reason = `filtro de exaustão: ${blocked}`;
             key = `exhaust:${sym}`;
@@ -417,9 +449,11 @@ export class BearDifferEngine {
 
         if (fire) {
           this.lastTradeTime = Date.now();
+          // Entrada saiu: o rodízio pode avançar para a próxima lógica.
+          this.autoLogicCache = null;
           this.autoTradeSubscribers.forEach((cb) => {
             try {
-              cb(sym, a.best.digit);
+              cb(sym, target.digit, target.logicId);
             } catch (e) {
               console.error('Error in autoTrade subscriber:', e);
             }
@@ -434,6 +468,94 @@ export class BearDifferEngine {
     }
 
     this.notify();
+  }
+
+  /**
+   * Resolve a lógica do modo automático com memória curta. Sem ela, cada tick
+   * de cada mercado refaria o ranking inteiro — caro — e o modo rodízio giraria
+   * a cada tick, o que não é rodízio entre estratégias, é sorteio.
+   */
+  private autoLogicId(): string | null {
+    const mode = this.config.onceLogic;
+    const c = this.autoLogicCache;
+    const fresh = !!c && Date.now() - c.at < AUTO_LOGIC_TTL;
+    // O rodízio é entre operações, não entre ticks: a escolha vale até uma
+    // entrada sair, e é o disparo que limpa este cache.
+    if (c && c.id && (mode === 'rotate' || fresh)) return c.id;
+    if (c && !c.id && fresh && mode !== 'rotate') return null;
+
+    const id = this.resolveLogic(mode);
+    this.autoLogicCache = { id, at: Date.now() };
+    return id;
+  }
+
+  /**
+   * Alvo do modo automático conforme a fonte configurada. O motor de referência
+   * e as lógicas medidas são fontes independentes: 'both' só entra quando as
+   * duas aprovam e apontam o mesmo dígito.
+   */
+  private autoTarget(sym: string, a: ScoreResult): AutoTarget {
+    const src = this.config.autoSource || 'motor2';
+    const motorOk = a.best.score >= this.config.minScore;
+    const motorFail: AutoTarget = {
+      reason: `score ${a.best.score} abaixo do mínimo de ${this.config.minScore} em ${sym}`,
+      key: 'score',
+      digit: a.best.digit,
+      logicId: 'motor2',
+    };
+
+    if (src === 'motor2') {
+      return motorOk
+        ? { reason: null, key: '', digit: a.best.digit, logicId: 'motor2' }
+        : motorFail;
+    }
+
+    const chosen = this.autoLogicId();
+    if (!chosen) {
+      return {
+        reason:
+          this.config.onceLogic === 'auto'
+            ? `nenhuma lógica passou no teste de significância para operar ${sym}`
+            : `nenhuma lógica com amostra suficiente para operar ${sym}`,
+        key: 'logicnone',
+        digit: a.best.digit,
+        logicId: 'motor2',
+      };
+    }
+
+    const name = this.getLogicName(chosen);
+    const pick = this.liveP[sym]?.[chosen];
+    if (!pick) {
+      return {
+        reason: `${name} sem palpite em ${sym}`,
+        key: 'logicpick',
+        digit: a.best.digit,
+        logicId: chosen,
+      };
+    }
+
+    if (pick.conf < this.config.onceMinConf) {
+      return {
+        reason: `confiança de ${pick.conf.toFixed(0)}% em ${name} (${sym}) abaixo do mínimo de ${this.config.onceMinConf}%`,
+        key: 'logicconf',
+        digit: pick.digit,
+        logicId: chosen,
+      };
+    }
+
+    if (src === 'both') {
+      if (!motorOk) return motorFail;
+      if (pick.digit !== a.best.digit) {
+        return {
+          reason: `sem concordância em ${sym}: motor 2.0 aponta ${a.best.digit}, ${name} aponta ${pick.digit}`,
+          key: 'concord',
+          digit: pick.digit,
+          logicId: chosen,
+        };
+      }
+    }
+
+    return { reason: null, key: '', digit: pick.digit, logicId: chosen };
   }
 
   public setTradeLock(locked: boolean): void {

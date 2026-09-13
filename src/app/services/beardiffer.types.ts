@@ -61,6 +61,12 @@ export const BASE_GENOME: DifferGenome = {
 };
 
 export type OnceLogicMode = 'auto' | 'rotate' | 'recent' | string;
+/**
+ * De onde o modo automático tira o alvo. 'motor2' usa o score do motor de
+ * referência; 'logic' usa o palpite da lógica escolhida em onceLogic; 'both'
+ * exige as duas fontes aprovando e apontando o mesmo dígito.
+ */
+export type AutoSource = 'motor2' | 'logic' | 'both';
 export type OpMode = 'sim' | 'real';
 export type MartingaleMode = 'off' | 'normal' | 'partial';
 
@@ -111,6 +117,7 @@ export interface DifferConfig {
   vlossRepick: boolean;
   allowAuto: boolean;
   autoOn: boolean;
+  autoSource: AutoSource;
   onceLogic: OnceLogicMode;
   onceMinConf: number;
   beep: boolean;
@@ -150,6 +157,7 @@ export const DEFAULT_DIFFER_CONFIG: DifferConfig = {
   vlossRepick: true,
   allowAuto: false,
   autoOn: false,
+  autoSource: 'motor2',
   onceLogic: 'auto',
   onceMinConf: 70,
   beep: true,

@@ -868,6 +868,40 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
       expect(result.current.state.trades[0].digit).toBe(2);
     });
 
+    it('attributes an automatic entry to the logic that chose the digit', () => {
+      const { result } = renderHook(() => useBearDiffer());
+      act(() => {
+        result.current.updateConfig({
+          opMode: 'sim',
+          stake: 1,
+          autoOn: true,
+          autoSource: 'logic',
+          onceLogic: 'rep',
+          onceMinConf: 70,
+          minTicks: 300,
+          gateBias: false,
+          cooldown: 0,
+        });
+      });
+      act(() => {
+        result.current.engine.setHistory(
+          'R_10',
+          Array.from({ length: 3000 }, (_, i) => i % 10)
+        );
+      });
+
+      // R_10 tem 3 casas decimais: o dígito operado é o último da cotação.
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.563 } });
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.561 } });
+      });
+
+      expect(result.current.state.trades[0].logicId).toBe('rep');
+      expect(result.current.state.trades[0].digit).toBe(3);
+    });
+
     it('carries the logic through a real contract settlement', async () => {
       const { result } = renderHook(() => useBearDiffer());
       act(() => {

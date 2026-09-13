@@ -159,6 +159,22 @@ O dígito que obtiver o maior score global composto torna-se o **Dígito Alvo da
 - `'rotate'`: Alterna ciclicamente entre as lógicas que mantêm assertividade acima do limiar estatístico.
 - `'recent'`: Seleciona a lógica com melhor taxa de acerto na janela recente deslizante ($50$ ticks).
 
+### 4.4. Fonte do Sinal do Modo Automático (`autoSource`)
+
+O modo automático tem duas fontes possíveis de alvo, selecionáveis na aba **Operação** e persistidas em `DifferConfig.autoSource`:
+
+| Valor | Comportamento |
+| :--- | :--- |
+| `'motor2'` (padrão) | Entra pelo score composto do Motor 2.0, exigindo `score ≥ minScore`. As 17 lógicas seguem apenas medindo sinais virtuais. |
+| `'logic'` | Entra pelo palpite da lógica resolvida a partir de `onceLogic` — a mesma seleção usada na Operação Única — exigindo `conf ≥ onceMinConf`. O `minScore` do motor deixa de valer. |
+| `'both'` | Confirmação dupla: exige `score ≥ minScore`, `conf ≥ onceMinConf` **e** que as duas fontes apontem o mesmo dígito. |
+
+Regras que continuam valendo em qualquer fonte, na mesma ordem de avaliação: mercado ligado, `tradeLock` (uma operação por vez), travas de segurança (`checkGuards`, que desligam o automático), amostra mínima (`minTicks`), trava de viés (`gateBias`), filtro de exaustão (`exFilter`) e intervalo mínimo (`cooldown`). O filtro de exaustão passa a julgar o dígito que será efetivamente operado, e não o do motor quando a fonte é outra.
+
+A lógica resolvida para o automático é memorizada por até 5 segundos, para não refazer o ranking FDR a cada tick de cada mercado. O modo `'rotate'` é exceção: a escolha vale até sair uma entrada, de modo que o rodízio ocorra entre operações e não entre ticks.
+
+Toda entrada automática carrega o identificador da fonte (`'motor2'` ou o id da lógica) até a liquidação, aparecendo com atribuição correta na tabela de resultados.
+
 ---
 
 ## 5. Integração com a Deriv e Gerenciamento de Estado (`useBearDiffer.ts`)

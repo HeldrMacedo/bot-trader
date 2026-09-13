@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { EngineState, BearDifferEngine } from '@/app/services/BearDifferEngine';
-import { DifferConfig } from '@/app/services/beardiffer.types';
+import { AutoSource, DifferConfig } from '@/app/services/beardiffer.types';
 import TradeResultsTable from '../TradeResultsTable';
 
 interface OperationTabProps {
@@ -419,6 +419,37 @@ export default function OperationTab({
             )}
           </div>
 
+          {config.allowAuto && (
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[#8593aa] block mb-1">Fonte do sinal</label>
+                <select
+                  data-testid="auto-source-select"
+                  value={config.autoSource}
+                  onChange={(e) =>
+                    updateConfig({ autoSource: e.target.value as AutoSource })
+                  }
+                  className="w-full bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2.5 py-1.5 rounded font-mono text-xs"
+                >
+                  <option value="motor2">Motor 2.0 — score de saturação</option>
+                  <option value="logic">Lógica medida — a escolhida acima</option>
+                  <option value="both">As duas, no mesmo dígito</option>
+                </select>
+              </div>
+              <div
+                data-testid="auto-source-hint"
+                className="text-[11px] text-[#8593aa] leading-relaxed md:pt-5"
+              >
+                {config.autoSource === 'motor2' &&
+                  `Entra quando o score do motor alcança ${config.minScore}. As lógicas seguem apenas medindo.`}
+                {config.autoSource === 'logic' &&
+                  `Entra no palpite da lógica escolhida em "Operação única", com confiança mínima de ${config.onceMinConf}%.`}
+                {config.autoSource === 'both' &&
+                  `Entra só quando o motor (score ${config.minScore}) e a lógica escolhida (confiança ${config.onceMinConf}%) apontam o mesmo dígito.`}
+              </div>
+            </div>
+          )}
+
           {config.autoOn && (
             <div
               data-testid="auto-idle-status"
@@ -567,52 +598,62 @@ export default function OperationTab({
           </div>
 
           {/* Grid de Estatísticas */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 mt-4 pt-3 border-t border-[#222c3f]">
-            <div className="bg-[#18202f] p-2 rounded text-center">
-              <b className="block font-mono text-sm text-[#eef2f8]">{state.virt.total}</b>
-              <span className="text-[9.5px] text-[#8593aa] uppercase">Sinais Virtuais</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-3 border-t border-[#222c3f]">
+            <div className="bg-[#18202f] border border-[#222c3f] hover:border-[#2e3b52] transition-colors p-2.5 rounded-lg text-center flex flex-col justify-center items-center shadow-xs">
+              <b className="block font-mono text-sm font-bold text-[#eef2f8] leading-tight">{state.virt.total}</b>
+              <span className="text-[9.5px] text-[#8593aa] uppercase tracking-wider font-medium mt-1 leading-tight">Sinais Virtuais</span>
             </div>
-            <div className="bg-[#18202f] p-2 rounded text-center">
-              <b className="block font-mono text-sm text-[#eef2f8]">{simTotal}</b>
-              <span className="text-[9.5px] text-[#8593aa] uppercase">Ops Sim</span>
+            <div className="bg-[#18202f] border border-[#222c3f] hover:border-[#2e3b52] transition-colors p-2.5 rounded-lg text-center flex flex-col justify-center items-center shadow-xs">
+              <b className="block font-mono text-sm font-bold text-[#eef2f8] leading-tight">{simTotal}</b>
+              <span className="text-[9.5px] text-[#8593aa] uppercase tracking-wider font-medium mt-1 leading-tight">Ops Sim</span>
             </div>
-            <div className="bg-[#18202f] p-2 rounded text-center">
-              <b className="block font-mono text-sm text-[#eef2f8]">
+            <div className="bg-[#18202f] border border-[#222c3f] hover:border-[#2e3b52] transition-colors p-2.5 rounded-lg text-center flex flex-col justify-center items-center shadow-xs">
+              <b
+                className={`block font-mono text-sm font-bold leading-tight ${
+                  simAcc !== null && simAcc >= breakeven ? 'text-emerald-400' : 'text-[#eef2f8]'
+                }`}
+              >
                 {simAcc !== null ? `${simAcc}%` : '—'}
               </b>
-              <span className="text-[9.5px] text-[#8593aa] uppercase">Acerto Sim</span>
+              <span className="text-[9.5px] text-[#8593aa] uppercase tracking-wider font-medium mt-1 leading-tight">Acerto Sim</span>
             </div>
-            <div className="bg-[#18202f] p-2 rounded text-center">
+            <div className="bg-[#18202f] border border-[#222c3f] hover:border-[#2e3b52] transition-colors p-2.5 rounded-lg text-center flex flex-col justify-center items-center shadow-xs">
               <b
-                className={`block font-mono text-sm ${state.sim.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                  }`}
+                className={`block font-mono text-sm font-bold leading-tight ${
+                  state.sim.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}
               >
                 {state.sim.pnl >= 0 ? `+$${state.sim.pnl.toFixed(2)}` : `-$${Math.abs(state.sim.pnl).toFixed(2)}`}
               </b>
-              <span className="text-[9.5px] text-[#8593aa] uppercase">Resultado Sim</span>
+              <span className="text-[9.5px] text-[#8593aa] uppercase tracking-wider font-medium mt-1 leading-tight">Resultado Sim</span>
             </div>
-            <div className="bg-[#18202f] p-2 rounded text-center">
-              <b className="block font-mono text-sm text-[#eef2f8]">{realTotal}</b>
-              <span className="text-[9.5px] text-[#8593aa] uppercase">Ops Real</span>
+            <div className="bg-[#18202f] border border-[#222c3f] hover:border-[#2e3b52] transition-colors p-2.5 rounded-lg text-center flex flex-col justify-center items-center shadow-xs">
+              <b className="block font-mono text-sm font-bold text-[#eef2f8] leading-tight">{realTotal}</b>
+              <span className="text-[9.5px] text-[#8593aa] uppercase tracking-wider font-medium mt-1 leading-tight">Ops Real</span>
             </div>
-            <div className="bg-[#18202f] p-2 rounded text-center">
-              <b className="block font-mono text-sm text-[#eef2f8]">
+            <div className="bg-[#18202f] border border-[#222c3f] hover:border-[#2e3b52] transition-colors p-2.5 rounded-lg text-center flex flex-col justify-center items-center shadow-xs">
+              <b
+                className={`block font-mono text-sm font-bold leading-tight ${
+                  realAcc !== null && realAcc >= breakeven ? 'text-emerald-400' : 'text-[#eef2f8]'
+                }`}
+              >
                 {realAcc !== null ? `${realAcc}%` : '—'}
               </b>
-              <span className="text-[9.5px] text-[#8593aa] uppercase">Acerto Real</span>
+              <span className="text-[9.5px] text-[#8593aa] uppercase tracking-wider font-medium mt-1 leading-tight">Acerto Real</span>
             </div>
-            <div className="bg-[#18202f] p-2 rounded text-center">
+            <div className="bg-[#18202f] border border-[#222c3f] hover:border-[#2e3b52] transition-colors p-2.5 rounded-lg text-center flex flex-col justify-center items-center shadow-xs">
               <b
-                className={`block font-mono text-sm ${state.real.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                  }`}
+                className={`block font-mono text-sm font-bold leading-tight ${
+                  state.real.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}
               >
                 {state.real.pnl >= 0 ? `+$${state.real.pnl.toFixed(2)}` : `-$${Math.abs(state.real.pnl).toFixed(2)}`}
               </b>
-              <span className="text-[9.5px] text-[#8593aa] uppercase">Resultado Real</span>
+              <span className="text-[9.5px] text-[#8593aa] uppercase tracking-wider font-medium mt-1 leading-tight">Resultado Real</span>
             </div>
-            <div className="bg-[#18202f] p-2 rounded text-center">
-              <b className="block font-mono text-sm text-amber-400">{state.mgLevel}</b>
-              <span className="text-[9.5px] text-[#8593aa] uppercase">Nível Gale</span>
+            <div className="bg-[#18202f] border border-[#222c3f] hover:border-[#2e3b52] transition-colors p-2.5 rounded-lg text-center flex flex-col justify-center items-center shadow-xs">
+              <b className="block font-mono text-sm font-bold text-amber-400 leading-tight">{state.mgLevel}</b>
+              <span className="text-[9.5px] text-[#8593aa] uppercase tracking-wider font-medium mt-1 leading-tight">Nível Gale</span>
             </div>
           </div>
         </div>
@@ -625,7 +666,7 @@ export default function OperationTab({
                 {currentPick ? currentPick.sym : activeMarkets[0]?.sym || '—'}
               </span>
             </div>
-            <div className="grid grid-cols-10 gap-1 font-mono text-[10px] text-center">
+            <div className="grid grid-cols-5 gap-1.5 font-mono text-[10px] text-center">
               {Array.from({ length: 10 }, (_, d) => {
                 const sym = currentPick ? currentPick.sym : activeMarkets[0]?.sym || 'R_10';
                 const ex = engine.getExhaustion(sym, d);
@@ -634,14 +675,23 @@ export default function OperationTab({
                 return (
                   <div
                     key={d}
-                    className={`p-1 rounded border transition-colors ${isExhausted
-                        ? 'border-emerald-500 bg-emerald-950/40 text-emerald-300'
-                        : 'border-[#222c3f] bg-[#18202f] text-[#8593aa]'
-                      }`}
+                    className={`py-2 px-1 rounded-lg border transition-all flex flex-col items-center justify-center min-h-[54px] ${
+                      isExhausted
+                        ? 'border-emerald-500/60 bg-emerald-950/30 text-emerald-300 shadow-xs'
+                        : 'border-[#222c3f] bg-[#18202f] text-[#8593aa] hover:border-[#2e3b52]'
+                    }`}
                   >
-                    <div className="font-bold">{d}</div>
-                    <div className="text-[9px]">{ex ? `${ex.pct}%` : '—'}</div>
-                    {losers > 0 && <div className="text-[8.5px] text-rose-400 font-bold">{losers}L</div>}
+                    <span className={`text-xs font-bold ${isExhausted ? 'text-emerald-300' : 'text-[#eef2f8]'}`}>
+                      {d}
+                    </span>
+                    <span className="text-[10px] leading-tight mt-0.5">
+                      {ex ? `${ex.pct}%` : '—'}
+                    </span>
+                    {losers > 0 && (
+                      <span className="text-[9px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1 rounded mt-0.5 leading-tight">
+                        {losers}L
+                      </span>
+                    )}
                   </div>
                 );
               })}

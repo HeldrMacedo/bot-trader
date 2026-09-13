@@ -276,8 +276,8 @@ export function useBearDiffer() {
       setConfigState(engine.getConfig());
     });
 
-    const unsubAuto = engine.onAutoTrade((sym, digit) => {
-      executeTrade(sym, digit);
+    const unsubAuto = engine.onAutoTrade((sym, digit, logicId) => {
+      executeTrade(sym, digit, undefined, logicId);
     });
 
     const checkConn = () => {
