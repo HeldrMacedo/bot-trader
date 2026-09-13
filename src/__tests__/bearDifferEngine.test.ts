@@ -146,7 +146,7 @@ describe('BearDifferEngine - Core Analysis & Differ Trading Engine', () => {
     });
   });
 
-  describe('Operação Única (deepScan)', () => {
+  describe('Operação Única (resolveTarget)', () => {
     it('finds best market target for a selected logic', () => {
       // Bias gate off: this case is about picking a target, not about the lab
       engine.updateConfig({ gateBias: false });
@@ -160,12 +160,14 @@ describe('BearDifferEngine - Core Analysis & Differ Trading Engine', () => {
       engine.processTick('R_10', 4);
       engine.processTick('R_25', 8);
 
-      const target = engine.deepScan('rep');
-      expect(target).not.toBeNull();
-      expect(['R_10', 'R_25']).toContain(target?.sym);
-      expect(typeof target?.digit).toBe('number');
-      expect(typeof target?.conf).toBe('number');
-      expect(typeof target?.why).toBe('string');
+      engine.updateConfig({ autoSource: 'logic', onceLogic: 'rep', onceMinConf: 0, minTicks: 300 });
+
+      const target = engine.resolveTarget();
+      expect(target.reason).toBeNull();
+      expect(['R_10', 'R_25']).toContain(target.sym);
+      expect(typeof target.digit).toBe('number');
+      expect(typeof target.conf).toBe('number');
+      expect(target.logicId).toBe('rep');
     });
   });
 

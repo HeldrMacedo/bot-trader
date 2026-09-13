@@ -1,0 +1,165 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { createDifferEngine } from '../app/services/BearDifferEngine';
+import { DifferConfig } from '../app/services/beardiffer.types';
+import OperationTab from '../app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab';
+
+vi.mock('react-toastify', () => ({
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
+const saturated = (n: number, digit: number, every = 3) =>
+  Array.from({ length: n }, (_, i) => (i % every === 0 ? digit : i % 10));
+
+describe('BearDiffer - entrada manual no alvo recomendado', () => {
+  let engine: ReturnType<typeof createDifferEngine>;
+  let executeTrade: ReturnType<typeof vi.fn>;
+  let armVirtualLoss: ReturnType<typeof vi.fn>;
+  let updateConfig: (patch: Partial<DifferConfig>) => void;
+
+  const renderTab = () =>
+    render(
+      <OperationTab
+        engine={engine}
+        state={engine.getState()}
+        config={engine.getConfig()}
+        updateConfig={updateConfig}
+        executeTrade={executeTrade as never}
+        resetSession={vi.fn()}
+        armVirtualLoss={armVirtualLoss as never}
+        cancelVirtualLoss={vi.fn()}
+        setWarmTarget={vi.fn()}
+        exportCSV={vi.fn()}
+        vlossState={{
+          armed: false,
+          sym: '',
+          targetDigit: 0,
+          targetLosses: 0,
+          seenLosses: 0,
+          ticksChecked: 0,
+        }}
+      />
+    );
+
+  // Deixa apenas um mercado com alvo liberado, para o texto do botão ser único.
+  const seedLiberado = (digit = 7) => {
+    ['R_25', 'R_50', 'R_75', 'R_100', 'RDBEAR', 'RDBULL'].forEach((s) =>
+      engine.setMarketEnabled(s, false)
+    );
+    const b = saturated(3000, digit);
+    engine.setHistory('R_10', b.slice(0, -1));
+    engine.processTick('R_10', b[b.length - 1]);
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    engine = createDifferEngine();
+    executeTrade = vi.fn().mockResolvedValue(undefined);
+    armVirtualLoss = vi.fn();
+    updateConfig = vi.fn((patch: Partial<DifferConfig>) => engine.updateConfig(patch));
+    engine.updateConfig({ opMode: 'sim', minTicks: 300, gateBias: false, cooldown: 0 });
+  });
+
+  it('mostra o dígito do alvo no rótulo do botão', () => {
+    seedLiberado(7);
+    renderTab();
+
+    const botao = screen.getByTestId('manual-entry-button');
+    expect(botao.textContent).toMatch(/fora do dígito 7/i);
+    expect(botao).not.toBeDisabled();
+  });
+
+  it('dispara a entrada no alvo recomendado com a atribuição da fonte', () => {
+    seedLiberado(7);
+    renderTab();
+
+    fireEvent.click(screen.getByTestId('manual-entry-button'));
+
+    expect(executeTrade).toHaveBeenCalledTimes(1);
+    const [sym, digit, tickCount, logicId] = executeTrade.mock.calls[0];
+    expect(sym).toBe('R_10');
+    expect(digit).toBe(7);
+    expect(typeof tickCount).toBe('number');
+    expect(logicId).toBe('motor2');
+  });
+
+  it('recalcula o alvo no clique, e não usa o que estava na tela', () => {
+    seedLiberado(7);
+    renderTab();
+
+    const spy = vi.spyOn(engine, 'manualTarget');
+    fireEvent.click(screen.getByTestId('manual-entry-button'));
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('arma Loss Virtual em vez de comprar quando vlossOn está ligado', () => {
+    seedLiberado(7);
+    engine.updateConfig({ vlossOn: true, vlossN: 2 });
+    renderTab();
+
+    const botao = screen.getByTestId('manual-entry-button');
+    expect(botao.textContent).toMatch(/loss virtual/i);
+
+    fireEvent.click(botao);
+
+    expect(executeTrade).not.toHaveBeenCalled();
+    expect(armVirtualLoss).toHaveBeenCalledWith('R_10', 7, 2, 'motor2');
+  });
+
+  it('desabilita o botão e escreve o motivo quando não há alvo', () => {
+    // Nenhum histórico: amostra insuficiente em todos os mercados.
+    renderTab();
+
+    expect(screen.getByTestId('manual-entry-button')).toBeDisabled();
+    expect(screen.getByTestId('manual-entry-status').textContent).toMatch(
+      /amostra insuficiente/i
+    );
+  });
+
+  it('explica a trava de segurança sem desligar o automático', () => {
+    seedLiberado(7);
+    engine.updateConfig({ autoOn: true, opMode: 'real', gateOps: 50, gateAcc: 91 });
+    renderTab();
+
+    expect(screen.getByTestId('manual-entry-button')).toBeDisabled();
+    expect(screen.getByTestId('manual-entry-status').textContent).toMatch(/modo real/i);
+    expect(engine.getConfig().autoOn).toBe(true);
+  });
+
+  it('segue disponível com o automático ligado', () => {
+    seedLiberado(7);
+    engine.updateConfig({ autoOn: true, allowAuto: true });
+    renderTab();
+
+    expect(screen.getByTestId('manual-entry-button')).not.toBeDisabled();
+  });
+
+  it('o card do alvo mostra a métrica da fonte ativa', () => {
+    seedLiberado(7);
+    renderTab();
+    expect(screen.getByTestId('target-card-metric').textContent).toMatch(/score/i);
+
+    engine.updateConfig({ autoSource: 'logic', onceLogic: 'flong', onceMinConf: 50 });
+    renderTab();
+    const metricas = screen.getAllByTestId('target-card-metric');
+    expect(metricas[metricas.length - 1].textContent).toMatch(/confian/i);
+  });
+
+  it('desabilita o seletor de lógica quando a fonte é o motor', () => {
+    engine.updateConfig({ allowAuto: true, autoSource: 'motor2' });
+    renderTab();
+
+    expect(screen.getByTestId('logic-select')).toBeDisabled();
+    expect(screen.getByTestId('logic-select-note').textContent).toMatch(/sem efeito/i);
+  });
+
+  it('habilita o seletor de lógica quando a fonte usa lógica', () => {
+    engine.updateConfig({ allowAuto: true, autoSource: 'logic' });
+    renderTab();
+
+    expect(screen.getByTestId('logic-select')).not.toBeDisabled();
+  });
+});

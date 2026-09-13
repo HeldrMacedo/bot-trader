@@ -112,13 +112,15 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
 
     it('warms a proposal for the target as soon as the scan finds one', () => {
       const setWarmTarget = vi.fn();
-      vi.spyOn(engine, 'deepScan').mockReturnValue({
+      vi.spyOn(engine, 'manualTarget').mockReturnValue({
         sym: 'R_10',
         digit: 4,
         conf: 88,
-        why: 'teste',
-        n: 700,
-        lid: 'rep',
+        score: 80,
+        logicId: 'rep',
+        reason: null,
+        key: '',
+        stage: 5,
       });
 
       renderOperationTab(setWarmTarget);
@@ -128,21 +130,28 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
     });
 
     it('refuses a target whose confidence is below the configured minimum', () => {
+      // O corte por confiança passou a ser do motor, que devolve o alvo já
+      // recusado com a explicação pronta.
       engine.updateConfig({ onceMinConf: 70 });
-      vi.spyOn(engine, 'deepScan').mockReturnValue({
+      vi.spyOn(engine, 'manualTarget').mockReturnValue({
         sym: 'R_10',
         digit: 4,
         conf: 60,
-        why: 'teste',
-        n: 700,
-        lid: 'rep',
+        score: 80,
+        logicId: 'rep',
+        reason:
+          'confiança de 60% em Anti-repetição (R_10) abaixo do mínimo de 70%',
+        key: 'logicconf',
+        stage: 2,
       });
 
       renderOperationTab(vi.fn());
       fireEvent.click(screen.getByRole('button', { name: /Analisar mercados/i }));
 
       expect(screen.queryByRole('button', { name: /Confirmar entrada/i })).toBeNull();
-      expect(screen.getByText(/abaixo do mínimo/i)).toBeInTheDocument();
+      // A recusa aparece na mensagem do scan e no status do botão de entrada
+      // direta: as duas leem o mesmo alvo.
+      expect(screen.getAllByText(/abaixo do mínimo/i).length).toBeGreaterThan(0);
     });
 
     it('does not send a manual entry that the exhaustion filter blocks', () => {
@@ -150,13 +159,15 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
       engine.setHistory('R_10', digits);
       engine.updateConfig({ exFilter: true, onceMinConf: 50 });
 
-      vi.spyOn(engine, 'deepScan').mockReturnValue({
+      vi.spyOn(engine, 'manualTarget').mockReturnValue({
         sym: 'R_10',
         digit: 7,
         conf: 88,
-        why: 'teste',
-        n: 700,
-        lid: 'rep',
+        score: 80,
+        logicId: 'rep',
+        reason: null,
+        key: '',
+        stage: 5,
       });
 
       const executeTrade = vi.fn().mockResolvedValue(undefined);
@@ -190,13 +201,15 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
 
     it('carries the analysis tick count into the entry so it can go stale', () => {
       engine.updateConfig({ onceMinConf: 50 });
-      vi.spyOn(engine, 'deepScan').mockReturnValue({
+      vi.spyOn(engine, 'manualTarget').mockReturnValue({
         sym: 'R_10',
         digit: 4,
         conf: 88,
-        why: 'teste',
-        n: 700,
-        lid: 'rep',
+        score: 80,
+        logicId: 'rep',
+        reason: null,
+        key: '',
+        stage: 5,
       });
 
       const executeTrade = vi.fn().mockResolvedValue(undefined);
@@ -289,13 +302,15 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
 
     it('sends the logic that produced the target along with the entry', () => {
       engine.updateConfig({ onceMinConf: 50, onceLogic: 'auto' });
-      vi.spyOn(engine, 'deepScan').mockReturnValue({
+      vi.spyOn(engine, 'manualTarget').mockReturnValue({
         sym: 'R_10',
         digit: 4,
         conf: 88,
-        why: 'teste',
-        n: 700,
-        lid: 'mk1',
+        score: 80,
+        logicId: 'mk1',
+        reason: null,
+        key: '',
+        stage: 5,
       });
 
       const executeTrade = vi.fn().mockResolvedValue(undefined);
@@ -330,13 +345,15 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
 
     it('arms the virtual loss with the logic that produced the target', () => {
       engine.updateConfig({ onceMinConf: 50, vlossOn: true, vlossN: 2 });
-      vi.spyOn(engine, 'deepScan').mockReturnValue({
+      vi.spyOn(engine, 'manualTarget').mockReturnValue({
         sym: 'R_10',
         digit: 4,
         conf: 88,
-        why: 'teste',
-        n: 700,
-        lid: 'aus',
+        score: 80,
+        logicId: 'aus',
+        reason: null,
+        key: '',
+        stage: 5,
       });
 
       const armVirtualLoss = vi.fn();
@@ -370,13 +387,15 @@ describe('BearDiffer - Analytical Tabs Suite (TDD)', () => {
 
     it('drops the warm target when the operator discards the entry', () => {
       const setWarmTarget = vi.fn();
-      vi.spyOn(engine, 'deepScan').mockReturnValue({
+      vi.spyOn(engine, 'manualTarget').mockReturnValue({
         sym: 'R_10',
         digit: 4,
         conf: 88,
-        why: 'teste',
-        n: 700,
-        lid: 'rep',
+        score: 80,
+        logicId: 'rep',
+        reason: null,
+        key: '',
+        stage: 5,
       });
 
       renderOperationTab(setWarmTarget);

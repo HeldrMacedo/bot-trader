@@ -151,6 +151,9 @@ export function useBearDiffer() {
       const cfg = engine.getConfig();
       const prep = engine.prepareTrade(sym, digit);
       engine.setTradeLock(true);
+      // O intervalo mínimo conta a partir da última ordem enviada, venha do
+      // automático ou de um clique: as duas vão para a mesma conta.
+      engine.noteEntryFired(logicId);
 
       if (prep.isPaper) {
         engine.addLog(`[SIM] Operação enviada em ${sym} ≠${digit} · $${prep.stake}`, 'nt');
@@ -331,10 +334,13 @@ export function useBearDiffer() {
               let tradeDigit = prev.targetDigit;
               let tradeLogicId = prev.logicId;
               if (engine.getConfig().vlossRepick) {
-                const repick = engine.deepScan(engine.getConfig().onceLogic);
-                if (repick && repick.sym === symbol) {
+                // O repick segue a fonte do sinal configurada, e não mais
+                // sempre uma lógica: com fonte 'motor2' a ordem tem de sair
+                // pelo critério do motor, que é o que a tela mostra.
+                const repick = engine.resolveTarget(symbol);
+                if (!repick.reason && repick.digit !== null) {
                   tradeDigit = repick.digit;
-                  tradeLogicId = repick.lid;
+                  tradeLogicId = repick.logicId;
                 }
               }
 

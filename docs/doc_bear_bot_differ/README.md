@@ -159,21 +159,63 @@ O dígito que obtiver o maior score global composto torna-se o **Dígito Alvo da
 - `'rotate'`: Alterna ciclicamente entre as lógicas que mantêm assertividade acima do limiar estatístico.
 - `'recent'`: Seleciona a lógica com melhor taxa de acerto na janela recente deslizante ($50$ ticks).
 
-### 4.4. Fonte do Sinal do Modo Automático (`autoSource`)
+### 4.4. Fonte do Sinal (`autoSource`)
 
-O modo automático tem duas fontes possíveis de alvo, selecionáveis na aba **Operação** e persistidas em `DifferConfig.autoSource`:
+A fonte do sinal rege **tanto o modo automático quanto as entradas manuais**: os dois caminhos leem o mesmo alvo, para que a recomendação na tela nunca divirja da que seria operada. Selecionável na aba **Operação** e persistida em `DifferConfig.autoSource`:
 
 | Valor | Comportamento |
 | :--- | :--- |
-| `'motor2'` (padrão) | Entra pelo score composto do Motor 2.0, exigindo `score ≥ minScore`. As 17 lógicas seguem apenas medindo sinais virtuais. |
-| `'logic'` | Entra pelo palpite da lógica resolvida a partir de `onceLogic` — a mesma seleção usada na Operação Única — exigindo `conf ≥ onceMinConf`. O `minScore` do motor deixa de valer. |
+| `'motor2'` (padrão) | Alvo pelo score composto do Motor 2.0, exigindo `score ≥ minScore`. As 17 lógicas seguem apenas medindo sinais virtuais, e o seletor de lógica fica desabilitado na tela. |
+| `'logic'` | Alvo pelo palpite da lógica resolvida a partir de `onceLogic`, exigindo `conf ≥ onceMinConf`. O `minScore` do motor deixa de valer. |
 | `'both'` | Confirmação dupla: exige `score ≥ minScore`, `conf ≥ onceMinConf` **e** que as duas fontes apontem o mesmo dígito. |
 
-Regras que continuam valendo em qualquer fonte, na mesma ordem de avaliação: mercado ligado, `tradeLock` (uma operação por vez), travas de segurança (`checkGuards`, que desligam o automático), amostra mínima (`minTicks`), trava de viés (`gateBias`), filtro de exaustão (`exFilter`) e intervalo mínimo (`cooldown`). O filtro de exaustão passa a julgar o dígito que será efetivamente operado, e não o do motor quando a fonte é outra.
+### 4.5. `resolveTarget` — o alvo recomendado
 
-A lógica resolvida para o automático é memorizada por até 5 segundos, para não refazer o ranking FDR a cada tick de cada mercado. O modo `'rotate'` é exceção: a escolha vale até sair uma entrada, de modo que o rodízio ocorra entre operações e não entre ticks.
+`resolveTarget(sym?)` é a única definição de alvo do módulo. Sem símbolo, varre os mercados ligados e devolve o melhor; com símbolo, avalia só aquele mercado — que é como o `processTick` a usa. O retorno é sempre um `ResolvedTarget`:
 
-Toda entrada automática carrega o identificador da fonte (`'motor2'` ou o id da lógica) até a liquidação, aparecendo com atribuição correta na tabela de resultados.
+```typescript
+interface ResolvedTarget {
+  reason: string | null;   // null quando há alvo
+  key: string;             // causa sem números voláteis, para deduplicar log
+  sym: string | null;
+  digit: number | null;
+  logicId: string;         // 'motor2' ou o id da lógica
+  conf: number | null;
+  score: number | null;
+  stage: number;           // quão longe no funil este mercado chegou
+}
+```
+
+O funil por mercado, na ordem: amostra mínima (`minTicks`) → fonte do sinal → trava de viés (`gateBias`) → filtro de exaustão (`exFilter`), que julga o dígito que será efetivamente operado. Quando nenhum mercado libera, a explicação devolvida é a do mercado com maior `stage` — "falta amostra" em seis mercados esconderia o sétimo que só esbarrou na exaustão.
+
+**Desempate entre mercados liberados:** maior `score`, com `conf` decidindo apenas o empate. Somar as duas métricas inventaria uma escala não validada.
+
+A lógica resolvida é memorizada por até 5 segundos, para não refazer o ranking FDR a cada tick de cada mercado. O modo `'rotate'` é exceção: a escolha vale até sair uma entrada, de modo que o rodízio ocorra entre operações e não entre ticks.
+
+### 4.6. `manualTarget` — o alvo do clique do operador
+
+`manualTarget()` é `resolveTarget()` mais as travas do robô inteiro que valem para um clique: operação em aberto (`tradeLock`) e travas de segurança (`checkGuards`). Duas diferenças propositais em relação ao caminho automático:
+
+- **O intervalo mínimo (`cooldown`) não barra o clique** — existe para frear o robô, não o operador. Mas toda ordem enviada, manual ou automática, chama `noteEntryFired(logicId)`, então a entrada manual conta para o intervalo do automático: as duas vão para a mesma conta.
+- **Uma trava de segurança apenas recusa a entrada**, sem desligar o automático. No caminho automático, a mesma trava faz `autoOn = false`.
+
+`noteEntryFired` também avança o rodízio de lógicas, mas só quando a entrada saiu por uma lógica (`logicId !== 'motor2'`).
+
+As entradas reais **não** alimentam `lStats`: a medição das lógicas segue puramente virtual. Misturar nela ordens disparadas nos momentos em que o operador achou que ia dar certo contaminaria o ranking com viés de seleção.
+
+Toda entrada carrega o identificador da fonte (`'motor2'` ou o id da lógica) até a liquidação, aparecendo com atribuição correta na tabela de resultados.
+
+### 4.7. Os três caminhos de entrada
+
+| Caminho | Alvo | Proposta pré-cotada |
+| :--- | :--- | :--- |
+| "Analisar mercados" → "Confirmar entrada" | Congelado na tela até a confirmação | Sim (`setWarmTarget`) |
+| Botão no card do alvo ao vivo | Recalculado no clique | Não |
+| Automático | Avaliado a cada tick | Sim, quando `fastExec` |
+
+O botão direto não usa proposta pré-cotada porque o alvo ao vivo muda a cada tick: mantê-lo cotado trocaria latência por um fluxo constante de mensagens e propostas que vencem sem uso. A trava de ticks vencidos (`maxStale`) protege os dois caminhos manuais.
+
+Com `vlossOn` ligado, os dois botões manuais armam o Loss Virtual em vez de comprar, e o repick no disparo segue a fonte do sinal configurada.
 
 ---
 

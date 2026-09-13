@@ -1,7 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
-import { EngineState, BearDifferEngine } from '@/app/services/BearDifferEngine';
+import React, { useMemo, useState } from 'react';
+import {
+  EngineState,
+  BearDifferEngine,
+  ResolvedTarget,
+} from '@/app/services/BearDifferEngine';
 import { AutoSource, DifferConfig } from '@/app/services/beardiffer.types';
 import TradeResultsTable from '../TradeResultsTable';
 
@@ -31,6 +35,14 @@ interface OperationTabProps {
   };
 }
 
+/** Métrica que faz sentido para a fonte que produziu o alvo. */
+function descreveMetrica(alvo: ResolvedTarget): string {
+  const partes: string[] = [];
+  if (alvo.score !== null) partes.push(`score ${alvo.score}`);
+  if (alvo.conf !== null) partes.push(`confiança ${alvo.conf.toFixed(0)}%`);
+  return partes.join(' · ') || 'sem métrica';
+}
+
 export default function OperationTab({
   engine,
   state,
@@ -47,9 +59,8 @@ export default function OperationTab({
   const [currentPick, setCurrentPick] = useState<{
     sym: string;
     digit: number;
-    conf: number;
-    why: string;
-    n: number;
+    conf: number | null;
+    score: number | null;
     // Lógica que de fato produziu o alvo, não o modo de alternância pedido
     lid: string;
     // Contagem de ticks no instante da análise, para a trava de ticks vencidos
@@ -70,31 +81,75 @@ export default function OperationTab({
   const realTotal = state.real.win + state.real.loss;
   const realAcc = realTotal > 0 ? +((state.real.win / realTotal) * 100).toFixed(1) : null;
 
+  // Alvo ao vivo, recalculado só quando algum mercado avançou um tick. Esta aba
+  // re-renderiza por muito mais motivos do que chegada de tick.
+  const ticksTotais = state.markets.reduce(
+    (acc, m) => acc + engine.getMarketData(m.sym).tickCount,
+    0
+  );
+  const liveTarget = useMemo(
+    () => engine.manualTarget(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, ticksTotais, config, state.tradeLock, state.stopped]
+  );
+
+  const fonteUsaLogica = config.autoSource !== 'motor2';
+
   const handleScan = () => {
-    const pick = engine.deepScan(config.onceLogic);
-    if (!pick) {
+    const alvo = engine.manualTarget();
+    if (alvo.reason || alvo.sym === null || alvo.digit === null) {
       setCurrentPick(null);
       setWarmTarget(null);
-      if (config.onceLogic === 'auto' && !engine.leaderLogic()) {
-        setScanMessage('Nenhuma lógica passou no teste de significância (Benjamini-Hochberg).');
-      } else {
-        setScanMessage('Amostra insuficiente ou mercados bloqueados.');
-      }
+      setScanMessage(alvo.reason || 'Nenhum alvo disponível.');
       return;
     }
-    if (pick.conf < config.onceMinConf) {
-      setCurrentPick(null);
-      setWarmTarget(null);
+
+    setCurrentPick({
+      sym: alvo.sym,
+      digit: alvo.digit,
+      conf: alvo.conf,
+      score: alvo.score,
+      lid: alvo.logicId,
+      tickCount: engine.getMarketData(alvo.sym).tickCount,
+    });
+    // Abre e mantém quente a proposta desse alvo enquanto ele estiver na tela
+    setWarmTarget(alvo.sym, alvo.digit);
+    setScanMessage(
+      `Alvo detectado em ${alvo.sym}: fora do dígito ${alvo.digit} · ${descreveMetrica(alvo)}`
+    );
+  };
+
+  /**
+   * Entrada direta no alvo ao vivo. Recalcula no clique porque um tick pode ter
+   * chegado entre o render e o dedo do operador; a trava de ticks vencidos do
+   * hook barra leitura realmente atrasada. Não usa proposta quente: o alvo muda
+   * a cada tick e mantê-lo cotado encheria o WebSocket de propostas que vencem
+   * sem uso.
+   */
+  const handleManualEntry = () => {
+    const alvo = engine.manualTarget();
+    if (alvo.reason || alvo.sym === null || alvo.digit === null) {
+      setScanMessage(alvo.reason || 'Nenhum alvo disponível.');
+      return;
+    }
+
+    if (config.vlossOn) {
+      armVirtualLoss(alvo.sym, alvo.digit, config.vlossN, alvo.logicId);
       setScanMessage(
-        `Melhor alvo em ${pick.sym}, fora do ${pick.digit} — confiança ${pick.conf.toFixed(0)}%, abaixo do mínimo de ${config.onceMinConf}%.`
+        `Loss Virtual armado em ${alvo.sym} ≠${alvo.digit} (${engine.getLogicName(alvo.logicId)}).`
       );
       return;
     }
 
-    setCurrentPick({ ...pick, tickCount: engine.getMarketData(pick.sym).tickCount });
-    // Abre e mantém quente a proposta desse alvo enquanto ele estiver na tela
-    setWarmTarget(pick.sym, pick.digit);
-    setScanMessage(`Alvo detectado em ${pick.sym}: Fora do dígito ${pick.digit} (${pick.conf}% confiança)`);
+    executeTrade(
+      alvo.sym,
+      alvo.digit,
+      engine.getMarketData(alvo.sym).tickCount,
+      alvo.logicId
+    );
+    setScanMessage(
+      `Entrada manual enviada em ${alvo.sym} ≠${alvo.digit} (${engine.getLogicName(alvo.logicId)}).`
+    );
   };
 
   const handleConfirm = () => {
@@ -182,9 +237,13 @@ export default function OperationTab({
             <div>
               <label className="text-[#8593aa] block mb-1">Lógica</label>
               <select
+                data-testid="logic-select"
                 value={config.onceLogic}
+                disabled={!fonteUsaLogica}
                 onChange={(e) => updateConfig({ onceLogic: e.target.value })}
-                className="w-full bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2.5 py-1.5 rounded font-mono text-xs"
+                className={`w-full bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2.5 py-1.5 rounded font-mono text-xs ${
+                  fonteUsaLogica ? '' : 'opacity-50 cursor-not-allowed'
+                }`}
               >
                 <option value="auto">Alternância por evidência — a líder do ranking</option>
                 <option value="rotate">Alternância em rodízio</option>
@@ -195,6 +254,12 @@ export default function OperationTab({
                   </option>
                 ))}
               </select>
+              {!fonteUsaLogica && (
+                <div data-testid="logic-select-note" className="text-[10px] text-[#8593aa] mt-1">
+                  Sem efeito na fonte atual: o alvo sai do Motor 2.0. As lógicas
+                  seguem medindo para o ranking.
+                </div>
+              )}
             </div>
             <div>
               <label className="text-[#8593aa] block mb-1">Confiança mínima</label>
@@ -312,10 +377,22 @@ export default function OperationTab({
                   <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30 font-mono">
                     Diferente de {currentPick.digit} (≠{currentPick.digit})
                   </span>
-                  <span className="text-emerald-400 font-mono">{currentPick.conf}% confiança</span>
+                  <span className="text-emerald-400 font-mono">
+                    {descreveMetrica({
+                      ...currentPick,
+                      reason: null,
+                      key: '',
+                      logicId: currentPick.lid,
+                      stage: 5,
+                    })}
+                  </span>
                 </div>
-                <div className="text-[11px] text-[#eef2f8] font-mono">{currentPick.why}</div>
-                <div className="text-[10px] text-[#8593aa] mt-1">Amostra: {currentPick.n} ticks analisados.</div>
+                <div className="text-[11px] text-[#eef2f8] font-mono">
+                  {engine.getLogicName(currentPick.lid)}
+                </div>
+                <div className="text-[10px] text-[#8593aa] mt-1">
+                  Amostra: {currentPick.tickCount} ticks analisados.
+                </div>
               </div>
             ) : (
               <div>{scanMessage}</div>
@@ -359,36 +436,89 @@ export default function OperationTab({
           </div>
         </div>
 
-        {/* Card: Melhor Alvo no Momento (Motor 2.0) */}
+        {/* Card: Melhor Alvo no Momento — segue a fonte do sinal */}
         <div className="bg-[#131925] border border-[#222c3f] rounded-lg p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#8593aa] mb-3">
-            Melhor alvo no momento (Motor 2.0 Referência)
-          </h3>
+          <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#8593aa]">
+              Melhor alvo no momento
+            </h3>
+            <span className="text-[10.5px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+              {config.autoSource === 'motor2'
+                ? 'MOTOR 2.0'
+                : config.autoSource === 'logic'
+                ? engine.getLogicName(liveTarget.logicId).toUpperCase()
+                : 'MOTOR + LÓGICA'}
+            </span>
+          </div>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="w-16 h-16 rounded-xl bg-amber-500/10 border-2 border-amber-500 flex items-center justify-center font-mono text-3xl text-amber-400 font-bold">
-              {bestMotor2Target ? bestMotor2Target.digit : '—'}
+              {liveTarget.digit !== null && !liveTarget.reason ? liveTarget.digit : '—'}
             </div>
             <div className="flex-1 min-w-[200px]">
               <b className="font-mono text-sm text-[#eef2f8]">
-                {bestMotor2Target ? `${bestMotor2Target.sym} · Fora do dígito ${bestMotor2Target.digit}` : 'analisando…'}
+                {liveTarget.sym && liveTarget.digit !== null && !liveTarget.reason
+                  ? `${liveTarget.sym} · Fora do dígito ${liveTarget.digit}`
+                  : 'analisando…'}
               </b>
-              <div className="text-[11px] text-[#8593aa] mt-0.5">
-                {bestMotor2Target
-                  ? `z=${bestMotor2Target.sat} · gap ${bestMotor2Target.gap}`
-                  : 'Aguardando amostra nos mercados ligados.'}
+              <div
+                data-testid="target-card-metric"
+                className="text-[11px] text-[#8593aa] mt-0.5"
+              >
+                {config.autoSource === 'motor2'
+                  ? `score ${liveTarget.score ?? 0} · mínimo ${config.minScore}`
+                  : config.autoSource === 'logic'
+                  ? `confiança ${liveTarget.conf?.toFixed(0) ?? 0}% · mínimo ${config.onceMinConf}%`
+                  : `score ${liveTarget.score ?? 0} (mín. ${config.minScore}) · confiança ${
+                      liveTarget.conf?.toFixed(0) ?? 0
+                    }% (mín. ${config.onceMinConf}%)`}
               </div>
               <div className="h-2 bg-[#18202f] rounded-full overflow-hidden mt-2">
                 <div
                   className="h-full bg-indigo-500"
-                  style={{ width: `${Math.min(100, bestMotor2Target ? bestMotor2Target.score : 0)}%` }}
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      config.autoSource === 'logic'
+                        ? liveTarget.conf ?? 0
+                        : liveTarget.score ?? 0
+                    )}%`,
+                  }}
                 />
-              </div>
-              <div className="flex justify-between text-[10px] font-mono text-[#8593aa] mt-0.5">
-                <span>score {bestMotor2Target ? bestMotor2Target.score : 0}</span>
-                <span>mínimo {config.minScore}</span>
               </div>
             </div>
           </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              data-testid="manual-entry-button"
+              disabled={!!liveTarget.reason || liveTarget.digit === null}
+              onClick={handleManualEntry}
+              className={`px-4 py-2 font-bold rounded shadow transition-colors ${
+                liveTarget.reason || liveTarget.digit === null
+                  ? 'bg-[#18202f] text-[#8593aa] border border-[#222c3f] cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              }`}
+            >
+              {liveTarget.reason || liveTarget.digit === null
+                ? 'Entrar no alvo recomendado'
+                : config.vlossOn
+                ? `Armar ${config.vlossN} Loss Virtual fora do dígito ${liveTarget.digit}`
+                : `Operar fora do dígito ${liveTarget.digit}`}
+            </button>
+            <span className="text-[10.5px] text-[#8593aa]">
+              Entrada imediata, sem proposta pré-cotada.
+            </span>
+          </div>
+
+          {liveTarget.reason && (
+            <div
+              data-testid="manual-entry-status"
+              className="mt-2 p-2.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-200 font-mono text-[11px]"
+            >
+              Sem entrada manual: {liveTarget.reason}.
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#222c3f] flex-wrap gap-2">
             <label className="flex items-center gap-2 text-[#8593aa] cursor-pointer">

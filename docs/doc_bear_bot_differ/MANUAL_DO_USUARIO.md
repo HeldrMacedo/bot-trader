@@ -98,8 +98,37 @@ Esta é a tela onde você acompanha a execução dos trades:
 5. **Botões de Comando:**  
    - **Iniciar Operações Automáticas:** Coloca o robô em modo de caça contínua, analisando cada tick e entrando quando os filtros forem satisfeitos.
    - **Pausar Robô:** Interrompe novas entradas imediatamente.
-   - **Executar Entrada Manual:** Dispara uma ordem pontual no mercado atual com o dígito recomendado pelo Motor 2.0.
+   - **Executar Entrada Manual:** Dispara uma ordem pontual no dígito recomendado. A recomendação segue a configuração **Fonte do sinal**, e não mais sempre o Motor 2.0 — veja a seção correspondente abaixo.
    - **Resetar Estatísticas:** Zera o painel da sessão para começar uma nova jornada de operações.
+
+#### Fonte do sinal: quem escolhe o dígito
+
+O seletor **Fonte do sinal**, no card do automático, define o critério de recomendação — e vale tanto para as entradas automáticas quanto para as manuais. As duas leem exatamente o mesmo alvo, de modo que o número mostrado na tela é sempre o número que será operado.
+
+| Fonte | Quando entra |
+| :--- | :--- |
+| **Motor 2.0** (padrão) | Quando o score composto de saturação atinge o mínimo configurado. As lógicas seguem apenas medindo. |
+| **Lógica medida** | Quando a lógica escolhida no seletor "Lógica" atinge a confiança mínima. O score do motor deixa de valer. |
+| **As duas, no mesmo dígito** | Confirmação dupla: score e confiança acima dos mínimos **e** os dois apontando o mesmo dígito. |
+
+Com a fonte no Motor 2.0, o seletor "Lógica" fica desabilitado, porque nesse modo ele não influencia entrada nenhuma.
+
+#### As três formas de entrar
+
+1. **Analisar mercados → Confirmar entrada:** congela o alvo na tela, abre uma proposta pré-cotada na Deriv e espera sua confirmação. É o caminho mais rápido na hora da compra.
+2. **Botão no card "Melhor alvo no momento":** entra imediatamente no alvo ao vivo, recalculado no instante do clique. Não usa proposta pré-cotada — o alvo muda a cada tick e mantê-lo cotado encheria a conexão de propostas que vencem sem uso.
+3. **Automático:** o robô entra sozinho a cada tick que satisfizer os filtros.
+
+Com o **Gatilho de Perda Virtual** ligado, os dois botões manuais não compram: eles armam o Loss Virtual e esperam as perdas configuradas, exatamente como o automático faz.
+
+#### O que barra uma entrada manual
+
+O clique manual passa pelas mesmas travas do automático: mercado ligado, operação única por vez, travas de segurança, amostra mínima, fonte do sinal, trava de viés e filtro de exaustão. Quando alguma delas barra, o botão fica desabilitado e o motivo aparece escrito abaixo dele.
+
+Duas diferenças propositais em relação ao automático:
+
+- O **intervalo mínimo entre entradas** não barra o clique manual — ele existe para frear o robô, não o operador. Mas a sua ordem manual passa a contar para o intervalo do automático, já que as duas vão para a mesma conta.
+- Uma **trava de segurança** apenas recusa o clique, sem desligar o automático. No caminho automático, a mesma trava desliga o robô.
 
 ---
 

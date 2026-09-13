@@ -65,18 +65,40 @@ export interface ScoreResult {
 }
 
 /**
- * Alvo resolvido do modo automático. Ou traz o dígito a operar e a lógica que
- * responde por ele, ou traz o motivo de não haver alvo.
+ * Alvo recomendado, compartilhado pelo modo automático e pela entrada manual.
+ * Ou traz o dígito a operar e a lógica que responde por ele, ou traz o motivo
+ * de não haver alvo. Os dois caminhos leem daqui para que a tela nunca mostre
+ * uma recomendação diferente da que seria operada.
  */
-export interface AutoTarget {
-  /** Por que esta fonte não produziu alvo, ou null quando produziu */
+export interface ResolvedTarget {
+  /** Por que não há alvo, ou null quando há */
   reason: string | null;
   /** Causa sem os números que mudam a cada tick, para deduplicar o log */
   key: string;
-  digit: number;
+  /** Mercado do alvo, ou null quando nenhum mercado liberou */
+  sym: string | null;
+  digit: number | null;
   /** 'motor2' ou o id da lógica que escolheu o dígito */
   logicId: string;
+  /** Confiança da lógica, quando a fonte envolve lógica */
+  conf: number | null;
+  /** Score do motor de referência no mercado avaliado */
+  score: number | null;
+  /**
+   * Quão longe no funil este mercado chegou antes de ser barrado. Serve para a
+   * varredura escolher a explicação mais informativa entre os mercados.
+   */
+  stage: number;
 }
+
+/** Estágios do funil, do mais raso ao mais próximo de liberar */
+const STAGE = {
+  sample: 1,
+  source: 2,
+  bias: 3,
+  exhaust: 4,
+  ready: 5,
+};
 
 export interface EngineState {
   markets: DifferMarket[];
@@ -317,6 +339,18 @@ export class BearDifferEngine {
     };
   }
 
+  /**
+   * Liga ou desliga um mercado. A varredura de alvo e a vigilância já filtram
+   * por `m.on`, mas até aqui não havia como mudar esse estado fora da carga
+   * inicial.
+   */
+  public setMarketEnabled(sym: string, on: boolean): void {
+    const m = this.markets.find((x) => x.sym === sym);
+    if (!m || m.on === on) return;
+    m.on = on;
+    this.notify();
+  }
+
   public setHistory(sym: string, digits: number[]): void {
     const trimmed = digits.slice(-8000);
     this.buffers.set(sym, trimmed);
@@ -384,10 +418,9 @@ export class BearDifferEngine {
         // Guard é parada dura: o legado faz `S.auto=false` e avisa uma vez.
         let halt = false;
         let fire = false;
-        // Alvo da entrada segundo a fonte configurada. Precisa ser resolvido
-        // antes do filtro de exaustão: quem filtra é o dígito que será operado,
-        // não o do motor quando a fonte é outra.
-        let target: AutoTarget = { reason: null, key: '', digit: a.best.digit, logicId: 'motor2' };
+        // O alvo vem do mesmo resolvedor que a entrada manual usa: amostra,
+        // fonte do sinal, trava de viés e exaustão são avaliados lá dentro.
+        let target: ResolvedTarget = this.resolveTarget(sym, a);
 
         if (!isMarketOn) {
           reason = `${sym} está desligado`;
@@ -401,36 +434,15 @@ export class BearDifferEngine {
           key = `guard:${guard}`;
           scope = '*';
           halt = true;
-        } else if (buf.length < this.config.minTicks) {
-          reason = `amostra insuficiente em ${sym} (${buf.length}/${this.config.minTicks} ticks)`;
-          key = `sample:${sym}`;
-        } else if ((target = this.autoTarget(sym, a)).reason) {
+        } else if (target.reason) {
           reason = target.reason;
           key = `${target.key}:${sym}`;
-        } else if (this.config.gateBias && !this.biasVerdict(sym).proven) {
-          const v = this.biasVerdict(sym);
-          reason =
-            v.p === null
-              ? `trava de viés: ${sym} tem ${v.n} de ${v.need} ticks para a bateria do laboratório rodar`
-              : `trava de viés: ${sym} se comporta como gerador honesto (p corrigido ${v.p.toFixed(
-                  3
-                )}, exigido < ${this.config.labAlpha})`;
-          if (v.p !== null) {
-            reason += '. Desligue a trava de viés para operar mesmo assim';
-          }
-          key = `bias:${sym}:${v.p === null ? 'amostra' : 'honesto'}`;
+        } else if (Date.now() - this.lastTradeTime < this.config.cooldown * 1000) {
+          reason = `aguardando o intervalo mínimo de ${this.config.cooldown}s`;
+          key = 'cooldown';
+          scope = '*';
         } else {
-          const blocked = this.exhaustBlock(sym, target.digit);
-          if (blocked) {
-            reason = `filtro de exaustão: ${blocked}`;
-            key = `exhaust:${sym}`;
-          } else if (Date.now() - this.lastTradeTime < this.config.cooldown * 1000) {
-            reason = `aguardando o intervalo mínimo de ${this.config.cooldown}s`;
-            key = 'cooldown';
-            scope = '*';
-          } else {
-            fire = true;
-          }
+          fire = true;
         }
 
         // Log só na mudança de causa: por tick inundaria o histórico
@@ -448,12 +460,10 @@ export class BearDifferEngine {
         }
 
         if (fire) {
-          this.lastTradeTime = Date.now();
-          // Entrada saiu: o rodízio pode avançar para a próxima lógica.
-          this.autoLogicCache = null;
+          this.noteEntryFired(target.logicId);
           this.autoTradeSubscribers.forEach((cb) => {
             try {
-              cb(sym, target.digit, target.logicId);
+              cb(sym, target.digit as number, target.logicId);
             } catch (e) {
               console.error('Error in autoTrade subscriber:', e);
             }
@@ -490,72 +500,250 @@ export class BearDifferEngine {
   }
 
   /**
-   * Alvo do modo automático conforme a fonte configurada. O motor de referência
-   * e as lógicas medidas são fontes independentes: 'both' só entra quando as
-   * duas aprovam e apontam o mesmo dígito.
+   * Alvo recomendado. Sem símbolo, varre os mercados ligados e devolve o
+   * melhor; com símbolo, avalia só aquele mercado. É o mesmo funil para o
+   * automático e para a entrada manual: amostra mínima, fonte do sinal, trava
+   * de viés e filtro de exaustão. As travas do robô inteiro — operação aberta,
+   * travas de segurança e intervalo mínimo — ficam de fora porque valem de
+   * forma diferente em cada caminho.
    */
-  private autoTarget(sym: string, a: ScoreResult): AutoTarget {
-    const src = this.config.autoSource || 'motor2';
-    const motorOk = a.best.score >= this.config.minScore;
-    const motorFail: AutoTarget = {
-      reason: `score ${a.best.score} abaixo do mínimo de ${this.config.minScore} em ${sym}`,
-      key: 'score',
-      digit: a.best.digit,
+  public resolveTarget(sym?: string, pre?: ScoreResult): ResolvedTarget {
+    if (sym) return this.targetForMarket(sym, pre);
+
+    let best: ResolvedTarget | null = null;
+    let worst: ResolvedTarget | null = null;
+
+    this.markets
+      .filter((m) => m.on)
+      .forEach((m) => {
+        const t = this.targetForMarket(m.sym);
+        if (!t.reason) {
+          if (!best || this.betterTarget(t, best)) best = t;
+          return;
+        }
+        // Sem alvo, a explicação útil é a do mercado que chegou mais longe:
+        // "falta amostra" em seis mercados esconde o sétimo que só esbarrou no
+        // filtro de exaustão.
+        if (!worst || t.stage > worst.stage) worst = t;
+      });
+
+    if (best) return best;
+    if (worst) return worst;
+    return {
+      reason: 'nenhum mercado ligado',
+      key: 'nomarket',
+      sym: null,
+      digit: null,
       logicId: 'motor2',
+      conf: null,
+      score: null,
+      stage: 0,
+    };
+  }
+
+  /**
+   * Desempate entre mercados liberados: maior score do motor, e a confiança da
+   * lógica só quando os scores empatam. Somar as duas inventaria uma métrica
+   * que ninguém validou — elas estão em escalas diferentes.
+   */
+  private betterTarget(a: ResolvedTarget, b: ResolvedTarget): boolean {
+    const sa = a.score ?? -1;
+    const sb = b.score ?? -1;
+    if (sa !== sb) return sa > sb;
+    return (a.conf ?? -1) > (b.conf ?? -1);
+  }
+
+  /**
+   * Funil de um único mercado conforme a fonte configurada. O motor de
+   * referência e as lógicas medidas são fontes independentes: 'both' só libera
+   * quando as duas aprovam e apontam o mesmo dígito.
+   */
+  private targetForMarket(sym: string, pre?: ScoreResult): ResolvedTarget {
+    const base = {
+      sym,
+      digit: null as number | null,
+      logicId: 'motor2',
+      conf: null as number | null,
+      score: null as number | null,
     };
 
+    const market = this.markets.find((m) => m.sym === sym);
+    if (market && !market.on) {
+      return { ...base, reason: `${sym} está desligado`, key: 'off', stage: 0 };
+    }
+
+    const buf = this.getDigits(sym);
+    if (buf.length < this.config.minTicks) {
+      return {
+        ...base,
+        reason: `amostra insuficiente em ${sym} (${buf.length}/${this.config.minTicks} ticks)`,
+        key: 'sample',
+        stage: STAGE.sample,
+      };
+    }
+
+    const a = pre ?? this.analyze(sym);
+    if (!a) {
+      return {
+        ...base,
+        reason: `amostra insuficiente em ${sym} (${buf.length}/${this.config.minTicks} ticks)`,
+        key: 'sample',
+        stage: STAGE.sample,
+      };
+    }
+
+    const src = this.config.autoSource || 'motor2';
+    const motorOk = a.best.score >= this.config.minScore;
+    const motorFail: ResolvedTarget = {
+      ...base,
+      digit: a.best.digit,
+      score: a.best.score,
+      reason: `score ${a.best.score} abaixo do mínimo de ${this.config.minScore} em ${sym}`,
+      key: 'score',
+      stage: STAGE.source,
+    };
+
+    let digit: number;
+    let logicId: string;
+    let conf: number | null = null;
+
     if (src === 'motor2') {
-      return motorOk
-        ? { reason: null, key: '', digit: a.best.digit, logicId: 'motor2' }
-        : motorFail;
-    }
-
-    const chosen = this.autoLogicId();
-    if (!chosen) {
-      return {
-        reason:
-          this.config.onceLogic === 'auto'
-            ? `nenhuma lógica passou no teste de significância para operar ${sym}`
-            : `nenhuma lógica com amostra suficiente para operar ${sym}`,
-        key: 'logicnone',
-        digit: a.best.digit,
-        logicId: 'motor2',
-      };
-    }
-
-    const name = this.getLogicName(chosen);
-    const pick = this.liveP[sym]?.[chosen];
-    if (!pick) {
-      return {
-        reason: `${name} sem palpite em ${sym}`,
-        key: 'logicpick',
-        digit: a.best.digit,
-        logicId: chosen,
-      };
-    }
-
-    if (pick.conf < this.config.onceMinConf) {
-      return {
-        reason: `confiança de ${pick.conf.toFixed(0)}% em ${name} (${sym}) abaixo do mínimo de ${this.config.onceMinConf}%`,
-        key: 'logicconf',
-        digit: pick.digit,
-        logicId: chosen,
-      };
-    }
-
-    if (src === 'both') {
       if (!motorOk) return motorFail;
-      if (pick.digit !== a.best.digit) {
+      digit = a.best.digit;
+      logicId = 'motor2';
+    } else {
+      const chosen = this.autoLogicId();
+      if (!chosen) {
         return {
-          reason: `sem concordância em ${sym}: motor 2.0 aponta ${a.best.digit}, ${name} aponta ${pick.digit}`,
-          key: 'concord',
-          digit: pick.digit,
-          logicId: chosen,
+          ...base,
+          digit: a.best.digit,
+          score: a.best.score,
+          reason:
+            this.config.onceLogic === 'auto'
+              ? `nenhuma lógica passou no teste de significância para operar ${sym}`
+              : `nenhuma lógica com amostra suficiente para operar ${sym}`,
+          key: 'logicnone',
+          stage: STAGE.source,
         };
       }
+
+      const name = this.getLogicName(chosen);
+      const pick = this.liveP[sym]?.[chosen];
+      if (!pick) {
+        return {
+          ...base,
+          digit: a.best.digit,
+          score: a.best.score,
+          logicId: chosen,
+          reason: `${name} sem palpite em ${sym}`,
+          key: 'logicpick',
+          stage: STAGE.source,
+        };
+      }
+
+      if (pick.conf < this.config.onceMinConf) {
+        return {
+          ...base,
+          digit: pick.digit,
+          score: a.best.score,
+          logicId: chosen,
+          conf: pick.conf,
+          reason: `confiança de ${pick.conf.toFixed(0)}% em ${name} (${sym}) abaixo do mínimo de ${this.config.onceMinConf}%`,
+          key: 'logicconf',
+          stage: STAGE.source,
+        };
+      }
+
+      if (src === 'both') {
+        if (!motorOk) return { ...motorFail, logicId: chosen, conf: pick.conf };
+        if (pick.digit !== a.best.digit) {
+          return {
+            ...base,
+            digit: pick.digit,
+            score: a.best.score,
+            logicId: chosen,
+            conf: pick.conf,
+            reason: `sem concordância em ${sym}: motor 2.0 aponta ${a.best.digit}, ${name} aponta ${pick.digit}`,
+            key: 'concord',
+            stage: STAGE.source,
+          };
+        }
+      }
+
+      digit = pick.digit;
+      logicId = chosen;
+      conf = pick.conf;
     }
 
-    return { reason: null, key: '', digit: pick.digit, logicId: chosen };
+    const found = { ...base, digit, logicId, conf, score: a.best.score };
+
+    if (this.config.gateBias && !this.biasVerdict(sym).proven) {
+      const v = this.biasVerdict(sym);
+      let reason =
+        v.p === null
+          ? `trava de viés: ${sym} tem ${v.n} de ${v.need} ticks para a bateria do laboratório rodar`
+          : `trava de viés: ${sym} se comporta como gerador honesto (p corrigido ${v.p.toFixed(
+              3
+            )}, exigido < ${this.config.labAlpha})`;
+      if (v.p !== null) {
+        reason += '. Desligue a trava de viés para operar mesmo assim';
+      }
+      return {
+        ...found,
+        reason,
+        key: `bias:${v.p === null ? 'amostra' : 'honesto'}`,
+        stage: STAGE.bias,
+      };
+    }
+
+    const blocked = this.exhaustBlock(sym, digit);
+    if (blocked) {
+      return {
+        ...found,
+        reason: `filtro de exaustão: ${blocked}`,
+        key: 'exhaust',
+        stage: STAGE.exhaust,
+      };
+    }
+
+    return { ...found, reason: null, key: '', stage: STAGE.ready };
+  }
+
+  /**
+   * Alvo para a entrada manual: o mesmo funil de mercado, mais as travas do
+   * robô inteiro que valem para um clique — operação em aberto e travas de
+   * segurança. O intervalo mínimo fica de fora de propósito: ele existe para
+   * frear o robô, não o operador. Ao contrário do caminho automático, uma trava
+   * de segurança aqui apenas recusa a entrada, sem desligar o automático.
+   */
+  public manualTarget(): ResolvedTarget {
+    const bloqueio = (reason: string, key: string): ResolvedTarget => ({
+      reason,
+      key,
+      sym: null,
+      digit: null,
+      logicId: 'motor2',
+      conf: null,
+      score: null,
+      stage: 0,
+    });
+
+    if (this.tradeLock) return bloqueio('operação em aberto — uma por vez', 'lock');
+    const guard = this.checkGuards();
+    if (guard) return bloqueio(guard, 'guard');
+
+    return this.resolveTarget();
+  }
+
+  /**
+   * Registra que uma ordem saiu, venha do automático ou de um clique. O
+   * intervalo mínimo conta a partir da última ordem enviada à corretora,
+   * independente de quem a disparou, e o rodízio de lógicas avança — mas só
+   * quando a entrada saiu por uma lógica.
+   */
+  public noteEntryFired(logicId?: string): void {
+    this.lastTradeTime = Date.now();
+    if (logicId && logicId !== 'motor2') this.autoLogicCache = null;
   }
 
   public setTradeLock(locked: boolean): void {
@@ -1467,56 +1655,6 @@ export class BearDifferEngine {
       return best ? best.id : null;
     }
     return mode;
-  }
-
-  // Operação Única (deepScan)
-  public deepScan(logicId: string): {
-    sym: string;
-    digit: number;
-    conf: number;
-    why: string;
-    n: number;
-    lid: string;
-  } | null {
-    const chosenId = this.resolveLogic(logicId);
-    if (!chosenId) return null;
-
-    // Mesma trava de viés do caminho automático: com o gate ligado, só
-    // mercados aprovados no laboratório podem ser operados.
-    const eligible = this.markets.filter(
-      (m) => m.on && (!this.config.gateBias || this.isMarketProven(m.sym))
-    );
-    let best: {
-      sym: string;
-      digit: number;
-      conf: number;
-      why: string;
-      n: number;
-      lid: string;
-    } | null = null;
-
-    eligible.forEach((m) => {
-      const lp = this.liveP[m.sym];
-      if (!lp) return;
-      const p = lp[chosenId];
-      if (!p) return;
-      const digits = this.getDigits(m.sym);
-      if (digits.length < this.config.minTicks) return;
-
-      if (!best || p.conf > best.conf) {
-        best = {
-          sym: m.sym,
-          digit: p.digit,
-          conf: p.conf,
-          why: p.why,
-          n: digits.length,
-          // A lógica de fato resolvida, não o modo de alternância pedido
-          lid: chosenId,
-        };
-      }
-    });
-
-    return best;
   }
 
   // ── Laboratório Estatístico (Bateria de Aleatoriedade) ──

@@ -845,13 +845,15 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
       act(() => {
         result.current.updateConfig({ opMode: 'sim', vlossRepick: true, stake: 1 });
       });
-      vi.spyOn(result.current.engine, 'deepScan').mockReturnValue({
+      vi.spyOn(result.current.engine, 'resolveTarget').mockReturnValue({
         sym: 'R_10',
         digit: 2,
         conf: 90,
-        why: 'repick',
-        n: 700,
-        lid: 'flong',
+        score: 80,
+        logicId: 'flong',
+        reason: null,
+        key: '',
+        stage: 5,
       });
 
       act(() => {
@@ -900,6 +902,56 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
 
       expect(result.current.state.trades[0].logicId).toBe('rep');
       expect(result.current.state.trades[0].digit).toBe(3);
+    });
+
+    it('repicks by the configured signal source, not always by logic', () => {
+      const { result } = renderHook(() => useBearDiffer());
+      act(() => {
+        result.current.updateConfig({
+          opMode: 'sim',
+          vlossRepick: true,
+          stake: 1,
+          autoSource: 'motor2',
+        });
+      });
+      const spy = vi.spyOn(result.current.engine, 'resolveTarget').mockReturnValue({
+        sym: 'R_10',
+        digit: 5,
+        conf: null,
+        score: 88,
+        logicId: 'motor2',
+        reason: null,
+        key: '',
+        stage: 5,
+      });
+
+      act(() => {
+        result.current.armVirtualLoss('R_10', 7, 1, 'par');
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.567 } });
+      });
+      act(() => {
+        mockObserver.emit('deriv.tick', { tick: { symbol: 'R_10', quote: 1234.561 } });
+      });
+
+      expect(spy).toHaveBeenCalled();
+      expect(result.current.state.trades[0].digit).toBe(5);
+      expect(result.current.state.trades[0].logicId).toBe('motor2');
+    });
+
+    it('counts a manual entry towards the automatic cooldown', async () => {
+      const { result } = renderHook(() => useBearDiffer());
+      act(() => {
+        result.current.updateConfig({ opMode: 'sim', stake: 1, cooldown: 30 });
+      });
+      const spy = vi.spyOn(result.current.engine, 'noteEntryFired');
+
+      await act(async () => {
+        await result.current.executeTrade('R_10', 4, undefined, 'mk1');
+      });
+
+      expect(spy).toHaveBeenCalledWith('mk1');
     });
 
     it('carries the logic through a real contract settlement', async () => {
@@ -976,13 +1028,15 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
       act(() => {
         result.current.updateConfig({ opMode: 'sim', vlossRepick: true, stake: 1 });
       });
-      vi.spyOn(result.current.engine, 'deepScan').mockReturnValue({
+      vi.spyOn(result.current.engine, 'resolveTarget').mockReturnValue({
         sym: 'R_10',
         digit: 2,
         conf: 90,
-        why: 'repick',
-        n: 700,
-        lid: 'flong',
+        score: 80,
+        logicId: 'flong',
+        reason: null,
+        key: '',
+        stage: 5,
       });
 
       act(() => {

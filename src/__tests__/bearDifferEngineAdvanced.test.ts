@@ -225,7 +225,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     });
   });
 
-  describe('resolveLogic & deepScan modes', () => {
+  describe('resolveLogic & resolveTarget modes', () => {
     it('resolves auto, rotate, and recent modes properly', () => {
       // Seed some ticks
       for (let i = 0; i < 200; i++) {
@@ -240,12 +240,14 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
       expect(typeof resolvedRecent === 'string' || resolvedRecent === null).toBe(true);
       expect(typeof resolvedAuto === 'string' || resolvedAuto === null).toBe(true);
 
-      // deepScan should not crash and should work with rotate and recent
-      const scanRotate = engine.deepScan('rotate');
-      const scanRecent = engine.deepScan('recent');
-      // If sample is enough, it can return a pick, otherwise null, but no crash or undefined logic lookup
-      expect(scanRotate === null || (scanRotate && typeof scanRotate.digit === 'number')).toBe(true);
-      expect(scanRecent === null || (scanRecent && typeof scanRecent.digit === 'number')).toBe(true);
+      // resolveTarget should not crash with rotate or recent as the logic mode
+      engine.updateConfig({ autoSource: 'logic', onceLogic: 'rotate' });
+      const scanRotate = engine.resolveTarget();
+      engine.updateConfig({ onceLogic: 'recent' });
+      const scanRecent = engine.resolveTarget();
+      // With or without sample it must answer with a target or a reason, never crash
+      expect(scanRotate.reason !== null || typeof scanRotate.digit === 'number').toBe(true);
+      expect(scanRecent.reason !== null || typeof scanRecent.digit === 'number').toBe(true);
     });
   });
 
@@ -279,9 +281,11 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
       engine.setHistory('R_10', digits);
       engine.processTick('R_10', 3);
 
-      const pick = engine.deepScan('rep');
-      expect(pick).not.toBeNull();
-      expect(pick!.lid).toBe('rep');
+      engine.updateConfig({ autoSource: 'logic', onceLogic: 'rep', onceMinConf: 0, minTicks: 300 });
+
+      const pick = engine.resolveTarget();
+      expect(pick.reason).toBeNull();
+      expect(pick.logicId).toBe('rep');
     });
   });
 
@@ -429,19 +433,31 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     };
 
     it('returns a target when the bias gate is off', () => {
-      engine.updateConfig({ gateBias: false, minTicks: 300, onceLogic: 'rep' });
+      engine.updateConfig({
+        gateBias: false,
+        minTicks: 300,
+        onceLogic: 'rep',
+        autoSource: 'logic',
+        onceMinConf: 0,
+      });
       seedMarket('R_10', 400);
 
-      expect(engine.deepScan('rep')).not.toBeNull();
+      expect(engine.resolveTarget().reason).toBeNull();
     });
 
     it('refuses every market that has not proven bias while the gate is on', () => {
-      engine.updateConfig({ gateBias: true, minTicks: 300, onceLogic: 'rep' });
+      engine.updateConfig({
+        gateBias: true,
+        minTicks: 300,
+        onceLogic: 'rep',
+        autoSource: 'logic',
+        onceMinConf: 0,
+      });
       seedMarket('R_10', 400);
 
       // 400 ticks is far below labMin, so no market can be proven
       expect(engine.isMarketProven('R_10')).toBe(false);
-      expect(engine.deepScan('rep')).toBeNull();
+      expect(engine.resolveTarget().reason).toMatch(/trava de viés/i);
     });
   });
 
