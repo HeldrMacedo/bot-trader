@@ -878,7 +878,6 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
           opMode: 'sim',
           stake: 1,
           autoOn: true,
-        autoSource: 'motor2',
           autoSource: 'logic',
           onceLogic: 'rep',
           onceMinConf: 70,
