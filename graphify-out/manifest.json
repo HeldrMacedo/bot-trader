@@ -1494,9 +1494,9 @@
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx": {
-    "mtime": 1789350047.011244,
-    "seen": 1789350085.1814787,
-    "ast_hash": "c030987fa40dbb28a42027c0535c2d64",
+    "mtime": 1789350468.234123,
+    "seen": 1789350502.7303321,
+    "ast_hash": "aedfd2ffe9898237494482c698a7f606",
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-differ/components/tabs/PipelineTab.tsx": {
@@ -1560,9 +1560,9 @@
     "semantic_hash": "ac0fe03f44ffc9687aff79ad4628e56a"
   },
   "docs/doc_bear_bot_differ/MANUAL_DO_USUARIO.md": {
-    "mtime": 1789350062.576116,
-    "seen": 1789350085.1847599,
-    "ast_hash": "f851f2e5890ea0c3bc469a3da12606e8",
+    "mtime": 1789350499.1916132,
+    "seen": 1789350502.7337768,
+    "ast_hash": "a59276d17580a53b09744bc73ce35e1d",
     "semantic_hash": ""
   },
   "docs/doc_bear_bot_differ/README.md": {
@@ -1662,9 +1662,9 @@
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferManualEntryUI.test.tsx": {
-    "mtime": 1789350008.6194475,
-    "seen": 1789350085.18079,
-    "ast_hash": "f555df3f99f6c281ffa043f177b33d29",
+    "mtime": 1789350430.3535903,
+    "seen": 1789350502.7296057,
+    "ast_hash": "15f36687843c6793f2135db54d5496a4",
     "semantic_hash": ""
   },
   "src/__tests__/bearDifferManualTarget.test.ts": {

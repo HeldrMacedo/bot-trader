@@ -52,6 +52,18 @@ function textoConf(conf: number | null): string {
   return conf === null ? '—' : `${conf.toFixed(0)}%`;
 }
 
+/** Linha do card que nomeia a lógica escolhida pelo modo por acerto medido. */
+function textoLogicaPorAcerto(
+  info: { nome: string | null; acc: number | null } | null
+): string {
+  if (!info) return '';
+  if (!info.nome) {
+    return 'nenhuma lógica supera o empate técnico com amostra suficiente';
+  }
+  const acerto = info.acc === null ? '' : ` · acerto ${(info.acc * 100).toFixed(1)}%`;
+  return `lógica escolhida: ${info.nome}${acerto}`;
+}
+
 /** Métrica que faz sentido para a fonte que produziu o alvo. */
 function descreveMetrica(alvo: ResolvedTarget): string {
   const partes: string[] = [];
@@ -111,6 +123,21 @@ export default function OperationTab({
   );
 
   const fonteUsaLogica = config.autoSource !== 'motor2';
+
+  // Qual lógica o modo por acerto medido está escolhendo agora. Só este modo
+  // ganha a linha no card: nos demais o nome já aparece na etiqueta da fonte,
+  // e no rodízio consultar a escolha teria efeito colateral de girar o índice.
+  const logicaPorAcerto = useMemo(() => {
+    if (!fonteUsaLogica || config.onceLogic !== 'top') return null;
+    const lid = engine.topAccuracyLogic();
+    if (!lid) return { nome: null, acc: null };
+    const linha = engine.getLogicRanking().find((r) => r.lid === lid);
+    return {
+      nome: engine.getLogicName(lid),
+      acc: linha?.acc ?? null,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, fonteUsaLogica, config.onceLogic, ticksTotais]);
 
   const handleScan = () => {
     const alvo = engine.manualTarget();
@@ -493,6 +520,14 @@ export default function OperationTab({
                         liveTarget.conf
                       )} (mín. ${config.onceMinConf}%)`}
                 </div>
+                {logicaPorAcerto && (
+                  <div
+                    data-testid="target-card-logic"
+                    className="text-[11px] text-cyan-300 mt-0.5 font-mono"
+                  >
+                    {textoLogicaPorAcerto(logicaPorAcerto)}
+                  </div>
+                )}
                 <div className="h-2 bg-[#18202f] rounded-full overflow-hidden mt-2">
                   <div
                     className="h-full bg-indigo-500"

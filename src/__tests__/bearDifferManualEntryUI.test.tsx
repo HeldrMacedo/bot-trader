@@ -312,6 +312,66 @@ describe('BearDiffer - rótulos honestos dos modos de alternância', () => {
     expect(nota).toMatch(/empate técnico|amostra/i);
   });
 
+  it('mostra no card qual lógica a líder por acerto está escolhendo', () => {
+    vi.spyOn(engine, 'getLogicRanking').mockReturnValue([
+      {
+        lid: 'exaust',
+        name: 'Exaustão de perdedores',
+        tag: 'reversão',
+        n: 254,
+        acc: 0.9252,
+        p: 0.2166,
+        ready: true,
+        pass: false,
+      },
+      {
+        lid: 'rep',
+        name: 'Anti-repetição',
+        tag: 'sequência',
+        n: 329,
+        acc: 0.9088,
+        p: 0.5451,
+        ready: true,
+        pass: false,
+      },
+    ]);
+    engine.updateConfig({ onceLogic: 'top' });
+    render2();
+
+    const escolhida = screen.getByTestId('target-card-logic').textContent || '';
+    expect(escolhida).toMatch(/Exaustão de perdedores/);
+    expect(escolhida).toMatch(/92\.5/);
+  });
+
+  it('diz no card quando a líder por acerto não tem candidata', () => {
+    // Todas abaixo do empate técnico de 90,91%: nenhuma qualifica.
+    vi.spyOn(engine, 'getLogicRanking').mockReturnValue([
+      {
+        lid: 'rep',
+        name: 'Anti-repetição',
+        tag: 'sequência',
+        n: 329,
+        acc: 0.88,
+        p: 0.9,
+        ready: true,
+        pass: false,
+      },
+    ]);
+    engine.updateConfig({ onceLogic: 'top' });
+    render2();
+
+    expect(screen.getByTestId('target-card-logic').textContent).toMatch(
+      /nenhuma/i
+    );
+  });
+
+  it('não mostra a lógica escolhida fora do modo por acerto', () => {
+    engine.updateConfig({ onceLogic: 'auto' });
+    render2();
+
+    expect(screen.queryByTestId('target-card-logic')).toBeNull();
+  });
+
   it('não mostra a nota da líder por acerto em outros modos', () => {
     engine.updateConfig({ onceLogic: 'auto' });
     render2();
