@@ -290,7 +290,7 @@ describe('BearDiffer - rótulos honestos dos modos de alternância', () => {
     expect(opcao.textContent).toMatch(/aprovada/i);
   });
 
-  it('oferece a líder por acerto medido, avisando que não há prova', () => {
+  it('oferece a líder por acerto medido sem sugerir que a opção não opera', () => {
     render2();
     const opcao = screen
       .getByTestId('logic-select')
@@ -298,7 +298,25 @@ describe('BearDiffer - rótulos honestos dos modos de alternância', () => {
 
     expect(opcao).not.toBeNull();
     expect(opcao.textContent).toMatch(/acerto medido/i);
-    expect(opcao.textContent).toMatch(/sem prova|sem significância/i);
+    // "sem prova estatística" no rótulo fazia parecer que a opção não escolhe
+    // lógica nenhuma. O aviso continua, em nota própria.
+    expect(opcao.textContent).not.toMatch(/sem prova|sem significância/i);
+  });
+
+  it('avisa em nota que a líder por acerto não passa pelo teste', () => {
+    engine.updateConfig({ onceLogic: 'top' });
+    render2();
+
+    const nota = screen.getByTestId('logic-mode-note').textContent || '';
+    expect(nota).toMatch(/significância|teste/i);
+    expect(nota).toMatch(/empate técnico|amostra/i);
+  });
+
+  it('não mostra a nota da líder por acerto em outros modos', () => {
+    engine.updateConfig({ onceLogic: 'auto' });
+    render2();
+
+    expect(screen.queryByTestId('logic-mode-note')).toBeNull();
   });
 
   it('mostra a causa no lugar da métrica quando nenhuma lógica foi escolhida', () => {

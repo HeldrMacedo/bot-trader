@@ -25895,7 +25895,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L443",
+      "source_location": "L450",
       "weight": 1.0
     },
     {
@@ -25907,7 +25907,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L480",
+      "source_location": "L487",
       "weight": 1.0
     },
     {
@@ -25919,7 +25919,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-differ/components/tabs/OperationTab.tsx",
-      "source_location": "L484",
+      "source_location": "L491",
       "weight": 1.0
     },
     {
@@ -52417,5 +52417,5 @@
       "source_file": "docs/documentacao_deriv/api_reference/docs/system.md"
     }
   ],
-  "built_at_commit": "991b5ade151ec944ce5fd83066b2369cc0f07ae8"
+  "built_at_commit": "73c466442d4adad55a7a20e05735f5668bc08156"
 }

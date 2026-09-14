@@ -180,7 +180,7 @@ Quando a fonte envolve lógica, `onceLogic` decide qual:
 | Modo | Critério | Garantia |
 | :--- | :--- | :--- |
 | `'auto'` | A líder **aprovada** no Benjamini-Hochberg | Evidência estatística de vantagem |
-| `'top'` | A líder por **acerto medido**, exigindo amostra mínima e acerto acima do empate técnico (`1/payout`) | Nenhuma — é a medição bruta |
+| `'top'` | A líder por **acerto medido** (rótulo: "maior acerto da tabela"), exigindo amostra mínima e acerto acima do empate técnico (`1/payout`) | Nenhuma — é a medição bruta, avisada em nota na tela |
 | `'rotate'` | Rodízio entre lógicas com amostra mínima, avançando a cada entrada | Nenhuma |
 | `'recent'` | Melhor acerto nos últimos 60 sinais | Nenhuma |
 | id fixo | A lógica escolhida à mão | Nenhuma |

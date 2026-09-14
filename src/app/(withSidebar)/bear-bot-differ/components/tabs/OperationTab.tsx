@@ -265,7 +265,7 @@ export default function OperationTab({
                     Por evidência — a líder aprovada no teste (FDR)
                   </option>
                   <option value="top">
-                    A líder por acerto medido — sem prova estatística
+                    A líder por acerto medido — maior acerto da tabela
                   </option>
                   <option value="rotate">Alternância em rodízio</option>
                   <option value="recent">Alternância por desempenho recente</option>
@@ -275,6 +275,13 @@ export default function OperationTab({
                     </option>
                   ))}
                 </select>
+                {fonteUsaLogica && config.onceLogic === 'top' && (
+                  <div data-testid="logic-mode-note" className="text-[10px] text-[#8593aa] mt-1">
+                    Pega a lógica de maior acerto entre as que têm amostra suficiente e
+                    superam o empate técnico. Não exige aprovação no teste de
+                    significância — para exigir, use a opção por evidência.
+                  </div>
+                )}
                 {!fonteUsaLogica && (
                   <div data-testid="logic-select-note" className="text-[10px] text-[#8593aa] mt-1">
                     Sem efeito na fonte atual: o alvo sai do Motor 2.0. As lógicas

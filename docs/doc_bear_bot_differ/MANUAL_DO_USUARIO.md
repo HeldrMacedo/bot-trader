@@ -118,7 +118,7 @@ Com a fonte no Motor 2.0, o seletor "Lógica" fica desabilitado, porque nesse mo
 O seletor "Lógica" oferece duas leituras do topo da tabela, e elas não são a mesma coisa:
 
 - **Por evidência — a líder aprovada no teste (FDR):** só considera lógicas que passaram no Benjamini-Hochberg. Em índices sintéticos, o normal é nenhuma passar, e então o robô não entra. Isso é o funcionamento correto, não uma falha.
-- **A líder por acerto medido — sem prova estatística:** pega o topo da tabela por taxa de acerto, exigindo apenas amostra mínima e acerto acima do empate técnico. Não há prova de vantagem aqui; você está operando a medição bruta, e o rótulo diz isso.
+- **A líder por acerto medido — maior acerto da tabela:** pega o topo da tabela por taxa de acerto, exigindo apenas amostra mínima e acerto acima do empate técnico. Não há prova de vantagem aqui — você está operando a medição bruta, e uma nota abaixo do seletor lembra disso enquanto a opção estiver escolhida.
 
 Um exemplo real: a primeira colocada tinha 92,52% de acerto em 254 sinais, acima do empate técnico de 90,91%, com p = 0,2166 — ou seja, uma chance em cinco de esse resultado ser puro acaso. O modo por evidência recusa operar; o modo por acerto medido aceita.
 
