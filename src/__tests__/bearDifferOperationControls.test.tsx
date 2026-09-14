@@ -29,11 +29,11 @@ describe('BearDiffer - controles do painel de operação', () => {
         config={engine.getConfig()}
         updateConfig={updateConfig as never}
         executeTrade={vi.fn() as never}
-        resetSession={resetSession}
+        resetSession={resetSession as never}
         armVirtualLoss={vi.fn() as never}
-        cancelVirtualLoss={cancelVirtualLoss}
+        cancelVirtualLoss={cancelVirtualLoss as never}
         setWarmTarget={vi.fn()}
-        exportCSV={exportCSV}
+        exportCSV={exportCSV as never}
         vlossState={{
           armed: vlossArmed,
           sym: 'R_10',
