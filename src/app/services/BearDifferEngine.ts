@@ -10,6 +10,7 @@ import {
   LogicRankingRow,
   LogicStat,
   MartingaleConfig,
+  OpMode,
   BiasTestResult,
   DifferLogItem,
   AnomalyLogItem,
@@ -170,6 +171,16 @@ export class BearDifferEngine {
   private rotateIdx = 0;
   private autoLogicCache: { id: string | null; at: number } | null = null;
 
+  // Trava de testes: cada lógica prova a si mesma numa janela de operações
+  // simuladas antes de poder mandar ordem real. A janela é por lógica porque
+  // liberar o conjunto pela medição de uma só deixaria as outras entrarem na
+  // conta real sem nunca terem sido medidas.
+  private gateWindows: Map<string, { ops: number; wins: number }> = new Map();
+  private gateReleased: Set<string> = new Set();
+  // O preparo decide se a ordem é papel; a liquidação chega depois e precisa
+  // saber o que foi enviado. Uma operação por vez torna o campo único seguro.
+  private pendingPaper: boolean | null = null;
+
   private subscribers: Array<(state: EngineState) => void> = [];
   private autoTradeSubscribers: Array<
     (sym: string, digit: number, logicId: string) => void
@@ -230,7 +241,18 @@ export class BearDifferEngine {
     if (newConfig.onceLogic !== undefined || newConfig.autoSource !== undefined) {
       this.autoLogicCache = null;
     }
+    // Trocar a fonte do sinal, a lógica escolhida ou a própria trava muda o
+    // que está sendo medido: o progresso anterior passa a descrever outro
+    // regime e não pode continuar valendo como prova.
+    const gateReset =
+      (newConfig.autoSource !== undefined && newConfig.autoSource !== this.config.autoSource) ||
+      (newConfig.onceLogic !== undefined && newConfig.onceLogic !== this.config.onceLogic) ||
+      (newConfig.gateEnabled !== undefined && newConfig.gateEnabled !== this.config.gateEnabled);
     this.config = { ...this.config, ...newConfig };
+    if (gateReset) this.resetGate();
+    // Desligar a trava não é ordem de trocar de modo: o seletor continua sendo
+    // do operador.
+    if (this.config.gateEnabled) this.syncGateMode();
     if (newConfig.stake !== undefined && this.mgLevel === 0) {
       this.curStake = newConfig.stake;
     }
@@ -272,6 +294,8 @@ export class BearDifferEngine {
     this.lastTradeTime = 0;
     this.simStats = { win: 0, loss: 0, pnl: 0, recent: [] };
     this.realStats = { win: 0, loss: 0, pnl: 0, recent: [] };
+    this.pendingPaper = null;
+    this.resetGate();
     this.virtStats = { hit: 0, total: 0, recent: [] };
     this.trades = [];
     this.logs = [];
@@ -287,6 +311,8 @@ export class BearDifferEngine {
     this.rotateIdx = 0;
     this.autoLogicCache = null;
     this.initLogics();
+    // Sem janela provada não há liberação: o seletor volta para simulação.
+    this.syncGateMode();
     this.notify();
   }
 
@@ -403,7 +429,12 @@ export class BearDifferEngine {
       }
 
       // Continuous Auto-Trade Trigger (Modo Automático 3.0)
-      if (this.config.autoOn) {
+      // As entradas da janela de testes são automáticas mesmo no modo manual:
+      // é o bot que precisa provar a lógica, não o operador que precisa
+      // clicar dezenas de vezes em papel para destravar o botão.
+      const gateTesting =
+        this.config.gateEnabled && !this.isLogicReleased(this.activeLogicId());
+      if (this.config.autoOn || gateTesting) {
         const isMarketOn = this.markets.find((m) => m.sym === sym)?.on ?? true;
         const guard = this.checkGuards();
         let reason: string | null = null;
@@ -748,7 +779,16 @@ export class BearDifferEngine {
     const guard = this.checkGuards();
     if (guard) return bloqueio(guard, 'guard');
 
-    return this.resolveTarget();
+    const alvo = this.resolveTarget();
+    if (alvo.reason) return alvo;
+
+    // O clique entra na conta real. Enquanto a lógica do alvo não provar a
+    // janela, quem opera é o automático da própria trava, em papel — o botão
+    // fica travado e mostra quanto falta.
+    const gate = this.gateBlockReason(alvo.logicId);
+    if (gate) return { ...alvo, reason: gate, key: 'gate' };
+
+    return alvo;
   }
 
   /**
@@ -1772,23 +1812,102 @@ export class BearDifferEngine {
     };
   }
 
+  // ── Trava de testes antes de operar ──
+
+  /**
+   * A lógica que está dando as ordens agora. Em `motor2` é o próprio motor; nas
+   * outras fontes é a lógica resolvida, inclusive em `both`, onde o motor entra
+   * como filtro de concordância e não como origem separada do alvo.
+   */
+  public activeLogicId(): string | null {
+    return (this.config.autoSource || 'motor2') === 'motor2' ? 'motor2' : this.autoLogicId();
+  }
+
+  public getGateWindow(logicId: string): { ops: number; wins: number; released: boolean } {
+    const w = this.gateWindows.get(logicId);
+    return {
+      ops: w?.ops ?? 0,
+      wins: w?.wins ?? 0,
+      released: this.gateReleased.has(logicId),
+    };
+  }
+
+  public isLogicReleased(logicId: string | null): boolean {
+    // Sem trava ligada não existe liberação a conceder: quem manda é o seletor.
+    if (!this.config.gateEnabled) return false;
+    // Exigir zero operações é o jeito legítimo de dizer "sem teste".
+    if (this.config.gateOps <= 0) return true;
+    return !!logicId && this.gateReleased.has(logicId);
+  }
+
+  /** Por que esta lógica ainda não pode mandar ordem real, ou null */
+  public gateBlockReason(logicId: string | null): string | null {
+    if (!this.config.gateEnabled) return null;
+    const key = logicId || this.activeLogicId();
+    if (this.isLogicReleased(key)) return null;
+    const w = this.getGateWindow(key || '');
+    const acc = w.ops > 0 ? (w.wins / w.ops) * 100 : 0;
+    return `Trava de testes: ${w.ops}/${this.config.gateOps} ops · ${acc.toFixed(1)}% (mín. ${this.config.gateAcc}%)`;
+  }
+
+  /**
+   * O seletor de modo espelha a lógica ativa: enquanto ela não prova a janela,
+   * a tela mostra simulação, e volta para simulação sozinha quando a liderança
+   * passa para uma lógica ainda não medida.
+   */
+  public syncGateMode(): void {
+    if (!this.config.gateEnabled) return;
+    const desired: OpMode = this.isLogicReleased(this.activeLogicId()) ? 'real' : 'sim';
+    if (this.config.opMode !== desired) {
+      this.config.opMode = desired;
+    }
+  }
+
+  private resetGate(): void {
+    this.gateWindows.clear();
+    this.gateReleased.clear();
+  }
+
+  /** Alimenta a janela da lógica com o resultado de uma operação simulada */
+  private noteGateResult(logicId: string, isLoss: boolean): void {
+    const w = this.gateWindows.get(logicId) || { ops: 0, wins: 0 };
+    w.ops++;
+    if (!isLoss) w.wins++;
+
+    if (w.ops >= this.config.gateOps) {
+      // Lote fechado: a janela vale inteira ou não vale nada. Avaliar a cada
+      // operação deixaria uma sequência de sorte liberar o dinheiro real antes
+      // da amostra combinada estar completa.
+      const acc = (w.wins / w.ops) * 100;
+      const name = this.getLogicName(logicId);
+      if (acc >= this.config.gateAcc) {
+        this.gateReleased.add(logicId);
+        this.addLog(
+          `Trava de testes: ${name} liberada para o real (${w.wins}/${w.ops} · ${acc.toFixed(1)}%)`,
+          'up'
+        );
+      } else {
+        this.addLog(
+          `Trava de testes: ${name} reprovada (${w.wins}/${w.ops} · ${acc.toFixed(1)}%, mínimo ${this.config.gateAcc}%) — janela reiniciada`,
+          'am'
+        );
+      }
+      w.ops = 0;
+      w.wins = 0;
+    }
+
+    this.gateWindows.set(logicId, w);
+  }
+
   // ── Execução de Trades e Martingale ──
 
   public checkGuards(): string | null {
     if (this.stopped) {
       return this.stoppedReason || 'Operações paradas pelo robô.';
     }
-    if (this.config.opMode === 'real') {
-      const simTotal = this.simStats.win + this.simStats.loss;
-      if (simTotal < this.config.gateOps) {
-        return `Trava do modo real: exige ${this.config.gateOps} operações em simulação (${simTotal}/${this.config.gateOps})`;
-      }
-      const simAcc = simTotal > 0 ? (this.simStats.win / simTotal) * 100 : 0;
-      if (simAcc < this.config.gateAcc) {
-        return `Trava do modo real: exige acerto simulado ≥ ${this.config.gateAcc}% (atual: ${simAcc.toFixed(1)}%)`;
-      }
-    }
-
+    // A trava de testes não bloqueia o robô: ela decide, operação a operação,
+    // se a ordem sai em papel ou na conta real. Bloquear aqui impediria as
+    // próprias entradas simuladas que fecham a janela.
     const book = this.config.opMode === 'real' ? this.realStats : this.simStats;
     let consecutiveLosses = 0;
     for (let i = book.recent.length - 1; i >= 0 && book.recent[i] === 0; i--) {
@@ -1811,16 +1930,24 @@ export class BearDifferEngine {
 
   public prepareTrade(
     sym: string,
-    digit: number
+    digit: number,
+    logicId?: string
   ): {
     isPaper: boolean;
     stake: number;
     sym: string;
     digit: number;
   } {
+    // Com a trava ligada quem decide papel ou real é a lógica que gerou o
+    // alvo, não o seletor: uma lógica liberada não arrasta as outras consigo.
+    const isPaper = this.config.gateEnabled
+      ? !this.isLogicReleased(logicId ?? this.activeLogicId())
+      : this.config.opMode === 'sim';
+    this.pendingPaper = isPaper;
     return {
-      isPaper: this.config.opMode === 'sim',
-      stake: this.curStake,
+      isPaper,
+      // Martingale medido em dinheiro falso não tem dívida real a recuperar.
+      stake: isPaper ? this.config.stake : this.curStake,
       sym,
       digit,
     };
@@ -1835,7 +1962,10 @@ export class BearDifferEngine {
     audit?: any,
     logicId?: string
   ): void {
-    const isSim = this.config.opMode === 'sim';
+    // O que vale é o que foi enviado, não o seletor de agora: com a trava de
+    // testes o modo pode ter virado real entre o envio e a liquidação.
+    const isSim = this.pendingPaper ?? this.config.opMode === 'sim';
+    this.pendingPaper = null;
     const book = isSim ? this.simStats : this.realStats;
 
     if (!isLoss) {
@@ -1901,6 +2031,16 @@ export class BearDifferEngine {
       }
     }
 
+    // Martingale não conta no simulado: recuperar prejuízo falso com stake
+    // maior só distorce a medição que a janela existe para fazer.
+    if (isSim) {
+      this.mgLevel = 0;
+      this.mgDebt = 0;
+      this.mgPartsLeft = 0;
+      this.mgPartStake = 0;
+      this.curStake = this.config.stake;
+    }
+
     if (book.recent.length > 200) book.recent.shift();
 
     // Registra operação no histórico
@@ -1927,10 +2067,23 @@ export class BearDifferEngine {
       isLoss ? 'dn' : 'up'
     );
 
-    // Conferência de Stop Loss e Stop Win sobre o livro do modo ativo.
+    // A janela da trava de testes só se alimenta de operação simulada, e só
+    // enquanto a lógica ainda não passou.
+    if (this.config.gateEnabled && isSim) {
+      const key = logicId || this.activeLogicId() || 'motor2';
+      if (!this.isLogicReleased(key)) {
+        this.noteGateResult(key, isLoss);
+        this.syncGateMode();
+      }
+    }
+
+    // Conferência de Stop Loss e Stop Win sobre o livro do modo ativo, só no
+    // real: prejuízo e lucro de papel não gastam limite de conta nenhuma.
     // Valor zero significa limite desligado, não limite atingido.
     const bookPnl = book.pnl;
-    if (this.config.stopLoss > 0 && bookPnl <= -this.config.stopLoss) {
+    if (isSim) {
+      // nada a conferir
+    } else if (this.config.stopLoss > 0 && bookPnl <= -this.config.stopLoss) {
       this.stopped = true;
       this.stoppedReason = `Stop Loss atingido: -$${Math.abs(bookPnl).toFixed(2)}`;
       this.config.autoOn = false;

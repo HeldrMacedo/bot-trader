@@ -210,10 +210,12 @@ describe('BearDifferEngine - Core Analysis & Differ Trading Engine', () => {
       expect(state.curStake).toBe(1.0); // Reset after win
     });
 
-    it('simulates Differ contract loss and applies Martingale', () => {
+    // Martingale só corre no real: recuperar prejuízo de papel com stake maior
+    // distorceria a medição que a trava de testes precisa fazer.
+    it('applies Martingale after a real contract loss', () => {
       engine.updateConfig({
         stake: 1.0,
-        opMode: 'sim',
+        opMode: 'real',
         mgMode: 'normal',
         mgFactor: 2.2,
         mgMax: 3,
@@ -225,16 +227,18 @@ describe('BearDifferEngine - Core Analysis & Differ Trading Engine', () => {
 
       const state = engine.getState();
       expect(state.pnl).toBe(-1.0);
-      expect(state.sim.loss).toBe(1);
+      expect(state.real.loss).toBe(1);
       expect(state.mgLevel).toBe(1);
       expect(state.curStake).toBeCloseTo(2.2, 2); // 1.0 * 2.2^1
     });
 
+    // Stop loss e stop win valem sobre a conta real: prejuízo simulado não
+    // gasta limite de conta nenhuma.
     it('stops trading if stop loss is hit', () => {
       engine.updateConfig({
         stake: 10,
         stopLoss: 15,
-        opMode: 'sim',
+        opMode: 'real',
         autoOn: true,
       });
       engine.settleContract(-20, true, 'R_10', 0, 0);

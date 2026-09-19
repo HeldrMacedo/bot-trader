@@ -195,21 +195,26 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
     expect(result.current.state.sim.win + result.current.state.sim.loss).toBeGreaterThan(0);
   });
 
-  it('blocks real trade execution when checkGuards fails', async () => {
+  it('keeps the order on paper while the pre-trade gate has not released the logic', async () => {
     const { result } = renderHook(() => useBearDiffer());
 
     act(() => {
-      result.current.updateConfig({ opMode: 'real', gateOps: 50 });
+      result.current.updateConfig({
+        gateEnabled: true,
+        autoSource: 'motor2',
+        gateOps: 50,
+        gateAcc: 91,
+      });
     });
 
     await act(async () => {
-      await result.current.executeTrade('R_10', 4);
+      await result.current.executeTrade('R_10', 4, undefined, 'motor2');
     });
 
-    // Deriv send buy should not have been called because gateOps was not met
+    // No buy reaches Deriv: the window still has to be measured in paper
     expect(mockSend).not.toHaveBeenCalledWith(expect.objectContaining({ buy: expect.anything() }));
     const logs = result.current.state.logs;
-    expect(logs.some((l) => l.msg.includes('Trava do modo real'))).toBe(true);
+    expect(logs.some((l) => l.msg.includes('[SIM]'))).toBe(true);
   });
 
   it('resolves simulation contract upon arrival of next tick for that market', async () => {

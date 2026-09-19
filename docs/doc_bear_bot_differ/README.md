@@ -214,7 +214,7 @@ A lógica resolvida é memorizada por até 5 segundos, para não refazer o ranki
 
 ### 4.6. `manualTarget` — o alvo do clique do operador
 
-`manualTarget()` é `resolveTarget()` mais as travas do robô inteiro que valem para um clique: operação em aberto (`tradeLock`) e travas de segurança (`checkGuards`). Duas diferenças propositais em relação ao caminho automático:
+`manualTarget()` é `resolveTarget()` mais as travas do robô inteiro que valem para um clique: operação em aberto (`tradeLock`), travas de segurança (`checkGuards`) e a trava de testes da lógica do alvo (`gateBlockReason`, chave `'gate'`). Duas diferenças propositais em relação ao caminho automático:
 
 - **O intervalo mínimo (`cooldown`) não barra o clique** — existe para frear o robô, não o operador. Mas toda ordem enviada, manual ou automática, chama `noteEntryFired(logicId)`, então a entrada manual conta para o intervalo do automático: as duas vão para a mesma conta.
 - **Uma trava de segurança apenas recusa a entrada**, sem desligar o automático. No caminho automático, a mesma trava faz `autoOn = false`.
@@ -236,6 +236,28 @@ Toda entrada carrega o identificador da fonte (`'motor2'` ou o id da lógica) at
 O botão direto não usa proposta pré-cotada porque o alvo ao vivo muda a cada tick: mantê-lo cotado trocaria latência por um fluxo constante de mensagens e propostas que vencem sem uso. A trava de ticks vencidos (`maxStale`) protege os dois caminhos manuais.
 
 Com `vlossOn` ligado, os dois botões manuais armam o Loss Virtual em vez de comprar, e o repick no disparo segue a fonte do sinal configurada.
+
+### 4.8. Trava de testes antes de operar (`gateEnabled`)
+
+Com `gateEnabled` ligado, cada lógica precisa fechar uma janela de operações simuladas antes de poder mandar ordem real. A trava **não bloqueia o robô**: ela decide, operação a operação, se a ordem sai em papel ou na conta real. Bloquear em `checkGuards` impediria as próprias entradas simuladas que fecham a janela.
+
+**Estrutura.** `gateWindows: Map<logicId, { ops, wins }>` guarda o progresso e `gateReleased: Set<logicId>` guarda as aprovações. A chave é o `logicId` do alvo — `'motor2'` na fonte homônima, o id da lógica resolvida nas demais. Em `both` o alvo só nasce com motor e lógica concordando no mesmo dígito, e o `logicId` gravado é o da lógica: a janela já mede o par, sem precisar de uma segunda janela para o motor.
+
+**Ciclo de uma janela** (`noteGateResult`). Lote fixo: a janela acumula até `gateOps` e só então é julgada. Acerto ≥ `gateAcc` aprova a lógica; abaixo disso a janela volta a `{ ops: 0, wins: 0 }`. Avaliar a cada operação deixaria uma sequência de sorte liberar o real antes da amostra combinada estar completa. `gateOps <= 0` libera de imediato — é o jeito legítimo de dizer "sem teste".
+
+**Papel ou real** (`prepareTrade`). Com a trava ligada, `isPaper = !isLogicReleased(logicId)`. Uma lógica aprovada não arrasta as outras: com A liberada e B medindo, o alvo de B sai em papel. O hook passa o `logicId` do alvo, não o da lógica que estiver liderando no instante da compra.
+
+**Espelho no seletor** (`syncGateMode`). `config.opMode` reflete a lógica ativa: vira `'real'` quando ela está aprovada e volta a `'sim'` quando a liderança passa para uma lógica ainda não medida. A aprovação de cada lógica sobrevive à troca, então o progresso congela e é retomado.
+
+**Liquidação** (`settleContract`). O que decide o livro é `pendingPaper`, gravado no preparo, não o `opMode` do momento: entre o envio e a liquidação o modo pode ter virado real. Em operação simulada o martingale é zerado e a stake volta à base, e os stops não são conferidos — ver 4.9.
+
+**O que zera** (`resetGate`): `resetSession()`, troca de `autoSource` ou `onceLogic`, e desmarcar `gateEnabled`. Desligar a trava não mexe no `opMode`: o seletor continua sendo do operador.
+
+**Entradas automáticas no modo manual.** `processTick` dispara o `onAutoTrade` quando `autoOn || gateTesting`, com `gateTesting = gateEnabled && !isLogicReleased(activeLogicId())`. A janela é do robô, não do operador: exigir dezenas de cliques em papel para destravar o botão inverteria o propósito da trava.
+
+### 4.9. Martingale e stops valem só no real
+
+O martingale (normal e parcelado) e os limites `stopLoss`/`stopWin` são conferidos apenas quando a operação liquidada foi real. Recuperar prejuízo de papel com stake maior distorceria a medição que a janela de testes existe para fazer, e prejuízo ou lucro simulado não gasta limite de conta nenhuma. As demais travas de `checkGuards` — perdas consecutivas (`maxLoss`) e assertividade mínima (`minAcc`) — continuam valendo sobre o livro do modo ativo, simulado inclusive.
 
 ---
 

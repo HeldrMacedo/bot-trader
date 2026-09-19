@@ -125,13 +125,15 @@ describe('BearDiffer - entrada manual no alvo recomendado', () => {
     );
   });
 
-  it('explica a trava de segurança sem desligar o automático', () => {
+  it('explica a trava de testes sem desligar o automático', () => {
     seedLiberado(7);
-    engine.updateConfig({ autoOn: true, opMode: 'real', gateOps: 50, gateAcc: 91 });
+    engine.updateConfig({ autoOn: true, gateEnabled: true, gateOps: 50, gateAcc: 91 });
     renderTab();
 
     expect(screen.getByTestId('manual-entry-button')).toBeDisabled();
-    expect(screen.getByTestId('manual-entry-status').textContent).toMatch(/modo real/i);
+    expect(screen.getByTestId('manual-entry-status').textContent).toMatch(
+      /trava de testes/i
+    );
     expect(engine.getConfig().autoOn).toBe(true);
   });
 

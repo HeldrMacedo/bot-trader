@@ -58,6 +58,25 @@ Antes de iniciar as operações, configure os parâmetros de acordo com o seu pl
 - **Simulação (Paper Trading):** Executa todas as lógicas e simula as compras em tempo real contra o mercado sem arriscar seu saldo real. Ideal para testar estratégias e validar o mercado do dia.
 - **Modo Real:** Envia ordens financeiras reais para a corretora Deriv.
 
+No modo simulado **não correm martingale, stop loss nem stop win**. A stake fica sempre no valor base e os limites financeiros só valem sobre a conta real: prejuízo e lucro de papel não gastam limite de conta nenhuma, e recuperar perda falsa com stake maior distorceria a medição do robô.
+
+### 3.3.1. Testes antes de operar (trava de validação)
+
+O bloco "Testes antes de operar" tem um checkbox, **Testar antes de liberar o real**, que só pode ser marcado com o modo de operação em Simulação. Com ele desmarcado, os campos abaixo ficam bloqueados e o Modo Real vale imediatamente. Com ele marcado, cada lógica precisa se provar antes de mandar ordem para a corretora:
+
+- **Liberar real após (ops):** tamanho da janela de operações simuladas que a lógica precisa completar.
+- **Com acerto simulado ≥:** acerto mínimo exigido no fechamento dessa janela.
+
+Como funciona na prática, com `10` ops e `60%`: quando a lógica escolhida aponta um alvo, o robô entra em papel. Ao completar as 10 operações, ele confere o acerto da janela. Se estiver em 60% ou mais, aquela lógica passa a operar na conta real e o seletor de modo muda sozinho para Real. Se estiver abaixo, a janela **recomeça do zero** e a lógica continua em papel.
+
+Pontos importantes:
+
+- **A liberação é da lógica, não do robô.** Cada lógica tem a própria janela. Com a lógica A liberada, um alvo vindo da lógica B — que ainda está medindo — sai em papel. Quando a liderança passa para uma lógica não liberada, o seletor volta sozinho para Simulação.
+- **O progresso de cada lógica congela e é retomado.** Trocando a lógica ativa no meio, a janela parcial fica guardada e continua de onde parou quando aquela lógica voltar a dar as ordens.
+- **O Motor 2.0 é tratado como uma lógica.** Na fonte `Motor 2.0` ele tem a própria janela. Na fonte `Motor + Lógica` o alvo só nasce quando os dois concordam, então a janela já mede exatamente esse par.
+- **As janelas zeram** ao parar o bot, ao recarregar a página, ao trocar a fonte do sinal ou a lógica escolhida, e ao desmarcar o checkbox. Validação vale para a sessão corrente: progresso velho liberaria dinheiro real com base em medição obsoleta.
+- **`Liberar real após (ops)` em `0`** libera na hora — é o jeito de dizer "sem teste" mantendo o checkbox ligado.
+
 ### 3.4. Gatilho de Perda Virtual (Virtual Loss)
 - **Ativar Loss Virtual:** O robô não entra de imediato. Ele calcula as entradas em segundo plano e aguarda ocorrerem derrotas simuladas consecutivas (ex: $1$ ou $2$ perdas virtuais) antes de colocar dinheiro real.
 - **Perdas Virtuais Mínimas:** Quantidade de derrotas consecutivas exigidas para armar o gatilho (recomendado: `1` ou `2`).
@@ -142,6 +161,12 @@ Duas diferenças propositais em relação ao automático:
 
 - O **intervalo mínimo entre entradas** não barra o clique manual — ele existe para frear o robô, não o operador. Mas a sua ordem manual passa a contar para o intervalo do automático, já que as duas vão para a mesma conta.
 - Uma **trava de segurança** apenas recusa o clique, sem desligar o automático. No caminho automático, a mesma trava desliga o robô.
+
+#### A trava de testes no modo manual
+
+Com o checkbox "Testar antes de liberar o real" ligado, as entradas simuladas da janela são **automáticas mesmo com o modo automático desligado** — é o robô que precisa provar a lógica, não você que precisa clicar dezenas de vezes em papel. Enquanto a janela não fecha, o botão do card "Melhor alvo no momento" fica desabilitado e o motivo mostra o progresso, no formato `Trava de testes: 7/10 ops · 57.1% (mín. 60%)`. O mesmo progresso aparece como etiqueta no topo do card.
+
+Quando a lógica passa, o botão destrava e o clique entra na conta real. Ele continua destravado enquanto aquela lógica for a que está dando as ordens; se a liderança passar para uma lógica ainda não medida, o botão volta a travar até a janela dela fechar.
 
 ---
 

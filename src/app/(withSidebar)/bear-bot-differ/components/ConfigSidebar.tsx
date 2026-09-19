@@ -19,6 +19,9 @@ export default function ConfigSidebar({
   onAddMarket,
 }: ConfigSidebarProps) {
   const [newSym, setNewSym] = useState('');
+  // Os números da trava só significam alguma coisa com ela ligada: editáveis
+  // desligados, prometeriam um teste que não vai acontecer.
+  const gateOff = !config.gateEnabled;
 
   const handleAdd = () => {
     const s = newSym.trim().toUpperCase();
@@ -151,30 +154,57 @@ export default function ConfigSidebar({
             <option value="real">Real</option>
           </select>
         </div>
-        <div className="flex items-center justify-between">
-          <label className="text-[#8593aa]">Liberar real após (ops)</label>
+        <div className="flex items-center justify-between pt-1">
+          <label className="text-[#8593aa]">Testar antes de liberar o real</label>
           <input
-            type="number"
-            min="0"
-            value={config.gateOps}
-            onChange={(e) => updateConfig({ gateOps: parseInt(e.target.value, 10) || 50 })}
-            className="w-24 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-1 rounded text-right font-mono"
+            data-testid="gate-enabled"
+            type="checkbox"
+            checked={config.gateEnabled}
+            disabled={config.opMode === 'real'}
+            onChange={(e) => updateConfig({ gateEnabled: e.target.checked })}
+            className="accent-amber-500 w-4 h-4 rounded disabled:opacity-40"
           />
         </div>
         <div className="flex items-center justify-between">
-          <label className="text-[#8593aa]">Com acerto simulado ≥</label>
+          <label className={gateOff ? 'text-[#5a6577]' : 'text-[#8593aa]'}>
+            Liberar real após (ops)
+          </label>
+          <input
+            data-testid="gate-ops"
+            type="number"
+            min="0"
+            value={config.gateOps}
+            disabled={gateOff}
+            onChange={(e) => updateConfig({ gateOps: parseInt(e.target.value, 10) || 50 })}
+            className={`w-24 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-1 rounded text-right font-mono ${gateOff ? 'opacity-40 cursor-not-allowed' : ''
+              }`}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <label className={gateOff ? 'text-[#5a6577]' : 'text-[#8593aa]'}>
+            Com acerto simulado ≥
+          </label>
           <div className="flex items-center gap-1">
             <input
+              data-testid="gate-acc"
               type="number"
               min="0"
               max="100"
               value={config.gateAcc}
+              disabled={gateOff}
               onChange={(e) => updateConfig({ gateAcc: parseInt(e.target.value, 10) || 91 })}
-              className="w-20 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-1 rounded text-right font-mono"
+              className={`w-20 bg-[#18202f] border border-[#222c3f] text-[#eef2f8] px-2 py-1 rounded text-right font-mono ${gateOff ? 'opacity-40 cursor-not-allowed' : ''
+                }`}
             />
             <span className="text-[#8593aa] font-mono">%</span>
           </div>
         </div>
+        <p data-testid="gate-note" className="text-[10.5px] text-[#8593aa]">
+          Com a trava ligada, cada lógica precisa fechar uma janela de operações
+          simuladas no acerto exigido antes de mandar ordem na conta real. Falhou,
+          a janela recomeça do zero. No simulado não correm martingale, stop loss
+          nem stop win.
+        </p>
       </div>
 
       {/* Martingale */}

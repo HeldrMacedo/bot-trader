@@ -10,8 +10,9 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
 
   describe('resetSession', () => {
     it('resets all session metrics, trades, logs, pnl and martingale level', () => {
-      // Simulate some activity
-      engine.updateConfig({ stake: 2.0 });
+      // Simulate some activity. O martingale só anda no real, então a
+      // atividade que suja a sessão precisa sair da conta real.
+      engine.updateConfig({ stake: 2.0, opMode: 'real' });
       engine.settleContract(-2.0, true, 'R_10', 3, 3);
       engine.addLog('Log de teste', 'nt');
       engine.addAnomaly('Anomalia de teste');
@@ -144,6 +145,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
         autoOn: true,
         autoSource: 'motor2',
         gateBias: false,
+        opMode: 'real',
         stopLoss: 5,
         minScore: 60,
         minTicks: 50,
@@ -388,7 +390,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
   describe('Partial martingale level cap', () => {
     it('resets the partial ladder once it passes the configured ceiling', () => {
       engine.updateConfig({
-        opMode: 'sim',
+        opMode: 'real',
         mgMode: 'partial',
         mgMax: 2,
         mgParts: 3,
@@ -534,7 +536,7 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
     });
 
     it('stops on a take profit that was actually configured', () => {
-      engine.updateConfig({ opMode: 'sim', stopLoss: 0, stopWin: 1 });
+      engine.updateConfig({ opMode: 'real', stopLoss: 0, stopWin: 1 });
 
       engine.settleContract(1.5, false, 'R_10', 3, 4);
 
@@ -544,24 +546,30 @@ describe('BearDifferEngine - Advanced Features & Automation (TDD)', () => {
   });
 
   describe('checkGuards (Safety & Real Mode Gate)', () => {
-    it('blocks Real mode if simulated trades are below gateOps', () => {
-      engine.updateConfig({ opMode: 'real', gateOps: 50, gateAcc: 91 });
+    // A trava de testes deixou de ser um bloqueio do robô inteiro: com o
+    // checkbox desligado o real vale na hora, e com ele ligado a decisão é
+    // por operação, no prepareTrade. Ver bearDifferPreTradeGate.test.ts.
+    it('lets Real mode through when the pre-trade gate is off', () => {
+      engine.updateConfig({ gateEnabled: false, opMode: 'real', gateOps: 50, gateAcc: 91 });
 
-      // No sim trades yet
-      const guard = engine.checkGuards();
-      expect(guard).toContain('Trava do modo real');
-      expect(guard).toContain('50');
+      expect(engine.checkGuards()).toBeNull();
+      expect(engine.prepareTrade('R_10', 3, 'motor2').isPaper).toBe(false);
     });
 
-    it('blocks Real mode if simulated accuracy is below gateAcc', () => {
-      engine.updateConfig({ opMode: 'sim' });
-      // Simulate 50 operations with 80% win rate (40 wins, 10 losses)
-      for (let i = 0; i < 40; i++) engine.settleContract(0.1, false, 'R_10', 5, 4);
-      for (let i = 0; i < 10; i++) engine.settleContract(-1.0, true, 'R_10', 5, 5);
+    it('does not halt the bot while the pre-trade gate is still measuring', () => {
+      engine.updateConfig({
+        gateEnabled: true,
+        autoSource: 'motor2',
+        gateOps: 50,
+        gateAcc: 91,
+        maxLoss: 99,
+        minAcc: 0,
+      });
 
-      engine.updateConfig({ opMode: 'real', gateOps: 50, gateAcc: 91 });
-      const guard = engine.checkGuards();
-      expect(guard).toContain('acerto simulado');
+      // A janela precisa das próprias entradas simuladas para fechar: um
+      // bloqueio global aqui impediria o teste de acontecer.
+      expect(engine.checkGuards()).toBeNull();
+      expect(engine.prepareTrade('R_10', 3, 'motor2').isPaper).toBe(true);
     });
 
     it('blocks trading when consecutive losses reach maxLoss', () => {

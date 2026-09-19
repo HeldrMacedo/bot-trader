@@ -124,6 +124,25 @@ export default function OperationTab({
 
   const fonteUsaLogica = config.autoSource !== 'motor2';
 
+  // Progresso da trava de testes da lógica que está dando as ordens. No modo
+  // manual é este número que explica por que o botão continua travado.
+  const gateProgresso = useMemo(() => {
+    if (!config.gateEnabled) return null;
+    const lid = liveTarget.logicId || engine.activeLogicId();
+    if (!lid) return null;
+    const nome = engine.getLogicName(lid);
+    if (engine.isLogicReleased(lid)) {
+      return { liberada: true, texto: `${nome.toUpperCase()} LIBERADA` };
+    }
+    const w = engine.getGateWindow(lid);
+    const acc = w.ops > 0 ? (w.wins / w.ops) * 100 : 0;
+    return {
+      liberada: false,
+      texto: `TESTE ${w.ops}/${config.gateOps} · ${acc.toFixed(0)}% (mín. ${config.gateAcc}%)`,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, config, liveTarget.logicId, state.sim, state.trades.length]);
+
   // Qual lógica o modo por acerto medido está escolhendo agora. Só este modo
   // ganha a linha no card: nos demais o nome já aparece na etiqueta da fonte,
   // e no rodízio consultar a escolha teria efeito colateral de girar o índice.
@@ -495,6 +514,17 @@ export default function OperationTab({
                     ? engine.getLogicName(liveTarget.logicId).toUpperCase()
                     : 'MOTOR + LÓGICA'}
               </span>
+              {gateProgresso && (
+                <span
+                  data-testid="gate-progress"
+                  className={`text-[10.5px] font-mono px-2 py-0.5 rounded border ${gateProgresso.liberada
+                      ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                      : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                    }`}
+                >
+                  {gateProgresso.texto}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-4 flex-wrap">
               <div className="w-16 h-16 rounded-xl bg-amber-500/10 border-2 border-amber-500 flex items-center justify-center font-mono text-3xl text-amber-400 font-bold">

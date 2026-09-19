@@ -1,39 +1,25 @@
 {
-  "ANTHROPIC_BASE_URL": {
-    "original": null,
-    "holders": [
-      {
-        "pid": 2842,
-        "start_src": "proc",
-        "start_time": 13306.0,
-        "port": 8787,
-        "inherited": false
-      },
-      {
-        "pid": 7445,
-        "start_src": "proc",
-        "start_time": 88512.0,
-        "port": 8787,
-        "inherited": true
-      }
-    ]
-  },
   "ENABLE_TOOL_SEARCH": {
     "original": "true",
     "holders": [
       {
-        "pid": 2842,
+        "pid": 16646,
         "start_src": "proc",
-        "start_time": 13306.0,
+        "start_time": 887239.0,
         "port": null,
         "inherited": false
-      },
+      }
+    ]
+  },
+  "ANTHROPIC_BASE_URL": {
+    "original": null,
+    "holders": [
       {
-        "pid": 7445,
+        "pid": 16646,
         "start_src": "proc",
-        "start_time": 88512.0,
-        "port": null,
-        "inherited": true
+        "start_time": 887239.0,
+        "port": 8787,
+        "inherited": false
       }
     ]
   }

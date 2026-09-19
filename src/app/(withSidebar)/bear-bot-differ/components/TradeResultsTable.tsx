@@ -60,7 +60,7 @@ export default function TradeResultsTable({
               <th className="py-2 px-2">Lucro ($)</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className='overflow-y'>
             {rows.map((t) => {
               const win = t.result === 'WIN';
               return (
@@ -80,20 +80,18 @@ export default function TradeResultsTable({
                   <td className="py-1.5 px-2 text-[#8593aa]">{t.stake.toFixed(2)}</td>
                   <td className="py-1.5 px-2">
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold ${
-                        win
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                      }`}
+                      className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold ${win
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}
                     >
                       {t.result}
                     </span>
                     <span
-                      className={`ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] ${
-                        t.paper
-                          ? 'bg-[#18202f] text-[#8593aa] border border-[#2e3a52]'
-                          : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                      }`}
+                      className={`ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] ${t.paper
+                        ? 'bg-[#18202f] text-[#8593aa] border border-[#2e3a52]'
+                        : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        }`}
                     >
                       {t.paper ? 'SIM' : 'REAL'}
                     </span>

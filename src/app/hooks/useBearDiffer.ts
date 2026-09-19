@@ -149,7 +149,9 @@ export function useBearDiffer() {
       }
 
       const cfg = engine.getConfig();
-      const prep = engine.prepareTrade(sym, digit);
+      // A lógica que gerou o alvo decide papel ou real: é a janela dela que
+      // está sendo medida, não a da lógica que estiver liderando agora.
+      const prep = engine.prepareTrade(sym, digit, logicId);
       engine.setTradeLock(true);
       // O intervalo mínimo conta a partir da última ordem enviada, venha do
       // automático ou de um clique: as duas vão para a mesma conta.

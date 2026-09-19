@@ -155,15 +155,18 @@ describe('BearDiffer - alvo recomendado compartilhado por automático e manual',
       engine.updateConfig({
         autoOn: true,
         opMode: 'real',
-        gateOps: 50,
-        gateAcc: 91,
+        maxLoss: 2,
+        stopLoss: 0,
+        stopWin: 0,
       });
+      engine.settleContract(-1, true, 'R_10', 3, 3);
+      engine.settleContract(-1, true, 'R_10', 3, 3);
       onlyMarkets(['R_10']);
       engine.setHistory('R_10', saturated(3000, 7, 3));
 
       const m = engine.manualTarget();
 
-      expect(m.reason).toMatch(/modo real/i);
+      expect(m.reason).toMatch(/perdas consecutivas/i);
       expect(engine.getConfig().autoOn).toBe(true);
     });
 

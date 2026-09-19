@@ -135,9 +135,11 @@ describe('BearDifferEngine - runStrategy and the genetic pipeline', () => {
   });
 
   describe('settleContract partial recovery', () => {
+    // O martingale parcelado só corre no real: no simulado a stake fica na
+    // base para não distorcer a medição da trava de testes.
     it('pays the debt down across parts before returning to the base stake', () => {
       engine.updateConfig({
-        opMode: 'sim',
+        opMode: 'real',
         mgMode: 'partial',
         mgParts: 3,
         mgMax: 5,
@@ -159,7 +161,7 @@ describe('BearDifferEngine - runStrategy and the genetic pipeline', () => {
 
     it('returns to the base stake when the debt is cleared', () => {
       engine.updateConfig({
-        opMode: 'sim',
+        opMode: 'real',
         mgMode: 'partial',
         mgParts: 3,
         mgMax: 5,

@@ -97,6 +97,8 @@ export interface DifferConfig {
   /** Alfa da vigilância, sob Bonferroni na família mercados × lógicas */
   wtAlpha: number;
   opMode: OpMode;
+  /** Liga a trava de testes: sem janela simulada aprovada não sai ordem real */
+  gateEnabled: boolean;
   gateOps: number;
   gateAcc: number;
   mgMode: MartingaleMode;
@@ -136,6 +138,7 @@ export const DEFAULT_DIFFER_CONFIG: DifferConfig = {
   wtMinN: 500,
   wtAlpha: 0.01,
   opMode: 'sim',
+  gateEnabled: false,
   gateOps: 50,
   gateAcc: 91,
   mgMode: 'normal',
