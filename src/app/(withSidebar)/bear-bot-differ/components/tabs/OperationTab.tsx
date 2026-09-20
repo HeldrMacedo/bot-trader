@@ -45,6 +45,34 @@ function primeiraFrase(reason: string | null): string {
 }
 
 /**
+ * Nome curto da barreira que segurou o alvo. A linha de métrica mostra score e
+ * confiança mesmo quando o alvo foi recusado, e havia caso em que os dois
+ * passavam no mínimo e ainda assim não saía entrada — a recusa por dígitos
+ * divergentes, por exemplo, não tem nada a ver com os mínimos. Sem esta
+ * etiqueta o operador lia dois números aprovados e concluía que o robô estava
+ * travado sem motivo.
+ */
+const CAUSA: Record<string, string> = {
+  sample: 'amostra insuficiente',
+  score: 'score abaixo do mínimo',
+  logicnone: 'nenhuma lógica escolhida',
+  logicpick: 'lógica sem palpite',
+  logicconf: 'confiança abaixo do mínimo',
+  concord: 'sem concordância entre motor e lógica',
+  bias: 'trava de viés',
+  exhaust: 'filtro de exaustão',
+  gate: 'trava de testes',
+  lock: 'operação em aberto',
+  guard: 'trava de segurança',
+  off: 'mercado desligado',
+  nomarket: 'nenhum mercado ligado',
+};
+
+function nomeDaCausa(key: string | null): string {
+  return (key && CAUSA[key]) || 'condição não atendida';
+}
+
+/**
  * Confiança da lógica. Sem palpite a confiança é desconhecida, não é zero:
  * escrever "0%" faria uma lógica calada parecer uma lógica sem convicção.
  */
@@ -550,6 +578,25 @@ export default function OperationTab({
                         liveTarget.conf
                       )} (mín. ${config.onceMinConf}%)`}
                 </div>
+                {liveTarget.reason ? (
+                  <div
+                    data-testid="target-card-block"
+                    className="text-[11px] text-amber-400 mt-0.5"
+                  >
+                    Não entra: {nomeDaCausa(liveTarget.key)} —{' '}
+                    {primeiraFrase(liveTarget.reason)}
+                  </div>
+                ) : (
+                  liveTarget.sym && (
+                    <div
+                      data-testid="target-card-scope"
+                      className="text-[11px] text-[#8593aa] mt-0.5"
+                    >
+                      Melhor leitura entre os mercados ligados: {liveTarget.sym}. O
+                      automático entra quando o próximo tick vier deste mercado.
+                    </div>
+                  )
+                )}
                 {logicaPorAcerto && (
                   <div
                     data-testid="target-card-logic"

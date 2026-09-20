@@ -105,8 +105,7 @@ describe('BearDiffer - trava de testes antes de operar', () => {
       runWindow('flong', [true, true, false, true]);
       trade('flong', false);
 
-      expect(engine.getGateWindow('flong')).toEqual({ ops: 0, wins: 0, released: true });
-      expect(engine.isLogicReleased('flong')).toBe(true);
+      expect(engine.getGateWindow('flong')).toEqual({ ops: 0, wins: 0, released: false });
     });
 
     it('anuncia a liberação no histórico', () => {
@@ -152,24 +151,129 @@ describe('BearDiffer - trava de testes antes de operar', () => {
     });
   });
 
-  describe('modo de operação acompanha a lógica ativa', () => {
-    it('volta para simulação quando a lógica ativa troca para uma não liberada', () => {
+  describe('uma entrada real por janela', () => {
+    it('devolve a lógica ao teste depois de uma operação real', () => {
+      runWindow('flong', [true, true, false, true]);
+      expect(engine.isLogicReleased('flong')).toBe(true);
+
+      trade('flong', true);
+
+      expect(engine.isLogicReleased('flong')).toBe(false);
+      expect(engine.getConfig().opMode).toBe('sim');
+      expect(engine.prepareTrade('R_10', 3, 'flong').isPaper).toBe(true);
+    });
+
+    it('reinicia a janela do zero depois da entrada real', () => {
+      runWindow('flong', [true, true, false, true]);
+      trade('flong', true);
+
+      expect(engine.getGateWindow('flong')).toEqual({ ops: 0, wins: 0, released: false });
+    });
+
+    it('consome a liberação tanto no ganho quanto na perda real', () => {
+      runWindow('flong', [true, true, false, true]);
+      trade('flong', false);
+
+      expect(engine.isLogicReleased('flong')).toBe(false);
+    });
+
+    it('anuncia no histórico que a lógica voltou ao teste', () => {
+      runWindow('flong', [true, true, false, true]);
+      trade('flong', true);
+
+      const msg = engine.getState().logs.map((l) => l.msg).join(' | ');
+      expect(msg).toMatch(/volta ao teste/i);
+    });
+
+    it('não consome nada quando a trava exige zero operações', () => {
+      engine.updateConfig({ gateOps: 0 });
+
+      trade('flong', true);
+
+      expect(engine.isLogicReleased('flong')).toBe(true);
+    });
+
+    it('deixa a outra lógica liberada intacta', () => {
+      runWindow('flong', [true, true, false, true]);
+      runWindow('fshort', [true, true, false, true]);
+      expect(engine.isLogicReleased('fshort')).toBe(true);
+
+      trade('flong', true);
+
+      expect(engine.isLogicReleased('flong')).toBe(false);
+      expect(engine.isLogicReleased('fshort')).toBe(true);
+    });
+  });
+
+  describe('a liberação só termina com a entrada real', () => {
+    it('segura a lógica liberada mesmo quando a liderança muda', () => {
       const ranking = vi.spyOn(engine, 'getLogicRanking');
       ranking.mockReturnValue([linha('flong', 0.95)]);
       engine.updateConfig({ onceLogic: 'top' });
 
-      runWindow('flong', [true, true, true, true]);
+      runWindow('flong', [true, true, false, true]);
       expect(engine.getConfig().opMode).toBe('real');
 
-      // A líder por acerto medido muda sozinha conforme as medições andam.
+      // A líder por acerto medido muda sozinha, mas há uma ordem real
+      // pendente de disparo: a liberação não pode evaporar sem ela.
+      ranking.mockReturnValue([linha('fshort', 0.94)]);
+      engine.noteEntryFired('flong');
+      engine.syncGateMode();
+
+      expect(engine.activeLogicId()).toBe('flong');
+      expect(engine.getConfig().opMode).toBe('real');
+      expect(engine.isLogicReleased('flong')).toBe(true);
+    });
+
+    it('devolve a liderança à lógica corrente depois de consumir a entrada real', () => {
+      const ranking = vi.spyOn(engine, 'getLogicRanking');
+      ranking.mockReturnValue([linha('flong', 0.95)]);
+      engine.updateConfig({ onceLogic: 'top' });
+
+      runWindow('flong', [true, true, false, true]);
+      ranking.mockReturnValue([linha('fshort', 0.94)]);
+      trade('flong', true);
+
+      engine.noteEntryFired('flong');
+      expect(engine.activeLogicId()).toBe('fshort');
+      expect(engine.getConfig().opMode).toBe('sim');
+    });
+
+    it('não volta a disparar entradas simuladas enquanto a ordem real não sai', () => {
+      engine.updateConfig({ autoOn: false, autoSource: 'motor2', minScore: 0 });
+      runWindow('motor2', [true, true, false, true]);
+      expect(engine.isLogicReleased('motor2')).toBe(true);
+
+      const fired: string[] = [];
+      engine.onAutoTrade((sym) => fired.push(sym));
+      SYMS.forEach((s) => {
+        engine.setHistory(s, saturated(3000, 7, 3).slice(0, -1));
+        engine.processTick(s, 7);
+      });
+
+      expect(fired.length).toBe(0);
+      expect(engine.getGateWindow('motor2')).toEqual({ ops: 0, wins: 0, released: true });
+    });
+  });
+
+  describe('modo de operação acompanha a lógica ativa', () => {
+    it('acompanha a troca de liderança enquanto nenhuma lógica está liberada', () => {
+      const ranking = vi.spyOn(engine, 'getLogicRanking');
+      ranking.mockReturnValue([linha('flong', 0.95)]);
+      engine.updateConfig({ onceLogic: 'top' });
+
+      // Janela parcial: sem liberação pendente, nada prende a escolha.
+      runWindow('flong', [true, true]);
+      expect(engine.activeLogicId()).toBe('flong');
+
       ranking.mockReturnValue([linha('fshort', 0.94)]);
       engine.noteEntryFired('flong');
       engine.syncGateMode();
 
       expect(engine.activeLogicId()).toBe('fshort');
       expect(engine.getConfig().opMode).toBe('sim');
-      // A liberação de flong fica guardada para quando ela voltar a liderar.
-      expect(engine.isLogicReleased('flong')).toBe(true);
+      // O progresso de flong fica guardado para quando ela voltar a liderar.
+      expect(engine.getGateWindow('flong')).toEqual({ ops: 2, wins: 2, released: false });
     });
 
     it('resolve a lógica ativa pela fonte do sinal', () => {
@@ -292,6 +396,105 @@ describe('BearDiffer - trava de testes antes de operar', () => {
     });
   });
 
+  describe('travas de risco durante o teste em papel', () => {
+    beforeEach(() => {
+      // Os padrões do robô: é com eles que a trava congelava.
+      engine.updateConfig({ maxLoss: 4, minAcc: 80, gateOps: 50, gateAcc: 91 });
+    });
+
+    it('não bloqueia o robô com perdas consecutivas de papel', () => {
+      runWindow('flong', [false, false, false, false, false]);
+
+      expect(engine.checkGuards()).toBeNull();
+    });
+
+    it('não bloqueia o robô com acerto de papel abaixo do mínimo', () => {
+      const results = Array.from({ length: 24 }, (_, i) => i % 4 === 0);
+      runWindow('flong', results);
+
+      expect(engine.checkGuards()).toBeNull();
+    });
+
+    it('segue disparando as entradas de papel depois de uma sequência ruim', () => {
+      engine.updateConfig({ autoOn: false, autoSource: 'motor2', minScore: 0 });
+      runWindow('motor2', [false, false, false, false, false]);
+
+      const fired: string[] = [];
+      engine.onAutoTrade((sym) => fired.push(sym));
+      SYMS.forEach((s) => {
+        engine.setHistory(s, saturated(3000, 7, 3).slice(0, -1));
+        engine.processTick(s, 7);
+      });
+
+      expect(fired.length).toBeGreaterThan(0);
+    });
+
+    it('continua travando o robô por perdas consecutivas na conta real', () => {
+      engine.updateConfig({ gateOps: 0 });
+
+      for (let i = 0; i < 4; i++) trade('flong', false);
+
+      expect(engine.checkGuards()).toMatch(/perdas consecutivas/i);
+    });
+  });
+
+  describe('martingale atravessa o intervalo de papel', () => {
+    beforeEach(() => {
+      engine.updateConfig({
+        mgMode: 'normal',
+        mgFactor: 2,
+        mgMax: 3,
+        stake: 1,
+        gateOps: 2,
+        gateAcc: 0,
+        stopLoss: 0,
+        stopWin: 0,
+      });
+    });
+
+    it('guarda o nível do martingale enquanto a lógica volta a medir', () => {
+      runWindow('flong', [true, true]);
+      trade('flong', false);
+      expect(engine.getState().mgLevel).toBe(1);
+
+      runWindow('flong', [true, true]);
+
+      expect(engine.getState().mgLevel).toBe(1);
+      expect(engine.getState().curStake).toBe(2);
+    });
+
+    it('entra na real seguinte com a stake do martingale pendente', () => {
+      runWindow('flong', [true, true]);
+      trade('flong', false);
+      runWindow('flong', [true, true]);
+
+      expect(engine.prepareTrade('R_10', 3, 'flong')).toMatchObject({
+        isPaper: false,
+        stake: 2,
+      });
+    });
+
+    it('mantém a stake de papel na base mesmo com martingale pendente', () => {
+      runWindow('flong', [true, true]);
+      trade('flong', false);
+
+      expect(engine.prepareTrade('R_10', 3, 'fshort')).toMatchObject({
+        isPaper: true,
+        stake: 1,
+      });
+    });
+
+    it('zera o martingale quando a operação real ganha', () => {
+      runWindow('flong', [true, true]);
+      trade('flong', false);
+      runWindow('flong', [true, true]);
+      trade('flong', true);
+
+      expect(engine.getState().mgLevel).toBe(0);
+      expect(engine.getState().curStake).toBe(1);
+    });
+  });
+
   describe('motivo mostrado na tela', () => {
     it('descreve o progresso enquanto a janela não fecha', () => {
       runWindow('flong', [true, false, true]);
@@ -336,6 +539,14 @@ describe('BearDiffer - trava de testes antes de operar', () => {
         runWindow('motor2', [true, true, true, true]);
 
         expect(engine.manualTarget().reason).toBeNull();
+      });
+
+      it('trava o clique de novo depois de uma entrada real', () => {
+        seedOne();
+        runWindow('motor2', [true, true, true, true]);
+        trade('motor2', true);
+
+        expect(engine.manualTarget().reason).toMatch(/trava de testes/i);
       });
     });
   });

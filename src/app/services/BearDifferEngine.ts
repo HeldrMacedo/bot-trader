@@ -517,6 +517,13 @@ export class BearDifferEngine {
    * a cada tick, o que não é rodízio entre estratégias, é sorteio.
    */
   private autoLogicId(): string | null {
+    // Uma liberação pendente prende a escolha: o alvo precisa continuar saindo
+    // da lógica aprovada até a ordem real dela sair. Deixar o ranking girar
+    // aqui devolveria o robô ao papel sem nenhuma entrada real, desperdiçando
+    // a janela que acabou de ser medida.
+    const pending = this.pendingReleasedLogic();
+    if (pending) return pending;
+
     const mode = this.config.onceLogic;
     const c = this.autoLogicCache;
     const fresh = !!c && Date.now() - c.at < AUTO_LOGIC_TTL;
@@ -1863,9 +1870,34 @@ export class BearDifferEngine {
     }
   }
 
+  /** A lógica aprovada que ainda não gastou a entrada real dela, ou null */
+  private pendingReleasedLogic(): string | null {
+    if (!this.config.gateEnabled) return null;
+    for (const lid of this.gateReleased) {
+      if (lid !== 'motor2') return lid;
+    }
+    return null;
+  }
+
   private resetGate(): void {
     this.gateWindows.clear();
     this.gateReleased.clear();
+  }
+
+  /**
+   * Gasta a liberação de uma lógica assim que a entrada real dela liquida. A
+   * aprovação vale por uma operação: manter a lógica liberada deixaria uma
+   * única janela autorizar uma sequência inteira de ordens reais, e a medição
+   * que autorizou a primeira envelhece a cada tick.
+   */
+  private consumeGateRelease(logicId: string): void {
+    if (!this.gateReleased.delete(logicId)) return;
+    this.gateWindows.set(logicId, { ops: 0, wins: 0 });
+    this.addLog(
+      `Trava de testes: ${this.getLogicName(logicId)} volta ao teste depois da entrada real`,
+      'am'
+    );
+    this.syncGateMode();
   }
 
   /** Alimenta a janela da lógica com o resultado de uma operação simulada */
@@ -1908,7 +1940,17 @@ export class BearDifferEngine {
     // A trava de testes não bloqueia o robô: ela decide, operação a operação,
     // se a ordem sai em papel ou na conta real. Bloquear aqui impediria as
     // próprias entradas simuladas que fecham a janela.
-    const book = this.config.opMode === 'real' ? this.realStats : this.simStats;
+    //
+    // Com a trava ligada as travas de risco passam a olhar só o livro real.
+    // Elas existem para proteger a conta, e sobre o livro de papel viravam uma
+    // armadilha: quatro perdas simuladas seguidas desligavam o automático, e
+    // com ele paravam as próprias entradas de papel que limpariam a sequência
+    // — a janela congelava até o operador zerar a sessão.
+    const book = this.config.gateEnabled
+      ? this.realStats
+      : this.config.opMode === 'real'
+        ? this.realStats
+        : this.simStats;
     let consecutiveLosses = 0;
     for (let i = book.recent.length - 1; i >= 0 && book.recent[i] === 0; i--) {
       consecutiveLosses++;
@@ -1974,7 +2016,10 @@ export class BearDifferEngine {
       book.recent.push(1);
 
       // Reseta Martingale
-      if (this.config.mgMode === 'partial' && this.mgPartsLeft > 0) {
+      if (isSim) {
+        // Nada: o martingale não corre no papel, e zerá-lo aqui apagaria a
+        // dívida de uma perda real anterior que ainda não foi recuperada.
+      } else if (this.config.mgMode === 'partial' && this.mgPartsLeft > 0) {
         this.mgDebt = Math.max(0, this.mgDebt - profit);
         this.mgPartsLeft--;
         if (this.mgDebt <= 0.01 || this.mgPartsLeft <= 0) {
@@ -1995,11 +2040,18 @@ export class BearDifferEngine {
       book.loss++;
       book.pnl += profit; // profit é negativo
       book.recent.push(0);
-      this.mgLevel++;
+      // A memória de dígitos perdedores alimenta o filtro de exaustão e vale
+      // para os dois livros; o martingale, não.
       this.recordLoss(sym, digit);
 
-      // Avança Martingale
-      if (this.config.mgMode === 'normal') {
+      // Avança Martingale. Em papel o nível fica onde está: zerá-lo apagaria
+      // a dívida de uma perda real anterior, e avançá-lo inflaria a stake da
+      // próxima ordem real por conta de prejuízo que nunca existiu.
+      if (!isSim) this.mgLevel++;
+
+      if (isSim) {
+        // Nada a recuperar: stake de papel é sempre a base.
+      } else if (this.config.mgMode === 'normal') {
         if (this.mgLevel <= this.config.mgMax) {
           this.curStake = +(
             this.config.stake * Math.pow(this.config.mgFactor, this.mgLevel)
@@ -2031,16 +2083,6 @@ export class BearDifferEngine {
       }
     }
 
-    // Martingale não conta no simulado: recuperar prejuízo falso com stake
-    // maior só distorce a medição que a janela existe para fazer.
-    if (isSim) {
-      this.mgLevel = 0;
-      this.mgDebt = 0;
-      this.mgPartsLeft = 0;
-      this.mgPartStake = 0;
-      this.curStake = this.config.stake;
-    }
-
     if (book.recent.length > 200) book.recent.shift();
 
     // Registra operação no histórico
@@ -2069,9 +2111,11 @@ export class BearDifferEngine {
 
     // A janela da trava de testes só se alimenta de operação simulada, e só
     // enquanto a lógica ainda não passou.
-    if (this.config.gateEnabled && isSim) {
+    if (this.config.gateEnabled) {
       const key = logicId || this.activeLogicId() || 'motor2';
-      if (!this.isLogicReleased(key)) {
+      if (!isSim) {
+        this.consumeGateRelease(key);
+      } else if (!this.isLogicReleased(key)) {
         this.noteGateResult(key, isLoss);
         this.syncGateMode();
       }

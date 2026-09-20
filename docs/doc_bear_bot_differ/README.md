@@ -247,7 +247,11 @@ Com `gateEnabled` ligado, cada lógica precisa fechar uma janela de operações 
 
 **Papel ou real** (`prepareTrade`). Com a trava ligada, `isPaper = !isLogicReleased(logicId)`. Uma lógica aprovada não arrasta as outras: com A liberada e B medindo, o alvo de B sai em papel. O hook passa o `logicId` do alvo, não o da lógica que estiver liderando no instante da compra.
 
-**Espelho no seletor** (`syncGateMode`). `config.opMode` reflete a lógica ativa: vira `'real'` quando ela está aprovada e volta a `'sim'` quando a liderança passa para uma lógica ainda não medida. A aprovação de cada lógica sobrevive à troca, então o progresso congela e é retomado.
+**A aprovação prende a escolha de lógica** (`pendingReleasedLogic`). Enquanto existe liberação não consumida, `autoLogicId()` devolve a lógica aprovada e curto-circuita o ranking, o rodízio e o cache de liderança. Sem esse travamento, o `AUTO_LOGIC_TTL` de 5s ou o próximo giro do rodízio trocavam a lógica ativa logo depois da aprovação, `gateTesting` voltava a valer e `syncGateMode` devolvia `opMode` para `'sim'` — a janela era medida e descartada sem nenhuma ordem real.
+
+**Uma ordem por aprovação** (`consumeGateRelease`). A liquidação de uma operação real apaga a lógica de `gateReleased` e zera a janela dela. O consumo acontece na liquidação, não no envio: gastar a aprovação ao mandar a ordem queimaria a janela quando a compra falhasse na corretora, sem nenhuma ordem ter saído.
+
+**Espelho no seletor** (`syncGateMode`). `config.opMode` reflete a lógica ativa: vira `'real'` quando ela está aprovada e volta a `'sim'` quando a aprovação é consumida ou quando a liderança passa para uma lógica ainda não medida. A aprovação de cada lógica sobrevive à troca de liderança, então o progresso congela e é retomado.
 
 **Liquidação** (`settleContract`). O que decide o livro é `pendingPaper`, gravado no preparo, não o `opMode` do momento: entre o envio e a liquidação o modo pode ter virado real. Em operação simulada o martingale é zerado e a stake volta à base, e os stops não são conferidos — ver 4.9.
 
@@ -255,9 +259,11 @@ Com `gateEnabled` ligado, cada lógica precisa fechar uma janela de operações 
 
 **Entradas automáticas no modo manual.** `processTick` dispara o `onAutoTrade` quando `autoOn || gateTesting`, com `gateTesting = gateEnabled && !isLogicReleased(activeLogicId())`. A janela é do robô, não do operador: exigir dezenas de cliques em papel para destravar o botão inverteria o propósito da trava.
 
-### 4.9. Martingale e stops valem só no real
+### 4.9. Martingale e travas de risco sob a trava de testes
 
-O martingale (normal e parcelado) e os limites `stopLoss`/`stopWin` são conferidos apenas quando a operação liquidada foi real. Recuperar prejuízo de papel com stake maior distorceria a medição que a janela de testes existe para fazer, e prejuízo ou lucro simulado não gasta limite de conta nenhuma. As demais travas de `checkGuards` — perdas consecutivas (`maxLoss`) e assertividade mínima (`minAcc`) — continuam valendo sobre o livro do modo ativo, simulado inclusive.
+O martingale (normal e parcelado) e os limites `stopLoss`/`stopWin` só correm quando a operação liquidada foi real. Uma liquidação de papel **não toca** o estado do martingale: não avança e não zera. Zerar apagaria a dívida de uma perda real anterior — a lógica volta a medir logo depois da ordem real, e a primeira liquidação de papel devolvia `curStake` à base, deixando toda perda real irrecuperável enquanto a trava estivesse ligada. Avançar inflaria a stake da próxima ordem real por prejuízo que nunca existiu. `prepareTrade` devolve `config.stake` em papel e `curStake` no real, então o nível pendente atravessa o intervalo de teste sem afetar a medição.
+
+`checkGuards` também muda de livro com a trava ligada: `maxLoss` e `minAcc` passam a olhar apenas `realStats`. Sobre o livro de papel elas viravam armadilha — `guard` é parada dura (`autoOn = false`), então quatro perdas simuladas seguidas desligavam o automático e com ele as próprias entradas de papel que limpariam a sequência, congelando a janela até `resetSession()`.
 
 ---
 

@@ -8,6 +8,20 @@
         "start_time": 887239.0,
         "port": null,
         "inherited": false
+      },
+      {
+        "pid": 35169,
+        "start_src": "proc",
+        "start_time": 1665408.0,
+        "port": null,
+        "inherited": true
+      },
+      {
+        "pid": 50054,
+        "start_src": "proc",
+        "start_time": 2400993.0,
+        "port": null,
+        "inherited": true
       }
     ]
   },
@@ -20,6 +34,20 @@
         "start_time": 887239.0,
         "port": 8787,
         "inherited": false
+      },
+      {
+        "pid": 35169,
+        "start_src": "proc",
+        "start_time": 1665408.0,
+        "port": 8787,
+        "inherited": true
+      },
+      {
+        "pid": 50054,
+        "start_src": "proc",
+        "start_time": 2400993.0,
+        "port": 8787,
+        "inherited": true
       }
     ]
   }

@@ -337,7 +337,10 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         buy: 1,
-        parameters: expect.objectContaining({ symbol: 'R_10', barrier: '4' }),
+        parameters: expect.objectContaining({
+          underlying_symbol: 'R_10',
+          barrier: '4',
+        }),
       })
     );
     // And the foreign payout must not leak into the Differ breakeven
@@ -422,7 +425,10 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         buy: 1,
-        parameters: expect.objectContaining({ symbol: 'R_10', barrier: '4' }),
+        parameters: expect.objectContaining({
+          underlying_symbol: 'R_10',
+          barrier: '4',
+        }),
       })
     );
   });
@@ -601,7 +607,7 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
         proposal: 1,
         subscribe: 1,
         contract_type: 'DIGITDIFF',
-        symbol: 'R_25',
+        underlying_symbol: 'R_25',
         barrier: '3',
         amount: 0.35,
       })
@@ -626,7 +632,7 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         proposal: 1,
-        symbol: 'R_10',
+        underlying_symbol: 'R_10',
         barrier: '7',
       })
     );
@@ -1122,6 +1128,41 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
     expect(result.current.engine.getDigits('R_10')).toEqual([1, 2, 3]);
   });
 
+  // O schema da API Options declara `additionalProperties: false` em
+  // `buy.parameters` e em `proposal`: mandar o campo legado `symbol` junto
+  // derruba a ordem inteira com "Input validation failed: parameters".
+  it('never sends the legacy symbol field in a buy payload', async () => {
+    const { result } = renderHook(() => useBearDiffer());
+
+    act(() => {
+      result.current.updateConfig({
+        opMode: 'real',
+        gateEnabled: false,
+        fastExec: false,
+        stake: 0.35,
+      });
+    });
+
+    await act(async () => {
+      await result.current.executeTrade('R_10', 4);
+    });
+
+    const buyCall = mockSend.mock.calls.find((c) => c[0]?.buy !== undefined);
+    expect(buyCall?.[0].parameters).not.toHaveProperty('symbol');
+    expect(buyCall?.[0].parameters.underlying_symbol).toBe('R_10');
+  });
+
+  it('never sends the legacy symbol field in a proposal payload', () => {
+    const { result } = renderHook(() => useBearDiffer());
+
+    act(() => {
+      result.current.ensureProposal('R_10', 5, 0.35);
+    });
+
+    const propCall = mockSend.mock.calls.find((c) => c[0]?.proposal !== undefined);
+    expect(propCall?.[0]).not.toHaveProperty('symbol');
+  });
+
   it('subscribes to pre-opened proposal when ensureProposal is invoked', () => {
     const { result } = renderHook(() => useBearDiffer());
 
@@ -1133,7 +1174,7 @@ describe('useBearDiffer - Custom Hook for Bear Bot Differ', () => {
       expect.objectContaining({
         proposal: 1,
         subscribe: 1,
-        symbol: 'R_10',
+        underlying_symbol: 'R_10',
         barrier: '5',
       })
     );

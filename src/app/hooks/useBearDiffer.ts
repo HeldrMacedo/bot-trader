@@ -198,7 +198,10 @@ export function useBearDiffer() {
               currency: 'USD',
               duration: 1,
               duration_unit: 't',
-              symbol: sym,
+              // A API Options nomeia o ativo como `underlying_symbol` e
+              // declara `additionalProperties: false`: o `symbol` do v3
+              // legado derruba a ordem com "Input validation failed".
+              underlying_symbol: sym,
               barrier: String(digit),
             },
           });
@@ -482,7 +485,7 @@ export function useBearDiffer() {
           currency: cur,
           duration: 1,
           duration_unit: 't',
-          symbol: sym,
+          underlying_symbol: sym,
           barrier: String(barrier),
           passthrough: { pkey: key },
         })

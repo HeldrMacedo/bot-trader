@@ -244,6 +244,65 @@ describe('BearDiffer - leitura honesta da confiança no card', () => {
     expect(screen.getByTestId('target-card-metric').textContent).toMatch(/confiança 0%/i);
   });
 
+  it('nomeia a causa quando as métricas passam mas o alvo é recusado', () => {
+    // O caso que engana: score e confiança acima dos mínimos, e mesmo assim
+    // sem entrada, porque motor e lógica apontam dígitos diferentes.
+    vi.spyOn(engine, 'manualTarget').mockReturnValue({
+      sym: 'R_50',
+      digit: 2,
+      conf: 90,
+      score: 76,
+      logicId: 'aus30',
+      reason: 'sem concordância em R_50: motor 2.0 aponta 9, Ausência · gap longo aponta 2',
+      key: 'concord',
+      stage: 2,
+    });
+    engine.updateConfig({ autoSource: 'both', onceMinConf: 60, minScore: 60 });
+
+    render1();
+
+    expect(screen.getByTestId('target-card-block').textContent).toMatch(
+      /sem concordância/i
+    );
+    // As métricas continuam à vista: elas explicam o que já passou.
+    expect(screen.getByTestId('target-card-metric').textContent).toMatch(/76/);
+  });
+
+  it('nomeia a causa quando o score fica abaixo do mínimo', () => {
+    vi.spyOn(engine, 'manualTarget').mockReturnValue({
+      sym: 'R_10',
+      digit: 4,
+      conf: 90,
+      score: 55,
+      logicId: 'aus30',
+      reason: 'score 55 abaixo do mínimo de 60 em R_10',
+      key: 'score',
+      stage: 2,
+    });
+
+    render1();
+
+    expect(screen.getByTestId('target-card-block').textContent).toMatch(/score/i);
+  });
+
+  it('avisa que o alvo é de outro mercado enquanto o robô espera o tick dele', () => {
+    vi.spyOn(engine, 'manualTarget').mockReturnValue({
+      sym: 'R_50',
+      digit: 2,
+      conf: 90,
+      score: 76,
+      logicId: 'aus30',
+      reason: null,
+      key: null,
+      stage: 5,
+    });
+
+    render1();
+
+    expect(screen.queryByTestId('target-card-block')).toBeNull();
+    expect(screen.getByTestId('target-card-scope').textContent).toMatch(/R_50/);
+  });
+
   it('não mostra mais o seletor de varredura ampla', () => {
     render1();
     expect(screen.queryByText(/varredura ampla/i)).toBeNull();

@@ -60,6 +60,8 @@ Antes de iniciar as operações, configure os parâmetros de acordo com o seu pl
 
 No modo simulado **não correm martingale, stop loss nem stop win**. A stake fica sempre no valor base e os limites financeiros só valem sobre a conta real: prejuízo e lucro de papel não gastam limite de conta nenhuma, e recuperar perda falsa com stake maior distorceria a medição do robô.
 
+Uma perda real deixa o martingale armado, e ele **atravessa o intervalo de papel**: enquanto a lógica volta a medir, as entradas simuladas saem na stake base sem mexer no nível, e a próxima ordem real entra com a stake de recuperação. Só um ganho real zera a escada.
+
 ### 3.3.1. Testes antes de operar (trava de validação)
 
 O bloco "Testes antes de operar" tem um checkbox, **Testar antes de liberar o real**, que só pode ser marcado com o modo de operação em Simulação. Com ele desmarcado, os campos abaixo ficam bloqueados e o Modo Real vale imediatamente. Com ele marcado, cada lógica precisa se provar antes de mandar ordem para a corretora:
@@ -71,10 +73,13 @@ Como funciona na prática, com `10` ops e `60%`: quando a lógica escolhida apon
 
 Pontos importantes:
 
+- **A liberação vale por uma operação.** Assim que a entrada real liquida — com ganho ou com perda —, a lógica volta a medir do zero e precisa fechar uma janela nova antes da próxima ordem real. Uma janela autoriza uma ordem, não uma sequência.
 - **A liberação é da lógica, não do robô.** Cada lógica tem a própria janela. Com a lógica A liberada, um alvo vindo da lógica B — que ainda está medindo — sai em papel. Quando a liderança passa para uma lógica não liberada, o seletor volta sozinho para Simulação.
-- **O progresso de cada lógica congela e é retomado.** Trocando a lógica ativa no meio, a janela parcial fica guardada e continua de onde parou quando aquela lógica voltar a dar as ordens.
+- **Aprovada, a lógica fica no comando até entrar na real.** Enquanto a liberação não é gasta, o rodízio e o ranking param de trocar a lógica ativa. Sem isso a liderança podia mudar logo depois da aprovação e o robô voltava ao papel sem ter mandado ordem nenhuma.
+- **O progresso de cada lógica congela e é retomado.** Trocando a lógica ativa no meio de uma janela ainda não aprovada, a parcial fica guardada e continua de onde parou quando aquela lógica voltar a dar as ordens.
 - **O Motor 2.0 é tratado como uma lógica.** Na fonte `Motor 2.0` ele tem a própria janela. Na fonte `Motor + Lógica` o alvo só nasce quando os dois concordam, então a janela já mede exatamente esse par.
 - **As janelas zeram** ao parar o bot, ao recarregar a página, ao trocar a fonte do sinal ou a lógica escolhida, e ao desmarcar o checkbox. Validação vale para a sessão corrente: progresso velho liberaria dinheiro real com base em medição obsoleta.
+- **As travas de perda consecutiva e de assertividade mínima olham só a conta real** enquanto a trava de testes está ligada. Elas existem para proteger o saldo; aplicadas ao livro de papel, uma sequência ruim de teste desligava o automático e com ele parava as próprias entradas simuladas que fechariam a janela.
 - **`Liberar real após (ops)` em `0`** libera na hora — é o jeito de dizer "sem teste" mantendo o checkbox ligado.
 
 ### 3.4. Gatilho de Perda Virtual (Virtual Loss)
@@ -153,6 +158,14 @@ A coluna **Acerto** na aba Lógicas e a **confiança** no card do alvo são cois
 
 Com o **Gatilho de Perda Virtual** ligado, os dois botões manuais não compram: eles armam o Loss Virtual e esperam as perdas configuradas, exatamente como o automático faz.
 
+#### Por que o card mostra números bons e o robô não entra
+
+Duas coisas do card enganam se lidas isoladas.
+
+A primeira: **o card varre todos os mercados ligados e mostra o melhor**, enquanto o automático só avalia o mercado cujo tick acabou de chegar. Com sete mercados ligados, o card pode ficar verde o tempo todo enquanto o automático só tem chance em cerca de um sétimo dos ticks. É por isso que o histórico lista `score 55 em R_100` e `score 59 em RDBULL` enquanto o card exibe `score 76`: o 76 é de outro mercado. Quando há alvo, o card diz de qual mercado ele é e que o robô espera o próximo tick de lá.
+
+A segunda: **score e confiança continuam à vista mesmo quando o alvo foi recusado**, e há recusas que nada têm a ver com os mínimos. Na fonte `Motor + Lógica` o alvo morre quando motor e lógica apontam **dígitos diferentes** — as duas métricas podem estar em 76 e 90% e ainda assim não sair entrada. Por isso o card traz a linha `Não entra: <causa> — <motivo>` sempre que existe uma barreira ativa.
+
 #### O que barra uma entrada manual
 
 O clique manual passa pelas mesmas travas do automático: mercado ligado, operação única por vez, travas de segurança, amostra mínima, fonte do sinal, trava de viés e filtro de exaustão. Quando alguma delas barra, o botão fica desabilitado e o motivo aparece escrito abaixo dele.
@@ -166,7 +179,7 @@ Duas diferenças propositais em relação ao automático:
 
 Com o checkbox "Testar antes de liberar o real" ligado, as entradas simuladas da janela são **automáticas mesmo com o modo automático desligado** — é o robô que precisa provar a lógica, não você que precisa clicar dezenas de vezes em papel. Enquanto a janela não fecha, o botão do card "Melhor alvo no momento" fica desabilitado e o motivo mostra o progresso, no formato `Trava de testes: 7/10 ops · 57.1% (mín. 60%)`. O mesmo progresso aparece como etiqueta no topo do card.
 
-Quando a lógica passa, o botão destrava e o clique entra na conta real. Ele continua destravado enquanto aquela lógica for a que está dando as ordens; se a liderança passar para uma lógica ainda não medida, o botão volta a travar até a janela dela fechar.
+Quando a lógica passa, o botão destrava e o clique entra na conta real. Um clique só: liquidada a operação, a lógica volta a medir do zero e o botão trava de novo até a próxima janela fechar. O automático segue a mesma regra — entra uma vez na real e volta para as entradas simuladas.
 
 ---
 
