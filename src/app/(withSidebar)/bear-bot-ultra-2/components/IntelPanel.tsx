@@ -15,6 +15,36 @@ function getIntelColor(score: number) {
   return { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', bar: 'from-red-600 to-red-400' };
 }
 
+const PILLAR_HINTS = {
+  pressure: 'Compara a frequência recente dos dígitos perdedores nas janelas de 10, 25 e 50 ticks com a frequência esperada do modo escolhido. Barra alta = perdedores saindo menos que o normal. Precisa de 50 ticks de histórico para medir; antes disso fica neutra em 50%.',
+  pattern: 'Qualidade do par de dígitos A→B detectado neste mercado. Só sai de zero quando o padrão está armado (repetições exigidas + filtros de força, Wilson, lift e estabilidade); daí somam-se bônus por cada filtro superado.',
+  vl: 'Quantas perdas virtuais já foram contadas em relação à quantidade exigida. Barra em 100% significa gate de Loss Virtual liberado para entrar. Com Loss Virtual desligado fica em 100%, e em mercados fora do foco fica em 50% por não haver contagem.',
+  sync: 'Quantos dos outros mercados têm o mesmo padrão A→B armado neste momento. Mercados sem tick nos últimos 60s não contam como sincronizados, porque o padrão deles congela quando o stream cai. Zero na maior parte do tempo é normal.',
+} as const;
+
+function HelpTip({ label, hint }: { label: string; hint: string }) {
+  const tipId = `intel-hint-${label.replace(/[^a-zA-Z0-9]/g, '-')}`;
+  return (
+    <span className="relative inline-flex group">
+      <button
+        type="button"
+        aria-label={`Como funciona: ${label}`}
+        aria-describedby={tipId}
+        className="w-3.5 h-3.5 rounded-full bg-[#18202f] border border-[#2e3a52] text-[8px] font-bold text-[#8593aa] leading-none flex items-center justify-center hover:text-[#eef2f8] hover:border-[#3d4a66] focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
+      >
+        ?
+      </button>
+      <span
+        id={tipId}
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 bottom-full z-20 mb-1.5 w-56 -translate-x-1/2 rounded-md border border-[#2e3a52] bg-[#070b14] p-2 text-[10px] font-normal leading-snug text-[#c3ccdb] opacity-0 shadow-xl transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+      >
+        {hint}
+      </span>
+    </span>
+  );
+}
+
 function getRecLabel(rec: string) {
   switch (rec) {
     case 'strong_buy': return '⭐ COMPRA FORTE';
@@ -73,14 +103,17 @@ export default function IntelPanel({ config, state }: IntelPanelProps) {
 
           <div className="flex flex-col gap-2">
             {[
-              { label: 'Pressão de Perdedores', value: 100 - intel.pressure, text: 'text-cyan-400', bar: 'from-cyan-500 to-blue-400' },
-              { label: 'Força do Padrão A→B', value: intel.patternStrength, text: 'text-purple-400', bar: 'from-purple-500 to-pink-400' },
-              { label: 'Progresso Loss Virtual', value: intel.vlProgress, text: 'text-green-400', bar: 'from-green-500 to-emerald-400' },
-              { label: 'Sincronia Cross-Market', value: intel.syncScore, text: 'text-yellow-400', bar: 'from-yellow-500 to-amber-400' },
+              { label: 'Pressão de Perdedores', value: 100 - intel.pressure, text: 'text-cyan-400', bar: 'from-cyan-500 to-blue-400', hint: PILLAR_HINTS.pressure },
+              { label: 'Força do Padrão A→B', value: intel.patternStrength, text: 'text-purple-400', bar: 'from-purple-500 to-pink-400', hint: PILLAR_HINTS.pattern },
+              { label: 'Progresso Loss Virtual', value: intel.vlProgress, text: 'text-green-400', bar: 'from-green-500 to-emerald-400', hint: PILLAR_HINTS.vl },
+              { label: 'Sincronia Cross-Market', value: intel.syncScore, text: 'text-yellow-400', bar: 'from-yellow-500 to-amber-400', hint: PILLAR_HINTS.sync },
             ].map((item) => (
               <div key={item.label} className="bg-[#0e131d] p-2 border border-[#222c3f] rounded-lg">
                 <div className="flex justify-between items-center mb-1">
-                  <span className={`text-[10px] ${item.text} font-bold`}>{item.label}</span>
+                  <span className={`text-[10px] ${item.text} font-bold flex items-center gap-1`}>
+                    {item.label}
+                    <HelpTip label={item.label} hint={item.hint} />
+                  </span>
                   <span className={`text-xs font-mono font-bold ${item.text}`}>{item.value}%</span>
                 </div>
                 <div className="w-full bg-[#18202f] h-1.5 rounded-full overflow-hidden">

@@ -173,3 +173,41 @@ describe('AI gate with insufficient data', () => {
     expect(engine.getConfig().digit).toBe(8);
   });
 });
+
+describe('accum vlProgress denominator', () => {
+  function seedAccum(vlQty: number, vlWindow: number, losers: number) {
+    const engine = createEngine({
+      mode: 'over',
+      digit: 2,
+      vlOn: true,
+      vlMode: 'accum',
+      vlQty,
+      vlWindow,
+      activeSym: 'R_100',
+      tradeCooldownMs: 0,
+    });
+    // Only losers (digit 1 loses over-2), so the history stays shorter than vlQty.
+    for (let i = 0; i < losers; i++) engine.processTick('R_100', 100.0, 1);
+    return engine;
+  }
+
+  it('measures progress against vlQty, not against the ticks seen so far', () => {
+    // 5 counted losses out of the 8 the gate requires. Scaling by the history
+    // length instead would read as a full pillar on a gate that is still shut.
+    const engine = seedAccum(8, 10, 6);
+    const state = engine.getState();
+
+    expect(state.vlCount).toBe(6);
+    // Intelligence recomputes every 3 ticks, before the current tick is counted,
+    // so this snapshot reflects 5 of the 8 losses the gate requires.
+    expect(state.marketIntel['R_100'].vlProgress).toBe(Math.round((5 / 8) * 100));
+  });
+
+  it('never shows a full bar while the VL gate is still closed', () => {
+    const engine = seedAccum(8, 10, 6);
+    const state = engine.getState();
+
+    expect(state.vlCount).toBeLessThan(8);
+    expect(state.marketIntel['R_100'].vlProgress).toBeLessThan(100);
+  });
+});

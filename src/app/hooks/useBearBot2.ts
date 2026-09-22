@@ -456,7 +456,11 @@ export function useBearBot() {
     // Always subscribe to every market: IntelPanel sync + MarketGrid scores
     // need ticks from all symbols, not only the active one / multi mode.
     MARKETS.forEach(m => {
-      derivService.subscribe({ ticks: m.sym }).catch(() => { });
+      derivService.subscribe({ ticks: m.sym }).catch(() => {
+        // A silent failure here degrades the cross-market pillars without a trace:
+        // that market's pattern freezes and its score goes stale.
+        engineRef.current.addLog(`⚠ Sem stream de ticks para ${m.sym} · inteligência desse mercado fica desatualizada`, 'warn');
+      });
     });
   }, [isConnected]);
 

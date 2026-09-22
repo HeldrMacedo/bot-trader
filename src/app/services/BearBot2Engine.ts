@@ -34,6 +34,13 @@ function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
   return next;
 }
 
+/**
+ * Uma assinatura de ticks pode cair em silêncio (o subscribe do hook engole erros),
+ * e o padrão A->B daquele mercado congela no último estado armado. Depois desta
+ * janela sem ticks o feed deixa de ser tratado como sincronizado.
+ */
+const FEED_STALE_MS = 60_000;
+
 function wilsonLB(succ: number, total: number): number {
   if (total <= 0) return 0;
   const z = 1.96, p = succ / total, n = total;
@@ -125,6 +132,7 @@ export class BearBotEngine {
   private tickData: Record<string, TickData> = {};
   /** Monotonic tick counter per symbol; drives the intelligence recompute throttle. */
   private tickCount: Record<string, number> = {};
+  private lastTickAt: Record<string, number> = {};
   private patState: Record<string, PatternState> = {};
   private vlMState: Record<string, VLMarketState> = {};
   private props: Record<string, ProposalState> = {};
@@ -146,6 +154,7 @@ export class BearBotEngine {
 
   constructor(config: Partial<BotConfig> = {}) {
     this.config = { ...this.getDefaultConfig(), ...clampRateLimits(config) };
+    this.normalizeVlWindow();
     this.lastManualSwitch = 0;
     this.state = {
       ...DEFAULT_BOT_STATE,
@@ -203,12 +212,25 @@ export class BearBotEngine {
     };
   }
 
+  /**
+   * No modo Acumulado a contagem só olha os últimos vlWindow ticks, então um
+   * vlQty maior que a janela é inalcançável e o gate nunca abre. vlQty é o
+   * limiar escolhido pelo usuário: a janela é alargada até ele.
+   */
+  private normalizeVlWindow() {
+    if (this.config.vlMode !== 'accum') return;
+    if (this.config.vlWindow < this.config.vlQty) {
+      this.config.vlWindow = this.config.vlQty;
+    }
+  }
+
   // ── Config Updates ──
   updateConfig(updates: Partial<BotConfig>) {
     const oldMulti = this.config.multiOn;
     const oldPaperMode = this.config.paperMode;
     const oldActiveSym = this.config.activeSym;
     this.config = { ...this.config, ...clampRateLimits(updates) };
+    this.normalizeVlWindow();
     // When activeSym is changed manually, set lastManualSwitch to prevent immediate override
     if (updates.activeSym !== undefined) {
       this.lastManualSwitch = Date.now();
@@ -320,6 +342,7 @@ export class BearBotEngine {
 
     // Throttle on a monotonic counter, not on buffer length: the buffer saturates
     // at 120 entries, which would make a length-based modulo fire on every tick.
+    this.lastTickAt[sym] = Date.now();
     this.tickCount[sym] = (this.tickCount[sym] || 0) + 1;
     if (this.tickCount[sym] % 3 === 0) {
       this.updateAllIntelligence();
@@ -737,6 +760,13 @@ export class BearBotEngine {
     });
   }
 
+  /** Um feed é considerado vivo enquanto tiver entregue algum tick recente. */
+  private isFeedFresh(sym: string): boolean {
+    const last = this.lastTickAt[sym];
+    if (last === undefined) return false;
+    return Date.now() - last <= FEED_STALE_MS;
+  }
+
   // ── Inteligência Cross-Market ──
   private computeMarketIntelligence(sym: string): MarketIntelligence {
     const arr = this.tickData[sym]?.digits || [];
@@ -782,14 +812,13 @@ export class BearBotEngine {
         // satisfied. Scoring it 100 let every unfocused market outrank the focused one.
         vlProgress = 50;
       } else {
-        const target = this.config.vlQty;
+        // Both modes measure against vlQty, which is exactly what vlGateOpen
+        // compares the counter to. Scaling the accumulated mode by the window
+        // instead let a vlQty > vlWindow setup show a full bar on a gate that
+        // can never open, since the counter is capped by the window size.
+        const target = Math.max(1, this.config.vlQty);
         const current = vlSt.count;
-        if (this.config.vlMode === 'consec') {
-          vlProgress = Math.min(100, Math.round((current / target) * 100));
-        } else {
-          const windowSize = Math.min(arr.length, this.config.vlWindow);
-          vlProgress = windowSize > 0 ? Math.min(100, Math.round((current / Math.min(target, windowSize)) * 100)) : 0;
-        }
+        vlProgress = Math.min(100, Math.round((current / target) * 100));
       }
     } else {
       vlProgress = 100;
@@ -802,7 +831,11 @@ export class BearBotEngine {
       MARKETS.forEach(m => {
         if (m.sym === sym) return;
         const otherPs = this.patState[m.sym];
-        if (otherPs && otherPs.a === ps.a && otherPs.b === ps.b && otherPs.armed) syncCount++;
+        // A market only advances its pattern on its own ticks, so a dead feed
+        // freezes an armed A->B forever. Frozen agreement is not live agreement:
+        // it still counts as a comparable market, just never as a synchronised one.
+        const fresh = this.isFeedFresh(m.sym);
+        if (fresh && otherPs && otherPs.a === ps.a && otherPs.b === ps.b && otherPs.armed) syncCount++;
         totalMarkets++;
       });
       syncScore = totalMarkets > 0 ? Math.min(100, Math.round((syncCount / totalMarkets) * 100)) : 0;
