@@ -1,6 +1,7 @@
 "use client";
 
 import { BotConfig, BotState, MARKETS, buildLoserSet, AIMode, AIWeights, AI_MODE_WEIGHTS } from '../../../services/bearbot2.types';
+import HelpTip from './HelpTip';
 
 interface MarketGridProps {
   config: BotConfig;
@@ -34,11 +35,41 @@ const AI_MODE_LABELS: Record<AIMode, string> = {
   custom: 'Personalizado',
 };
 
-const AI_WEIGHT_FIELDS: { key: keyof AIWeights; label: string }[] = [
-  { key: 'pressure', label: 'Pressão' },
-  { key: 'pattern', label: 'Padrão A→B' },
-  { key: 'vl', label: 'Loss Virtual' },
-  { key: 'sync', label: 'Sincronia' },
+const WEIGHTS_HINT =
+  'Cada campo diz quanto aquele pilar pesa no Score de Oportunidade (0 a 100). Os valores são normalizados, '
+  + 'então só a proporção importa: 50/50/50/50 dá o mesmo score que 25/25/25/25. Peso 0 remove o pilar da conta; '
+  + 'soma zero cai para o preset Equilibrado. O score resultante decide o veto de entrada automática (abaixo de 40 a '
+  + 'IA bloqueia) e a disputa de foco no modo Múltiplos Mercados. Os pesos valem só enquanto a página estiver aberta.';
+
+const AI_WEIGHT_FIELDS: { key: keyof AIWeights; label: string; hint: string }[] = [
+  {
+    key: 'pressure',
+    label: 'Pressão',
+    hint: 'Peso da pressão dos dígitos perdedores: o quanto eles saem acima ou abaixo do esperado nas janelas de 10, 25 e 50 ticks. '
+      + 'Subir este peso faz a IA esperar o mercado "descansar" antes de liberar entrada. É o único pilar que sempre '
+      + 'tem medida real, então ele é a escolha segura quando padrão A→B e Loss Virtual estão desligados.',
+  },
+  {
+    key: 'pattern',
+    label: 'Padrão A→B',
+    hint: 'Peso da qualidade do par A→B detectado (força, Wilson, lift e estabilidade). Só sai de zero com o padrão '
+      + 'armado — com o gatilho de padrão desligado este pilar vale 0 e qualquer peso aqui derruba o score, podendo '
+      + 'travar o bot abaixo do limite de 40.',
+  },
+  {
+    key: 'vl',
+    label: 'Loss Virtual',
+    hint: 'Peso do avanço da contagem de perdas virtuais rumo à quantidade exigida. Com Loss Virtual desligado o pilar '
+      + 'fica fixo em 100% e apenas infla o score; em Contagem sob Foco, mercados fora do foco ficam em 50%. Use peso '
+      + 'alto para só entrar com a contagem madura.',
+  },
+  {
+    key: 'sync',
+    label: 'Sincronia',
+    hint: 'Peso da confirmação cruzada: quantos dos outros mercados têm o mesmo A→B armado agora (feeds parados não '
+      + 'contam). Sem padrão A→B definido vale 0. Peso alto exige concordância entre mercados e reduz muito a '
+      + 'frequência de entradas.',
+  },
 ];
 
 /** Converte o peso (fração 0..1) para o inteiro em % mostrado no campo. */
@@ -88,7 +119,10 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
       {config.aiMode === 'custom' && (
         <div className="mb-4 p-3 rounded-lg bg-[#0e131d] border border-[#222c3f]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8593aa]">Pesos dos pilares (%)</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8593aa] flex items-center gap-1.5">
+              Pesos dos pilares (%)
+              <HelpTip label="Pesos dos pilares" hint={WEIGHTS_HINT} idPrefix="weight-hint" wide />
+            </span>
             <span data-testid="ai-weight-sum" className={`text-[10px] font-mono ${weightSum === 0 ? 'text-yellow-400' : 'text-[#8593aa]'}`}>
               {weightSum === 0 ? 'Soma 0 · usando preset Equilibrado' : `Soma ${weightSum}% · normalizada`}
             </span>
@@ -96,7 +130,10 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {AI_WEIGHT_FIELDS.map(f => (
               <label key={f.key} className="flex flex-col gap-1">
-                <span className="text-[10px] text-[#8593aa]">{f.label}</span>
+                <span className="text-[10px] text-[#8593aa] flex items-center gap-1.5">
+                  {f.label}
+                  <HelpTip label={f.label} hint={f.hint} idPrefix="weight-hint" />
+                </span>
                 <input
                   type="number"
                   min="0"

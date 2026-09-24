@@ -1,6 +1,7 @@
 "use client";
 
 import { BotConfig, BotState, MarketIntelligence, MARKETS, buildLoserSet } from '../../../services/bearbot2.types';
+import HelpTip from './HelpTip';
 
 interface IntelPanelProps {
   config: BotConfig;
@@ -21,29 +22,6 @@ const PILLAR_HINTS = {
   vl: 'Quantas perdas virtuais já foram contadas em relação à quantidade exigida. Barra em 100% significa gate de Loss Virtual liberado para entrar. Com Loss Virtual desligado fica em 100%, e em mercados fora do foco fica em 50% por não haver contagem.',
   sync: 'Quantos dos outros mercados têm o mesmo padrão A→B armado neste momento. Mercados sem tick nos últimos 60s não contam como sincronizados, porque o padrão deles congela quando o stream cai. Zero na maior parte do tempo é normal.',
 } as const;
-
-function HelpTip({ label, hint }: { label: string; hint: string }) {
-  const tipId = `intel-hint-${label.replace(/[^a-zA-Z0-9]/g, '-')}`;
-  return (
-    <span className="relative inline-flex group">
-      <button
-        type="button"
-        aria-label={`Como funciona: ${label}`}
-        aria-describedby={tipId}
-        className="w-3.5 h-3.5 rounded-full bg-[#18202f] border border-[#2e3a52] text-[8px] font-bold text-[#8593aa] leading-none flex items-center justify-center hover:text-[#eef2f8] hover:border-[#3d4a66] focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
-      >
-        ?
-      </button>
-      <span
-        id={tipId}
-        role="tooltip"
-        className="pointer-events-none absolute left-1/2 bottom-full z-20 mb-1.5 w-56 -translate-x-1/2 rounded-md border border-[#2e3a52] bg-[#070b14] p-2 text-[10px] font-normal leading-snug text-[#c3ccdb] opacity-0 shadow-xl transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
-      >
-        {hint}
-      </span>
-    </span>
-  );
-}
 
 function getRecLabel(rec: string) {
   switch (rec) {

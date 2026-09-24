@@ -1110,7 +1110,11 @@ export class BearBotEngine {
       const intel = this.state.marketIntel[s];
       // A market with too little history has no measurable score yet: fall through
       // instead of vetoing it, matching the no-intelligence-at-all case above.
-      return !intel || !intel.dataReady || intel.opportunityScore >= 40 || isRecovery || this.vlGateOpenM(s);
+      // O Loss Virtual confirmado supera o veto da IA, mas apenas quando ele está
+      // ligado: com vlOn=false o gate do VL é sempre aberto e anulava o veto,
+      // deixando os pesos dos pilares sem efeito nenhum sobre a decisão.
+      const vlConfirmed = this.config.vlOn && this.vlGateOpenM(s);
+      return !intel || !intel.dataReady || intel.opportunityScore >= 40 || isRecovery || vlConfirmed;
     };
 
     if (this.config.multiOn) {
