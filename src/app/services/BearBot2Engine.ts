@@ -1470,7 +1470,7 @@ export class BearBotEngine {
   }
 
   private prepareCombo(proposals?: Map<string, string> | Record<string, string>): TradePrep {
-    this.comboPending = { legs: 2, won: 0, results: [] };
+    this.comboPending = { legs: 2, won: 0, results: [], exits: [] };
     const required = this.getRequiredProposals();
     const legs: TradeLeg[] = required.map(({ ct, barrier }) => {
       const legKind = ct === 'DIGITOVER' ? 'over' : ct === 'DIGITUNDER' ? 'under' : 'differ';
@@ -1542,9 +1542,8 @@ export class BearBotEngine {
       const p1 = winOver ? +(legStake * 0.94).toFixed(2) : -legStake;
       const p2 = winUnder ? +(legStake * 0.94).toFixed(2) : -legStake;
       const profit = +(p1 + p2).toFixed(2);
-      const won = (winOver ? 1 : 0) + (winUnder ? 1 : 0);
-      // LOSS only if both legs lost (matches real comboPending.won === 0)
-      return { profit, isLoss: won === 0, exitDig: lastDigit, audit };
+      // WIN only on real net gain (matches real combo settlement)
+      return { profit, isLoss: profit <= 0, exitDig: lastDigit, audit };
     }
 
     const win = isWinCheck(lastDigit, kind, this.config.digit, this.config.comboUnder, this.config.comboOver);
@@ -1555,26 +1554,40 @@ export class BearBotEngine {
   settleContract(profit: number, isLoss: boolean, kind: string, exitDig: number | null, audit: any) {
     if (this.comboPending && kind === 'combo') {
       const cp = this.comboPending;
-      cp.legs--; if (profit >= 0) cp.won++; cp.results.push(profit);
+      cp.legs--; if (profit >= 0) cp.won++; cp.results.push(profit); cp.exits.push(exitDig);
       if (cp.legs > 0) {
         this.notify();
         return;
       }
       const net = cp.results.reduce((a: number, b: number) => a + b, 0);
       this.comboPending = null;
-      this.finishTrade(net, cp.won === 0, 'COMBO', exitDig, audit);
+      // Legs may settle on different ticks: show every distinct exit digit
+      const exits = [...new Set(cp.exits.filter((d): d is number => d !== null))];
+      const saiu = exits.length > 1 ? exits.join('/') : exitDig;
+      // WIN only on real net gain: one winning leg can still lose money overall
+      this.finishTrade(net, net <= 0, 'COMBO', saiu, audit, this.comboAlvo());
+      return;
+    }
+    if (kind === 'combo') {
+      this.finishTrade(profit, isLoss, 'COMBO', exitDig, audit, this.comboAlvo());
       return;
     }
     this.finishTrade(profit, isLoss, kind.toUpperCase(), exitDig, audit);
   }
 
-  private finishTrade(profit: number, isLoss: boolean, label: string, exitDig: number | null, audit: any) {
+  private comboAlvo(): string {
+    const u = this.config.comboUnder ?? 4;
+    const o = this.config.comboOver ?? 5;
+    return `<${Math.min(u, o)} >${Math.max(u, o)}`;
+  }
+
+  private finishTrade(profit: number, isLoss: boolean, label: string, exitDig: number | string | null, audit: any, alvo: number | string = this.config.digit) {
     this.state.pnl = +(this.state.pnl + profit).toFixed(2);
     const stakeUsed = this.state.curStake;
     const isPaper = this.config.paperMode;
 
     const newTrade: TradeLog = {
-      t: new Date().toISOString(), mercado: this.config.activeSym, modo: label, alvo: this.config.digit,
+      t: new Date().toISOString(), mercado: this.config.activeSym, modo: label, alvo,
       audit: audit || { tick_previous: '—', tick_start: '—', tick_end: '—' },
       saiu: exitDig !== null ? exitDig : '—', stake: stakeUsed.toFixed(2),
       resultado: isLoss ? 'LOSS' : 'WIN', lucro: profit.toFixed(2),

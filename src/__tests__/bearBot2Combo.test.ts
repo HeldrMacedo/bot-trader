@@ -100,7 +100,7 @@ describe('BearBot2 COMBO Strategy with Dynamic Barriers', () => {
   });
 
   describe('Paper Trading Simulation (simulateTrade)', () => {
-    it('simulates win when exit digit is below comboUnder', () => {
+    it('simulates loss when exit digit is below comboUnder but net is negative', () => {
       const engine = createEngine({
         paperMode: true,
         mode: 'combo',
@@ -116,13 +116,14 @@ describe('BearBot2 COMBO Strategy with Dynamic Barriers', () => {
 
       const sim = engine.simulateTrade('combo');
       expect(sim).not.toBeNull();
-      expect(sim!.isLoss).toBe(false);
+      // Net negative even with one winning leg → LOSS
+      expect(sim!.isLoss).toBe(true);
       // p1 (OVER 6) = -1.00, p2 (UNDER 3) = +0.94 -> net -0.06
       expect(sim!.profit).toBeCloseTo(-0.06, 2);
       expect(sim!.exitDig).toBe(2);
     });
 
-    it('simulates win when exit digit is above comboOver', () => {
+    it('simulates loss when exit digit is above comboOver but net is negative', () => {
       const engine = createEngine({
         paperMode: true,
         mode: 'combo',
@@ -138,7 +139,8 @@ describe('BearBot2 COMBO Strategy with Dynamic Barriers', () => {
 
       const sim = engine.simulateTrade('combo');
       expect(sim).not.toBeNull();
-      expect(sim!.isLoss).toBe(false);
+      // Net negative even with one winning leg → LOSS
+      expect(sim!.isLoss).toBe(true);
       expect(sim!.profit).toBeCloseTo(-0.06, 2);
       expect(sim!.exitDig).toBe(8);
     });

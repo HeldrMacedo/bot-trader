@@ -183,25 +183,24 @@ export function useBearBot() {
       openContractsRef.current.clear();
       const opened: Array<{ contractId: number; legKind: string }> = [];
 
-      for (const leg of prep.legs) {
-        try {
-          const response = await derivService.send(leg.payload);
-          if (response?.buy?.contract_id != null) {
-            const contractId = Number(response.buy.contract_id);
-            opened.push({ contractId, legKind: leg.legKind });
-            openContractsRef.current.set(contractId, leg.legKind);
-            derivService.subscribe({
-              proposal_open_contract: 1,
-              contract_id: contractId,
-            }).catch(() => { });
-          } else {
-            break;
-          }
-        } catch (e) {
+      // Send both legs at once so they start on the same tick (1-tick contracts)
+      const responses = await Promise.all(prep.legs.map((leg) =>
+        derivService.send(leg.payload).catch((e: unknown) => {
           console.error('Combo leg error:', e);
-          break;
-        }
-      }
+          return null;
+        })
+      ));
+      responses.forEach((response, i) => {
+        if (response?.buy?.contract_id == null) return;
+        const contractId = Number(response.buy.contract_id);
+        const legKind = prep.legs![i].legKind;
+        opened.push({ contractId, legKind });
+        openContractsRef.current.set(contractId, legKind);
+        derivService.subscribe({
+          proposal_open_contract: 1,
+          contract_id: contractId,
+        }).catch(() => { });
+      });
 
       if (opened.length === 0) {
         engine.abortPendingTrade('Combo: nenhuma perna aberta · abort sem gale');

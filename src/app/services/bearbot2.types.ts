@@ -64,7 +64,7 @@ export interface TradeLog {
   t: string;
   mercado: string;
   modo: string;
-  alvo: number;
+  alvo: number | string;
   audit: { tick_previous: string; tick_start: string; tick_end: string };
   saiu: string | number;
   stake: string;
@@ -139,6 +139,7 @@ export interface ComboPending {
   legs: number;
   won: number;
   results: number[];
+  exits: Array<number | null>;
 }
 
 export interface DynamicDigitDetail {

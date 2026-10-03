@@ -49,8 +49,8 @@ describe('BearBot2Engine trade path', () => {
     expect(prep?.isPaper).toBe(true);
     const sim = engine.simulateTrade('combo');
     expect(sim).not.toBeNull();
-    // p1 = -1, p2 = +0.94 → net -0.06, won=1 → not both lost
-    expect(sim!.isLoss).toBe(false);
+    // p1 = -1, p2 = +0.94 → net -0.06: one leg won but net is negative → LOSS
+    expect(sim!.isLoss).toBe(true);
     expect(sim!.profit).toBeCloseTo(-0.06, 2);
 
     engine.settleContract(sim!.profit, sim!.isLoss, 'combo', sim!.exitDig, sim!.audit);
