@@ -1,6 +1,6 @@
 "use client";
 
-import { BotConfig, BotState, MARKETS, buildLoserSet, AIMode, AIWeights, AI_MODE_WEIGHTS } from '../../../services/bearbot2.types';
+import { BotConfig, BotState, MARKETS, buildLoserSet, AIMode, AIWeights, AI_MODE_WEIGHTS, AI_MIN_SCORE_DEFAULT } from '../../../services/bearbot2.types';
 import HelpTip from './HelpTip';
 
 interface MarketGridProps {
@@ -38,8 +38,15 @@ const AI_MODE_LABELS: Record<AIMode, string> = {
 const WEIGHTS_HINT =
   'Cada campo diz quanto aquele pilar pesa no Score de Oportunidade (0 a 100). Os valores são normalizados, '
   + 'então só a proporção importa: 50/50/50/50 dá o mesmo score que 25/25/25/25. Peso 0 remove o pilar da conta; '
-  + 'soma zero cai para o preset Equilibrado. O score resultante decide o veto de entrada automática (abaixo de 40 a '
-  + 'IA bloqueia) e a disputa de foco no modo Múltiplos Mercados. Os pesos valem só enquanto a página estiver aberta.';
+  + 'soma zero cai para o preset Equilibrado. O score resultante decide o veto de entrada automática (abaixo do '
+  + 'Score mínimo a IA bloqueia) e a disputa de foco no modo Múltiplos Mercados. Os pesos valem só enquanto a página '
+  + 'estiver aberta.';
+
+const MIN_SCORE_HINT =
+  'Score de Oportunidade mínimo para a IA liberar uma entrada automática (padrão 40). Abaixo dele a entrada é vetada, '
+  + 'exceto na Recuperação Ativa (após um loss real) ou com o Loss Virtual (ligado) já confirmado. Mais alto = menos entradas e '
+  + 'mais seletivas; 0 desliga o veto. No modo Múltiplos Mercados, o mercado em foco só é trocado por outro de score '
+  + 'maior enquanto estiver acima deste mínimo. Mercados ainda coletando histórico não são vetados.';
 
 const AI_WEIGHT_FIELDS: { key: keyof AIWeights; label: string; hint: string }[] = [
   {
@@ -54,7 +61,7 @@ const AI_WEIGHT_FIELDS: { key: keyof AIWeights; label: string; hint: string }[] 
     label: 'Padrão A→B',
     hint: 'Peso da qualidade do par A→B detectado (força, Wilson, lift e estabilidade). Só sai de zero com o padrão '
       + 'armado — com o gatilho de padrão desligado este pilar vale 0 e qualquer peso aqui derruba o score, podendo '
-      + 'travar o bot abaixo do limite de 40.',
+      + 'travar o bot abaixo do Score mínimo.',
   },
   {
     key: 'vl',
@@ -96,6 +103,10 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
     updateConfig({ aiWeights: { ...weights, [key]: pct / 100 } });
   };
 
+  const setMinScore = (raw: string) => {
+    updateConfig({ aiMinScore: Math.max(0, Math.min(100, Math.round(Number(raw) || 0))) });
+  };
+
   const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
 
   return (
@@ -105,6 +116,21 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
           <span className="text-lg">🧠</span> IA CROSS-MARKET — SCORE DE OPORTUNIDADE
         </h2>
         <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5">
+            <span className="text-[10px] text-[#8593aa] flex items-center gap-1.5">
+              Score mín.:
+              <HelpTip label="Score mínimo" hint={MIN_SCORE_HINT} idPrefix="min-score-hint" wide />
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              data-testid="ai-min-score"
+              value={config.aiMinScore ?? AI_MIN_SCORE_DEFAULT}
+              onChange={(e) => setMinScore(e.target.value)}
+              className="w-14 bg-[#070b14] border border-[#2e3a52] text-white px-2 py-1 rounded-lg font-mono text-[10px] focus:outline-none focus:border-indigo-500"
+            />
+          </label>
           <span className="text-[10px] text-[#8593aa]">Modo IA:</span>
           <div className="flex bg-[#070b14] border border-[#2e3a52] rounded-lg p-0.5">
             {(['conservative', 'balanced', 'aggressive', 'custom'] as const).map(m => (

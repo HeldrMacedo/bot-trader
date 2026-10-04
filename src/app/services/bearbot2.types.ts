@@ -60,6 +60,9 @@ export function resolveAIWeights(mode: AIMode, weights?: AIWeights): AIWeights {
   return { pressure: pressure / sum, pattern: pattern / sum, vl: vl / sum, sync: sync / sum };
 }
 
+/** Corte padrão do gate da IA: abaixo deste score a entrada automática é vetada. */
+export const AI_MIN_SCORE_DEFAULT = 40;
+
 export interface TradeLog {
   t: string;
   mercado: string;
@@ -222,6 +225,8 @@ export interface BotConfig {
   tradeCooldownMs: number;
   aiMode: AIMode;
   aiWeights: AIWeights;
+  /** Score de Oportunidade mínimo (0..100) para o gate da IA liberar a entrada automática. */
+  aiMinScore: number;
   soundOn: boolean;
 }
 
@@ -302,6 +307,7 @@ export const DEFAULT_CONFIG: BotConfig = {
   tradeCooldownMs: 2000,
   aiMode: 'balanced',
   aiWeights: { ...AI_MODE_WEIGHTS.balanced },
+  aiMinScore: AI_MIN_SCORE_DEFAULT,
   soundOn: true,
 };
 

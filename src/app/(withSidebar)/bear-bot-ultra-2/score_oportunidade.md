@@ -70,4 +70,4 @@ Quarto perfil. Os quatro pesos passam a vir de `config.aiWeights` e são editáv
 - Clicar em qualquer preset reescreve `aiWeights` com os valores daquele preset: voltar ao padrão é um clique.
 - Selecionar "Personalizado" semeia os pesos com os do preset ativo, então o score não salta no clique.
 
-O limiar do AI Gate (score ≥ 40) **não** é afetado pelo modo de IA: os pesos decidem como o score é composto, o limiar decide o corte.
+O limiar do AI Gate (score ≥ `aiMinScore`, padrão 40, editável no campo **Score mín.**) **não** é afetado pelo modo de IA: os pesos decidem como o score é composto, o limiar decide o corte.

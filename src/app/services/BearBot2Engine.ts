@@ -6,7 +6,7 @@ import {
   RecoveryState, TickData, ProposalState, DEFAULT_BOT_STATE,
   TradePrep, TradeLeg, buildLoserSet, isWinCheck,
   DynamicDigitDetail, DynamicDigitResult,
-  AI_MODE_WEIGHTS, resolveAIWeights,
+  AI_MODE_WEIGHTS, AI_MIN_SCORE_DEFAULT, resolveAIWeights,
 } from './bearbot2.types';
 
 function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
@@ -30,6 +30,10 @@ function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
   if (next.cooldownSec !== undefined) {
     const n = Number(next.cooldownSec);
     next.cooldownSec = Number.isFinite(n) ? Math.max(0, Math.min(60, Math.floor(n))) : 0;
+  }
+  if (next.aiMinScore !== undefined) {
+    const n = Number(next.aiMinScore);
+    next.aiMinScore = Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : AI_MIN_SCORE_DEFAULT;
   }
   return next;
 }
@@ -177,7 +181,7 @@ export class BearBotEngine {
       postLossOn: false, postLossMode: 'recover', recoverMaxAttempts: 3,
       recoverDelay: 1500, cooldownSec: 5, maxTradesHour: 50,
       tradeCooldownMs: 2000, aiMode: 'balanced',
-      aiWeights: { ...AI_MODE_WEIGHTS.balanced }, soundOn: true,
+      aiWeights: { ...AI_MODE_WEIGHTS.balanced }, aiMinScore: AI_MIN_SCORE_DEFAULT, soundOn: true,
     };
   }
 
@@ -1114,7 +1118,7 @@ export class BearBotEngine {
       // ligado: com vlOn=false o gate do VL é sempre aberto e anulava o veto,
       // deixando os pesos dos pilares sem efeito nenhum sobre a decisão.
       const vlConfirmed = this.config.vlOn && this.vlGateOpenM(s);
-      return !intel || !intel.dataReady || intel.opportunityScore >= 40 || isRecovery || vlConfirmed;
+      return !intel || !intel.dataReady || intel.opportunityScore >= this.config.aiMinScore || isRecovery || vlConfirmed;
     };
 
     if (this.config.multiOn) {
@@ -1315,7 +1319,7 @@ export class BearBotEngine {
       // 2. Otherwise, if another candidate has better score, evaluate switching focus to it
       if (pick.sym !== activeSym) {
         const curScore = this.state.marketIntel[activeSym]?.opportunityScore ?? 50;
-        if (pick.score <= curScore && curScore >= 40 && !isRecovery) {
+        if (pick.score <= curScore && curScore >= this.config.aiMinScore && !isRecovery) {
           return;
         }
         if (Date.now() - this.lastManualSwitch > 3000) {
@@ -1373,7 +1377,7 @@ export class BearBotEngine {
       const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
       if (this.config.vlFocusOnly && this.config.vlOn) {
         const curScore = this.state.marketIntel[this.config.activeSym]?.opportunityScore ?? 50;
-        if (pick.score <= curScore && curScore >= 40 && !isRecovery) {
+        if (pick.score <= curScore && curScore >= this.config.aiMinScore && !isRecovery) {
           return;
         }
       }
