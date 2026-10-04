@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import MarketGrid from '../app/(withSidebar)/bear-bot-ultra-2/components/MarketGrid';
-import { DEFAULT_CONFIG, DEFAULT_BOT_STATE, BotConfig } from '../app/services/bearbot2.types';
+import IntelPanel from '../app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel';
+import { DEFAULT_CONFIG, DEFAULT_BOT_STATE, BotConfig, BotState, MarketIntelligence } from '../app/services/bearbot2.types';
 
 /**
  * Campo do score mínimo do gate da IA no painel IA Cross-Market.
@@ -34,5 +35,47 @@ describe('MarketGrid — score mínimo de entrada', () => {
     const { updateConfig } = renderGrid();
     fireEvent.change(screen.getByTestId('ai-min-score'), { target: { value: '140' } });
     expect(updateConfig).toHaveBeenLastCalledWith({ aiMinScore: 100 });
+  });
+
+  it('ignora o campo vazio em vez de zerar o mínimo e desligar o veto', () => {
+    const { updateConfig } = renderGrid();
+    fireEvent.change(screen.getByTestId('ai-min-score'), { target: { value: '' } });
+    expect(updateConfig).not.toHaveBeenCalled();
+  });
+
+  it('limita valores negativos a 0', () => {
+    const { updateConfig } = renderGrid();
+    fireEvent.change(screen.getByTestId('ai-min-score'), { target: { value: '-5' } });
+    expect(updateConfig).toHaveBeenLastCalledWith({ aiMinScore: 0 });
+  });
+});
+
+describe('IntelPanel — Momento p/ Entrar segue o score mínimo', () => {
+  function renderPanel(score: number, aiMinScore: number) {
+    const intel: MarketIntelligence = {
+      sym: 'R_100', pressure: 20, patternStrength: 0, vlProgress: 100, syncScore: 0,
+      opportunityScore: score, recommendation: 'neutral', dataReady: true, lastUpdate: Date.now(),
+    };
+    const state: BotState = {
+      ...DEFAULT_BOT_STATE,
+      marketIntel: { R_100: intel },
+      tickData: { R_100: { digits: Array.from({ length: 60 }, (_, i) => i % 10), price: 100.5 } },
+    };
+    render(<IntelPanel config={{ ...DEFAULT_CONFIG, activeSym: 'R_100', aiMinScore }} state={state} />);
+  }
+
+  it('avisa que a IA bloqueia quando o score está abaixo de um mínimo acima de 40', () => {
+    renderPanel(50, 60);
+    expect(screen.getByText(/IA bloqueia entrada/)).toBeTruthy();
+  });
+
+  it('não diz que a IA bloqueia quando o score está acima de um mínimo abaixo de 40', () => {
+    renderPanel(30, 20);
+    expect(screen.queryByText(/IA bloqueia entrada/)).toBeNull();
+  });
+
+  it('só diz que a IA aprova quando o score atinge o mínimo', () => {
+    renderPanel(65, 70);
+    expect(screen.queryByText(/IA aprova entrada/)).toBeNull();
   });
 });

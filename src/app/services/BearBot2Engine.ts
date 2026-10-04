@@ -1106,20 +1106,22 @@ export class BearBotEngine {
     return false;
   }
 
+  private isAiGateOpen(sym: string): boolean {
+    const intel = this.state.marketIntel[sym];
+    const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
+    // A market with too little history has no measurable score yet: fall through
+    // instead of vetoing it, matching the no-intelligence-at-all case above.
+    // O Loss Virtual confirmado supera o veto da IA, mas apenas quando ele está
+    // ligado: com vlOn=false o gate do VL é sempre aberto e anulava o veto,
+    // deixando os pesos dos pilares sem efeito nenhum sobre a decisão.
+    const vlConfirmed = this.config.vlOn && this.vlGateOpenM(sym);
+    return !intel || !intel.dataReady || intel.opportunityScore >= this.config.aiMinScore || isRecovery || vlConfirmed;
+  }
+
   // ── On New Tick (Decision) ──
   private onNewTick(sym: string, dig: number) {
     if (this.handleRecoveryTick()) return;
     const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
-    const isAiGateOpen = (s: string) => {
-      const intel = this.state.marketIntel[s];
-      // A market with too little history has no measurable score yet: fall through
-      // instead of vetoing it, matching the no-intelligence-at-all case above.
-      // O Loss Virtual confirmado supera o veto da IA, mas apenas quando ele está
-      // ligado: com vlOn=false o gate do VL é sempre aberto e anulava o veto,
-      // deixando os pesos dos pilares sem efeito nenhum sobre a decisão.
-      const vlConfirmed = this.config.vlOn && this.vlGateOpenM(s);
-      return !intel || !intel.dataReady || intel.opportunityScore >= this.config.aiMinScore || isRecovery || vlConfirmed;
-    };
 
     if (this.config.multiOn) {
       const isFocusOnly = this.config.vlOn && this.config.vlFocusOnly;
@@ -1128,13 +1130,13 @@ export class BearBotEngine {
       if (this.config.mode === 'differ' && this.config.differAutoDigit) {
         this.vlOnDigitM(sym, dig);
         const target = this.autoDigitTarget[sym];
-        const aiGateOpen = isAiGateOpen(sym);
+        const aiGateOpen = this.isAiGateOpen(sym);
         if (isFocusOnly) {
           if (aiGateOpen) {
             const an = this.marketAnomaly(sym);
             const exc = an ? an.excess : 0;
             const intel = this.state.marketIntel[sym];
-            const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
+            const score = (intel?.opportunityScore ?? 50) + this.vlM(sym).count + exc;
             this.multiCand[sym] = { sym, b: target ?? this.config.digit, score };
           }
         } else {
@@ -1142,7 +1144,7 @@ export class BearBotEngine {
             const an = this.marketAnomaly(sym);
             const exc = an ? an.excess : 0;
             const intel = this.state.marketIntel[sym];
-            const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
+            const score = (intel?.opportunityScore ?? 50) + this.vlM(sym).count + exc;
             this.multiCand[sym] = { sym, b: target, score };
           }
         }
@@ -1154,10 +1156,10 @@ export class BearBotEngine {
             ps.waiting = false;
             if (dig !== ps.b) { ps.count = 0; ps.armed = false; }
           }
-          const aiGateOpen = isAiGateOpen(sym);
+          const aiGateOpen = this.isAiGateOpen(sym);
           if (ps.armed && dig === ps.a && isCandidateGateOpen(sym) && aiGateOpen) {
             const intel = this.state.marketIntel[sym];
-            const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + (ps.seqCount || 0);
+            const score = (intel?.opportunityScore ?? 50) + this.vlM(sym).count + (ps.seqCount || 0);
             this.multiCand[sym] = { sym, b: ps.b, score };
           }
         }
@@ -1166,23 +1168,23 @@ export class BearBotEngine {
         if (sym === this.config.activeSym && !this.state.tradeLock && this.lockedDigit === null) {
           this.config.digit = this.computeDynamicDifferDigit(sym).digit;
         }
-        const aiGateOpen = isAiGateOpen(sym);
+        const aiGateOpen = this.isAiGateOpen(sym);
         if (isCandidateGateOpen(sym) && aiGateOpen) {
           const dyn = this.computeDynamicDifferDigit(sym);
           const an = this.marketAnomaly(sym);
           const exc = an ? an.excess : 0;
           const intel = this.state.marketIntel[sym];
-          const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc + (dyn.score >= 70 ? 5 : 0);
+          const score = (intel?.opportunityScore ?? 50) + this.vlM(sym).count + exc + (dyn.score >= 70 ? 5 : 0);
           this.multiCand[sym] = { sym, b: dyn.digit, score };
         }
       } else {
         this.vlOnDigitM(sym, dig);
-        const aiGateOpen = isAiGateOpen(sym);
+        const aiGateOpen = this.isAiGateOpen(sym);
         if (isCandidateGateOpen(sym) && aiGateOpen) {
           const an = this.marketAnomaly(sym);
           const exc = an ? an.excess : 0;
           const intel = this.state.marketIntel[sym];
-          const score = (intel?.opportunityScore || 50) + this.vlM(sym).count + exc;
+          const score = (intel?.opportunityScore ?? 50) + this.vlM(sym).count + exc;
           this.multiCand[sym] = { sym, b: this.config.digit, score };
         }
       }
@@ -1203,7 +1205,7 @@ export class BearBotEngine {
     if (this.config.mode === 'differ' && this.config.differAutoDigit) {
       this.vlOnDigit(dig);
       const target = this.autoDigitTarget[sym];
-      const aiGateOpen = isAiGateOpen(sym);
+      const aiGateOpen = this.isAiGateOpen(sym);
       if (target !== null && target !== undefined && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
         if (this.config.exec === 'auto' && this.config.autoOn) {
           if (!this.canOpenTrade(true)) return;
@@ -1225,7 +1227,7 @@ export class BearBotEngine {
           ps.waiting = false;
           if (dig !== ps.b) { ps.count = 0; ps.armed = false; this.addLog(`Padrão ${ps.a}→${ps.b} quebrou · reset`, 'virt'); }
         }
-        const aiGateOpen = isAiGateOpen(sym);
+        const aiGateOpen = this.isAiGateOpen(sym);
         if (ps.armed && dig === ps.a && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
           if (this.config.exec === 'auto' && this.config.autoOn) {
             // Do not reset VL if lock/rate would block prepareTrade
@@ -1250,7 +1252,7 @@ export class BearBotEngine {
       if (!this.state.tradeLock) {
         this.config.digit = dyn.digit;
       }
-      const aiGateOpen = isAiGateOpen(sym);
+      const aiGateOpen = this.isAiGateOpen(sym);
       if (this.config.exec === 'auto' && this.config.autoOn) {
         const gateOpen = this.vlGateOpen();
         if ((gateOpen || isRecovery) && aiGateOpen) {
@@ -1268,7 +1270,7 @@ export class BearBotEngine {
     }
 
     this.vlOnDigit(dig);
-    const aiGateOpen = isAiGateOpen(sym);
+    const aiGateOpen = this.isAiGateOpen(sym);
     if (this.config.exec === 'auto' && this.config.autoOn && (this.vlGateOpen() || isRecovery) && aiGateOpen) {
       if (!this.canOpenTrade(true)) return;
       this.vlReset();
@@ -1279,6 +1281,11 @@ export class BearBotEngine {
   private tryFireMultiCandidate() {
     if (this.state.tradeLock) return;
     if (!this.canTradeByRate(true)) return;
+    // Revalida o gate da IA no disparo: o candidato pode ter sido registrado sob
+    // outro score ou outro Score mínimo enquanto o trade esperava cooldown/lock.
+    for (const sym of Object.keys(this.multiCand)) {
+      if (!this.isAiGateOpen(sym)) delete this.multiCand[sym];
+    }
     const cands = Object.values(this.multiCand);
     if (!cands.length) return;
     cands.sort((a: any, b: any) => b.score - a.score);

@@ -82,3 +82,43 @@ describe('score mínimo editável do gate da IA', () => {
     expect(createEngine({ aiMinScore: 250 }).getConfig().aiMinScore).toBe(100);
   });
 });
+
+describe('score mínimo no modo Múltiplos Mercados', () => {
+  function multiEngine(aiMinScore: number) {
+    return createEngine({
+      activeSym: SYM, mode: 'differ', digit: 3, exec: 'auto', autoOn: false,
+      paperMode: true, vlOn: false, multiOn: true,
+      tradeCooldownMs: 0, maxTradesHour: 10000,
+      aiMode: 'custom', aiWeights: { pressure: 1, pattern: 0, vl: 0, sync: 0 },
+      aiMinScore,
+    }) as any;
+  }
+
+  it('não dispara candidato registrado antes de o mínimo subir acima do score', () => {
+    const engine = multiEngine(0);
+    feedHighPressure(engine, 0, 60);
+    expect(engine.multiCand[SYM]).toBeDefined();
+    engine.updateConfig({ aiMinScore: 100, autoOn: true });
+    const fired = vi.fn();
+    engine.onAutoTrade(fired);
+    feedHighPressure(engine, 60, 61);
+    expect(fired).not.toHaveBeenCalled();
+  });
+
+  it('dispara o candidato quando o score atinge o mínimo', () => {
+    const engine = multiEngine(0);
+    feedHighPressure(engine, 0, 60);
+    engine.updateConfig({ autoOn: true });
+    const fired = vi.fn();
+    engine.onAutoTrade(fired);
+    feedHighPressure(engine, 60, 61);
+    expect(fired).toHaveBeenCalled();
+  });
+
+  it('ranqueia o candidato pelo score real, sem tratar score 0 como 50', () => {
+    const engine = multiEngine(0);
+    feedHighPressure(engine, 0, 60);
+    expect(engine.getState().marketIntel[SYM].opportunityScore).toBe(0);
+    expect(engine.multiCand[SYM].score).toBeLessThan(50);
+  });
+});

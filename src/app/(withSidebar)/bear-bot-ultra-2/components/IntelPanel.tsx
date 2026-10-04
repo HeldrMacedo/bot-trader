@@ -39,6 +39,10 @@ export default function IntelPanel({ config, state }: IntelPanelProps) {
   const colors = intel ? getIntelColor(intel.opportunityScore) : getIntelColor(0);
   const arr = state.tickData[config.activeSym]?.digits || [];
   const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
+  // O bloqueio segue o mesmo corte do gate da IA no motor (config.aiMinScore).
+  const minScore = config.aiMinScore;
+  const entryLevel = !intel || intel.opportunityScore < minScore ? 'blocked'
+    : intel.opportunityScore >= Math.max(60, minScore) ? 'good' : 'mid';
 
   const getObservedRate = () => {
     if (arr.length < 10) return 0;
@@ -117,12 +121,12 @@ export default function IntelPanel({ config, state }: IntelPanelProps) {
             </div>
           </div>
 
-          <div className={`p-3 border rounded-lg flex items-center gap-3 transition-colors ${arr.length < 50 ? 'bg-[#0e131d] border-[#222c3f]' : intel.opportunityScore >= 60 ? 'bg-[#0d1f14] border-green-800' : intel.opportunityScore >= 40 ? 'bg-[#1f1a0d] border-yellow-800' : 'bg-[#1f0d0f] border-red-800'}`}>
-            <span className="text-2xl">{arr.length < 50 ? '⏳' : intel.opportunityScore >= 60 ? '🟢' : intel.opportunityScore >= 40 ? '🟡' : '🔴'}</span>
+          <div className={`p-3 border rounded-lg flex items-center gap-3 transition-colors ${arr.length < 50 ? 'bg-[#0e131d] border-[#222c3f]' : entryLevel === 'good' ? 'bg-[#0d1f14] border-green-800' : entryLevel === 'mid' ? 'bg-[#1f1a0d] border-yellow-800' : 'bg-[#1f0d0f] border-red-800'}`}>
+            <span className="text-2xl">{arr.length < 50 ? '⏳' : entryLevel === 'good' ? '🟢' : entryLevel === 'mid' ? '🟡' : '🔴'}</span>
             <div className="flex flex-col">
               <span className="text-[10px] text-[#8593aa] uppercase tracking-wider block">Momento p/ Entrar</span>
-              <span className={`text-xs font-bold mt-0.5 ${arr.length < 50 ? 'text-gray-500' : intel.opportunityScore >= 60 ? 'text-green-400' : intel.opportunityScore >= 40 ? 'text-yellow-400' : 'text-red-400'}`}>
-                {arr.length < 50 ? 'coletando dados' : intel.opportunityScore >= 60 ? 'BOM MOMENTO — IA aprova entrada' : intel.opportunityScore >= 40 ? 'ATENÇÃO — condições medianas' : 'ESPERE — IA bloqueia entrada'}
+              <span className={`text-xs font-bold mt-0.5 ${arr.length < 50 ? 'text-gray-500' : entryLevel === 'good' ? 'text-green-400' : entryLevel === 'mid' ? 'text-yellow-400' : 'text-red-400'}`}>
+                {arr.length < 50 ? 'coletando dados' : entryLevel === 'good' ? 'BOM MOMENTO — IA aprova entrada' : entryLevel === 'mid' ? 'ATENÇÃO — condições medianas' : 'ESPERE — IA bloqueia entrada'}
               </span>
             </div>
           </div>

@@ -654,15 +654,15 @@
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx": {
-    "mtime": 1791071466.171916,
-    "seen": 1791072546.4405773,
-    "ast_hash": "b15006f3ccccae9e25458147f977fe80",
+    "mtime": 1791073306.330964,
+    "seen": 1791073369.198913,
+    "ast_hash": "eb7a50ada79aede318747503d8113904",
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-ultra-2/components/MarketGrid.tsx": {
-    "mtime": 1791072462.3286355,
-    "seen": 1791072546.4405792,
-    "ast_hash": "cf33b819c982519d4467f09351f3c9c8",
+    "mtime": 1791073306.3305287,
+    "seen": 1791073369.1989143,
+    "ast_hash": "e70faa6f9a704557756f39f1ce899f14",
     "semantic_hash": ""
   },
   "src/app/(withSidebar)/bear-bot-ultra-2/components/TradeLog.tsx": {
@@ -690,9 +690,9 @@
     "semantic_hash": "4394caf49b491a6df308104e46347a4d"
   },
   "src/app/services/BearBot2Engine.ts": {
-    "mtime": 1791072387.6449676,
-    "seen": 1791072546.442232,
-    "ast_hash": "f87688e98f54305c680a141121bebfab",
+    "mtime": 1791073280.478618,
+    "seen": 1791073369.20054,
+    "ast_hash": "2e9009ac86fa6972d5ba8ac36704051c",
     "semantic_hash": ""
   },
   "src/app/services/bearbot2.types.ts": {
@@ -1746,15 +1746,15 @@
     "semantic_hash": ""
   },
   "src/__tests__/bearBot2AiMinScore.test.ts": {
-    "mtime": 1791072210.0108247,
-    "seen": 1791072546.4390504,
-    "ast_hash": "eeaa4f60f97b37965f3582af330a6078",
+    "mtime": 1791073239.0848908,
+    "seen": 1791073369.1968274,
+    "ast_hash": "1a8aabe922bd15a8206771c8d530c126",
     "semantic_hash": ""
   },
   "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx": {
-    "mtime": 1791072218.7498834,
-    "seen": 1791072546.4394162,
-    "ast_hash": "55b9b7fa6d4341c2a953a9b94ba63713",
+    "mtime": 1791073239.085071,
+    "seen": 1791073369.1973653,
+    "ast_hash": "ae6659646b535e6c368ad32e46ab6b45",
     "semantic_hash": ""
   }
 }

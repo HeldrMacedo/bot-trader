@@ -1,6 +1,6 @@
 "use client";
 
-import { BotConfig, BotState, MARKETS, buildLoserSet, AIMode, AIWeights, AI_MODE_WEIGHTS, AI_MIN_SCORE_DEFAULT } from '../../../services/bearbot2.types';
+import { BotConfig, BotState, MARKETS, buildLoserSet, AIMode, AIWeights, AI_MODE_WEIGHTS } from '../../../services/bearbot2.types';
 import HelpTip from './HelpTip';
 
 interface MarketGridProps {
@@ -104,7 +104,10 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
   };
 
   const setMinScore = (raw: string) => {
-    updateConfig({ aiMinScore: Math.max(0, Math.min(100, Math.round(Number(raw) || 0))) });
+    // Campo vazio (usuário apagando para redigitar) não pode virar 0: 0 desliga o veto da IA.
+    const n = Number(raw);
+    if (raw.trim() === '' || !Number.isFinite(n)) return;
+    updateConfig({ aiMinScore: Math.max(0, Math.min(100, Math.round(n))) });
   };
 
   const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
@@ -126,7 +129,7 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
               min="0"
               max="100"
               data-testid="ai-min-score"
-              value={config.aiMinScore ?? AI_MIN_SCORE_DEFAULT}
+              value={config.aiMinScore}
               onChange={(e) => setMinScore(e.target.value)}
               className="w-14 bg-[#070b14] border border-[#2e3a52] text-white px-2 py-1 rounded-lg font-mono text-[10px] focus:outline-none focus:border-indigo-500"
             />
