@@ -45,6 +45,10 @@ export default function BearBotUltra() {
   const cooldownLeftMs = state.lastTradeTime > 0
     ? Math.max(0, config.tradeCooldownMs - (Date.now() - state.lastTradeTime))
     : 0;
+  // Sem histórico mínimo o gate da IA não tem score para vetar e deixaria passar
+  // qualquer entrada: o robô só pode ser ligado depois que o score é medido.
+  const scoreReady = !!state.marketIntel[config.activeSym]?.dataReady;
+  const scoreTicks = Math.min(50, state.tickData[config.activeSym]?.digits.length || 0);
 
   const [stakeStr, setStakeStr] = useState<string>(String(config.stake ?? 0.35));
   const [galeStr, setGaleStr] = useState<string>(String(config.gale ?? 2.1));
@@ -313,12 +317,17 @@ export default function BearBotUltra() {
               </div>
 
               {config.exec === 'auto' ? (
+                <>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={config.autoOn ? stopBot : startBot} disabled={!isAuthenticated && !config.paperMode} className={`py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${config.autoOn ? "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "bg-green-600 hover:bg-green-500 text-[#04140a] disabled:opacity-50"}`}>
+                  <button onClick={config.autoOn ? stopBot : startBot} disabled={(!isAuthenticated && !config.paperMode) || (!config.autoOn && !scoreReady)} className={`py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${config.autoOn ? "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "bg-green-600 hover:bg-green-500 text-[#04140a] disabled:opacity-50"}`}>
                     {config.autoOn ? (<><StopIcon className="w-4 h-4" /> Desligar Robô</>) : (<><PlayIcon className="w-4 h-4" /> Ligar Robô</>)}
                   </button>
                   <button onClick={abortOp} className="bg-[#18202f] border border-[#2e3a52] hover:bg-[#222c3f] py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all">Pausar / Abortar</button>
                 </div>
+                {!config.autoOn && !scoreReady && (
+                  <p className="text-[10px] text-yellow-400 text-center">⏳ Medindo score de {config.activeSym} ({scoreTicks}/50 ticks) · aguarde para ligar</p>
+                )}
+                </>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => manualFire(config.mode)} disabled={!isAuthenticated && !config.paperMode} className="bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50">

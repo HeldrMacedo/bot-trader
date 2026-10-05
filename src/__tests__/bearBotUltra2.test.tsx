@@ -91,6 +91,16 @@ vi.mock('../app/services/DerivService', () => {
   };
 });
 
+/** Envia ticks suficientes para o mercado ativo (R_100) começar a medir o score. */
+async function feedScoreHistory(count = 60) {
+  const tickCallback = registeredListeners['deriv.tick']?.[0];
+  await act(async () => {
+    for (let i = 0; i < count; i++) {
+      tickCallback({ tick: { symbol: 'R_100', quote: 100 + (i % 10) / 100 } });
+    }
+  });
+}
+
 describe('BearBotUltra 2.0 Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -118,6 +128,9 @@ describe('BearBotUltra 2.0 Component', () => {
     const autoBtn = screen.getByText('Automático');
     fireEvent.click(autoBtn);
 
+    // O botão só libera depois que o mercado ativo tem score medido.
+    await feedScoreHistory();
+
     // Ligar o robô
     const startBtn = screen.getByText('Ligar Robô');
     fireEvent.click(startBtn);
@@ -129,6 +142,22 @@ describe('BearBotUltra 2.0 Component', () => {
     fireEvent.click(stopBtn);
 
     expect(screen.getByText('Ligar Robô')).toBeDefined();
+  });
+
+  it('só libera o Ligar Robô no automático depois que o score começa a ser medido', async () => {
+    render(<BearBotUltra />);
+    fireEvent.click(screen.getByText('Automático'));
+
+    const startBtn = screen.getByText('Ligar Robô').closest('button')!;
+    expect(startBtn.disabled).toBe(true);
+    expect(screen.getByText(/Medindo score/i)).toBeDefined();
+    fireEvent.click(startBtn);
+    expect(screen.queryByText('Desligar Robô')).toBeNull();
+
+    await feedScoreHistory();
+
+    expect(screen.getByText('Ligar Robô').closest('button')!.disabled).toBe(false);
+    expect(screen.queryByText(/Medindo score/i)).toBeNull();
   });
 
   it('deve processar ticks da Deriv e atualizar a interface sem estourar limite de renders', async () => {

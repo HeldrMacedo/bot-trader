@@ -509,6 +509,19 @@
       "source_location": "L2425"
     },
     {
+      "id": "src_tests_bearbot2engine_test_aimodename",
+      "label": "AIModeName",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "aimodename",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L195"
+    },
+    {
       "id": "src_app_services_beardiffer_types_anomalylogitem",
       "label": "AnomalyLogItem",
       "_callable": true,
@@ -1107,19 +1120,6 @@
       "source_location": "L20"
     },
     {
-      "id": "src_app_services_bearbot2_types_botconfig",
-      "label": "BotConfig",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "botconfig",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L192"
-    },
-    {
       "id": "src_app_services_bearbot2_types_botstate",
       "label": "BotState",
       "_callable": true,
@@ -1170,32 +1170,6 @@
       "norm_label": "dynamicdigitpanelprops",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/DynamicDigitPanel.tsx",
       "source_location": "L12"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_helptip_helptipprops",
-      "label": "HelpTipProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "helptipprops",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/HelpTip.tsx",
-      "source_location": "L3"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanelprops",
-      "label": "IntelPanelProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "intelpanelprops",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L6"
     },
     {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_marketgrid_marketgridprops",
@@ -1328,6 +1302,19 @@
       "source_location": "L28"
     },
     {
+      "id": "src_app_services_bearbot2_types_botconfig",
+      "label": "BotConfig",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "botconfig",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L192"
+    },
+    {
       "id": "src_app_services_bearbot2_types_marketintelligence",
       "label": "MarketIntelligence",
       "_callable": true,
@@ -1339,6 +1326,32 @@
       "norm_label": "marketintelligence",
       "source_file": "src/app/services/bearbot2.types.ts",
       "source_location": "L108"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_helptip_helptipprops",
+      "label": "HelpTipProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "helptipprops",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/HelpTip.tsx",
+      "source_location": "L3"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanelprops",
+      "label": "IntelPanelProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "intelpanelprops",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L6"
     },
     {
       "id": "src_app_services_beardiffer_types_differconfig",
@@ -1716,19 +1729,6 @@
       "norm_label": "userstats",
       "source_file": "src/app/services/copyTradingManager.ts",
       "source_location": "L13"
-    },
-    {
-      "id": "src_tests_bearbot2engine_test_aimodename",
-      "label": "AIModeName",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "aimodename",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L195"
     },
     {
       "id": "src_app_models_botconfig_botconfig",
@@ -4018,6 +4018,90 @@
       "source_location": "L823"
     },
     {
+      "id": "src_tests_bearbot2engine_test_feedabpattern",
+      "label": "feedABPattern()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "feedabpattern()",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L149"
+    },
+    {
+      "id": "src_tests_bearbot2engine_test_loseonce",
+      "label": "loseOnce()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "loseonce()",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L446"
+    },
+    {
+      "id": "src_tests_bearbot2engine_test_scorefromspec",
+      "label": "scoreFromSpec()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "scorefromspec()",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L197"
+    },
+    {
+      "id": "src_tests_bearbot2engine_test_seedloserpressure",
+      "label": "seedLoserPressure()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "seedloserpressure()",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L219"
+    },
+    {
+      "id": "src_tests_bearbot2engine_test_seedpatternintel",
+      "label": "seedPatternIntel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "seedpatternintel()",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L210"
+    },
+    {
+      "id": "src_tests_bearbot2engine_test_settleopenover",
+      "label": "settleOpenOver()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "settleopenover()",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L336"
+    },
+    {
+      "id": "src_tests_bearbot2engine_test_winonce",
+      "label": "winOnce()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "winonce()",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L451"
+    },
+    {
       "id": "src_tests_bearbot2focusvirtuallossgate_test_mulberry32",
       "label": "mulberry32()",
       "_callable": true,
@@ -4558,6 +4642,18 @@
       "source_location": "L22"
     },
     {
+      "id": "src_tests_bearbotultra2_test_feedscorehistory",
+      "label": "feedScoreHistory()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 18,
+      "community_name": "bearBotUltra2.test.tsx",
+      "file_type": "code",
+      "norm_label": "feedscorehistory()",
+      "source_file": "src/__tests__/bearBotUltra2.test.tsx",
+      "source_location": "L95"
+    },
+    {
       "id": "src_tests_bearbotultra2_test_mockaudiocontext_creategain",
       "label": ".createGain()",
       "_callable": true,
@@ -4882,54 +4978,6 @@
       "source_location": "L21"
     },
     {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_helptip_helptip",
-      "label": "HelpTip()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "helptip()",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/HelpTip.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getintelcolor",
-      "label": "getIntelColor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "getintelcolor()",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getreclabel",
-      "label": "getRecLabel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "getreclabel()",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L26"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanel",
-      "label": "IntelPanel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "intelpanel()",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L37"
-    },
-    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_tradelog_tradelogcomponent",
       "label": "TradeLogComponent()",
       "_callable": true,
@@ -4940,30 +4988,6 @@
       "norm_label": "tradelogcomponent()",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/TradeLog.tsx",
       "source_location": "L12"
-    },
-    {
-      "id": "src_tests_bearbotultra2aiminscoreui_test_rendergrid",
-      "label": "renderGrid()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "rendergrid()",
-      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_tests_bearbotultra2aiminscoreui_test_renderpanel",
-      "label": "renderPanel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "renderpanel()",
-      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
-      "source_location": "L54"
     },
     {
       "id": "src_tests_bearbot2quickbuy_test_mockaudiocontext_creategain",
@@ -5446,6 +5470,54 @@
       "source_location": "L830"
     },
     {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_helptip_helptip",
+      "label": "HelpTip()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "helptip()",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/HelpTip.tsx",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getintelcolor",
+      "label": "getIntelColor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "getintelcolor()",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getreclabel",
+      "label": "getRecLabel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "getreclabel()",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L26"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanel",
+      "label": "IntelPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "intelpanel()",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L37"
+    },
+    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_marketgrid_getintelcolor",
       "label": "getIntelColor()",
       "_callable": true,
@@ -5516,6 +5588,30 @@
       "norm_label": "rendergrid()",
       "source_file": "src/__tests__/bearBotUltra2AiCustomWeightsUI.test.tsx",
       "source_location": "L12"
+    },
+    {
+      "id": "src_tests_bearbotultra2aiminscoreui_test_rendergrid",
+      "label": "renderGrid()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "rendergrid()",
+      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_tests_bearbotultra2aiminscoreui_test_renderpanel",
+      "label": "renderPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "renderpanel()",
+      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
+      "source_location": "L54"
     },
     {
       "id": "src_tests_intelpaneltooltips_test_buildstate",
@@ -6343,7 +6439,7 @@
       "file_type": "code",
       "norm_label": ".onnewtick()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1122"
+      "source_location": "L1120"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_preparecombo",
@@ -6499,7 +6595,7 @@
       "file_type": "code",
       "norm_label": ".tryfiremulticandidate()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1281"
+      "source_location": "L1279"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_trymanualfire",
@@ -7030,88 +7126,40 @@
       "source_location": "L21"
     },
     {
-      "id": "src_tests_bearbot2engine_test_feedabpattern",
-      "label": "feedABPattern()",
+      "id": "src_tests_bearbot2aiminscorevl_test_feedhighpressure",
+      "label": "feedHighPressure()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
       "community_name": "createEngine",
       "file_type": "code",
-      "norm_label": "feedabpattern()",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L149"
+      "norm_label": "feedhighpressure()",
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L15"
     },
     {
-      "id": "src_tests_bearbot2engine_test_loseonce",
-      "label": "loseOnce()",
+      "id": "src_tests_bearbot2aiminscorevl_test_feednotarget",
+      "label": "feedNoTarget()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
       "community_name": "createEngine",
       "file_type": "code",
-      "norm_label": "loseonce()",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L446"
+      "norm_label": "feednotarget()",
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L67"
     },
     {
-      "id": "src_tests_bearbot2engine_test_scorefromspec",
-      "label": "scoreFromSpec()",
+      "id": "src_tests_bearbot2aiminscorevl_test_runauto",
+      "label": "runAuto()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
       "community_name": "createEngine",
       "file_type": "code",
-      "norm_label": "scorefromspec()",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L197"
-    },
-    {
-      "id": "src_tests_bearbot2engine_test_seedloserpressure",
-      "label": "seedLoserPressure()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "seedloserpressure()",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L219"
-    },
-    {
-      "id": "src_tests_bearbot2engine_test_seedpatternintel",
-      "label": "seedPatternIntel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "seedpatternintel()",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L210"
-    },
-    {
-      "id": "src_tests_bearbot2engine_test_settleopenover",
-      "label": "settleOpenOver()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "settleopenover()",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L336"
-    },
-    {
-      "id": "src_tests_bearbot2engine_test_winonce",
-      "label": "winOnce()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "winonce()",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L451"
+      "norm_label": "runauto()",
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L22"
     },
     {
       "id": "src_tests_bearbot2enginepostloss_test_loseonce",
@@ -9881,6 +9929,28 @@
       "source_location": "L39"
     },
     {
+      "id": "src_tests_bearbot2engine_test",
+      "label": "bearBot2Engine.test.ts",
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2engine.test.ts",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2engine_test_ai_weights",
+      "label": "AI_WEIGHTS",
+      "_origin": "ast",
+      "community": 130,
+      "community_name": "bearBot2Engine.test.ts",
+      "file_type": "code",
+      "norm_label": "ai_weights",
+      "source_file": "src/__tests__/bearBot2Engine.test.ts",
+      "source_location": "L189"
+    },
+    {
       "id": "src_tests_bearbot2focusvirtuallossgate_test",
       "label": "bearBot2FocusVirtualLossGate.test.ts",
       "_origin": "ast",
@@ -10585,39 +10655,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_helptip",
-      "label": "HelpTip.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "helptip.tsx",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/HelpTip.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel",
-      "label": "IntelPanel.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "intelpanel.tsx",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_pillar_hints",
-      "label": "PILLAR_HINTS",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "pillar_hints",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L19"
-    },
-    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_tradelog",
       "label": "TradeLog.tsx",
       "_origin": "ast",
@@ -10626,17 +10663,6 @@
       "file_type": "code",
       "norm_label": "tradelog.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/TradeLog.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbotultra2aiminscoreui_test",
-      "label": "bearBotUltra2AiMinScoreUI.test.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotState",
-      "file_type": "code",
-      "norm_label": "bearbotultra2aiminscoreui.test.tsx",
-      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
       "source_location": "L1"
     },
     {
@@ -11036,6 +11062,39 @@
       "source_location": "L274"
     },
     {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_helptip",
+      "label": "HelpTip.tsx",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "helptip.tsx",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/HelpTip.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel",
+      "label": "IntelPanel.tsx",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "intelpanel.tsx",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_pillar_hints",
+      "label": "PILLAR_HINTS",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "pillar_hints",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L19"
+    },
+    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_marketgrid",
       "label": "MarketGrid.tsx",
       "_origin": "ast",
@@ -11077,6 +11136,17 @@
       "file_type": "code",
       "norm_label": "bearbotultra2aicustomweightsui.test.tsx",
       "source_file": "src/__tests__/bearBotUltra2AiCustomWeightsUI.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbotultra2aiminscoreui_test",
+      "label": "bearBotUltra2AiMinScoreUI.test.tsx",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "bearbotultra2aiminscoreui.test.tsx",
+      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
       "source_location": "L1"
     },
     {
@@ -11531,6 +11601,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_tests_bearbot2aiminscorevl_test",
+      "label": "bearBot2AiMinScoreVL.test.ts",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "createEngine",
+      "file_type": "code",
+      "norm_label": "bearbot2aiminscorevl.test.ts",
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_tests_bearbot2autodigit_test",
       "label": "bearBot2AutoDigit.test.ts",
       "_origin": "ast",
@@ -11573,28 +11654,6 @@
       "norm_label": "bearbot2dynamicdigitvl.test.ts",
       "source_file": "src/__tests__/bearBot2DynamicDigitVL.test.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2engine_test",
-      "label": "bearBot2Engine.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "bearbot2engine.test.ts",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2engine_test_ai_weights",
-      "label": "AI_WEIGHTS",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "createEngine",
-      "file_type": "code",
-      "norm_label": "ai_weights",
-      "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L189"
     },
     {
       "id": "src_tests_bearbot2enginepostloss_test",
@@ -22029,18 +22088,6 @@
       "weight": 1.0
     },
     {
-      "source": "src_app_services_bearbot2engine_bearbotengine_isaigateopen",
-      "target": "src_app_services_bearbot2engine_bearbotengine_vlgateopenm",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1117",
-      "weight": 1.0
-    },
-    {
       "source": "src_app_services_bearbot2engine_bearbotengine_manualfire",
       "target": "src_app_services_bearbot2engine_bearbotengine_trymanualfire",
       "relation": "calls",
@@ -22097,7 +22144,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1123",
+      "source_location": "L1121",
       "weight": 1.0
     },
     {
@@ -22109,7 +22156,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1128",
+      "source_location": "L1126",
       "weight": 1.0
     },
     {
@@ -22121,7 +22168,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1131",
+      "source_location": "L1129",
       "weight": 1.0
     },
     {
@@ -22133,7 +22180,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1133",
+      "source_location": "L1131",
       "weight": 1.0
     },
     {
@@ -22145,7 +22192,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1136",
+      "source_location": "L1134",
       "weight": 1.0
     },
     {
@@ -22157,7 +22204,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1139",
+      "source_location": "L1137",
       "weight": 1.0
     },
     {
@@ -22169,7 +22216,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1169",
+      "source_location": "L1167",
       "weight": 1.0
     },
     {
@@ -22181,7 +22228,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1198",
+      "source_location": "L1196",
       "weight": 1.0
     },
     {
@@ -22193,7 +22240,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1199",
+      "source_location": "L1197",
       "weight": 1.0
     },
     {
@@ -22205,7 +22252,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1206",
+      "source_location": "L1204",
       "weight": 1.0
     },
     {
@@ -22217,7 +22264,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1209",
+      "source_location": "L1207",
       "weight": 1.0
     },
     {
@@ -22229,7 +22276,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1211",
+      "source_location": "L1209",
       "weight": 1.0
     },
     {
@@ -22241,7 +22288,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1213",
+      "source_location": "L1211",
       "weight": 1.0
     },
     {
@@ -22253,7 +22300,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1214",
+      "source_location": "L1212",
       "weight": 1.0
     },
     {
@@ -22265,7 +22312,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1228",
+      "source_location": "L1226",
       "weight": 1.0
     },
     {
@@ -22277,7 +22324,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1261",
+      "source_location": "L1259",
       "weight": 1.0
     },
     {
@@ -22709,7 +22756,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1283",
+      "source_location": "L1281",
       "weight": 1.0
     },
     {
@@ -22721,7 +22768,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1287",
+      "source_location": "L1285",
       "weight": 1.0
     },
     {
@@ -27065,7 +27112,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx",
-      "source_location": "L113",
+      "source_location": "L117",
       "weight": 1.0
     },
     {
@@ -27089,7 +27136,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx",
-      "source_location": "L506",
+      "source_location": "L515",
       "weight": 1.0
     },
     {
@@ -27101,7 +27148,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/bearBotUltra2.tsx",
-      "source_location": "L675",
+      "source_location": "L684",
       "weight": 1.0
     },
     {
@@ -27858,6 +27905,30 @@
       "context": "call",
       "source_file": "src/__tests__/bearBot2AiMinScore.test.ts",
       "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_bearbot2aiminscorevl_test_runauto",
+      "target": "src_app_services_bearbot2engine_createengine",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_bearbot2aiminscorevl_test_runauto",
+      "target": "src_tests_bearbot2aiminscorevl_test_feedhighpressure",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -32025,6 +32096,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_tests_bearbot2aiminscorevl_test",
+      "target": "src_app_services_bearbot2engine_createengine",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
       "source": "src_tests_bearbot2autodigit_test",
       "target": "src_app_services_bearbot2engine_createengine",
       "relation": "imports",
@@ -35226,6 +35309,18 @@
       "context": "import",
       "source_file": "src/__tests__/bearBot2AiMinScore.test.ts",
       "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_bearbot2aiminscorevl_test",
+      "target": "src_app_services_bearbot2engine",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L2",
       "weight": 1.0
     },
     {
@@ -41188,6 +41283,39 @@
       "weight": 1.0
     },
     {
+      "source": "src_tests_bearbot2aiminscorevl_test",
+      "target": "src_tests_bearbot2aiminscorevl_test_feedhighpressure",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_bearbot2aiminscorevl_test",
+      "target": "src_tests_bearbot2aiminscorevl_test_runauto",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_bearbot2aiminscorevl_test",
+      "target": "src_tests_bearbot2aiminscorevl_test_feednotarget",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
       "source": "src_tests_bearbot2combolegs_test",
       "target": "src_tests_bearbot2combolegs_test_registeredlisteners",
       "relation": "contains",
@@ -41724,6 +41852,17 @@
       "confidence_score": 1.0,
       "source_file": "src/__tests__/bearBotUltra2.test.tsx",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_tests_bearbotultra2_test",
+      "target": "src_tests_bearbotultra2_test_feedscorehistory",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/__tests__/bearBotUltra2.test.tsx",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -43269,7 +43408,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1122",
+      "source_location": "L1120",
       "weight": 1.0
     },
     {
@@ -43280,7 +43419,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1281",
+      "source_location": "L1279",
       "weight": 1.0
     },
     {
@@ -54778,5 +54917,5 @@
       "source_file": "docs/documentacao_deriv/api_reference/docs/system.md"
     }
   ],
-  "built_at_commit": "0effde14ffc01b2a90692a350884398f07a182ae"
+  "built_at_commit": "d6933d07bcf2f93512849d36e38580492409749a"
 }

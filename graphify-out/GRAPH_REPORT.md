@@ -1,16 +1,16 @@
-# Graph Report - bot-trader  (2026-10-03)
+# Graph Report - bot-trader  (2026-10-05)
 
 ## Corpus Check
-- 284 files · ~697,509 words
+- 287 files · ~698,298 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1639 nodes · 2901 edges · 131 communities (80 shown, 41 thin omitted)
+- 1644 nodes · 2908 edges · 132 communities (81 shown, 41 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 138 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0effde14`
+- Built from commit: `d6933d07`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -135,6 +135,7 @@
 - copyTrading.test.ts
 - MonitoringService Lifecycle
 - Corrigir o bloco "Testes antes de operar"
+- bearBot2Engine.test.ts
 - bearBot2FocusVirtualLossGate.test.ts
 
 ## God Nodes (most connected - your core abstractions)
@@ -142,8 +143,8 @@
 2. `DerivService` - 85 edges
 3. `BearBotEngine` - 77 edges
 4. `CopyTradingService` - 32 edges
-5. `WsListener` - 30 edges
-6. `createEngine()` - 29 edges
+5. `createEngine()` - 31 edges
+6. `WsListener` - 30 edges
 7. `EngineState` - 27 edges
 8. `TradeExecutor` - 25 edges
 9. `createDifferEngine()` - 23 edges
@@ -184,7 +185,7 @@
 - **Account Transaction/History Endpoint Family** — docs_documentacao_deriv_api_reference_docs_account_portfolio_portfolio, docs_documentacao_deriv_api_reference_docs_account_profit_table_profit_table, docs_documentacao_deriv_api_reference_docs_account_statement_statement, docs_documentacao_deriv_api_reference_docs_account_transaction_transaction, docs_documentacao_deriv_api_reference_docs_options_legacy_legacy_statement_legacy_statement [INFERRED 0.85]
 - **Connection Health and Session Hygiene Endpoints** — docs_documentacao_deriv_api_reference_docs_system_ping_ping, docs_documentacao_deriv_api_reference_docs_system_time_server_time, docs_documentacao_deriv_api_reference_docs_system_health_health_check, docs_documentacao_deriv_api_reference_docs_subscription_forget_forget, docs_documentacao_deriv_api_reference_docs_subscription_forget_all_forget_all [INFERRED 0.85]
 
-## Communities (131 total, 41 thin omitted)
+## Communities (132 total, 41 thin omitted)
 
 ### Community 0 - "WsListener"
 Cohesion: 0.14
@@ -251,7 +252,7 @@ Cohesion: 0.12
 Nodes (16): getClientIp(), POST(), prisma, getClientIp(), POST(), prisma, GET(), prisma (+8 more)
 
 ### Community 18 - "bearBotUltra2.test.tsx"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (10): localStorageMock, MockAudioContext, mockExtractLastDigit, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend, mockSubscribe (+2 more)
 
 ### Community 20 - "bearBotUltra2PostLoss.test.tsx"
@@ -267,8 +268,8 @@ Cohesion: 0.15
 Nodes (17): configureTradeManager, Legacy Bridge Expert Skill, Legacy Rules Cache and History API, Legacy Script Load Order, Window Global Shims, Group Activation Logic, Gemini Model Selection by Group Count, Available Strategy Indicators (+9 more)
 
 ### Community 23 - "BotState"
-Cohesion: 0.14
-Nodes (17): BotConfig, BotState, DynamicDigitResult, TradeLog, DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor(), HelpTip() (+9 more)
+Cohesion: 0.25
+Nodes (9): BotState, DynamicDigitResult, TradeLog, DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor(), MarketGridProps, TradeLogComponent() (+1 more)
 
 ### Community 24 - "bearBot2QuickBuy.test.ts"
 Cohesion: 0.18
@@ -319,8 +320,8 @@ Cohesion: 0.15
 Nodes (13): Bot Copy Trader (demo → real replication), Limite de Martingale (reset vs stop), Pause Time (cooldown between real trades), Quantity Loss (demo losses before real entry), Stake Multiple (Martingale multiplier), Stop Loss / Stop Win (real account limits), calculateNextStake Uses martingaleLevel, consecutiveLosses Scoped to Demo Only (+5 more)
 
 ### Community 36 - "MarketGrid.tsx"
-Cohesion: 0.12
-Nodes (16): AI_MODE_WEIGHTS, AIMode, AIWeights, DEFAULT_BOT_STATE, DEFAULT_CONFIG, MarketIntelligence, AI_MODE_LABELS, AI_WEIGHT_FIELDS (+8 more)
+Cohesion: 0.09
+Nodes (24): AI_MODE_WEIGHTS, AIMode, AIWeights, BotConfig, DEFAULT_BOT_STATE, DEFAULT_CONFIG, MarketIntelligence, HelpTip() (+16 more)
 
 ### Community 37 - "createDifferEngine"
 Cohesion: 0.11
@@ -375,8 +376,8 @@ Cohesion: 0.20
 Nodes (10): Anti-Cascade Reset (prevenção de disparos em cascata), Dígito Automático no Differ (differAutoDigit), Radar de Dígitos Dinâmicos (differDynamicDigit), Sub-Score de Resistência à Anomalia (15%), Sub-Score de Frequência Multi-Janela (40%), Sub-Score de Markov Inverso (30%), Sub-Score de Trigramas Inversos (15%), Contagem sob Foco (vlFocusOnly) (+2 more)
 
 ### Community 50 - "createEngine"
-Cohesion: 0.09
-Nodes (13): createEngine(), feedHighPressure(), runAuto(), feedHighPressure(), multiEngine(), runAuto(), AI_WEIGHTS, AIModeName (+5 more)
+Cohesion: 0.11
+Nodes (10): createEngine(), feedHighPressure(), runAuto(), feedHighPressure(), multiEngine(), runAuto(), feedHighPressure(), runAuto() (+2 more)
 
 ### Community 51 - "dependencies"
 Cohesion: 0.22
@@ -506,6 +507,10 @@ Nodes (8): Cooldown Ticks, MonitoringService Lifecycle, SIMULADO/REAL Mode Switc
 Cohesion: 0.50
 Nodes (3): Comportamento dos campos, Corrigir o bloco "Testes antes de operar", Modo automático e modo manual
 
+### Community 130 - "bearBot2Engine.test.ts"
+Cohesion: 0.22
+Nodes (5): AI_WEIGHTS, AIModeName, feedABPattern(), seedLoserPressure(), seedPatternIntel()
+
 ## Ambiguous Edges - Review These
 - `DerivService WebSocket Singleton` → `Deriv API Expert Skill`  [AMBIGUOUS]
   .claude/commands/deriv-api.md · relation: conceptually_related_to
@@ -524,7 +529,7 @@ Nodes (3): Comportamento dos campos, Corrigir o bloco "Testes antes de operar", 
 
 ## Knowledge Gaps
 - **348 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+343 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 534 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 536 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions

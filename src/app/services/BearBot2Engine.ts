@@ -1111,11 +1111,9 @@ export class BearBotEngine {
     const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
     // A market with too little history has no measurable score yet: fall through
     // instead of vetoing it, matching the no-intelligence-at-all case above.
-    // O Loss Virtual confirmado supera o veto da IA, mas apenas quando ele está
-    // ligado: com vlOn=false o gate do VL é sempre aberto e anulava o veto,
-    // deixando os pesos dos pilares sem efeito nenhum sobre a decisão.
-    const vlConfirmed = this.config.vlOn && this.vlGateOpenM(sym);
-    return !intel || !intel.dataReady || intel.opportunityScore >= this.config.aiMinScore || isRecovery || vlConfirmed;
+    // O Loss Virtual confirmado não anula o veto: o score mínimo é avaliado
+    // primeiro e o gate do VL é exigido à parte, em conjunto com este.
+    return !intel || !intel.dataReady || intel.opportunityScore >= this.config.aiMinScore || isRecovery;
   }
 
   // ── On New Tick (Decision) ──
@@ -1297,7 +1295,9 @@ export class BearBotEngine {
       const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
 
       // 1. If active market already achieved VL threshold under focus, fire the trade on activeSym!
-      if (this.vlGateOpenM(activeSym)) {
+      // O score mínimo vale para o próprio foco: o candidato que passou no gate
+      // pode ser outro mercado, e o disparo aqui é sempre no activeSym.
+      if (this.vlGateOpenM(activeSym) && this.isAiGateOpen(activeSym)) {
         // Dígito Dinâmico: a barreira é o dígito que sofreu a perda virtual sob foco.
         // Sem esse dígito identificado, nenhuma ordem real pode ser disparada.
         if (this.config.mode === 'differ' && this.config.differDynamicDigit && !this.lockDynamicDigit(activeSym)) {

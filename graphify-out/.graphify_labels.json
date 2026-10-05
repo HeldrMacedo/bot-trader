@@ -129,5 +129,6 @@
   "127": "copyTrading.test.ts",
   "128": "MonitoringService Lifecycle",
   "129": "Corrigir o bloco \"Testes antes de operar\"",
+  "130": "bearBot2Engine.test.ts",
   "131": "bearBot2FocusVirtualLossGate.test.ts"
 }
