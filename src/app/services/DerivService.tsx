@@ -15,7 +15,7 @@ type DerivEventMap = {
   "deriv.proposal_open_contract": any;
   "deriv.transaction": any;
   "account.update": AccountInfo;
-  "auth.error": { code: string; message: string };
+  "trade.status": boolean;
 };
 
 export interface TokenData {
@@ -28,14 +28,36 @@ export interface TokenData {
 }
 
 interface PendingRequest {
+  reqId: number;
   needAuthorize: boolean;
   isMarket: boolean;
-  cancelled: boolean;
-  timeToCancel: NodeJS.Timeout | null;
   send: () => void;
-  resolve?: (value: any) => void;
-  reject?: (reason?: any) => void;
 }
+
+interface InflightRequest {
+  isMarket: boolean;
+  sent: boolean;
+  fail: (reason: any) => void;
+}
+
+const CONNECTION_CLOSED = "Connection closed";
+
+const OAUTH_ONLY = "Somente contas conectadas via OAuth são suportadas";
+
+const buyNotSent = () => ({
+  code: "NotConnected",
+  message: "Sem conexão com a corretora. A compra não foi enviada.",
+});
+
+// Buy já enviado sem resposta: não dá para saber se a corretora executou.
+const buyUnconfirmed = () => ({
+  code: "BuyUnconfirmed",
+  message:
+    "A corretora não confirmou a compra. A ordem pode ter sido executada: confira o extrato antes de comprar de novo.",
+});
+
+const isSettled = (contract: any) =>
+  !!contract?.is_sold || (contract?.status !== undefined && contract.status !== "open");
 
 export interface AccountInfo {
   activeToken: string;
@@ -78,9 +100,18 @@ export class DerivService {
   private marketPingInterval: NodeJS.Timeout | null = null;
   private manualClose = false;
   private pendingRequests: PendingRequest[] = [];
+  // Toda requisição aguardando resposta (na fila ou já enviada), por req_id.
+  private inflightRequests = new Map<number, InflightRequest>();
   private subscribes = new Map<string, any>();
   private marketSubscribes = new Map<string, any>();
   private pendingResubscribes = new Map<string, any>();
+  private marketPendingResubscribes = new Map<string, any>();
+  // IDs de stream abertos no canal de mercado, inclusive via send(..., subscribe: 1),
+  // para rotear o forget correspondente ao mesmo canal.
+  private marketStreamIds = new Set<string>();
+  // Contratos comprados ainda não liquidados: bloqueiam a troca de conta.
+  private openContracts = new Set<number>();
+  private lastTradeStatus = false;
   private currentAccount: AccountInfo | null = null;
   private balanceSubscriptionId: string | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -89,6 +120,7 @@ export class DerivService {
   private marketReconnectAttempts = 0;
   private readonly MAX_RECONNECT_ATTEMPTS = 5;
   private readonly MAX_MARKET_RECONNECT_ATTEMPTS = 10;
+  private readonly REQUEST_TIMEOUT_MS = 20000;
 
   // Histórico de ticks em memória para acesso síncrono
   private tickHistory = new Map<string, { price: number; time: number }[]>();
@@ -141,15 +173,6 @@ export class DerivService {
 
       if (code && state) {
         this.handleOAuthCallback(code, state);
-      } else {
-        const tokens = this.parseQueryTokens(window.location.search.substring(1));
-        if (tokens.length > 0) {
-          localStorage.setItem(
-            `${this.derivTokenScope}token_list`,
-            JSON.stringify(tokens)
-          );
-          window.location.search = "";
-        }
       }
     }
 
@@ -163,6 +186,19 @@ export class DerivService {
       if (data.tick) {
         const { symbol, quote: price, epoch: time } = data.tick;
         this.updateTickHistory(symbol, price, time);
+      }
+    });
+
+    this.observer.on("deriv.buy", (data) => {
+      if (data.buy?.contract_id) {
+        this.openContracts.add(data.buy.contract_id);
+      }
+    });
+
+    this.observer.on("deriv.proposal_open_contract", (data) => {
+      const contract = data.proposal_open_contract;
+      if (isSettled(contract)) {
+        this.openContracts.delete(contract.contract_id);
       }
     });
 
@@ -221,42 +257,6 @@ export class DerivService {
         this.currentAccount?.activeToken
       );
       this.updateBalaceOfAccountSelected(response);
-      return;
-    }
-
-    const tokens = this.getTokens();
-    if (!tokens || tokens.length == 0) return;
-
-    try {
-      let accountVRT, accountCRT, userVRT, userCRT;
-
-      accountVRT = tokens.find(t => t.is_virtual);
-      accountCRT = tokens.find(t => !t.is_virtual);
-
-      const authPromises = [];
-      if (accountCRT) authPromises.push(this.authenticate(accountCRT.token));
-      if (accountVRT) authPromises.push(this.authenticate(accountVRT.token));
-
-
-      const authResults = await Promise.all(authPromises);
-
-      // Atribuir resultados da autenticação
-      if (accountCRT) userCRT = authResults.shift();
-      if (accountVRT) userVRT = authResults.shift();
-
-
-      // Criar estrutura de conta com os tokens disponíveis
-      const newAccount = this.createAccountStructureDynamic(
-        accountVRT,
-        accountCRT,
-        userVRT,
-        userCRT
-      );
-
-      this.saveAccount(newAccount);
-      this.setAccountData(newAccount);
-    } catch (error) {
-      this.handleAuthError(error);
     }
   }
 
@@ -274,13 +274,6 @@ export class DerivService {
     this.observer.emit("account.update", data);
   }
 
-  private handleAuthError(error: any) {
-    this.observer.emit("auth.error", {
-      code: "AUTH_FAILED",
-      message: error.message,
-    });
-  }
-
   public saveAccount(account: AccountInfo) {
     localStorage.setItem("deriv_accounts", JSON.stringify([account]));
   }
@@ -294,77 +287,22 @@ export class DerivService {
     this.observer.emit("account.update", null);
   }
 
-  private createAccountStructureDynamic(
-    vrt?: TokenData,
-    crt?: TokenData,
-    userVRT?: UserInfo,
-    userCRT?: UserInfo
-  ): AccountInfo {
-
-    const activeToken = vrt?.token || crt?.token;
-
-    const userInfo = userVRT || userCRT;
-
-    if (vrt && userVRT) vrt.balance = userVRT.balance;
-    if (crt && userCRT) crt.balance = userCRT.balance;
-
-    const tokens = [];
-    if (vrt) tokens.push(vrt);
-    if (crt) tokens.push(crt);
-
-    return {
-      activeToken: activeToken,
-      amount: 0.35,
-      barrier: "",
-      digits: 3,
-      volatility: "R_100",
-      finishedTradeList: [],
-      lastTrade: null,
-      name: userInfo.fullname,
-      openTradeId: null,
-      results: { loss: 0, result: 0, wins: 0 },
-      selectedLoginId: (vrt?.acct || crt?.acct),
-      loginId: (vrt?.loginid || crt?.loginid),
-      tokens: tokens,
-    };
-  }
-
+  // A conexão OTP já vem autorizada (ver handleOpen); aqui só se monta os
+  // dados da conta a partir do que foi salvo no login OAuth.
   public async authenticate(token: string): Promise<UserInfo> {
-    if (token && token.startsWith('oauth:')) {
-      const parts = token.split(':');
-      const accessToken = parts[1];
-      const accountId = parts[2];
-
-      const accounts = this.getStorageDerivAccount();
-      const currentAcc = accounts?.[0];
-      const activeTokenInfo = currentAcc?.tokens.find(t => t.token === token);
-      this.isAuthorized = true;
-
-      // A conexão OAuth/OTP já vem pré-autorizada. Como o `isAuthorized` só é
-      // definido aqui (e não no `handleOpen` quando `authorizeToken` ainda é nulo),
-      // precisamos liberar as requisições que ficaram enfileiradas aguardando auth.
-      this.dispatchPendingRequests();
-      this.dispatchPendingResubscribes();
-
-      return {
-        balance: activeTokenInfo?.balance ?? 0,
-        fullname: currentAcc?.name || "Conta Deriv",
-        loginid: accountId,
-        currency: activeTokenInfo?.cur || "USD"
-      };
+    if (!token?.startsWith('oauth:')) {
+      throw new Error(OAUTH_ONLY);
     }
 
-    const response = await this.send({ authorize: token });
-
-    if (response.error) {
-      throw new Error(response.error.message);
-    }
+    const accountId = token.split(':')[2];
+    const currentAcc = this.getStorageDerivAccount()?.[0];
+    const activeTokenInfo = currentAcc?.tokens.find(t => t.token === token);
 
     return {
-      balance: response.authorize.balance,
-      fullname: response.authorize.fullname,
-      loginid: response.authorize.loginid,
-      currency: response.authorize.currency,
+      balance: activeTokenInfo?.balance ?? 0,
+      fullname: currentAcc?.name || "Conta Deriv",
+      loginid: accountId,
+      currency: activeTokenInfo?.cur || "USD"
     };
   }
 
@@ -482,22 +420,14 @@ export class DerivService {
     return this.currentAccount?.tokens.find(t => t.is_virtual)?.token;
   }
 
-  private getAccountTokens(tokens: TokenData[]) {
-    const accountVRT = tokens.find((t) => t.is_virtual);
-    const accountCRT = tokens.find((t) => !t.is_virtual);
-
-    if (!accountVRT || !accountCRT) {
-      throw new Error("Tokens incompletos");
-    }
-
-    return [accountVRT, accountCRT];
-  }
-
-  private async waitForConnection() {
-    return new Promise<void>((resolve) => {
+  private async waitForConnection(timeoutMs?: number) {
+    return new Promise<void>((resolve, reject) => {
+      const startedAt = Date.now();
       const check = () => {
         if (this.isConnected) resolve();
-        else setTimeout(check, 100);
+        else if (timeoutMs !== undefined && Date.now() - startedAt >= timeoutMs) {
+          reject(new Error("Tempo esgotado aguardando conexão com a corretora"));
+        } else setTimeout(check, 100);
       };
       check();
     });
@@ -533,41 +463,37 @@ export class DerivService {
       return;
     }
 
-    const activeToken = this.getToken();
-    if (activeToken && activeToken.startsWith('oauth:')) {
-      const parts = activeToken.split(':');
-      const accessToken = parts[1];
-      const accountId = parts[2];
-
-      fetch('/api/deriv-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ accessToken, accountId }),
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error('Failed to get OTP');
-          return res.json();
-        })
-        .then((otpData) => {
-          if (otpData.websocket_url) {
-            this.establishWebSocketConnection(otpData.websocket_url);
-          } else {
-            this.establishWebSocketConnection();
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to get OTP WebSocket URL:', err);
-          this.establishWebSocketConnection();
-        });
-    } else {
-      this.establishWebSocketConnection();
+    const activeToken = this.getToken() || this.getStorageDerivAccount()?.[0]?.activeToken;
+    if (!activeToken?.startsWith('oauth:')) {
+      console.error(OAUTH_ONLY);
+      return;
     }
+
+    const [, accessToken, accountId] = activeToken.split(':');
+
+    // O canal de trade só existe via OTP. Sem ele, tenta de novo com backoff.
+    fetch('/api/deriv-otp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ accessToken, accountId }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to get OTP');
+        return res.json();
+      })
+      .then((otpData) => {
+        if (!otpData.websocket_url) throw new Error('OTP sem websocket_url');
+        this.establishWebSocketConnection(otpData.websocket_url);
+      })
+      .catch((err) => {
+        console.error('Failed to get OTP WebSocket URL:', err);
+        this.reconnect();
+      });
   }
 
-  private establishWebSocketConnection(url?: string): void {
-    const wsUrl = url || `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`;
+  private establishWebSocketConnection(wsUrl: string): void {
     const ws = new WebSocket(wsUrl);
 
     this.ws = ws;
@@ -645,8 +571,14 @@ export class DerivService {
 
       this.observer.emit("message", data);
 
+      if (data.subscription?.id) {
+        this.marketStreamIds.add(data.subscription.id);
+      }
+
+      // Na resposta, `forget` é 1/0; o ID do stream vem em echo_req.
       if (data.msg_type === "forget") {
-        this.marketSubscribes.delete(data.forget);
+        this.marketSubscribes.delete(data.echo_req?.forget);
+        this.marketStreamIds.delete(data.echo_req?.forget);
       }
 
       if (data.msg_type) {
@@ -671,17 +603,21 @@ export class DerivService {
     if (this.marketWs !== ws) {
       return;
     }
+    this.marketSubscribes.forEach((payload, id) => this.marketPendingResubscribes.set(id, payload));
     this.cleanupMarketWs();
     this.reconnectMarketWs();
   }
 
   public cleanupMarketWs() {
     this.marketSubscribes.clear();
+    this.marketStreamIds.clear();
     this.marketWs = null;
     if (this.marketPingInterval) {
       clearInterval(this.marketPingInterval);
       this.marketPingInterval = null;
     }
+    // Só as já enviadas: as que ainda estão na fila saem na próxima conexão.
+    this.failInflight((req) => req.isMarket && req.sent);
   }
 
   public reconnectMarketWs() {
@@ -705,11 +641,7 @@ export class DerivService {
   }
 
   private dispatchMarketPendingResubscribes() {
-    this.marketSubscribes.forEach((payload, id) => {
-      this.subscribe(payload).then(() => {
-        // Sucesso
-      });
-    });
+    this.resubscribeFrom(this.marketPendingResubscribes);
   }
 
   public handleOpen(ws: WebSocket) {
@@ -720,15 +652,9 @@ export class DerivService {
     // Conexão bem-sucedida: resetar contador de reconexão
     this.reconnectAttempts = 0;
 
+    // A URL do OTP já vem autorizada para a conta.
+    this.setAuthorized(true);
     this.observer.emit("open", undefined);
-
-    if (this.authorizeToken && !this.authorizeToken.startsWith('oauth:')) {
-      this.send({ authorize: this.authorizeToken });
-    } else if (this.authorizeToken && this.authorizeToken.startsWith('oauth:')) {
-      this.isAuthorized = true;
-      this.dispatchPendingRequests();
-      this.dispatchPendingResubscribes();
-    }
 
     this.dispatchPendingRequests();
     this.dispatchPendingResubscribes();
@@ -755,13 +681,7 @@ export class DerivService {
       this.observer.emit("message", data);
 
       if (data.msg_type === "forget") {
-        this.subscribes.delete(data.forget);
-      } else if (data.msg_type === "authorize") {
-        //this.isAuthorized = !data.error;
-        if (this.isAuthorized) {
-          this.dispatchPendingResubscribes();
-          this.dispatchPendingRequests();
-        }
+        this.subscribes.delete(data.echo_req?.forget);
       }
 
       if (data.msg_type) {
@@ -793,6 +713,7 @@ export class DerivService {
     }
 
     this.observer.emit("close", event);
+    this.preserveSubscriptions();
     this.cleanup();
     if (!this.manualClose) this.reconnect();
   }
@@ -827,7 +748,7 @@ export class DerivService {
   public cleanup() {
     this.subscribes.clear();
     this.balanceSubscriptionId = null; // Reset para permitir nova subscription
-    this.isAuthorized = false;
+    this.setAuthorized(false);
     this.ws = null;
 
     if (this.pingInterval) {
@@ -835,16 +756,25 @@ export class DerivService {
       this.pingInterval = null;
     }
 
-    // Limpar requests pendentes
-    this.pendingRequests.forEach(request => {
-      if (request.timeToCancel) {
-        clearTimeout(request.timeToCancel);
-      }
-      if (request.reject) {
-        request.reject(new Error('Connection closed'));
-      }
-    });
-    this.pendingRequests = [];
+    // Requisições do canal de trade (na fila ou enviadas) não têm mais como
+    // receber resposta: a nova conexão não conhece estes req_id.
+    this.failInflight((req) => !req.isMarket);
+  }
+
+  // Compara com o último valor emitido: na queda, o socket já está fechado
+  // quando a sessão é desautorizada, e isTradeReady já seria false antes.
+  private setAuthorized(value: boolean) {
+    this.isAuthorized = value;
+    if (this.isTradeReady !== this.lastTradeStatus) {
+      this.lastTradeStatus = this.isTradeReady;
+      this.observer.emit("trade.status", this.lastTradeStatus);
+    }
+  }
+
+  private failInflight(match: (req: InflightRequest) => boolean) {
+    Array.from(this.inflightRequests.values())
+      .filter(match)
+      .forEach((req) => req.fail(new Error(CONNECTION_CLOSED)));
   }
 
   public send<T = any>(payload: Record<string, any>): Promise<T> {
@@ -854,111 +784,91 @@ export class DerivService {
       payload.req_id = reqId;
       const needAuthorize = this.checkNeedAuthorize(payload);
       const isMarket = this.isMarketRequest(payload);
+      const isBuy = payload.hasOwnProperty("buy");
+      const message = JSON.stringify({ ...payload, req_id: reqId });
+
+      // Toda requisição termina uma única vez — resposta, timeout ou queda da
+      // conexão — e sempre libera listener, timer e lugar na fila.
+      const settle = (finish: () => void) => {
+        if (!this.inflightRequests.delete(reqId)) return;
+        clearTimeout(timeout);
+        this.observer.removeById(listenerId);
+        this.pendingRequests = this.pendingRequests.filter((req) => req.reqId !== reqId);
+        finish();
+      };
+      const inflight: InflightRequest = {
+        isMarket,
+        sent: false,
+        fail: (reason) => settle(() => reject(isBuy && inflight.sent ? buyUnconfirmed() : reason)),
+      };
+      this.inflightRequests.set(reqId, inflight);
 
       const listenerId = this.observer.on("message", (data) => {
-
         if (data.req_id === reqId) {
-          this.observer.removeById(listenerId);
-          data.error ? reject(data.error) : resolve(data);
+          settle(() => (data.error ? reject(data.error) : resolve(data)));
         }
       });
 
-      if (isMarket) {
-        if (this.isMarketConnected) {
-          this.marketWs!.send(JSON.stringify({ ...payload, req_id: reqId }));
-        } else {
-          this.queueRequest(payload, reqId, false, resolve, reject);
+      const timeout = setTimeout(() => {
+        inflight.fail({ code: "Timeout", message: "Limite de tempo expirado, sem resposta da corretora" });
+        toast.error(isBuy ? buyUnconfirmed().message : "Limite de tempo expirado, sem resposta da corretora");
+      }, this.REQUEST_TIMEOUT_MS);
+
+      const sendNow = () => {
+        const targetWs = isMarket ? this.marketWs : this.ws;
+        if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+          targetWs.send(message);
+          inflight.sent = true;
         }
+      };
+
+      const ready = isMarket
+        ? this.isMarketConnected
+        : this.isConnected && (!needAuthorize || this.isAuthorized);
+
+      if (ready) {
+        sendNow();
+      } else if (isBuy) {
+        // Compra nunca espera conexão: sairia atrasada, com preço e sinal vencidos.
+        inflight.fail(buyNotSent());
       } else {
-        if (this.isConnected && (!needAuthorize || this.isAuthorized)) {
-          this.ws!.send(JSON.stringify({ ...payload, req_id: reqId }));
-        } else {
-          this.queueRequest(payload, reqId, needAuthorize, resolve, reject);
-        }
+        this.pendingRequests.push({ reqId, needAuthorize: isMarket ? false : needAuthorize, isMarket, send: sendNow });
       }
     });
-  }
-
-  public async handleDemoAccountChange() {
-    const tokenDemo = this.getTokenDemo() || "";
-
-    if (!tokenDemo) {
-      throw new Error("Token demo não encontrado");
-    }
-
-    this.authorizeToken = tokenDemo;
-
-    let loginId = "";
-    let balance = 0;
-
-    if (tokenDemo.startsWith('oauth:')) {
-      const parts = tokenDemo.split(':');
-      loginId = parts[2];
-
-      this.disconnect();
-      await this.connect();
-
-      const accounts = this.getStorageDerivAccount();
-      const demoTokenInfo = accounts?.[0]?.tokens.find(t => t.token === tokenDemo);
-      balance = demoTokenInfo?.balance || 0;
-    } else {
-      const authResponse = await this.send({ authorize: tokenDemo });
-      loginId = authResponse.authorize.loginid;
-      balance = authResponse.authorize.balance;
-    }
-
-    const updatedAccount = {
-      ...this.getStorageDerivAccount()[0],
-      activeToken: tokenDemo,
-      selectedLoginId: loginId,
-    };
-
-    localStorage.setItem("deriv_accounts", JSON.stringify([updatedAccount]));
-    this.setAccountData(updatedAccount);
   }
 
   public async switchAccount(token: string): Promise<any> {
     if (!token) {
       throw new Error("Token inválido");
     }
+    if (!token.startsWith('oauth:')) {
+      throw new Error(OAUTH_ONLY);
+    }
+
+    // Trocar a conexão no meio de um contrato perde o acompanhamento dele.
+    if (await this.hasOpenContracts()) {
+      throw new Error("Há contrato em aberto. Aguarde a liquidação antes de trocar de conta.");
+    }
 
     // Atualizar token ativo
     this.setToken(token);
 
-    let loginId = "";
-    let balance = 0;
-
-    if (token.startsWith('oauth:')) {
-      const parts = token.split(':');
-      loginId = parts[2];
-
-      // Desconecta apenas o ws principal de trade e reconecta
-      if (this.ws) {
-        try {
-          this.ws.close();
-        } catch { }
-        this.ws = null;
-      }
-      this.cleanup(); // Limpa as subscriptions do socket de trade, pendentes, etc.
-
-      this.connect(); // Dispara nova conexão que vai buscar o OTP da conta correspondente
-
-      // Aguardar conexão estar ativa
-      await this.waitForConnection();
-
-      // Autorizar e obter saldos
-      const authResult = await this.authenticate(token);
-      loginId = authResult.loginid;
-      balance = authResult.balance;
-    } else {
-      // Fluxo legado
-      const authResponse = await this.send({ authorize: token });
-      if (authResponse.error) {
-        throw new Error(authResponse.error.message);
-      }
-      loginId = authResponse.authorize.loginid;
-      balance = authResponse.authorize.balance;
+    // Desconecta apenas o ws principal de trade e reconecta
+    if (this.ws) {
+      try {
+        this.ws.close();
+      } catch { }
+      this.ws = null;
     }
+    this.cleanup(); // Limpa as subscriptions do socket de trade, pendentes, etc.
+
+    this.connect(); // Dispara nova conexão que vai buscar o OTP da conta correspondente
+
+    // Aguardar conexão estar ativa
+    await this.waitForConnection(this.REQUEST_TIMEOUT_MS);
+
+    // Obter dados da conta e saldo
+    const { loginid: loginId, balance } = await this.authenticate(token);
 
     const accounts = this.getStorageDerivAccount();
     if (accounts && accounts.length > 0) {
@@ -978,43 +888,22 @@ export class DerivService {
     }
   }
 
-  private queueRequest(
-    payload: Record<string, any>,
-    reqId: number,
-    needAuthorize: boolean,
-    resolve: (value: any) => void,
-    reject: (reason?: any) => void
-  ) {
-    const isMarket = this.isMarketRequest(payload);
-    const timeToCancel = setTimeout(() => {
-      // Remover da lista de pendentes
-      const index = this.pendingRequests.findIndex(req => req.resolve === resolve);
-      if (index > -1) {
-        this.pendingRequests.splice(index, 1);
-      }
-      reject({ code: "Timeout", message: "Limite de tempo expirado, sem resposta da corretora" });
-      toast.error("Limite de tempo expirado, sem resposta da corretora");
-    }, 20000);
-
-    const pendingRequest: PendingRequest = {
-      needAuthorize,
-      isMarket,
-      cancelled: false,
-      timeToCancel,
-      resolve,
-      reject,
-      send: () => {
-        if (!pendingRequest.cancelled) {
-          clearTimeout(timeToCancel);
-          const targetWs = isMarket ? this.marketWs : this.ws;
-          if (targetWs && targetWs.readyState === WebSocket.OPEN) {
-            targetWs.send(JSON.stringify({ ...payload, req_id: reqId }));
-          }
-        }
-      },
-    };
-
-    this.pendingRequests.push(pendingRequest);
+  // Confere com a corretora os contratos ainda marcados como abertos: um stream
+  // perdido não pode bloquear a troca para sempre. Na dúvida (consulta falhou),
+  // o contrato continua contando como aberto.
+  private async hasOpenContracts(): Promise<boolean> {
+    await Promise.all(
+      Array.from(this.openContracts).map((contractId) =>
+        this.send({ proposal_open_contract: 1, contract_id: contractId })
+          .then((response) => {
+            if (isSettled(response.proposal_open_contract)) {
+              this.openContracts.delete(contractId);
+            }
+          })
+          .catch(() => { })
+      )
+    );
+    return this.openContracts.size > 0;
   }
 
   public subscribe(payload: Record<string, any>): Promise<any> {
@@ -1050,7 +939,7 @@ export class DerivService {
     }
     if (payload.hasOwnProperty("forget")) {
       const subscriptionId = payload.forget;
-      return this.marketSubscribes.has(subscriptionId);
+      return this.marketSubscribes.has(subscriptionId) || this.marketStreamIds.has(subscriptionId);
     }
     return false;
   }
@@ -1081,11 +970,31 @@ export class DerivService {
   }
 
   private dispatchPendingResubscribes() {
-    this.pendingResubscribes.forEach((payload, id) => {
-      this.subscribe(payload).then(() => {
-        this.pendingResubscribes.delete(id);
+    this.resubscribeFrom(this.pendingResubscribes);
+  }
+
+  // Retira da fila antes de enviar: a reinscrição pode ser disparada mais de uma
+  // vez na mesma abertura, e cada chamada reenviaria tudo de novo, abrindo
+  // streams duplicados do mesmo contrato.
+  private resubscribeFrom(pending: Map<string, any>) {
+    const entries = Array.from(pending.entries());
+    pending.clear();
+    entries.forEach(([id, payload]) => {
+      this.subscribe(payload).catch((error) => {
+        // Caiu de novo antes da resposta: tenta na próxima abertura. Outros erros
+        // (ex.: contrato já encerrado) não voltam para a fila.
+        if (error?.message === CONNECTION_CLOSED) {
+          pending.set(id, payload);
+        }
       });
     });
+  }
+
+  private preserveSubscriptions() {
+    this.subscribes.forEach((payload, id) => {
+      this.pendingResubscribes.set(id, payload);
+    });
+    this.subscribes.clear();
   }
 
   public reconnect() {
@@ -1104,10 +1013,7 @@ export class DerivService {
       return;
     }
 
-    this.subscribes.forEach((payload, id) => {
-      this.pendingResubscribes.set(id, payload);
-    });
-    this.subscribes.clear();
+    this.preserveSubscriptions();
 
     this.manualClose = true;
 
@@ -1156,48 +1062,17 @@ export class DerivService {
     );
   }
 
-  private parseQueryTokens(search: string): TokenData[] {
-    return Object.values(
-      search
-        .toString()
-        .split("&")
-        .reduce((obj, item) => {
-          const testers = [
-            /(acct)(\d)\=(.+)/gi,
-            /(token)(\d)\=(.+)/gi,
-            /(cur)(\d)\=(.+)/gi,
-          ];
-          for (let i = 0; i < testers.length; i++) {
-            const testResult = testers[i].exec(item);
-
-            if (testResult) {
-              const name = testResult[1];
-              const index = testResult[2];
-              const value = testResult[3];
-
-              if (!obj[index]) {
-                obj[index] = {};
-              }
-
-              obj[index][name] = value;
-
-              if (name == "acct") {
-                obj[index].is_virtual = value.startsWith("VRTC");
-              }
-            }
-          }
-
-          return obj;
-        }, {})
-    );
-  }
-
   public start() {
     this.connect();
   }
 
   public get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  // Conectado e autorizado: único estado em que uma compra pode ser enviada.
+  public get isTradeReady(): boolean {
+    return this.isConnected && this.isAuthorized;
   }
 
   public get observerInstance(): Observer<DerivEventMap> {
@@ -1495,9 +1370,7 @@ export class DerivService {
       return this.requestOnTempConnection(otp.websocket_url, payload, "profit_table");
     }
 
-    // Token legado (não-OAuth): autoriza numa conexão temporária
-    const wsUrl = `wss://ws.derivws.com/websockets/v3?l=pt&app_id=${process.env.NEXT_PUBLIC_APPID}`;
-    return this.requestOnTempConnection(wsUrl, payload, "profit_table", token);
+    throw new Error(OAUTH_ONLY);
   }
 
   /**
@@ -1508,8 +1381,7 @@ export class DerivService {
   private requestOnTempConnection(
     wsUrl: string,
     payload: Record<string, any>,
-    expectedMsgType: string,
-    authToken?: string
+    expectedMsgType: string
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       let settled = false;
@@ -1541,7 +1413,7 @@ export class DerivService {
       }, 20000);
 
       ws.onopen = () => {
-        ws.send(JSON.stringify(authToken ? { authorize: authToken } : payload));
+        ws.send(JSON.stringify(payload));
       };
 
       ws.onmessage = (event) => {
@@ -1554,11 +1426,6 @@ export class DerivService {
 
         if (data.error) {
           finish(() => reject(new Error(data.error.message)));
-          return;
-        }
-
-        if (data.msg_type === "authorize") {
-          ws.send(JSON.stringify(payload));
           return;
         }
 
@@ -1593,8 +1460,6 @@ export class DerivService {
   public getActiveAccessToken(): string | null {
     const account = this.currentAccount || this.getStorageDerivAccount()?.[0];
     const token = account?.activeToken;
-    console.log("account ", account);
-    console.log("token ", token);
     if (token && token.startsWith("oauth:")) {
       return token.split(":")[1] || null;
     }

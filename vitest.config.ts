@@ -1,9 +1,22 @@
 import { defineConfig } from 'vitest/config';
+import { transformWithOxc } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+// O Next aceita JSX em arquivos .js (ex.: home/components/TicksGraph.js), mas o
+// oxc do Vite escolhe a linguagem pela extensão e falha no parse. Este plugin
+// trata esses arquivos como JSX antes do transform padrão.
+const jsxInJs = {
+  name: 'jsx-in-js',
+  enforce: 'pre' as const,
+  async transform(code: string, id: string) {
+    if (!/\/src\/app\/.*\.js$/.test(id)) return null;
+    return transformWithOxc(code, id, { lang: 'jsx', jsx: { runtime: 'automatic' } });
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [jsxInJs, react()],
   test: {
     globals: true,
     environment: 'node',
@@ -20,6 +33,9 @@ export default defineConfig({
         'src/app/services/BearDifferEngine.ts',
         'src/app/hooks/useBearDiffer.ts',
         'src/app/**/bear-bot-differ/components/tabs/OperationTab.tsx',
+        // Conexão com a corretora e tela home (compra manual): caminho de ordens.
+        'src/app/services/DerivService.tsx',
+        'src/app/**/home/components/*.{tsx,js}',
         // Copy trader (BotTrader): ordens na conta real.
         'src/app/services/{wsListener,tradeExecutor,copyTradingService,signalProcessor,copyTradingManager,derivConfig}.ts',
         'src/app/api/{start,stop,status}/route.ts',

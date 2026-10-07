@@ -23,7 +23,7 @@ A classe `DerivService.tsx` gerencia todo o fluxo:
 > [!WARNING]
 > Diferenciação crucial:
 > - **`client_id` (Alfanumérico):** Usado na URL de login (`auth.deriv.com`) para OAuth 2.0 e no header `Deriv-App-ID` das chamadas REST (OTP, contas). Env: `NEXT_PUBLIC_DERIV_CLIENT_ID`.
-> - **`app_id` (Numérico, ex: 67957):** Ainda usado em fallbacks legados (`ws.derivws.com/websockets/v3` com token clássico / conexões temporárias). Env: `NEXT_PUBLIC_APPID`. **Não é necessário** no canal público de ticks.
+> - **`app_id` (Numérico, ex: 67957):** Usado no login OAuth (`app_id` na URL de autorização) e na camada copy-trader legada; o `DerivService` não conecta mais em `ws.derivws.com/websockets/v3`. Env: `NEXT_PUBLIC_APPID`. **Não é necessário** no canal público de ticks.
 
 ## WebSocket
 
@@ -46,7 +46,7 @@ Payloads (iguais à API legada de ticks — **não** usam `underlying_symbol`):
 // Stream em tempo real
 { ticks: "R_100", subscribe: 1 }
 
-// Histórico + stream (padrão do TicksTest / home)
+// Histórico + stream (padrão do ManualTrading / home)
 {
   ticks_history: "R_100",
   adjust_start_time: 1,
@@ -81,6 +81,13 @@ Após possuir um `access_token` OAuth:
 2. A Deriv devolve uma URL temporária (ex: `wss://api.derivws.com/trading/v1/options/ws/demo?otp=...`).
 3. O `DerivService` conecta nessa URL e a sessão de trade já fica autorizada (sem mensagem `{ authorize }` no fluxo OAuth).
 
+O `DerivService` aceita **somente** tokens OAuth (`oauth:<access_token>:<account_id>`). Não há mais fallback para `wss://ws.derivws.com/websockets/v3` nem `{ authorize: token }`: se o OTP falhar, a conexão de trade é refeita com backoff exponencial; tokens legados são recusados em `authenticate`, `switchAccount` e `getProfitTableForAccount`.
+
+Regras de ordem no canal de trade:
+- `buy` só é enviado com o canal conectado e autorizado (`isTradeReady`); fora disso é recusado na hora com `code: "NotConnected"`, sem fila. O evento `trade.status` (boolean) avisa as mudanças para a UI habilitar/desabilitar os botões.
+- `buy` já enviado que fica sem resposta (timeout de 20s ou queda da conexão) é rejeitado com `code: "BuyUnconfirmed"`: a ordem pode ter sido executada e deve ser conferida no extrato.
+- `switchAccount` é recusado enquanto houver contrato comprado e não liquidado. Antes de recusar, o serviço consulta `proposal_open_contract` de cada contrato marcado como aberto; se a consulta falhar, o contrato continua contando como aberto.
+
 ### Consumo de Ticks (API da aplicação)
 
 Os componentes **não** abrem WebSocket próprio. Usam o canal de mercado do singleton:
@@ -91,7 +98,7 @@ Os componentes **não** abrem WebSocket próprio. Usam o canal de mercado do sin
 4. Observer: `deriv.observerInstance.on("deriv.tick", (data) => { ... })`
 5. Buffer síncrono (quando já populado): `deriv.getHistoricalTicksSync(symbol, count)`
 
-Exemplo usado na home (`TicksTest`):
+Exemplo usado na home (`ManualTrading`):
 
 ```javascript
 // Após market.open (ou se isMarketConnected)
@@ -119,11 +126,11 @@ O `connect-src` deve permitir, entre outros:
 - `wss://api.derivws.com` — market public + trading OTP
 - `https://api.derivws.com` — REST (OTP, accounts; em geral via rotas `/api/*` do Next)
 - `https://auth.deriv.com` — OAuth
-- `wss://ws.derivws.com` / `wss://*.derivws.com` — fallbacks legados ainda presentes no código
+- `wss://ws.derivws.com` / `wss://*.derivws.com` — não usados pelo `DerivService`; ainda presentes na camada copy-trader (`derivConfig.ts`)
 
 ## Referências internas
 
 - Código: `src/app/services/DerivService.tsx` (`connectMarketWs`, `isMarketRequest`, `send`)
-- UI de ticks: `src/app/(withSidebar)/home/components/TicksTest.tsx`
+- UI de ticks: `src/app/(withSidebar)/home/components/ManualTrading.tsx`
 - OTP proxy: `src/app/api/deriv-otp/route.ts`
 - Camada copy-trader (PAT/legado vs Options): `src/app/services/derivConfig.ts`

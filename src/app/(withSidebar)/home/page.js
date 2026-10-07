@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/app/hooks/useAuth";
-import TicksTest from "./components/TicksTest";
+import ManualTrading from "./components/ManualTrading";
 
 export default function HomePage() {
   const auth = useAuth();
@@ -18,7 +18,7 @@ export default function HomePage() {
       </div>
     );
   return (    
-     <TicksTest />
+     <ManualTrading />
     
   );
 }

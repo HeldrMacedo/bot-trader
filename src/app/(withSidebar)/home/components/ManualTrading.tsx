@@ -11,6 +11,7 @@ import {
   TokenData,
 } from "@/app/services/DerivService";
 import { getUser } from "@/app/services/userService";
+import { toast } from "react-toastify";
 
 interface AccountSelectorProps {
   onAccountChange: (accountInfo: any) => void;
@@ -121,7 +122,7 @@ const SymbolRow = memo(function SymbolRow({
 const INITIAL_TICKS: Record<string, number[]> = {};
 for (const s of SYMBOLS) INITIAL_TICKS[s] = [];
 
-export const TicksTest = () => {
+export const ManualTrading = () => {
   const [ticks, setTicks] = useState<Record<string, number[]>>(INITIAL_TICKS);
   const [volatility, setVolatility] = useState("R_100");
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -218,6 +219,7 @@ export const TicksTest = () => {
       }
     } catch (error) {
       console.error("Erro ao trocar de conta:", error);
+      toast.error(error.message);
     }
     setLoading(false);
   };
@@ -301,7 +303,7 @@ export const TicksTest = () => {
   }, [flushTicksBuffer]);
 
   // Busca histórico de ticks via ticks_history e se inscreve para updates via subscribe:1
-  const fetchTicksHistory = useCallback(async (symbol: string) => {
+  const fetchTicksHistory = useCallback(async (symbol: string, isActive: () => boolean) => {
     try {
       // Usa ticks_history com subscribe:1 para obter histórico + streaming em tempo real
       const response = await deriv.send({
@@ -312,6 +314,15 @@ export const TicksTest = () => {
         style: "ticks",
         subscribe: 1,
       });
+
+      // Resposta chegou depois do unmount: o cleanup já rodou e não conhece este
+      // stream, então ele é cancelado aqui.
+      if (!isActive()) {
+        if (response.subscription?.id) {
+          deriv.send({ forget: response.subscription.id }).catch(() => { });
+        }
+        return;
+      }
 
       // Processar histórico inicial da resposta
       if (response.history) {
@@ -345,7 +356,7 @@ export const TicksTest = () => {
       // Buscar histórico + subscribe para cada símbolo
       for (const symbol of SYMBOLS) {
         if (!isMounted) return;
-        await fetchTicksHistory(symbol);
+        await fetchTicksHistory(symbol, () => isMounted);
       }
     };
 
@@ -581,7 +592,8 @@ export const TicksTest = () => {
                     <select
                       value={accountInfo.activeToken}
                       onChange={(e) => handleAccountChange(e.target.value)}
-                      disabled={loading}
+                      // Troca de conta com compra em andamento perde o acompanhamento do contrato.
+                      disabled={loading || purchaseStatus !== ""}
                       className=" col-start-1 row-start-1 w-full appearance-none rounded-md border border-gray-300 bg-gray-800 py-1.5 pl-3 pr-8 text-base text-gray-400 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm/6"
                     >
                       {accountInfo.tokens.map((token) => (
@@ -722,4 +734,4 @@ export const TicksTest = () => {
   );
 };
 
-export default TicksTest;
+export default ManualTrading;

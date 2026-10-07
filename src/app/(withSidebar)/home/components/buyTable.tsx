@@ -32,20 +32,31 @@ const BuyTable = ({
   const [selected, setSelected] = useState<number | null>(null);
   const [multiplicador, setMultiplicador] = useState("1");
   const derivService = DerivService.getInstance();
-  const [activeContractId, setActiveContractId] = useState<string | null>(null);
-  const [buyResponseId, setBuyResponseId] = useState<string | null>(null);
   const [tradeType, setTradeType] = useState<Number>(1);
   const [disabledBuyButton, setDisabledBuyButton] = useState<boolean>(false);
+  // Compra só com o canal de trade conectado e autorizado.
+  const [tradeReady, setTradeReady] = useState<boolean>(derivService.isTradeReady);
+  // Contratos comprados aguardando liquidação. Ref, e não estado: o botão volta
+  // a ficar ativo logo após o buy, e contratos de 1 tick comprados em sequência
+  // liquidam no mesmo tick, antes de qualquer re-render. Sair do conjunto na
+  // liquidação também impede contar duas vezes um is_sold repetido.
+  const openContractsRef = useRef(new Set<number>());
+  const isVirtualRef = useRef(isVirtual);
+  const onPurchaseStatusChangeRef = useRef(onPurchaseStatusChange);
+  isVirtualRef.current = isVirtual;
+  onPurchaseStatusChangeRef.current = onPurchaseStatusChange;
 
   useEffect(() => {
     const contractListener = derivService.observerInstance.on(
       "deriv.proposal_open_contract",
       (data) => {
-        if (data.proposal_open_contract?.contract_id === activeContractId) {
+        const onPurchaseStatusChange = onPurchaseStatusChangeRef.current;
+        if (openContractsRef.current.has(data.proposal_open_contract?.contract_id)) {
           const status = data.proposal_open_contract.status;
           onPurchaseStatusChange?.(status);
 
           if (data.proposal_open_contract?.is_valid_to_sell || data.proposal_open_contract?.is_sold) {
+            openContractsRef.current.delete(data.proposal_open_contract.contract_id);
             derivService.send({ forget: data.subscription.id });
             onPurchaseStatusChange("");
 
@@ -78,7 +89,7 @@ const BuyTable = ({
               deposit: finishedTradeList.amount,
               result: finishedTradeList.profit,
               token: token,
-              isVirtual: isVirtual,
+              isVirtual: isVirtualRef.current,
             });
 
             account.finishedTradeList.push(finishedTradeList);
@@ -91,8 +102,6 @@ const BuyTable = ({
 
             derivService.setAccountData(account);
             derivService.saveAccount(account);
-
-            setBuyResponseId(null);
           }
         }
       }
@@ -101,7 +110,7 @@ const BuyTable = ({
     return () => {
       derivService.observerInstance.removeById(contractListener);
     };
-  }, [buyResponseId]);
+  }, []);
 
   const handleBarrieType = (data: any) => {
     if (
@@ -117,9 +126,9 @@ const BuyTable = ({
   const handleBuy = async (contractType: string) => {
     setDisabledBuyButton(true);
     try {
-      if (!derivService.hasAuthorized) {
+      if (!derivService.isTradeReady) {
         setDisabledBuyButton(false);
-        throw new Error("Usuário não autenticado");
+        throw new Error("Sem conexão com a corretora. A compra não foi enviada.");
       }
 
       const accountInfo = derivService.getStorageDerivAccount()[0];
@@ -166,15 +175,15 @@ const BuyTable = ({
       }
       onPurchaseStatusChange("Comprando");
       const contractId = buyResponse.buy.contract_id;
-      derivService.subscribe({
-        proposal_open_contract: 1,
-        contract_id: contractId,
-      });
-      setActiveContractId(contractId);
-      if (buyResponse.echo_req) {
-        setDisabledBuyButton(false);
-        setBuyResponseId(buyResponse.echo_req.buy);
-      }
+      openContractsRef.current.add(contractId);
+      derivService
+        .subscribe({
+          proposal_open_contract: 1,
+          contract_id: contractId,
+        })
+        .catch(() => {
+          toast.error(`Não foi possível acompanhar o contrato ${contractId}. Confira o resultado na corretora.`);
+        });
       setDisabledBuyButton(false);
     } catch (error) {
       setDisabledBuyButton(false);
@@ -185,6 +194,12 @@ const BuyTable = ({
 
   useEffect(() => {
     setSelected(derivService.currentDigits);
+  }, []);
+
+  useEffect(() => {
+    setTradeReady(derivService.isTradeReady);
+    const statusListener = derivService.observerInstance.on("trade.status", setTradeReady);
+    return () => derivService.observerInstance.removeById(statusListener);
   }, []);
 
   const handleSelect = (number: number) => {
@@ -384,7 +399,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITOVER")}
                 onMouseEnter={() => handleMouseEnter("above")}
                 onMouseLeave={handleMouseLeave}
-                disabled={disabledBuyButton}
+                disabled={disabledBuyButton || !tradeReady}
                 className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
               >
                 <svg
@@ -410,7 +425,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITUNDER")}
                 onMouseEnter={() => handleMouseEnter("below")}
                 onMouseLeave={handleMouseLeave}
-                disabled={disabledBuyButton}
+                disabled={disabledBuyButton || !tradeReady}
                 className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
                 <svg
@@ -439,7 +454,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITEVEN")}
                 onMouseEnter={() => handleMouseEnter("even")}
                 onMouseLeave={handleMouseLeave}
-                disabled={disabledBuyButton}
+                disabled={disabledBuyButton || !tradeReady}
                 className="flex w-full items-center gap-3 rounded-md bg-green-600 pr-4 pl-4 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
               >
                 <i className="me-2">²</i>
@@ -452,7 +467,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITODD")}
                 onMouseEnter={() => handleMouseEnter("odd")}
                 onMouseLeave={handleMouseLeave}
-                disabled={disabledBuyButton}
+                disabled={disabledBuyButton || !tradeReady}
                 className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
                 <i className="me-2">³</i>
@@ -469,7 +484,7 @@ const BuyTable = ({
                 onClick={() => handleBuy("DIGITDIFF")}
                 onMouseEnter={() => handleMouseEnter("diff")}
                 onMouseLeave={handleMouseLeave}
-                disabled={disabledBuyButton}
+                disabled={disabledBuyButton || !tradeReady}
                 className="flex w-full items-center gap-3 rounded-md pr-4 pl-4 bg-red-600 px-3 py-4 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
                 <CodeBracketIcon aria-hidden="true" className="size-5" />

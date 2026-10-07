@@ -1,6 +1,6 @@
 "use client";
 import { DerivService } from "@/app/services/DerivService";
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 
 const APP_ID = process.env.NEXT_PUBLIC_APPID;
 const REDIRECT_URI =
@@ -31,28 +31,10 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
     getSelectedAccount: () => selectedAccount,
   }));
 
-  useEffect(() => {
-
-
-    //derivService.processLoginResponse();
-
-  }, [derivService]);
-
 
   const handleLogin = () => {
     derivService.loginDeriv();
   };
-
-  useImperativeHandle(ref, () => ({
-    handleLogout: () => {
-      localStorage.removeItem("deriv_accounts");
-      setIsAuthenticated(false);
-      setAccounts([]);
-      setUserData(null);
-      setError(null);
-    },
-    getSelectedAccount: () => selectedAccount,
-  }));
 
   const handleClearHistory = () => {
     derivService.clearHistory();
