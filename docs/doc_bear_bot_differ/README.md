@@ -291,6 +291,8 @@ Para contratos Differ na Deriv, o ganho gira em torno de 9.5% a 10%, e a execuç
 - O hook mantém uma chamada contínua `ensureProposal(symbol, barrier, stake)` via WebSocket.
 - O contrato fica pré-cotado na Deriv com subscrição ativa (`proposal: 1, subscribe: 1`).
 - Quando a condição estatística de disparo é atendida, o comando `buy_contract` envia diretamente o `proposal.id` já existente, garantindo compra imediata (latência sub-10ms).
+- O socket é compartilhado com os outros bots: cada proposta guarda o id do seu stream e é cancelada com `forget` (nunca `forget_all`) quando sai de uso — troca de alvo ou de stake no keeper, compra pelo id e saída da tela. Resposta que chega depois de a proposta ser descartada tem o stream cancelado na chegada.
+- Ids de proposta valem só na conexão que os criou e o `DerivService` não reassina propostas: nos eventos `close` e `trade.status`, o mapa é limpo (sem `forget`, os streams já morreram) e o keeper pede novas no próximo ciclo. Proposta que falhou também sai do mapa para ser pedida de novo.
 
 ### 5.3. Liquidação em Simulação no Tick Seguinte (`next-tick settlement`)
 Em modo de teste/simulação (Paper Trading), a operação não é liquidada instantaneamente. O contrato entra em uma fila de liquidação pendente e é resolvido somente quando o evento `'deriv.tick'` entrega a cotação do tick seguinte, garantindo fidelidade absoluta à realidade de mercado.
@@ -301,7 +303,18 @@ Se habilitado:
 2. Quando ocorre uma perda virtual (o dígito da barreira sai no tick), o contador de perdas é incrementado.
 3. Ao atingir o número configurado de perdas virtuais consecutivas (ex: 1 ou 2), o robô executa um *repick* da barreira e submete a ordem real na corretora.
 
-### 5.5. Modos de Martingale
+### 5.5. Confiabilidade de Ordens Reais
+
+O hook informa ao motor, via `engine.setLiveOrderGuard(hasLiveOrder)`, se existe **ordem viva**: compra aguardando resposta, contrato dentro do prazo de liquidação ou compra não confirmada. Enquanto houver, nenhuma liberação (`settleContract`, `setTradeLock(false)`, `resetSession`) solta `tradeLock`.
+
+- **Prazo de liquidação (`SETTLEMENT_TIMEOUT_MS`, 30s):** sem resultado, o automático para, o log registra e o hook faz uma consulta avulsa do contrato; se a corretora já liquidou, o resultado entra normalmente. Vencido o prazo, o contrato deixa de ser ordem viva e o **Zerar sessão** libera a trava.
+- **`BuyUnconfirmed`:** a ordem pode ter sido executada. A trava fica, o automático para e só o **Zerar sessão** (ação explícita, depois de conferir o extrato) libera. Recusa comum da corretora libera a próxima entrada.
+- **Zerar sessão com contrato aberto:** zera estatísticas mas mantém a trava ("a trava sai na liquidação"); descarta a ordem de papel pendente.
+- **Dados por contrato:** papel/real e stake enviada são gravados na compra e passados a `settleContract`. Um contrato real aberto antes de trocar para `sim` continua indo para o livro real, e a stake do histórico é a enviada, não derivada do payout atual.
+- **Resultado:** o stream do contrato é cancelado (`forget`) na liquidação; o dígito de saída vem de `exit_tick_display_value` (preserva o zero final). Falha ao acompanhar ou consultar o contrato vai para o log.
+- **Saída da tela:** respostas atrasadas de compra não assinam nada; prazos são cancelados.
+
+### 5.6. Modos de Martingale
 - **Martingale Normal:** Multiplica a stake inteira pelo fator configurado ($S_{k} = S_{k-1} \times M$) para recuperar a perda e obter o lucro original em 1 único acerto.
 - **Martingale Parcial:** Fraciona a recuperação em múltiplas etapas menores, reduzindo a exposição da banca e o risco de estourar o limite de perda.
 
@@ -369,7 +382,7 @@ O módulo é desenvolvido por Test-Driven Development: cada mudança começa por
 
 ### 7.1. Piso de cobertura verificado por máquina
 
-O `vitest.config.ts` mede cobertura apenas dos arquivos deste trabalho e exige **90% por arquivo** em `statements`, `lines` e `functions`:
+O `vitest.config.ts` mede cobertura de todo o módulo (tela, abas, hook, motor, matemática e tipos) e exige **90% por arquivo** em `statements`, `lines` e `functions`:
 
 ```
 npm run test:coverage
@@ -379,15 +392,11 @@ Ramos ficam medidos e visíveis, porém sem travar: cobrir todo ramo de apresent
 
 O piso é **por arquivo** (`perFile: true`). Uma média deixaria o motor, já bem coberto, carregar os demais sem que o arquivo mais fraco melhorasse — e o arquivo mais fraco costuma ser justamente o que acabou de mudar.
 
-**Armadilha documentada:** o `include` não pode conter o segmento literal `(withSidebar)`. Parênteses são sintaxe de grupo em glob, e o padrão deixa de casar **em silêncio** — a cobertura passa a reportar sucesso sobre um arquivo que nunca foi medido. Por isso o padrão usado é `src/app/**/bear-bot-differ/components/tabs/OperationTab.tsx`. Para confirmar que o piso está ativo, eleve-o temporariamente e verifique que a execução falha nomeando os três arquivos.
+**Armadilha documentada:** o `include` não pode conter o segmento literal `(withSidebar)`. Parênteses são sintaxe de grupo em glob, e o padrão deixa de casar **em silêncio** — a cobertura passa a reportar sucesso sobre um arquivo que nunca foi medido. Por isso o padrão usado é `src/app/**/bear-bot-differ/**/*.tsx`. Para confirmar que o piso está ativo, eleve-o temporariamente e verifique que a execução falha nomeando os arquivos.
 
 ### 7.2. Medição atual
 
-| Arquivo | Statements | Functions | Lines | Branches |
-| :--- | :---: | :---: | :---: | :---: |
-| `BearDifferEngine.ts` | 96.94% | 98.52% | 97.81% | 89.25% |
-| `useBearDiffer.ts` | 99.14% | 92.85% | 99.54% | 80.00% |
-| `OperationTab.tsx` | 96.00% | 100% | 97.87% | 83.98% |
+Todos os arquivos do módulo estão acima de 90% em linhas, statements e funções; os menores são `PipelineTab.tsx` e `ValidationTab.tsx` (statements ≥ 91%). `npm run test:coverage` mostra os números atuais.
 
 ### 7.3. Suíte
 
@@ -407,6 +416,9 @@ O piso é **por arquivo** (`perFile: true`). Uma média deixaria o motor, já be
 | `bearBotDifferUI.test.tsx` | Layout, abas e barra de configuração |
 | `bearDifferAnalyticalTabs.test.tsx` | Comportamento das abas analíticas |
 | `bearBotDifferPageAccess.test.tsx` | Rota Next.js e proteção de acesso |
+| `bearDifferReliability.test.tsx` | Ordem viva, prazo de liquidação, compra não confirmada, Zerar sessão, propostas e unmount (ids `BD-xx`) |
+| `bearDifferReconnect.test.tsx` | Reconexão com o `DerivService` real: reassinatura do contrato e propostas da conexão que caiu |
+| `bearDifferCoverageGaps.test.tsx` | Barra de configuração, esteira, vigilância, sistema, lógicas por mercado e matemática |
 
-**669 testes aprovados.** A falha de `sharedRules.test.ts` é anterior a este trabalho e não tem relação com o módulo: o arquivo importa `src/app/api/shared-rules/route`, que não existe no repositório.
+A falha de `sharedRules.test.ts` é anterior a este trabalho e não tem relação com o módulo: o arquivo importa `src/app/api/shared-rules/route`, que não existe no repositório.
 

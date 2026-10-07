@@ -7,6 +7,9 @@ import {
 import { DerivService } from '../services/DerivService';
 import { DifferConfig, PIP_FALLBACK } from '../services/beardiffer.types';
 
+/** Contrato de 1 tick liquida em segundos: sem resultado neste prazo, o robô para. */
+const SETTLEMENT_TIMEOUT_MS = 30_000;
+
 export function extractDifferDigit(price: number, symbol: string): number | null {
   const pip = PIP_FALLBACK[symbol] ?? 2;
   const priceStr = price.toFixed(pip);
@@ -37,10 +40,21 @@ export function useBearDiffer() {
   // módulo — e o preço da proposta é amarrado à stake, de modo que um degrau
   // de martingale invalida a proposta anterior.
   const propsRef = useRef<Map<string, string | null>>(new Map());
+  /** Stream de cada proposta aberta, para cancelá-la (forget) quando sair de uso. */
+  const propSubsRef = useRef<Map<string, string>>(new Map());
+  /** Propostas descartadas antes da resposta: o stream é cancelado quando ela chegar. */
+  const orphanPropsRef = useRef<Set<string>>(new Set());
   const pendingTradeRef = useRef<{ sym: string; digit: number; t0: number } | null>(null);
-  const openContractsRef = useRef<Map<number, { sym: string; digit: number; logicId?: string }>>(
-    new Map()
-  );
+  const openContractsRef = useRef<
+    Map<number, { sym: string; digit: number; logicId?: string; stake: number }>
+  >(new Map());
+  /** Prazo de liquidação por contrato real aberto. */
+  const settleTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const buysInFlightRef = useRef(0);
+  /** Buy enviado sem resposta: pode ter sido executado. Só o Zerar sessão libera. */
+  const unconfirmedRef = useRef(false);
+  /** Falso depois do unmount: respostas atrasadas não assinam nada. */
+  const aliveRef = useRef(true);
   const simPendingOrderRef = useRef<{
     sym: string;
     digit: number;
@@ -70,6 +84,28 @@ export function useBearDiffer() {
   const warmTargetRef = useRef<{ sym: string; digit: number } | null>(null);
   const vlossRef = useRef(vlossState);
   vlossRef.current = vlossState;
+
+  // Ordem viva: compra aguardando resposta, contrato dentro do prazo de
+  // liquidação ou compra não confirmada. Enquanto houver, a trava não sai.
+  const hasLiveOrder = useCallback(
+    () => buysInFlightRef.current > 0 || settleTimersRef.current.size > 0 || unconfirmedRef.current,
+    []
+  );
+  engineRef.current.setLiveOrderGuard(hasLiveOrder);
+
+  // Cancela os streams das propostas que saíram de uso. `forget` só é enviado
+  // quando a conexão ainda é a que abriu o stream.
+  const dropProposals = useCallback((keep: Set<string> = new Set(), forget = true) => {
+    const derivService = DerivService.getInstance();
+    Array.from(propsRef.current.keys()).forEach((key) => {
+      if (keep.has(key)) return;
+      const sub = propSubsRef.current.get(key);
+      if (sub && forget) derivService.send({ forget: sub }).catch(() => {});
+      else if (!sub && forget) orphanPropsRef.current.add(key);
+      propsRef.current.delete(key);
+      propSubsRef.current.delete(key);
+    });
+  }, []);
 
   const setWarmTarget = useCallback((sym: string | null, digit?: number) => {
     warmTargetRef.current =
@@ -115,6 +151,23 @@ export function useBearDiffer() {
           subscribe: 1,
         }).catch(() => {});
       });
+  }, []);
+
+  // A trava continua: o contrato pode ter sido executado e ainda liquidar.
+  // Parar o automático e avisar é o que impede o robô de ficar travado calado.
+  const onSettlementTimeout = useCallback((contractId: number) => {
+    settleTimersRef.current.delete(contractId);
+    if (!openContractsRef.current.has(contractId)) return;
+    const engine = engineRef.current;
+    engine.updateConfig({ autoOn: false });
+    engine.addLog(
+      `Sem resultado do contrato ${contractId} em ${SETTLEMENT_TIMEOUT_MS / 1000}s · automático parado · confira o extrato.`,
+      'dn'
+    );
+    // Consulta avulsa: se a corretora já liquidou, a resposta entra pelo listener de POC.
+    DerivService.getInstance()
+      .send({ proposal_open_contract: 1, contract_id: contractId })
+      .catch((e: any) => engine.addLog(`Consulta do contrato ${contractId} falhou: ${e?.message || e}`, 'dn'));
   }, []);
 
   // Execução de Trade
@@ -179,13 +232,15 @@ export function useBearDiffer() {
           ? propsRef.current.get(propKey(sym, digit, prep.stake))
           : null;
 
+        buysInFlightRef.current++;
         if (warmId) {
+          // Uma proposta só serve para uma compra, e um id recusado (ex.: de
+          // uma conexão que caiu) não pode ser reaproveitado na próxima.
+          dropProposals();
           buyResponse = await derivService.send({
             buy: warmId,
             price: prep.stake,
           });
-          // Uma proposta só serve para uma compra
-          propsRef.current.clear();
         } else {
           // Compra direta com parâmetros
           buyResponse = await derivService.send({
@@ -207,13 +262,22 @@ export function useBearDiffer() {
           });
         }
 
+        buysInFlightRef.current--;
+        if (!aliveRef.current) return;
+
         if (buyResponse?.buy?.contract_id) {
           const contractId = Number(buyResponse.buy.contract_id);
-          openContractsRef.current.set(contractId, { sym, digit, logicId });
+          openContractsRef.current.set(contractId, { sym, digit, logicId, stake: prep.stake });
           derivService.subscribe({
             proposal_open_contract: 1,
             contract_id: contractId,
-          }).catch(() => {});
+          }).catch((e: any) =>
+            engine.addLog(`Falha ao acompanhar contrato ${contractId}: ${e?.message || e}`, 'dn')
+          );
+          settleTimersRef.current.set(
+            contractId,
+            setTimeout(() => onSettlementTimeout(contractId), SETTLEMENT_TIMEOUT_MS)
+          );
           engine.addLog(`▶ Ordem Differ enviada em ${sym} ≠${digit} · $${prep.stake}`, 'nt');
         } else {
           engine.addLog(`Erro ao enviar ordem: ${buyResponse?.error?.message || 'Falha na Deriv'}`, 'dn');
@@ -221,11 +285,21 @@ export function useBearDiffer() {
           engine.setTradeLock(false);
         }
       } catch (err: any) {
+        buysInFlightRef.current--;
         engine.addLog(`Erro na compra: ${err?.message || err}`, 'dn');
+        if (err?.code === 'BuyUnconfirmed') {
+          unconfirmedRef.current = true;
+          // A ordem pode ter sido executada sem que se saiba o contrato: soltar
+          // a trava abriria uma segunda ordem. Só o Zerar sessão, ação
+          // explícita depois de conferir o extrato, libera.
+          engine.updateConfig({ autoOn: false });
+          engine.addLog('Compra não confirmada · automático parado · confira o extrato e use Zerar sessão para liberar.', 'dn');
+          return;
+        }
         engine.setTradeLock(false);
       }
     },
-    []
+    [onSettlementTimeout, dropProposals]
   );
 
   // Armar Loss Virtual
@@ -293,8 +367,18 @@ export function useBearDiffer() {
     };
     checkConn();
 
+    // Ids de proposta valem só na conexão que os criou, e o DerivService não
+    // reassina propostas: com o mapa limpo, o keeper pede novas na reabertura.
+    const dropDeadProposals = () => {
+      dropProposals(new Set(), false);
+      orphanPropsRef.current.clear();
+    };
     const onOpen = derivService.observerInstance.on('open', checkConn);
-    const onClose = derivService.observerInstance.on('close', checkConn);
+    const onClose = derivService.observerInstance.on('close', () => {
+      dropDeadProposals();
+      checkConn();
+    });
+    const onTradeStatus = derivService.observerInstance.on('trade.status', dropDeadProposals);
     const onMarketOpen = derivService.observerInstance.on('market.open', () => {
       checkConn();
       subscribeToMarkets();
@@ -321,7 +405,8 @@ export function useBearDiffer() {
               pending.digit,
               lastDigit,
               undefined,
-              pending.logicId
+              pending.logicId,
+              { paper: true, stake: pending.stake }
             );
           }
 
@@ -400,11 +485,18 @@ export function useBearDiffer() {
         const open = openContractsRef.current.get(cid);
         if (open) {
           openContractsRef.current.delete(cid);
+          clearTimeout(settleTimersRef.current.get(cid));
+          settleTimersRef.current.delete(cid);
           const profit = Number(poc.profit);
           const isLoss = profit < 0;
+          if (data.subscription?.id) {
+            derivService.send({ forget: data.subscription.id }).catch(() => {});
+          }
+          // exit_spot é número e perde o zero final (1234.50 vira 1234.5).
           let exitDigit: number | null = null;
-          if (poc.exit_spot !== undefined) {
-            exitDigit = Number(String(poc.exit_spot).slice(-1));
+          const exitText = poc.exit_tick_display_value ?? poc.exit_spot;
+          if (exitText !== undefined) {
+            exitDigit = Number(String(exitText).slice(-1));
           }
           engine.settleContract(
             profit,
@@ -413,7 +505,8 @@ export function useBearDiffer() {
             open.digit,
             exitDigit,
             poc.audit_details,
-            open.logicId
+            open.logicId,
+            { paper: false, stake: open.stake }
           );
         }
       }
@@ -427,9 +520,15 @@ export function useBearDiffer() {
       // uma proposta de outro bot no mesmo socket seria comprada no lugar da
       // nossa, e o payout dela corromperia o ponto de equilíbrio do Differ.
       const pkey = data.passthrough?.pkey;
+      if (pkey && orphanPropsRef.current.has(pkey)) {
+        orphanPropsRef.current.delete(pkey);
+        if (data.subscription?.id) derivService.send({ forget: data.subscription.id }).catch(() => {});
+        return;
+      }
       if (!pkey || !propsRef.current.has(pkey)) return;
 
       propsRef.current.set(pkey, data.proposal.id);
+      if (data.subscription?.id) propSubsRef.current.set(pkey, data.subscription.id);
       if (data.proposal.payout && data.proposal.ask_price) {
         engine.setPayout(data.proposal.payout / data.proposal.ask_price);
       }
@@ -452,18 +551,38 @@ export function useBearDiffer() {
       unsubAuto();
       derivService.observerInstance.removeById(onOpen);
       derivService.observerInstance.removeById(onClose);
+      derivService.observerInstance.removeById(onTradeStatus);
       derivService.observerInstance.removeById(onMarketOpen);
       derivService.observerInstance.removeById(onTick);
       derivService.observerInstance.removeById(onHistory);
       derivService.observerInstance.removeById(onPoc);
       derivService.observerInstance.removeById(onProposal);
       derivService.observerInstance.removeById(onAccount);
+      settleTimersRef.current.forEach(clearTimeout);
+      settleTimersRef.current.clear();
     };
-  }, [subscribeToMarkets, executeTrade]);
+  }, [subscribeToMarkets, executeTrade, dropProposals]);
 
+  // Ciclo de vida da tela: ao sair, os streams de proposta deste módulo são
+  // cancelados — o socket é compartilhado e ninguém mais os consumiria.
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      dropProposals();
+    };
+  }, [dropProposals]);
+
+  // Ação explícita: libera a compra não confirmada e descarta o papel pendente.
+  // Contrato real aberto segura a trava até liquidar ou vencer o prazo.
   const resetSession = useCallback(() => {
+    unconfirmedRef.current = false;
+    simPendingOrderRef.current = null;
     engineRef.current.resetSession();
-  }, []);
+    if (hasLiveOrder()) {
+      engineRef.current.addLog('Contrato em andamento · a trava sai na liquidação.', 'am');
+    }
+  }, [hasLiveOrder]);
 
   const ensureProposal = useCallback(
     (sym: string, barrier: number, stake: number) => {
@@ -491,6 +610,8 @@ export function useBearDiffer() {
         })
         .catch((err) => {
           console.error('Error subscribing to proposal:', err);
+          // Sem a chave o keeper pede de novo no próximo ciclo.
+          if (propsRef.current.get(key) === null) propsRef.current.delete(key);
         });
     },
     [activeAccount]
@@ -516,13 +637,18 @@ export function useBearDiffer() {
 
       const stake = engine.getState().curStake;
       const target = warmTargetRef.current;
-      if (target) ensureProposal(target.sym, target.digit, stake);
-
       const v = vlossRef.current;
+      // Propostas fora do alvo atual (troca de alvo ou de stake) são canceladas.
+      const wanted = new Set<string>();
+      if (target) wanted.add(propKey(target.sym, target.digit, stake));
+      if (v.armed) wanted.add(propKey(v.sym, v.targetDigit, stake));
+      dropProposals(wanted);
+
+      if (target) ensureProposal(target.sym, target.digit, stake);
       if (v.armed) ensureProposal(v.sym, v.targetDigit, stake);
     }, 4000);
     return () => clearInterval(id);
-  }, [ensureProposal]);
+  }, [ensureProposal, dropProposals]);
 
   return {
     engine: engineRef.current,

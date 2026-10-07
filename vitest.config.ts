@@ -30,9 +30,9 @@ export default defineConfig({
       // Nota: o glob não pode conter o segmento "(withSidebar)" literal —
       // parênteses são grupo em glob, e o padrão deixa de casar em silêncio.
       include: [
-        'src/app/services/BearDifferEngine.ts',
+        'src/app/services/{BearDifferEngine,BearDifferMath,beardiffer.types}.ts',
         'src/app/hooks/useBearDiffer.ts',
-        'src/app/**/bear-bot-differ/components/tabs/OperationTab.tsx',
+        'src/app/**/bear-bot-differ/**/*.tsx',
         // Conexão com a corretora e tela home (compra manual): caminho de ordens.
         'src/app/services/DerivService.tsx',
         'src/app/**/home/components/*.{tsx,js}',

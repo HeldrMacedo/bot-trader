@@ -140,6 +140,12 @@ export class BearDifferEngine {
   private mgPartsLeft = 0;
   private mgPartStake = 0;
   private tradeLock = false;
+  /**
+   * Ordem viva fora do motor (compra aguardando resposta, contrato a liquidar,
+   * compra não confirmada). Enquanto houver, nada solta a trava: soltar abriria
+   * uma segunda ordem simultânea. Quem acompanha a corretora (o hook) informa.
+   */
+  private hasLiveOrder: () => boolean = () => false;
   private stopped = false;
   private stoppedReason = '';
   private lastTradeTime = 0;
@@ -288,7 +294,7 @@ export class BearDifferEngine {
     this.mgPartsLeft = 0;
     this.mgPartStake = 0;
     this.curStake = this.config.stake;
-    this.tradeLock = false;
+    this.tradeLock = this.hasLiveOrder();
     this.stopped = false;
     this.stoppedReason = '';
     this.lastTradeTime = 0;
@@ -810,8 +816,12 @@ export class BearDifferEngine {
   }
 
   public setTradeLock(locked: boolean): void {
-    this.tradeLock = locked;
+    this.tradeLock = locked || this.hasLiveOrder();
     this.notify();
+  }
+
+  public setLiveOrderGuard(guard: () => boolean): void {
+    this.hasLiveOrder = guard;
   }
 
   public isTradeLocked(): boolean {
@@ -2002,11 +2012,13 @@ export class BearDifferEngine {
     digit: number,
     exitDigit: number | null,
     audit?: any,
-    logicId?: string
+    logicId?: string,
+    order?: { paper: boolean; stake: number }
   ): void {
     // O que vale é o que foi enviado, não o seletor de agora: com a trava de
-    // testes o modo pode ter virado real entre o envio e a liquidação.
-    const isSim = this.pendingPaper ?? this.config.opMode === 'sim';
+    // testes o modo pode ter virado real entre o envio e a liquidação. `order`
+    // vem gravado por contrato; `pendingPaper` some com o Zerar sessão.
+    const isSim = order?.paper ?? this.pendingPaper ?? this.config.opMode === 'sim';
     this.pendingPaper = null;
     const book = isSim ? this.simStats : this.realStats;
 
@@ -2093,7 +2105,9 @@ export class BearDifferEngine {
       mode: 'differ',
       digit,
       exitDigit,
-      stake: isLoss ? Math.abs(profit) : +(profit / (this.payout - 1)).toFixed(2),
+      // A stake enviada; derivá-la do payout atual falha quando outra proposta
+      // muda o payout no meio do contrato.
+      stake: order?.stake ?? (isLoss ? Math.abs(profit) : +(profit / (this.payout - 1)).toFixed(2)),
       profit: +profit.toFixed(2),
       result: isLoss ? 'LOSS' : 'WIN',
       paper: isSim,
@@ -2139,7 +2153,7 @@ export class BearDifferEngine {
       this.addLog(this.stoppedReason, 'up');
     }
 
-    this.tradeLock = false;
+    this.tradeLock = this.hasLiveOrder();
     this.notify();
   }
 
