@@ -710,7 +710,7 @@ describe('isInRealMode — permanece na real até win', () => {
     });
 
     internal.setupEventHandlers();
-    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(undefined);
+    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(true);
 
     const makeSignal = (id: string) => ({
       symbol: 'R_100', contractType: 'CALL', amount: 0.35,
@@ -869,7 +869,7 @@ describe('setupEventHandlers — proteção contra duplicatas', () => {
       tradeExecutorHandlers,
       processSignalMock,
       resolveProcessSignal: () => {
-        if (processSignalResolve) processSignalResolve();
+        if (processSignalResolve) processSignalResolve(true);
       },
       emitTradeSignal: (signal: any) => {
         const handlers = wsListenerHandlers['tradeSignal'] || [];
@@ -1101,7 +1101,7 @@ describe('Reprodução bug: dois trades reais consecutivos', () => {
     let callCount = 0;
     internal.signalProcessor.processSignal = vi.fn().mockImplementation(() => {
       callCount++;
-      return Promise.resolve();
+      return Promise.resolve(true);
     });
 
     internal.isPaused = false;
@@ -1147,7 +1147,7 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
     });
 
     internal.setupEventHandlers();
-    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(undefined);
+    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(true);
 
     // 2 losses na demo → threshold atingido
     internal.handleDemoTransaction({ amount: -1 });
@@ -1187,7 +1187,7 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
     });
 
     internal.setupEventHandlers();
-    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(undefined);
+    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(true);
 
     const makeSignal = (id: string) => ({
       symbol: 'R_100', contractType: 'CALL', amount: 0.35,
@@ -1233,7 +1233,7 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
     });
 
     internal.setupEventHandlers();
-    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(undefined);
+    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(true);
 
     const makeSignal = (id: string) => ({
       symbol: 'R_100', contractType: 'CALL', amount: 0.35,
@@ -1322,7 +1322,7 @@ describe('Reprodução error.md: quantityLoss=2 e reentrada indevida', () => {
     });
 
     internal.setupEventHandlers();
-    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(undefined);
+    internal.signalProcessor.processSignal = vi.fn().mockResolvedValue(true);
 
     // Com quantityLoss=0, consecutiveLosses não é usado para threshold
     // então não precisa ser resetado

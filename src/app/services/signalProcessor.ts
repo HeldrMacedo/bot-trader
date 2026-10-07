@@ -114,12 +114,13 @@ export class SignalProcessor {
     this.tradeExecutor = tradeExecutor;
   }
 
-  async processSignal(signal: TradeSignal): Promise<void> {
+  /** Devolve true se a ordem foi enviada à conta real; false se o sinal foi descartado. */
+  async processSignal(signal: TradeSignal): Promise<boolean> {
     try {
       
       // Validações avançadas baseadas no method_394
       if (!this.validateSignalAdvanced(signal)) {
-        return;
+        return false;
       }
 
       // Processa o sinal baseado no tipo de mercado
@@ -128,11 +129,11 @@ export class SignalProcessor {
         this.processNonForexSignal(signal);
       
       if (!processedSignal) {
-        return;
+        return false;
       }
       
       // Executa a operação na conta real
-      await this.tradeExecutor.executeTrade(processedSignal);
+      return await this.tradeExecutor.executeTrade(processedSignal);
       
     } catch (error) {
       throw error;

@@ -32,6 +32,12 @@ export async function POST(request: Request) {
       tradingConfig
     );
     
+    if (!result.success) {
+      // Sem userId o JWT nem foi aceito; com userId a falha foi na conexão com a Deriv
+      const status = result.userId ? 502 : 401;
+      return NextResponse.json({ ...result, error: result.message }, { status });
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

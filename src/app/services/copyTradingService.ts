@@ -9,6 +9,8 @@ export class CopyTradingService {
   private signalProcessor: SignalProcessor;
   private tradeExecutor: TradeExecutor;
   private isRunning = false;
+  // Incrementa a cada stop(): um start em andamento detecta que foi cancelado
+  private lifecycle = 0;
   private demoToken: string;
   private realToken: string;
   private sessionId?: string;
@@ -41,6 +43,7 @@ export class CopyTradingService {
   private totalLoss: number = 0;
   private isPaused: boolean = false;
   private pauseEndTime: number = 0;
+  private pauseTimer: NodeJS.Timeout | null = null;
   private onTrade: boolean = false; // Guard: true enquanto um trade real está ativo (equivale a bool_89 do ZeekBot)
   private isInRealMode: boolean = false; // true quando consecutiveLosses >= quantityLoss — permanece até sair win na real
 
@@ -201,13 +204,14 @@ export class CopyTradingService {
 
 
   private applyPause(seconds: number, reason: string) {
+    this.clearPauseTimer();
     this.isPaused = true;
     this.pauseEndTime = Date.now() + (seconds * 1000);
     this.timePause = seconds;
 
 
     // Atualizar timePause em tempo real
-    const updateTimer = setInterval(() => {
+    this.pauseTimer = setInterval(() => {
       const remainingTime = Math.max(0, this.pauseEndTime - Date.now());
       this.timePause = Math.ceil(remainingTime / 1000);
 
@@ -215,9 +219,16 @@ export class CopyTradingService {
         this.isPaused = false;
         this.timePause = 0;
 
-        clearInterval(updateTimer);
+        this.clearPauseTimer();
       }
     }, 1000);
+  }
+
+  private clearPauseTimer() {
+    if (this.pauseTimer) {
+      clearInterval(this.pauseTimer);
+      this.pauseTimer = null;
+    }
   }
 
 
@@ -249,12 +260,20 @@ export class CopyTradingService {
         this.onTrade = true;
         this.contract_id = signal.contractId;
 
+        const executed = await this.signalProcessor.processSignal({ ...signal, amount: this.currentStake });
+        if (!executed) {
+          // Nenhuma ordem foi enviada: sem liberar o guard o bot nunca mais copiaria
+          this.onTrade = false;
+          this.contract_id = null;
+          this.addError('info', 'Sinal Descartado', `Sinal ${signal.contractType} em ${signal.symbol} não copiado (não suportado ou duplicado)`, 'trading');
+          return;
+        }
+
         // Entra no modo real: permanece fazendo entradas na real até sair um win
         if (this.quantityLoss > 0) {
           this.isInRealMode = true;
         }
 
-        await this.signalProcessor.processSignal({ ...signal, amount: this.currentStake });
         this.stats.tradesExecuted++;
         this.stats.lastTradeTime = new Date();
 
@@ -310,9 +329,21 @@ export class CopyTradingService {
       this.balance = balance;
     });
 
-    this.tradeExecutor.on('error', (error) => {
-      // Libera guard em caso de erro no executor
+    // Erros do executor (socket, parse, aviso de reconexão) não indicam que a ordem
+    // falhou: liberar o guard aqui permitiria uma segunda ordem real com a primeira aberta.
+    this.tradeExecutor.on('buyRejected', () => {
       this.onTrade = false;
+    });
+
+    // Sem resposta da Deriv a ordem pode existir ou não: liberar o guard arriscaria
+    // duplicá-la e continuar operando desalinharia o martingale. Para e avisa.
+    this.tradeExecutor.on('tradeTimeout', (error) => {
+      this.stats.errors++;
+      this.addError('error', 'Timeout da Deriv', `${error.message}. Bot parado para evitar ordem duplicada; confira a conta real.`, 'trading', error);
+      this.stop();
+    });
+
+    this.tradeExecutor.on('error', (error) => {
       this.stats.errors++;
       this.addError('error', 'Erro no Trade Executor', `Falha ao processar transação: ${error.message}`, 'trading', error);
     });
@@ -382,9 +413,15 @@ export class CopyTradingService {
       }
 
       this.stats.startTime = new Date();
+      const lifecycle = this.lifecycle;
 
       // Conecta ao WebSocket da conta real
-      await this.connectMasterWithRetry();
+      await this.connectMasterWithRetry(lifecycle);
+
+      // stop() durante a conexão: não liga a demo nem marca como rodando
+      if (lifecycle !== this.lifecycle) {
+        throw new Error('Copy trading parado durante a conexão');
+      }
 
       // Conecta ao WebSocket da conta demo
       this.wsListener.connect();
@@ -399,22 +436,29 @@ export class CopyTradingService {
     }
   }
 
-  private async connectMasterWithRetry(maxAttempts = 3): Promise<void> {
+  private async connectMasterWithRetry(lifecycle: number, maxAttempts = 3): Promise<void> {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         await this.tradeExecutor.connectToMaster();
         return;
       } catch (error) {
+        if (lifecycle !== this.lifecycle) {
+          throw new Error('Copy trading parado durante a conexão');
+        }
         if (attempt === maxAttempts) {
           throw error;
         }
         await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+        if (lifecycle !== this.lifecycle) {
+          throw new Error('Copy trading parado durante a conexão');
+        }
       }
     }
   }
 
   stop(): void {
 
+    this.lifecycle++;
     this.isRunning = false;
     this.signalProcessor.setEnabled(false);
     this.wsListener.disconnect();
@@ -425,7 +469,9 @@ export class CopyTradingService {
   clearAllDados() {
     this.totalProfit = 0;
     this.totalLoss = 0;
+    this.clearPauseTimer();
     this.isPaused = false;
+    this.timePause = 0;
     this.consecutiveLosses = 0;
     this.martingaleLevel = 0;
     this.currentStake = 0;

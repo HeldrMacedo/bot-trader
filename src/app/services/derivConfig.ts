@@ -147,12 +147,14 @@ export async function fetchAccountIdFromPat(patToken: string, accountType: 'demo
     throw new Error('Nenhuma conta de Options encontrada para este token PAT.');
   }
 
-  const accountId = accounts.find(acc => acc.account_type === accountType)
+  const account = accounts.find(acc => acc.account_type === accountType);
 
-  // Aqui estamos pegando a primeira conta da lista.
-  // Se o usuário tiver mais de uma, você pode adicionar uma lógica para
-  // filtrar por accounts.find(acc => acc.account_type === 'demo') etc.
-  return accountId?.account_id;
+  // Sem a conta do tipo pedido o OTP seria gerado para ".../accounts/undefined/otp"
+  if (!account?.account_id) {
+    throw new Error(`Nenhuma conta ${accountType} encontrada para este token PAT.`);
+  }
+
+  return account.account_id;
 }
 
 /**

@@ -35,7 +35,7 @@ vi.mock('../app/services/tradeExecutor', () => {
 });
 
 const mockSetEnabled = vi.fn();
-const mockProcessSignal = vi.fn().mockResolvedValue(undefined);
+const mockProcessSignal = vi.fn().mockResolvedValue(true);
 
 vi.mock('../app/services/signalProcessor', () => {
   return {
@@ -103,7 +103,10 @@ describe('CopyTradingService - Fluxo de Execução e Duplicadas', () => {
     // Verifica se onTrade foi ativado
     stats = service.getStats();
     expect(stats.trading.onTrade).toBe(true);
-    expect(stats.trading.isInRealMode).toBe(true);
+    // Modo real só vale depois que a ordem é de fato enviada (processSignal resolve true)
+    expect(stats.trading.isInRealMode).toBe(false);
+    await Promise.resolve();
+    expect(service.getStats().trading.isInRealMode).toBe(true);
     expect(mockSignalProcessor.processSignal).toHaveBeenCalledWith(
       expect.objectContaining({ contractId: 1003, amount: 0.35 })
     );

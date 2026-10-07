@@ -5,6 +5,12 @@ import EventEmitter from 'events';
 import { resolveDerivConnection } from './derivConfig';
 
 const PING_INTERVAL_MS = 20000;
+// Prazo para a Deriv responder ao buy; sem resposta não dá para saber se a ordem existe.
+const BUY_RESPONSE_TIMEOUT_MS = 30000;
+// Folga sobre a duração do contrato para o resultado chegar (liquidação + reconexão).
+const SETTLEMENT_GRACE_MS = 60000;
+// Ticks dos sintéticos saem a cada 1s (1HZ*) ou 2s (R_*): usa o pior caso.
+const DURATION_UNIT_MS: Record<string, number> = { t: 2000, s: 1000, m: 60000, h: 3600000, d: 86400000 };
 
 export class TradeExecutor extends EventEmitter {
   private wsMaster: WebSocket | null = null;
@@ -21,9 +27,15 @@ export class TradeExecutor extends EventEmitter {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 5000;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  // Incrementa a cada disconnect(): conexões e reconexões em andamento ficam obsoletas
+  private connectionGeneration = 0;
   private isTestMode = false; // Novo: modo de teste
   private mockContractId = 1000000; // Contador para IDs de contratos mock
   private emittedContractIds = new Set<string | number>(); // Evita emitir transaction duplicada para o mesmo contrato
+  private pendingBuy: { durationMs: number; timer: NodeJS.Timeout } | null = null;
+  // Contratos comprados ainda sem resultado: reassinados a cada reconexão, com prazo de liquidação
+  private openContracts = new Map<string | number, NodeJS.Timeout>();
   private latestRealContractSummary: {
     data: string;
     entry_spot_display_value?: string;
@@ -52,17 +64,33 @@ export class TradeExecutor extends EventEmitter {
 
 
   async connectToMaster(): Promise<void> {
+    const generation = this.connectionGeneration;
     return new Promise(async (resolve, reject) => {
       try {
         // Resolve URL + auth pela camada central (oauth:->OTP / clássico->authorize).
         // OTP é de uso único, então resolvemos a cada (re)conexão.
         const conn = await resolveDerivConnection(this.token, this.isTestMode ? "demo" : "real");
 
+        // disconnect() durante o resolve: não abre um socket órfão na conta real
+        if (generation !== this.connectionGeneration) {
+          reject(new Error('Conexão com a Deriv cancelada'));
+          return;
+        }
+
         this.needsAuthorize = conn.needsAuthorize;
 
-        this.wsMaster = new WebSocket(conn.url);
+        // Uma conexão viva por vez: a anterior fica obsoleta e seus eventos são ignorados
+        const previous = this.wsMaster;
+        const ws = new WebSocket(conn.url);
+        this.wsMaster = ws;
+        this.isConnected = false;
+        this.stopPing();
+        previous?.close();
+        let opened = false;
 
-        this.wsMaster.on('open', () => {
+        ws.on('open', () => {
+          if (this.wsMaster !== ws) return;
+          opened = true;
           this.isConnected = true;
           this.reconnectAttempts = 0;
           this.emit('connected');
@@ -71,23 +99,29 @@ export class TradeExecutor extends EventEmitter {
           this.authenticateReal(conn.needsAuthorize, conn.token);
         });
 
-        this.wsMaster.on('error', (error: any) => {
+        ws.on('error', (error: any) => {
           console.error('Master WebSocket error:', error);
+          reject(error);
+          if (this.wsMaster !== ws) return;
           this.isConnected = false;
           this.emit('error', error);
-          if (this.reconnectAttempts === 0) {
-            reject(error);
-          }
         });
 
-        this.wsMaster.on('close', () => {
+        ws.on('close', () => {
+          if (!opened) {
+            reject(new Error('Conexão com a Deriv fechada antes de abrir'));
+          }
+          if (this.wsMaster !== ws) return;
           this.isConnected = false;
           this.stopPing();
           this.emit('disconnected');
-          this.attemptReconnect();
+          // Falha antes de abrir é tratada por quem chamou (retry do start, executeTrade ou a própria reconexão)
+          if (opened) {
+            this.attemptReconnect();
+          }
         });
 
-        this.wsMaster.on('message', (data: any) => {
+        ws.on('message', (data: any) => {
           this.handleMasterMessage(data.toString());
         });
 
@@ -121,10 +155,17 @@ export class TradeExecutor extends EventEmitter {
     }
 
     this.reconnectAttempts++;
+    const generation = this.connectionGeneration;
 
-    setTimeout(() => {
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      // O executeTrade pode ter reconectado antes do timer
+      if (this.isConnected) return;
       this.connectToMaster().catch((error) => {
         console.error('Reconnection failed:', error);
+        if (generation === this.connectionGeneration) {
+          this.attemptReconnect();
+        }
       });
     }, this.reconnectDelay * this.reconnectAttempts);
   }
@@ -133,6 +174,7 @@ export class TradeExecutor extends EventEmitter {
     if (!needsAuthorize) {
       // Socket OTP já autorizado: assina o saldo diretamente.
       this.balanceSubscribe();
+      this.resubscribeOpenContracts();
       return;
     }
 
@@ -150,7 +192,48 @@ export class TradeExecutor extends EventEmitter {
     this.wsMaster.send(JSON.stringify(balance));
   }
 
-  async executeTrade(signal: TradeSignal): Promise<void> {
+  // O subscribe do buy morre com o socket antigo: sem isso o resultado nunca chega.
+  private resubscribeOpenContracts() {
+    for (const contractId of this.openContracts.keys()) {
+      this.wsMaster.send(JSON.stringify({ proposal_open_contract: 1, contract_id: contractId, subscribe: 1 }));
+    }
+  }
+
+  private startBuyTimeout(signal: TradeSignal) {
+    this.clearPendingBuy();
+    const durationMs = signal.duration * (DURATION_UNIT_MS[signal.durationUnit || 't'] ?? DURATION_UNIT_MS.d);
+    const timer = setTimeout(() => {
+      this.pendingBuy = null;
+      this.emit('tradeTimeout', new Error(`Deriv não respondeu à compra em ${BUY_RESPONSE_TIMEOUT_MS / 1000}s`));
+    }, BUY_RESPONSE_TIMEOUT_MS);
+    this.pendingBuy = { durationMs, timer };
+  }
+
+  private clearPendingBuy() {
+    if (this.pendingBuy) {
+      clearTimeout(this.pendingBuy.timer);
+      this.pendingBuy = null;
+    }
+  }
+
+  private trackOpenContract(contractId: string | number, durationMs: number) {
+    const timer = setTimeout(() => {
+      this.openContracts.delete(contractId);
+      this.emit('tradeTimeout', new Error(`Resultado do contrato ${contractId} não chegou da Deriv`));
+    }, durationMs + SETTLEMENT_GRACE_MS);
+    this.openContracts.set(contractId, timer);
+  }
+
+  private settleOpenContract(contractId: string | number) {
+    const timer = this.openContracts.get(contractId);
+    if (timer) {
+      clearTimeout(timer);
+      this.openContracts.delete(contractId);
+    }
+  }
+
+  /** Devolve true se o buy foi enviado; false se foi bloqueado como duplicata. */
+  async executeTrade(signal: TradeSignal): Promise<boolean> {
     try {
 
       // Implementa lógica similar ao method_348
@@ -164,7 +247,7 @@ export class TradeExecutor extends EventEmitter {
       if (this.duplicateProtection && this.isDuplicateTrade(signal)) {
         const error = new Error('Trade duplicado bloqueado');
         this.emit('warning', error);
-        return;
+        return false;
       }
 
       // Incrementa contador de requisições
@@ -178,8 +261,10 @@ export class TradeExecutor extends EventEmitter {
 
       /*@ts-ignore*/
       this.wsMaster.send(JSON.stringify(buyRequest));
+      this.startBuyTimeout(signal);
 
       this.updateLastTradeInfo(signal);
+      return true;
 
     } catch (error) {
       this.emit('error', error);
@@ -280,22 +365,32 @@ export class TradeExecutor extends EventEmitter {
     try {
       const message = JSON.parse(data);
 
+      // 'sold' = vendido antes do vencimento (venda manual ou pela Deriv); também é resultado final
+      const finalStatuses = ['won', 'lost', 'sold'];
       if (message.msg_type === 'proposal_open_contract' &&
-        (message.proposal_open_contract.status === 'won' || message.proposal_open_contract.status === 'lost')) {
+        finalStatuses.includes(message.proposal_open_contract.status)) {
         const contractId = message.proposal_open_contract.contract_id;
         // Emite apenas uma vez por contract_id (API Deriv envia múltiplas mensagens para o mesmo contrato finalizado)
         if (contractId && !this.emittedContractIds.has(contractId)) {
           this.emittedContractIds.add(contractId);
+          this.settleOpenContract(contractId);
           this.emit('transaction', message.proposal_open_contract);
         }
       }
 
 
       if (message.msg_type === 'buy') {
+        const durationMs = this.pendingBuy?.durationMs;
+        this.clearPendingBuy();
         if (message.error) {
           const error = new Error(`Erro na compra: ${message.error.message}`);
           this.emit('error', error);
+          // Único erro que garante que a ordem não existe na corretora
+          this.emit('buyRejected', error);
         } else {
+          if (durationMs !== undefined && message.buy?.contract_id) {
+            this.trackOpenContract(message.buy.contract_id, durationMs);
+          }
           this.emit('success', { message: 'Trade executado com sucesso', data: message.buy });
         }
       }
@@ -314,6 +409,7 @@ export class TradeExecutor extends EventEmitter {
 
         //Subscribe no saldo 
         this.balanceSubscribe();
+        this.resubscribeOpenContracts();
       }
 
       if (message.msg_type === 'balance') {
@@ -342,7 +438,16 @@ export class TradeExecutor extends EventEmitter {
   }
 
   disconnect(): void {
+    this.connectionGeneration++;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.isConnected = false;
     this.stopPing();
+    this.clearPendingBuy();
+    for (const timer of this.openContracts.values()) clearTimeout(timer);
+    this.openContracts.clear();
     if (this.wsMaster) {
       this.wsMaster.close();
       this.wsMaster = null;

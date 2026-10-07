@@ -13,6 +13,8 @@ export class WsListener extends EventEmitter {
   private needsAuthorize = false;
   private subscribed = false;
   private pingTimer: NodeJS.Timeout | null = null;
+  // Incrementa a cada disconnect(): conexões em andamento ficam obsoletas
+  private connectionGeneration = 0;
   private processedContracts = new Set<string>(); // Evitar duplicatas
   private lastVirtualTransaction: {
     action?: string;
@@ -37,10 +39,16 @@ export class WsListener extends EventEmitter {
   }
 
   async connect(): Promise<void> {
+    const generation = this.connectionGeneration;
     try {
       // Resolve URL + auth pela camada central (oauth:->OTP / clássico->authorize).
       // OTP é de uso único, então resolvemos a cada (re)conexão.
       const conn = await resolveDerivConnection(this.token, "demo");
+
+      // disconnect() durante o resolve: abrir agora geraria sinais com o bot parado
+      if (generation !== this.connectionGeneration) {
+        return;
+      }
       this.needsAuthorize = conn.needsAuthorize;
       this.subscribed = false;
 
@@ -75,6 +83,10 @@ export class WsListener extends EventEmitter {
       });
     } catch (error) {
       this.emit('error', error);
+      // Sem socket não haverá 'close': avisa o dono para tentar de novo
+      if (generation === this.connectionGeneration) {
+        this.emit('disconnected');
+      }
     }
   }
 
@@ -514,8 +526,9 @@ export class WsListener extends EventEmitter {
   }
 
   private extractBarrier(longcode: string): string {
-    // Para contratos touch sem plus/minus, extrai o primeiro número encontrado
-    const barrierMatch = longcode.match(/([\d.]+)/);
+    // Para contratos touch sem plus/minus, a barreira vem logo após o verbo. O primeiro
+    // número do longcode costuma ser o do índice ("Volatility 100 Index"), não a barreira.
+    const barrierMatch = longcode.match(/(?:touches|does not touch)\s+(\d+(?:\.\d+)?)/);
     return barrierMatch ? barrierMatch[1] : '';
   }
 
@@ -594,6 +607,7 @@ export class WsListener extends EventEmitter {
   }
 
   disconnect(): void {
+    this.connectionGeneration++;
     this.stopPing();
     if (this.ws) {
       this.ws.close();

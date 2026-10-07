@@ -79,10 +79,11 @@ export class CopyTradingManager {
     }
   }
 
-  public startCopyTrading(jwtToken: string, demoToken: string, realToken: string, configure: any): { success: boolean; userId: string; message: string } {
+  public async startCopyTrading(jwtToken: string, demoToken: string, realToken: string, configure: any): Promise<{ success: boolean; userId: string; message: string }> {
+    let userId = '';
     try {
 
-      const userId = this.validateJWT(jwtToken);
+      userId = this.validateJWT(jwtToken);
       if (this.userServices.has(userId)) {
         const existing = this.userServices.get(userId)!;
         existing.copyTradingService.stop();
@@ -99,7 +100,16 @@ export class CopyTradingManager {
         lastActivity: new Date()
       });
 
-      copyTradingService.start();
+      try {
+        await copyTradingService.start();
+      } catch (error) {
+        copyTradingService.stop();
+        // Um start mais novo do mesmo usuário pode ter substituído esta sessão
+        if (this.userServices.get(userId)?.copyTradingService === copyTradingService) {
+          this.userServices.delete(userId);
+        }
+        throw error;
+      }
 
       return {
         success: true,
@@ -107,7 +117,7 @@ export class CopyTradingManager {
         message: 'Copy trading iniciado com sucesso'
       };
     } catch (error) {
-      return { success: false, userId: '', message: error.message };
+      return { success: false, userId, message: error.message };
     }
   }
 

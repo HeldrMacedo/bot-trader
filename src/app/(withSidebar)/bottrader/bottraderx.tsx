@@ -5,7 +5,7 @@ import {
   ExclamationTriangleIcon,
   StopIcon,
 } from "@heroicons/react/24/outline";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
 interface Stats {
@@ -143,12 +143,21 @@ export default function BotTraderX() {
   const [checkedPauseTimeWin, setCheckedPauseTimeWin] = useState(false);
   const [disabledFields, setDisabledFields] = useState(false);
 
+  // O setInterval guarda o fetchStatus do primeiro render: o estado atual é lido por refs.
+  const isStartRef = useRef(false);
+  isStartRef.current = isStart;
+  // Ordem dos pedidos de status: respostas antigas (ou anteriores ao último start/stop) são descartadas
+  const statusRequestSeq = useRef(0);
+  const lastAppliedStatus = useRef(0);
+  const actionBarrier = useRef(0);
+
   useEffect(() => {
     const interval = setInterval(fetchStatus, 2000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchStatus = async () => {
+    const requestId = ++statusRequestSeq.current;
     try {
       // Obter tokens do usuário atual (implementar conforme sua lógica de autenticação)
       const token = localStorage.getItem("access_token");
@@ -163,6 +172,11 @@ export default function BotTraderX() {
 
       const data = await response.json();
 
+      if (requestId < actionBarrier.current || requestId < lastAppliedStatus.current) {
+        return;
+      }
+      lastAppliedStatus.current = requestId;
+
       // Detectar erro de autenticação (ex: AccountDisabled)
       if (data?.authError) {
         const source = data.authError.source === 'demo' ? 'Demo' : 'Real';
@@ -172,10 +186,16 @@ export default function BotTraderX() {
         return;
       }
 
-      // Se o bot foi parado externamente (ex: por erro), atualizar o UI
-      if (isStart && data?.copyTrading && !data.copyTrading.isRunning) {
+      // Bot parado no servidor (stopWin/stopLoss/timeout) ou sessão inexistente (ex.: reinício)
+      const serverStopped = data?.copyTrading ? !data.copyTrading.isRunning : data?.isRunning === false;
+      if (isStartRef.current && serverStopped) {
+        isStartRef.current = false;
         setIsStart(false);
         setDisabledFields(false);
+        const reason = data?.errors?.lastError?.message;
+        if (reason) {
+          toast.warning(`Bot parado pelo servidor: ${reason}`, { toastId: 'server-stopped' });
+        }
       }
 
       if (data?.copyTrading?.isRunning) {
@@ -216,14 +236,16 @@ export default function BotTraderX() {
         body: JSON.stringify({ demoToken, realToken, configure: { ...configure, testMode: isTestMode } }),
       });
       const data = await response.json();;
+      actionBarrier.current = statusRequestSeq.current + 1;
 
-      if (response.ok) {
+      if (response.ok && data.success !== false) {
+        isStartRef.current = true;
         setDisabledFields(true);
         toast.success('Copy trading iniciado com sucesso!');
         setIsStart(true);
         fetchStatus();
       } else {
-        toast.error(`Erro ao iniciar: ${data.error}`);
+        toast.error(`Erro ao iniciar: ${data.error || data.message}`);
       }
     } catch (error) {
       toast.error("Erro ao iniciar copy trading");
@@ -242,12 +264,14 @@ export default function BotTraderX() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ stopAll: true }),
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
+      actionBarrier.current = statusRequestSeq.current + 1;
 
       if (response.ok) {
+        isStartRef.current = false;
         setDisabledFields(false);
         toast.success("Copy trading parado com sucesso!");
         setIsStart(false);

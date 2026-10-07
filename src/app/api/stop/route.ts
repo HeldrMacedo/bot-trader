@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CopyTradingManager } from '../../services/copyTradingManager';
+import { verifyAdminToken } from '@/app/(withSidebar)/operations/actions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,9 +9,19 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     
     const copyTradingManager = CopyTradingManager.getInstance();
-    
-    // Parar todas as sessões (para admin)
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Token JWT necessário' }, { status: 401 });
+    }
+
+    const jwtToken = authHeader.split(' ')[1];
+
+    // Parar todas as sessões (apenas admin): derruba os bots de todos os usuários
     if (stopAll === true) {
+      if (!(await verifyAdminToken(jwtToken))) {
+        return NextResponse.json({ error: 'Apenas administradores podem parar todas as sessões' }, { status: 403 });
+      }
+
       const result = copyTradingManager.stopAllSessions();
       
       return NextResponse.json({ 
@@ -21,11 +32,6 @@ export async function POST(request: NextRequest) {
     }
     
     // Parar sessão específica do usuário
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Token JWT necessário' }, { status: 401 });
-    }
-    
-    const jwtToken = authHeader.split(' ')[1];
     const result = copyTradingManager.stopCopyTrading(jwtToken);
     
     if (result.success) {

@@ -46,12 +46,17 @@ CopyTradingManager          ← singleton server-side, gerencia sessões por use
 ```
 POST /api/start { demoToken, realToken, configure }
         │
-        ├─ Valida JWT do usuário (CopyTradingManager.validateJWT)
+        ├─ Valida JWT do usuário (CopyTradingManager.validateJWT)   → 401 se inválido
         ├─ Para sessão anterior se existir
         ├─ Cria CopyTradingService com a configuração
-        ├─ Conecta TradeExecutor (conta real) via WebSocket
+        ├─ Conecta TradeExecutor (conta real) via WebSocket — 3 tentativas (espera 2s, 4s)
+        │     falha → para o service, remove a sessão e responde 502 com o erro
         └─ Conecta WsListener (conta demo) via WebSocket
 ```
+
+A rota **aguarda** a conexão com a conta real antes de responder, por isso o start leva
+alguns segundos. Se `/api/stop` (ou um novo start do mesmo usuário) chegar durante a conexão,
+o start é cancelado com `Copy trading parado durante a conexão` e nenhum socket fica aberto.
 
 ### Ciclo de trade
 
@@ -66,13 +71,17 @@ CopyTradingService.shouldProcessSignal()
         │ false → ignora (aguardando losses / pausado)
         │ true  →
         ▼
-SignalProcessor.processSignal()
+SignalProcessor.processSignal()            → false: sinal descartado (ver abaixo)
         │ valida tipo de contrato e mercado
         ▼
-TradeExecutor.executeTrade()
-        │ envia buy para WebSocket da conta real
+TradeExecutor.executeTrade()               → false: bloqueado como duplicata
+        │ envia buy para WebSocket da conta real e inicia o prazo de resposta (30s)
         ▼
-TradeExecutor recebe proposal_open_contract (won/lost)
+TradeExecutor recebe a resposta do buy
+        │ erro → emite 'buyRejected' (libera o guard)
+        │ ok   → guarda o contract_id e inicia o prazo de liquidação
+        ▼
+TradeExecutor recebe proposal_open_contract (won/lost/sold)
         │ emite evento 'transaction'
         ▼
 CopyTradingService.handleRealTransaction()
@@ -158,10 +167,23 @@ O nível é exibido na UI como `nivel/maximo` (ex: `2/5`).
 `onTrade` é um booleano que impede a execução de múltiplos trades reais simultaneamente:
 
 1. **Antes** de `processSignal()` → `onTrade = true`
-2. Ao receber resultado da conta real → `onTrade = false`
+2. Ao receber resultado da conta real (`won`, `lost` ou `sold`) → `onTrade = false`
 3. Novos sinais da demo chegando enquanto `onTrade = true` são descartados
 
 Isso equivale ao `bool_89` do ZeekBot original.
+
+O guard só é liberado quando há certeza de que **não existe ordem aberta**:
+
+| Evento | Libera o guard? | Motivo |
+|--------|-----------------|--------|
+| Resultado do contrato (`won`/`lost`/`sold`) | Sim | Contrato encerrado |
+| Deriv rejeita o buy (`buyRejected`, ex.: saldo insuficiente) | Sim | A ordem não existe |
+| Sinal descartado (mercado não mapeado, inválido, duplicata) | Sim | Nenhum buy foi enviado; registrado como info `Sinal Descartado` |
+| Falha ao reconectar dentro do `executeTrade` | Sim | O buy não chegou a ser enviado |
+| Erro genérico do executor (socket, parse, reconexão) | **Não** | A ordem pode estar aberta; liberar permitiria uma segunda ordem real |
+| Timeout da Deriv | Bot é **parado** | Ver "Timeouts da Deriv" |
+
+O modo real (`isInRealMode`) só é ativado depois que o buy é enviado de fato.
 
 ---
 
@@ -185,20 +207,35 @@ Isso equivale ao `bool_89` do ZeekBot original.
 { "success": true, "userId": "123", "message": "Copy trading iniciado com sucesso" }
 ```
 
+**Erros:**
+
+| Status | Quando | Corpo |
+|--------|--------|-------|
+| `401` | Sem Bearer ou JWT inválido | `{ "success": false, "userId": "", "error": "Token JWT inválido", ... }` |
+| `502` | Falha ao conectar na Deriv (OTP, rede, cancelado por stop) | `{ "success": false, "userId": "123", "error": "<mensagem>", ... }` |
+
 ---
 
 ### `POST /api/stop`
 
 **Headers:** `Authorization: Bearer <jwt>`
 
-**Body:**
-```json
-{ "stopAll": true }
-```
+Sempre exige JWT válido (`401` sem Bearer).
+
+**Body (usuário):** `{}` — para apenas a sessão do usuário do JWT. É o que o botão "Parar" envia.
 
 **Resposta (200):**
 ```json
-{ "success": true, "message": "Copy trading parado com sucesso" }
+{ "message": "Copy trading parado com sucesso", "timestamp": "..." }
+```
+
+`404` quando o usuário não tem sessão ativa.
+
+**Body (admin):** `{ "stopAll": true }` — para as sessões de **todos** os usuários. Exige
+`role = "admin"` (verificado no banco via `verifyAdminToken`); usuário comum recebe `403`.
+
+```json
+{ "message": "Paradas 3 sessões", "stoppedSessions": 3, "timestamp": "..." }
 ```
 
 ---
@@ -238,6 +275,15 @@ Isso equivale ao `bool_89` do ZeekBot original.
 }
 ```
 
+Sem sessão para o usuário: `{ "isRunning": false, "message": "Copy trading não iniciado" }`.
+
+**Sincronização da UI (`bottraderx.tsx`):**
+- Se o servidor informa bot parado (`copyTrading.isRunning=false`, por stopWin/stopLoss/timeout)
+  ou sessão inexistente (`isRunning=false`, ex.: reinício do servidor), a UI destrava os campos e
+  exibe `Bot parado pelo servidor: <errors.lastError.message>`.
+- Respostas de status são ordenadas: uma resposta mais antiga não sobrescreve uma mais nova, e
+  respostas a pedidos feitos antes do último start/stop são descartadas.
+
 ---
 
 ## Extração de Sinais (WsListener)
@@ -257,7 +303,7 @@ O `WsListener` se conecta via `wss://ws.binaryws.com` com o token da conta demo 
 | `DIGITODD` / `DIGITEVEN` | Último dígito par/ímpar |
 | `DIGITMATCH` / `DIGITDIFF` | Último dígito igual/diferente |
 | `DIGITOVER` / `DIGITUNDER` | Último dígito acima/abaixo |
-| `ONETOUCH` / `NOTOUCH` | Toca/Não toca barreira |
+| `ONETOUCH` / `NOTOUCH` | Toca/Não toca barreira (relativa `plus`/`minus` ou absoluta: número logo após `touches` / `does not touch`) |
 | `RESETCALL` / `RESETPUT` | Reset contracts |
 | `RUNHIGH` / `RUNLOW` | Run contracts |
 
@@ -284,19 +330,54 @@ Parâmetros comparados: `símbolo|tipo|valor|barrier|duração|unidade`
 
 ## Reconexão automática
 
-- `WsListener`: ao detectar `close`, tenta reconectar após 5 segundos (se ainda em execução)
-- `TradeExecutor`: até 5 tentativas com backoff exponencial (`delay × tentativa`)
-- **Atenção:** o estado interno (martingaleLevel, consecutiveLosses, etc.) não é recuperado após reconexão — ver pendências abaixo
+- `WsListener` (demo): ao detectar `close` **ou falha ao resolver a conexão (OTP)**, tenta
+  reconectar após 5 segundos enquanto o bot estiver em execução.
+- `TradeExecutor` (real): até 5 tentativas com backoff linear (`5s × tentativa`). Só uma conexão
+  que chegou a abrir dispara reconexão ao cair; tentativa que falha antes de abrir agenda a próxima.
+- **Uma conexão real por vez:** ao abrir uma nova, a anterior é fechada e seus eventos ignorados.
+  A reconexão agendada é dispensada se o `executeTrade` já reconectou.
+- **Contratos abertos são reassinados:** o subscribe do buy morre com o socket antigo; ao reconectar,
+  o executor envia `proposal_open_contract` para cada contrato sem resultado (OTP: na abertura;
+  token clássico: após o `authorize` OK).
+- **`stop()` cancela tudo:** timers de reconexão, conexões em andamento (inclusive aguardando OTP),
+  prazos de compra/liquidação e o timer de pausa. Nenhum socket é aberto depois do stop.
+- **Atenção:** o estado interno (martingaleLevel, consecutiveLosses, etc.) não é recuperado após reinício do servidor — ver pendências abaixo
+
+---
+
+## Timeouts da Deriv
+
+| Prazo | Valor | Ao estourar |
+|-------|-------|-------------|
+| Resposta do `buy` | 30s | Bot parado |
+| Resultado do contrato | duração do contrato + 60s (ticks contam 2s cada) | Bot parado |
+
+Sem resposta não dá para saber se a ordem existe: liberar o guard arriscaria ordem duplicada, e
+continuar operando desalinharia o martingale. Por isso o executor emite `tradeTimeout`, o service
+registra o erro `Timeout da Deriv` (`... Bot parado para evitar ordem duplicada; confira a conta real.`)
+e chama `stop()`. A UI mostra o motivo ao detectar a parada.
 
 ---
 
 ## Testes
 
 ```bash
-npx vitest run src/app/services/__tests__/copyTradingService.test.ts
+npx vitest run src/__tests__/copyTrader src/__tests__/copyTrading.test.ts src/app/services/__tests__/copyTradingService.test.ts
+npm run test:coverage   # piso de 90% por arquivo (linhas, statements e funções) para o módulo
 ```
 
-Cobertura: 249 testes cobrindo `shouldProcessSignal`, `handleDemoTransaction`, `handleRealTransaction`, martingale (progressão, reset, stop), `isInRealMode`, `onTrade` guard, stop loss/win, pausas, e fluxos completos de ciclo.
+| Arquivo | Conteúdo |
+|---------|----------|
+| `src/app/services/__tests__/copyTradingService.test.ts` | Regras de negócio: `shouldProcessSignal`, martingale, `isInRealMode`, stop loss/win, pausas, guard |
+| `src/__tests__/copyTraderReliability.test.ts` | Regressões de confiabilidade (BUG-01..17): reconexão com ordem ativa, guard vs. eventos assíncronos, timeouts, ciclo start/stop |
+| `src/__tests__/copyTraderUnits.test.ts` | `WsListener` (parser de longcode), `TradeExecutor`, `SignalProcessor` |
+| `src/__tests__/copyTraderApi.test.ts` | `CopyTradingManager` e rotas `/api/start`, `/api/stop`, `/api/status` |
+| `src/__tests__/copyTraderUi.test.tsx` | `bottraderx.tsx` e `page.tsx`: fluxo, sincronização com o servidor |
+| `src/__tests__/copyTraderDerivConfig.test.ts` | Resolução de token/conexão (PAT, OAuth, clássico) |
+| `src/__tests__/copyTraderTestHarness.ts` | WebSocket falso (`FakeWs`), `resolveMock` e helpers |
+
+Os testes usam um `FakeWs` no lugar do pacote `ws` e relógio falso do Vitest: é possível derrubar
+conexões, injetar mensagens da Deriv e avançar o tempo para exercitar reconexões e timeouts.
 
 ---
 
@@ -304,7 +385,9 @@ Cobertura: 249 testes cobrindo `shouldProcessSignal`, `handleDemoTransaction`, `
 
 ### Prioridade Alta
 - **Persistência em banco** — sessões e histórico atualmente em memória (perdem-se no restart)
-- **Recovery de sessão** — estado não restaurado após reconexão WebSocket
+- **Recovery de sessão** — estado não restaurado após reinício do servidor
+- **Handshake sem prazo** — o `ws` não tem `handshakeTimeout`; se a conexão nunca abrir nem fechar, `/api/start` fica pendente
+- **Queda antes da resposta do buy** — sem `contract_id` não há o que reassinar; hoje o timeout de 30s para o bot. Poderia consultar `portfolio` para recuperar
 
 ### Prioridade Média
 - Switch on Loss (inverter direção após perda)

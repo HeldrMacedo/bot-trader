@@ -114,6 +114,8 @@ See `docs/doc_bear_bot_ultra_2/README.md` for Bear Bot Ultra 2 (v10.0 Refatorado
 
 **Guard onTrade:** previne dois trades reais simultâneos — equivalente ao `bool_89` do ZeekBot original.
 
+**Confiabilidade:** só resultado do contrato, `buyRejected` ou sinal descartado liberam o guard (erro genérico não). Sem resposta do buy em 30s ou sem resultado até duração + 60s, o bot para (`tradeTimeout`). Contratos abertos são reassinados na reconexão; `stopAll` em `/api/stop` é só admin. Ver `docs/BOTTRADER.md`.
+
 **Rotas públicas:** `/login`, `/api/login`, `/api/register`, `/api/forgot-password`, `/api/reset-password`, `/api/logout`
 
 **Runtime:** middleware usa `jose` (Edge-compatible); rotas de API usam `jsonwebtoken` (Node.js)

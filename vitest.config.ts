@@ -20,6 +20,10 @@ export default defineConfig({
         'src/app/services/BearDifferEngine.ts',
         'src/app/hooks/useBearDiffer.ts',
         'src/app/**/bear-bot-differ/components/tabs/OperationTab.tsx',
+        // Copy trader (BotTrader): ordens na conta real.
+        'src/app/services/{wsListener,tradeExecutor,copyTradingService,signalProcessor,copyTradingManager,derivConfig}.ts',
+        'src/app/api/{start,stop,status}/route.ts',
+        'src/app/**/bottrader/*.tsx',
       ],
       thresholds: {
         // Por arquivo: a média deixaria o motor, já bem coberto, carregar os
