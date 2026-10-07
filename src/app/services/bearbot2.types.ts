@@ -179,6 +179,13 @@ export interface TradeLeg {
   usedProposal?: boolean;
 }
 
+/** Dados da ordem no momento da compra, usados na liquidação. */
+export interface SettledOrder {
+  stake: number;
+  sym: string;
+  alvo: number | string;
+}
+
 export interface TradePrep {
   isPaper: boolean;
   kind: string;

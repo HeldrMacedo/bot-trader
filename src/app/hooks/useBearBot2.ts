@@ -2,10 +2,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { BearBotEngine, createEngine } from '../services/BearBot2Engine';
 import { DerivService } from '../services/DerivService';
 import {
-  BotConfig, BotState, MARKETS, ProposalEntry,
+  BotConfig, BotState, MARKETS, ProposalEntry, SettledOrder,
 } from '../services/bearbot2.types';
 
-const SAFETY_TIMEOUT_MS = 30_000;
+/** Contrato de 1 tick liquida em segundos: sem resultado neste prazo, o robô para. */
+const SETTLEMENT_TIMEOUT_MS = 30_000;
+const PAPER_SETTLE_MS = 800;
+
+/** Ordem comprada por este robô e ainda não liquidada. */
+interface OpenOrder extends SettledOrder {
+  /** 'combo' (duas pernas agregadas) ou a perna avulsa: over | under | differ. */
+  kind: string;
+}
 
 export function extractLastDigit(price: number, symbol: string): number | null {
   const pipSizes: Record<string, number> = {
@@ -18,10 +26,12 @@ export function extractLastDigit(price: number, symbol: string): number | null {
   return Number(priceStr.slice(-1));
 }
 
+// is_valid_to_sell não indica fim: o contrato em andamento também pode ser
+// vendido, e o lucro dele naquele instante não é o resultado.
 function isTerminalContract(contract: any): boolean {
-  if (contract.is_valid_to_sell === 1 || contract.is_sold === 1 || contract.is_sold === true) return true;
+  if (contract.is_sold === 1 || contract.is_sold === true) return true;
   const status = String(contract.status || '').toLowerCase();
-  return status === 'won' || status === 'lost';
+  return status === 'won' || status === 'lost' || status === 'sold';
 }
 
 export function useBearBot() {
@@ -30,35 +40,31 @@ export function useBearBot() {
   const [config, setConfigState] = useState<BotConfig>(engineRef.current.getConfig());
   const [isConnected, setIsConnected] = useState(false);
   const [accountInfo, setAccountInfo] = useState<any>(null);
+  const [tradeReady, setTradeReady] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const safetyTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
-  /** Kind used for settlement (single mode or 'combo'). */
-  const pendingKindRef = useRef<string | null>(null);
-  /** contract_id → leg kind for partial combo demotion tracking */
-  const openContractsRef = useRef<Map<number, string>>(new Map());
-  const settledIdsRef = useRef<Set<number>>(new Set());
+  /** Falso depois do unmount: respostas e timers atrasados não agem mais. */
+  const aliveRef = useRef(true);
+  /** Contratos deste robô a liquidar; só eles mexem no placar e na trava. */
+  const ordersRef = useRef<Map<number, OpenOrder>>(new Map());
+  /** Prazo de liquidação por contrato; vencido, o contrato deixa de ser ordem viva. */
+  const settleTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const buysInFlightRef = useRef(0);
+  /** Buy enviado sem resposta: pode ter sido executado. Só o Abortar libera. */
+  const unconfirmedRef = useRef(false);
+  const paperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const proposalsRef = useRef<Record<string, ProposalEntry>>({});
   const playWinSoundRef = useRef<() => void>(() => { });
   const playLossSoundRef = useRef<() => void>(() => { });
   const executeTradeRef = useRef<(kind: string) => Promise<void>>(async () => { });
 
-  const clearSafetyTimeouts = useCallback(() => {
-    safetyTimeouts.current.forEach(clearTimeout);
-    safetyTimeouts.current = [];
-  }, []);
+  const hasLiveOrder = useCallback(() =>
+    buysInFlightRef.current > 0 || settleTimersRef.current.size > 0 || unconfirmedRef.current, []);
 
-  const armSafetyTimeout = useCallback((label: string) => {
-    clearSafetyTimeouts();
-    const timeout = setTimeout(() => {
-      const engine = engineRef.current;
-      if (engine.getState().tradeLock) {
-        openContractsRef.current.clear();
-        pendingKindRef.current = null;
-        engine.abortPendingTrade(`⏱ Timeout ${label} · lock liberado sem alterar PnL/gale`);
-      }
-    }, SAFETY_TIMEOUT_MS);
-    safetyTimeouts.current.push(timeout);
-  }, [clearSafetyTimeouts]);
+  const cancelPaperTrade = useCallback(() => {
+    if (paperTimerRef.current) clearTimeout(paperTimerRef.current);
+    paperTimerRef.current = null;
+  }, []);
 
   // ── Pre-opened Proposals (Quick Buy) ──
   const propKey = useCallback((ct: string, barrier: number) => {
@@ -76,7 +82,7 @@ export function useBearBot() {
   }, []);
 
   const ensureProposal = useCallback((ct: string, barrier: number) => {
-    if (!accountInfo) return;
+    if (!aliveRef.current || !accountInfo) return;
     const derivService = DerivService.getInstance();
     const cfg = engineRef.current.getConfig();
     const st = engineRef.current.getState();
@@ -147,74 +153,110 @@ export function useBearBot() {
   }, [getProp]);
 
   // ── Trade Execution ──
+  const onSettlementTimeout = useCallback((contractId: number) => {
+    settleTimersRef.current.delete(contractId);
+    if (!ordersRef.current.has(contractId)) return;
+    const engine = engineRef.current;
+    // A trava continua até o Abortar: o contrato pode ter sido executado e ainda liquidar.
+    engine.stopBot();
+    engine.addLog(`⏱ Sem resultado do contrato ${contractId} em ${SETTLEMENT_TIMEOUT_MS / 1000}s · robô parado · confira o extrato`, 'lose');
+    // Consulta avulsa: se a corretora já liquidou, a resposta entra pelo listener de POC.
+    DerivService.getInstance()
+      .send({ proposal_open_contract: 1, contract_id: contractId })
+      .catch((e: any) => engine.addLog(`⚠ Consulta do contrato ${contractId} falhou: ${e?.message || e}`, 'lose'));
+  }, []);
+
+  // Acompanha via subscribe(): só assim o DerivService reassina o contrato
+  // quando o canal de trade cai e volta com a ordem em aberto.
+  const trackContract = useCallback((contractId: number, order: OpenOrder) => {
+    ordersRef.current.set(contractId, order);
+    DerivService.getInstance()
+      .subscribe({ proposal_open_contract: 1, contract_id: contractId })
+      .catch((e: any) => engineRef.current.addLog(`⚠ Falha ao acompanhar contrato ${contractId}: ${e?.message || e}`, 'lose'));
+    settleTimersRef.current.set(
+      contractId,
+      setTimeout(() => onSettlementTimeout(contractId), SETTLEMENT_TIMEOUT_MS),
+    );
+  }, [onSettlementTimeout]);
+
+  /** BuyUnconfirmed segura a trava e para o robô; devolve true nesse caso. */
+  const holdIfUnconfirmed = useCallback((e: any): boolean => {
+    if (e?.code !== 'BuyUnconfirmed') return false;
+    unconfirmedRef.current = true;
+    const engine = engineRef.current;
+    engine.stopBot();
+    engine.addLog(`⚠ ${e.message} · robô parado · confira o extrato e use Abortar para liberar`, 'lose');
+    return true;
+  }, []);
+
   const executeTrade = useCallback(async (kind: string) => {
+    if (!aliveRef.current) return;
     const engine = engineRef.current;
     const proposalMap = buildProposalMap();
     const prep = engine.prepareTrade(kind, proposalMap);
     if (!prep) return;
 
-    pendingKindRef.current = prep.kind;
+    const derivService = DerivService.getInstance();
+    const cfg = engine.getConfig();
+    const stakeVal = +engine.getState().curStake.toFixed(2);
+    const order: OpenOrder = {
+      kind: prep.kind,
+      stake: stakeVal,
+      sym: cfg.activeSym,
+      alvo: prep.kind === 'combo' ? engine.comboAlvo() : cfg.digit,
+    };
 
     if (prep.isPaper) {
       const result = engine.simulateTrade(kind);
       if (!result) {
         engine.abortPendingTrade('Paper: ticks insuficientes para simular');
-        pendingKindRef.current = null;
         return;
       }
-      armSafetyTimeout('paper');
-      setTimeout(() => {
-        clearSafetyTimeouts();
-        engine.settleContract(result.profit, result.isLoss, kind, result.exitDig, result.audit);
-        pendingKindRef.current = null;
+      // Rastreado para ser cancelado ao trocar o Paper, abortar ou sair da tela:
+      // senão o resultado simulado cairia no placar real.
+      paperTimerRef.current = setTimeout(() => {
+        paperTimerRef.current = null;
+        engine.settleContract(result.profit, result.isLoss, kind, result.exitDig, result.audit, order);
         if (!result.isLoss) playWinSoundRef.current();
         else playLossSoundRef.current();
-      }, 800);
+      }, PAPER_SETTLE_MS);
       return;
     }
 
-    const derivService = DerivService.getInstance();
-    const cfg = engine.getConfig();
-    const st = engine.getState();
-    const stakeVal = +st.curStake.toFixed(2);
-
     // ── Combo: two independent buys ──
     if (prep.kind === 'combo' && prep.legs?.length) {
-      openContractsRef.current.clear();
-      const opened: Array<{ contractId: number; legKind: string }> = [];
-
+      const legs = prep.legs;
       // Send both legs at once so they start on the same tick (1-tick contracts)
-      const responses = await Promise.all(prep.legs.map((leg) =>
-        derivService.send(leg.payload).catch((e: unknown) => {
-          console.error('Combo leg error:', e);
-          return null;
-        })
-      ));
-      responses.forEach((response, i) => {
-        if (response?.buy?.contract_id == null) return;
-        const contractId = Number(response.buy.contract_id);
-        const legKind = prep.legs![i].legKind;
-        opened.push({ contractId, legKind });
-        openContractsRef.current.set(contractId, legKind);
-        derivService.subscribe({
-          proposal_open_contract: 1,
-          contract_id: contractId,
-        }).catch(() => { });
+      buysInFlightRef.current++;
+      const results = await Promise.allSettled(legs.map((leg) => derivService.send(leg.payload)));
+      buysInFlightRef.current--;
+      if (!aliveRef.current) return;
+
+      const opened: Array<{ contractId: number; legKind: string; barrier: number }> = [];
+      let unconfirmed = false;
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error('Combo leg error:', r.reason);
+          if (holdIfUnconfirmed(r.reason)) unconfirmed = true;
+          return;
+        }
+        if (r.value?.buy?.contract_id == null) return;
+        opened.push({ contractId: Number(r.value.buy.contract_id), legKind: legs[i].legKind, barrier: legs[i].barrier });
       });
 
       if (opened.length === 0) {
-        engine.abortPendingTrade('Combo: nenhuma perna aberta · abort sem gale');
-        pendingKindRef.current = null;
-        openContractsRef.current.clear();
+        if (!unconfirmed) engine.abortPendingTrade('Combo: nenhuma perna aberta · abort sem gale');
         return;
       }
 
       const comboOver = cfg.comboOver ?? 5;
       const comboUnder = cfg.comboUnder ?? 4;
       const isFast = prep.usedProposal;
-      engine.addLog(`▶ COMBO Over>${comboOver} + Under<${comboUnder} · $${stakeVal}×2 · ${cfg.activeSym}${isFast ? ' ⚡' : ''}`, 'info');
+      engine.addLog(opened.length === 2
+        ? `▶ COMBO Over>${comboOver} + Under<${comboUnder} · $${stakeVal}×2 · ${cfg.activeSym}${isFast ? ' ⚡' : ''}`
+        : `▶ COMBO parcial · só ${opened[0].legKind.toUpperCase()} aberta · $${stakeVal} · ${cfg.activeSym}`, 'info');
 
-      if (prep.legs.some((l) => l.usedProposal)) {
+      if (legs.some((l) => l.usedProposal)) {
         invalidateConsumedProposals();
         refreshProposals();
       }
@@ -222,71 +264,65 @@ export function useBearBot() {
       if (opened.length === 1) {
         // Partial open: demote combo → single-leg settlement
         engine.demoteComboToSingle();
-        pendingKindRef.current = opened[0].legKind;
-        engine.getState(); // ensure notify path available
+        const [leg] = opened;
+        trackContract(leg.contractId, { ...order, kind: leg.legKind, alvo: leg.barrier });
       } else {
-        pendingKindRef.current = 'combo';
+        opened.forEach((leg) => trackContract(leg.contractId, order));
       }
-
-      armSafetyTimeout('combo');
       return;
     }
 
     // ── Single-leg real buy ──
-    try {
-      if (!prep.payload) {
-        engine.abortPendingTrade('Payload de compra ausente');
-        pendingKindRef.current = null;
-        return;
-      }
-      const response = await derivService.send(prep.payload);
-      if (response?.buy?.contract_id != null) {
-        const contractId = Number(response.buy.contract_id);
-        openContractsRef.current.set(contractId, prep.kind);
-
-        const sym = prep.kind === 'differ' ? '≠' : prep.kind === 'over' ? '>' : '<';
-        const isFast = prep.usedProposal;
-        engine.addLog(`▶ ${prep.kind.toUpperCase()} ${sym}${cfg.digit} · $${stakeVal} · ${cfg.activeSym}${isFast ? ' ⚡' : ''}`, 'info');
-
-        if (prep.usedProposal) {
-          invalidateConsumedProposals();
-          refreshProposals();
-        }
-
-        derivService.subscribe({
-          proposal_open_contract: 1,
-          contract_id: contractId,
-        }).catch(() => { });
-        armSafetyTimeout('buy');
-      } else {
-        engine.abortPendingTrade('Buy sem contract_id · lock liberado');
-        pendingKindRef.current = null;
-        openContractsRef.current.clear();
-      }
-    } catch (e: any) {
-      engine.abortPendingTrade(`Erro na compra · ${e?.message || 'API'} · sem gale`);
-      pendingKindRef.current = null;
-      openContractsRef.current.clear();
-      console.error('Trade error:', e);
+    if (!prep.payload) {
+      engine.abortPendingTrade('Payload de compra ausente');
+      return;
     }
-  }, [armSafetyTimeout, clearSafetyTimeouts, buildProposalMap, invalidateConsumedProposals, refreshProposals]);
+    buysInFlightRef.current++;
+    let response: any;
+    try {
+      response = await derivService.send(prep.payload);
+    } catch (e: any) {
+      buysInFlightRef.current--;
+      console.error('Trade error:', e);
+      if (!holdIfUnconfirmed(e)) {
+        engine.abortPendingTrade(`Erro na compra · ${e?.message || 'API'} · sem gale`);
+      }
+      return;
+    }
+    buysInFlightRef.current--;
+    if (!aliveRef.current) return;
+
+    if (response?.buy?.contract_id == null) {
+      engine.abortPendingTrade('Buy sem contract_id · lock liberado');
+      return;
+    }
+    const contractId = Number(response.buy.contract_id);
+    const sym = prep.kind === 'differ' ? '≠' : prep.kind === 'over' ? '>' : '<';
+    engine.addLog(`▶ ${prep.kind.toUpperCase()} ${sym}${cfg.digit} · $${stakeVal} · ${cfg.activeSym}${prep.usedProposal ? ' ⚡' : ''}`, 'info');
+
+    if (prep.usedProposal) {
+      invalidateConsumedProposals();
+      refreshProposals();
+    }
+    trackContract(contractId, order);
+  }, [buildProposalMap, invalidateConsumedProposals, refreshProposals, trackContract, holdIfUnconfirmed]);
 
   executeTradeRef.current = executeTrade;
 
-  const handleContractSettlement = useCallback((contract: any) => {
+  const handleContractSettlement = useCallback((contract: any, subscriptionId?: string) => {
     if (!isTerminalContract(contract)) return;
 
-    const contractId = contract.contract_id != null ? Number(contract.contract_id) : null;
-    if (contractId != null) {
-      if (settledIdsRef.current.has(contractId)) return;
-      settledIdsRef.current.add(contractId);
-      // Limitar o tamanho do cache para evitar vazamento de memória
-      if (settledIdsRef.current.size > 100) {
-        const firstItem = settledIdsRef.current.values().next().value;
-        if (firstItem !== undefined) {
-          settledIdsRef.current.delete(firstItem);
-        }
-      }
+    // Só contratos deste robô: outra tela ou consulta avulsa na mesma conta não
+    // mexe no placar nem na trava. Liquidado sai do mapa, então resultado
+    // repetido também é ignorado.
+    const contractId = Number(contract.contract_id);
+    const order = ordersRef.current.get(contractId);
+    if (!order) return;
+    ordersRef.current.delete(contractId);
+    clearTimeout(settleTimersRef.current.get(contractId));
+    settleTimersRef.current.delete(contractId);
+    if (subscriptionId) {
+      DerivService.getInstance().send({ forget: subscriptionId }).catch(() => { });
     }
 
     const profit = Number(contract.profit);
@@ -294,8 +330,10 @@ export function useBearBot() {
     let exitDig: number | null = null;
     let audit: any = null;
 
-    if (contract.exit_spot !== undefined) {
-      exitDig = Number(String(contract.exit_spot).slice(-1));
+    // exit_spot é número e perde o zero final (1234.50 vira 1234.5).
+    const exitText = contract.exit_tick_display_value ?? contract.exit_spot;
+    if (exitText !== undefined) {
+      exitDig = Number(String(exitText).slice(-1));
     }
     if (contract.audit_details?.all_ticks) {
       const details = contract.audit_details.all_ticks.filter(
@@ -310,30 +348,31 @@ export function useBearBot() {
       }
     }
 
-    // Prefer per-contract leg kind (combo partial), else pending kind, else config.mode
-    let kind =
-      (contractId != null ? openContractsRef.current.get(contractId) : undefined)
-      || pendingKindRef.current
-      || engineRef.current.getConfig().mode;
+    const engine = engineRef.current;
+    engine.settleContract(profit, isLoss, order.kind, exitDig, audit, order);
 
-    // Full combo uses kind 'combo' for both legs
-    if (pendingKindRef.current === 'combo' && engineRef.current.isComboPending()) {
-      kind = 'combo';
-    }
-
-    if (contractId != null) openContractsRef.current.delete(contractId);
-
-    engineRef.current.settleContract(profit, isLoss, kind, exitDig, audit);
-
-    // Clear pending when lock released (single or combo finished)
-    if (!engineRef.current.getState().tradeLock) {
-      clearSafetyTimeouts();
-      pendingKindRef.current = null;
-      openContractsRef.current.clear();
+    // Combo só termina na última perna.
+    if (order.kind !== 'combo' || !engine.isComboPending()) {
       if (!isLoss) playWinSoundRef.current();
       else playLossSoundRef.current();
     }
-  }, [clearSafetyTimeouts]);
+  }, []);
+
+  // Ciclo de vida da tela: depois do unmount, nada agendado compra ou assina.
+  useEffect(() => {
+    aliveRef.current = true;
+    engineRef.current.setLiveOrderGuard(hasLiveOrder);
+    const autoTimers = autoTimersRef.current;
+    const settleTimers = settleTimersRef.current;
+    return () => {
+      aliveRef.current = false;
+      autoTimers.forEach(clearTimeout);
+      autoTimers.clear();
+      settleTimers.forEach(clearTimeout);
+      settleTimers.clear();
+      cancelPaperTrade();
+    };
+  }, [hasLiveOrder, cancelPaperTrade]);
 
   useEffect(() => {
     const derivService = DerivService.getInstance();
@@ -350,7 +389,13 @@ export function useBearBot() {
     });
 
     const unsubAutoTrade = engine.onAutoTrade((kind) => {
-      setTimeout(() => executeTradeRef.current(kind), 0);
+      const t = setTimeout(() => {
+        autoTimersRef.current.delete(t);
+        // Desligar o robô nesse intervalo vale: a entrada só sai com ele ligado.
+        if (!engine.getConfig().autoOn) return;
+        executeTradeRef.current(kind);
+      }, 0);
+      autoTimersRef.current.add(t);
     });
 
     const checkConnection = () => {
@@ -358,8 +403,18 @@ export function useBearBot() {
     };
     checkConnection();
 
+    // Ids de proposta valem só na conexão que os criou: após queda e reabertura
+    // do canal de trade, comprar com eles é rejeitado e o sinal se perde.
     const onOpenId = derivService.observerInstance.on('open', checkConnection);
-    const onCloseId = derivService.observerInstance.on('close', checkConnection);
+    const onCloseId = derivService.observerInstance.on('close', () => {
+      proposalsRef.current = {};
+      checkConnection();
+    });
+    setTradeReady(!!derivService.isTradeReady);
+    const onTradeStatusId = derivService.observerInstance.on('trade.status', (ready: boolean) => {
+      proposalsRef.current = {};
+      setTradeReady(ready);
+    });
     const onMarketOpenId = derivService.observerInstance.on('market.open', checkConnection);
 
     const onTickId = derivService.observerInstance.on('deriv.tick', (data: any) => {
@@ -374,7 +429,7 @@ export function useBearBot() {
 
     const onPocId = derivService.observerInstance.on('deriv.proposal_open_contract', (data: any) => {
       if (data.proposal_open_contract) {
-        handleContractSettlement(data.proposal_open_contract);
+        handleContractSettlement(data.proposal_open_contract, data.subscription?.id);
       }
     });
 
@@ -404,12 +459,12 @@ export function useBearBot() {
       unsubAutoTrade();
       derivService.observerInstance.removeById(onOpenId);
       derivService.observerInstance.removeById(onCloseId);
+      derivService.observerInstance.removeById(onTradeStatusId);
       derivService.observerInstance.removeById(onMarketOpenId);
       derivService.observerInstance.removeById(onTickId);
       derivService.observerInstance.removeById(onPocId);
       derivService.observerInstance.removeById(onProposalId);
       derivService.observerInstance.removeById(onAccountId);
-      safetyTimeouts.current.forEach(clearTimeout);
       forgetAllProposals();
     };
   }, [handleContractSettlement, forgetAllProposals]);
@@ -424,6 +479,7 @@ export function useBearBot() {
     return () => clearTimeout(t);
   }, [
     isConnected,
+    tradeReady,
     accountInfo,
     config.activeSym,
     config.mode,
@@ -464,9 +520,12 @@ export function useBearBot() {
   }, [isConnected]);
 
   const updateConfig = useCallback((updates: Partial<BotConfig>) => {
+    if (updates.paperMode !== undefined && updates.paperMode !== engineRef.current.getConfig().paperMode) {
+      cancelPaperTrade();
+    }
     engineRef.current.updateConfig(updates);
     setConfigState(engineRef.current.getConfig());
-  }, []);
+  }, [cancelPaperTrade]);
 
   // ── Áudio ──
   const getAudioCtx = useCallback(() => {
@@ -521,14 +580,15 @@ export function useBearBot() {
     setConfigState(engineRef.current.getConfig());
   }, []);
 
+  // Ação explícita do usuário: libera a compra não confirmada. Contrato aberto
+  // continua acompanhado e segura a trava até liquidar ou vencer o prazo.
   const abortOp = useCallback(() => {
-    clearSafetyTimeouts();
-    openContractsRef.current.clear();
-    pendingKindRef.current = null;
-    settledIdsRef.current.clear();
+    cancelPaperTrade();
+    unconfirmedRef.current = false;
     engineRef.current.abortOp();
+    if (hasLiveOrder()) engineRef.current.addLog('Contrato em andamento · a trava sai na liquidação', 'info');
     setConfigState(engineRef.current.getConfig());
-  }, [clearSafetyTimeouts]);
+  }, [cancelPaperTrade, hasLiveOrder]);
 
   const resetStats = useCallback(() => {
     engineRef.current.resetStats();
@@ -581,6 +641,8 @@ export function useBearBot() {
     manualFire,
     exportCSV,
     isConnected,
+    tradeReady,
+    hasLiveOrder,
     accountInfo,
     switchAccount,
     getDynamicDifferDigit

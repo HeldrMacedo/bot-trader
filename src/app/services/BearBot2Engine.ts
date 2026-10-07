@@ -4,7 +4,7 @@ import {
   BotConfig, BotState, Market, MARKETS, TradeLog, PatternState,
   VLMarketState, MarketIntelligence, MultiCandidate, ComboPending,
   RecoveryState, TickData, ProposalState, DEFAULT_BOT_STATE,
-  TradePrep, TradeLeg, buildLoserSet, isWinCheck,
+  TradePrep, TradeLeg, SettledOrder, buildLoserSet, isWinCheck,
   DynamicDigitDetail, DynamicDigitResult,
   AI_MODE_WEIGHTS, AI_MIN_SCORE_DEFAULT, resolveAIWeights,
 } from './bearbot2.types';
@@ -155,6 +155,13 @@ export class BearBotEngine {
   private listeners: Set<(state: BotState) => void> = new Set();
   private logListeners: Set<(log: { ts: string; msg: string; type: string }) => void> = new Set();
   private autoTradeListeners: Set<(kind: string) => void> = new Set();
+  /**
+   * Ordem viva fora do motor (compra aguardando resposta, contrato a liquidar,
+   * compra não confirmada). Enquanto houver, nada solta a trava de operação:
+   * soltar abriria uma segunda ordem simultânea. Quem acompanha a corretora
+   * (o hook) informa.
+   */
+  private hasLiveOrder: () => boolean = () => false;
 
   constructor(config: Partial<BotConfig> = {}) {
     this.config = { ...this.getDefaultConfig(), ...clampRateLimits(config) };
@@ -261,7 +268,7 @@ export class BearBotEngine {
       this.state.curStake = this.config.stake;
       this.state.lossAcum = 0;
       this.state.parcelsLeft = 0;
-      this.state.tradeLock = false;
+      this.state.tradeLock = this.hasLiveOrder();
       this.comboPending = null;
       this.clearRecovery();
       this.clearDigitLock();
@@ -296,6 +303,10 @@ export class BearBotEngine {
       this.clearRecovery();
     }
     this.notify();
+  }
+
+  setLiveOrderGuard(guard: () => boolean) {
+    this.hasLiveOrder = guard;
   }
 
   // ── Observer ──
@@ -1512,7 +1523,7 @@ export class BearBotEngine {
     this.comboPending = null;
     this.clearDigitLock();
     if (this.state.tradeLock) {
-      this.state.tradeLock = false;
+      this.state.tradeLock = this.hasLiveOrder();
       if (reason) this.addLog(reason, 'warn');
       this.notify();
     } else if (reason) {
@@ -1562,7 +1573,12 @@ export class BearBotEngine {
     return { profit, isLoss: !win, exitDig: lastDigit, audit };
   }
 
-  settleContract(profit: number, isLoss: boolean, kind: string, exitDig: number | null, audit: any) {
+  /**
+   * `order` traz stake, mercado e alvo do momento da compra: a liquidação
+   * registra esses valores, não os da configuração atual, que o usuário pode ter
+   * mudado enquanto o contrato corria.
+   */
+  settleContract(profit: number, isLoss: boolean, kind: string, exitDig: number | null, audit: any, order?: SettledOrder) {
     if (this.comboPending && kind === 'combo') {
       const cp = this.comboPending;
       cp.legs--; if (profit >= 0) cp.won++; cp.results.push(profit); cp.exits.push(exitDig);
@@ -1576,29 +1592,29 @@ export class BearBotEngine {
       const exits = [...new Set(cp.exits.filter((d): d is number => d !== null))];
       const saiu = exits.length > 1 ? exits.join('/') : exitDig;
       // WIN only on real net gain: one winning leg can still lose money overall
-      this.finishTrade(net, net <= 0, 'COMBO', saiu, audit, this.comboAlvo());
+      this.finishTrade(net, net <= 0, 'COMBO', saiu, audit, order?.alvo ?? this.comboAlvo(), order);
       return;
     }
     if (kind === 'combo') {
-      this.finishTrade(profit, isLoss, 'COMBO', exitDig, audit, this.comboAlvo());
+      this.finishTrade(profit, isLoss, 'COMBO', exitDig, audit, order?.alvo ?? this.comboAlvo(), order);
       return;
     }
-    this.finishTrade(profit, isLoss, kind.toUpperCase(), exitDig, audit);
+    this.finishTrade(profit, isLoss, kind.toUpperCase(), exitDig, audit, order?.alvo ?? this.config.digit, order);
   }
 
-  private comboAlvo(): string {
+  comboAlvo(): string {
     const u = this.config.comboUnder ?? 4;
     const o = this.config.comboOver ?? 5;
     return `<${Math.min(u, o)} >${Math.max(u, o)}`;
   }
 
-  private finishTrade(profit: number, isLoss: boolean, label: string, exitDig: number | string | null, audit: any, alvo: number | string = this.config.digit) {
+  private finishTrade(profit: number, isLoss: boolean, label: string, exitDig: number | string | null, audit: any, alvo: number | string = this.config.digit, order?: SettledOrder) {
     this.state.pnl = +(this.state.pnl + profit).toFixed(2);
-    const stakeUsed = this.state.curStake;
+    const stakeUsed = order?.stake ?? this.state.curStake;
     const isPaper = this.config.paperMode;
 
     const newTrade: TradeLog = {
-      t: new Date().toISOString(), mercado: this.config.activeSym, modo: label, alvo,
+      t: new Date().toISOString(), mercado: order?.sym ?? this.config.activeSym, modo: label, alvo,
       audit: audit || { tick_previous: '—', tick_start: '—', tick_end: '—' },
       saiu: exitDig !== null ? exitDig : '—', stake: stakeUsed.toFixed(2),
       resultado: isLoss ? 'LOSS' : 'WIN', lucro: profit.toFixed(2),
@@ -1655,7 +1671,7 @@ export class BearBotEngine {
       }
       this.addLog(`✔ WIN ${label} +${profit.toFixed(2)}`, 'win');
     }
-    this.state.tradeLock = false;
+    this.state.tradeLock = this.hasLiveOrder();
     this.clearDigitLock();
     this.notify();
   }
@@ -1679,7 +1695,7 @@ export class BearBotEngine {
   abortOp() {
     this.config.autoOn = false; this.state.galeLevel = 0; this.state.curStake = this.config.stake;
     this.state.lossAcum = 0; this.state.parcelsLeft = 0;
-    this.state.tradeLock = false; this.clearRecovery();
+    this.state.tradeLock = this.hasLiveOrder(); this.clearRecovery();
     this.comboPending = null;
     this.clearDigitLock();
     this.vlReset(); this.vlResetAllM();
@@ -1688,7 +1704,7 @@ export class BearBotEngine {
 
   resetStats() {
     this.state.wins = 0; this.state.loss = 0; this.state.pnl = 0; this.state.trades = []; this.state.logLines = [];
-    this.state.galeLevel = 0; this.state.curStake = this.config.stake; this.state.tradeLock = false;
+    this.state.galeLevel = 0; this.state.curStake = this.config.stake; this.state.tradeLock = this.hasLiveOrder();
     this.state.tradesThisHour = [];
     this.state.lastTradeTime = 0;
     this.clearRecovery();

@@ -17,7 +17,7 @@ O **Bear Bot Ultra 2** representa uma reformulação arquitetural completa em re
 4. **Dígito Automático no Modo Differ (`differAutoDigit`)**: Algoritmo que detecta repetições consecutivas ou picos de frequência em janela deslizante gerados pelo Loss Virtual, adotando o dígito perdedor como alvo automático para aposta em `DIFFER`.
 5. **Inteligência Probabilística Cross-Market (Score de Oportunidade 0–100)**: Avaliação contínua dos 7 mercados sintéticos baseada em 4 pilares com pesos parametrizáveis pelo perfil de IA (**Conservador**, **Equilibrado** ou **Agressivo**).
 6. **Modo Dual-Leg Combo (OVER + UNDER Simultâneo)**: Execução coordenada de duas pernas independentes com liquidação unificada de PnL e suporte a degradação elegante (*demotion*) em caso de falha de uma das pernas.
-7. **Prevenção Robusta de Travamentos e Stale Closures**: Substituição de closures estagnadas por listeners desacoplados, além de *Safety Timeouts* de 30s que destravam a engine automaticamente em caso de perdas de pacote no WebSocket.
+7. **Prevenção Robusta de Travamentos e Stale Closures**: Substituição de closures estagnadas por listeners desacoplados, além de um prazo de 30s para o resultado de cada contrato: vencido, o robô para e consulta a corretora, mas a trava só sai na liquidação ou no Abortar (ver seção 13).
 8. **PropKeeper e Quick Buy (Sub-10ms)**: Manutenção proativa de propostas abertas no WebSocket (`proposal: 1, subscribe: 1`), permitindo compras imediatas pelo `proposal.id` em 1 tick.
 9. **Contagem sob Foco (`vlFocusOnly`)**: Isolamento estrito de contagem de perdas virtuais e repetições apenas para o mercado ativo em foco, impedindo compras acidentais por acúmulos fantasmas fora de visão.
 10. **Paper Trading Nativo**: Simulação local determinística com avaliação de resultado por tick e contabilidade de PnL e Martingale sem risco de capital.
@@ -76,7 +76,7 @@ flowchart TD
 
     subgraph Hook_Layer ["Hook Bridge (useBearBot2.ts)"]
         PropKeeper["PropKeeper (Proposal Cache)"]
-        SafeTimer["Safety Timeout (30s Lock Release)"]
+        SafeTimer["Prazo de liquidação (30s · para o robô)"]
         AudioSynth["Audio Context WebAPI"]
     end
 
@@ -540,11 +540,31 @@ Para atingir execução de ordens com latência inferior a **10ms**, o Bear Bot 
 
 | Mecanismo de Segurança | Arquivo de Implementação | Descrição |
 | :--- | :--- | :--- |
-| **`tradeLock`** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Trava atômica que impede abertura de novas ordens enquanto houver uma operação em andamento ou pendente de liquidação. |
+| **`tradeLock`** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Trava atômica que impede abertura de novas ordens enquanto houver uma operação em andamento ou pendente de liquidação. Toda liberação (`finishTrade`, `abortPendingTrade`, `abortOp`, `resetStats`, troca do Paper) passa pela guarda de ordem viva (`setLiveOrderGuard`). |
 | **`maxTradesHour`** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Limita a quantidade máxima de trades em uma janela deslizante de 60 minutos (1 a 500 trades/h). |
 | **`tradeCooldownMs`** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Impõe intervalo mínimo obrigatório entre o fim de uma operação e o início da próxima (0 a 600.000 ms). |
-| **`SAFETY_TIMEOUT_MS` (30s)** | [`useBearBot2.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/hooks/useBearBot2.ts) | Se a Deriv não enviar a confirmação de encerramento (`proposal_open_contract`) em 30 segundos, o bot destrava automaticamente chamando `abortPendingTrade`, sem afetar PnL ou Martingale. |
+| **`SETTLEMENT_TIMEOUT_MS` (30s)** | [`useBearBot2.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/hooks/useBearBot2.ts) | Sem resultado do contrato em 30s, o robô para, registra no log e faz uma consulta avulsa do contrato. A trava **não** é solta: o contrato pode ter sido executado. Vencido o prazo, o contrato deixa de ser ordem viva e o **Abortar** libera. |
 | **Anti-Flicker Switch (3s)** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Trava temporal de 3 segundos entre trocas automáticas de mercado na tela para evitar fadiga visual e oscilações concorrentes. |
+
+### 13.1 Ordem viva e confiabilidade de ordens
+
+O hook (`useBearBot2.ts`) é quem acompanha a corretora e informa ao motor, via `engine.setLiveOrderGuard(hasLiveOrder)`, se existe **ordem viva**:
+
+* compra aguardando resposta (`buysInFlightRef`);
+* contrato dentro do prazo de liquidação (`settleTimersRef`);
+* compra não confirmada (`unconfirmedRef`, erro `BuyUnconfirmed` do `DerivService`).
+
+Enquanto houver ordem viva, nada solta `tradeLock`. Regras derivadas:
+
+* **Compra:** recusa comum da corretora libera a próxima entrada (`abortPendingTrade`). `BuyUnconfirmed` para o robô e segura a trava; só o **Abortar** / **Zerar Gale** (ação explícita, depois de conferir o extrato) libera.
+* **Combo:** as pernas usam `Promise.allSettled`. Perna comprada é sempre acompanhada; com uma só, o combo é rebaixado a operação simples com a barreira daquela perna ("COMBO parcial").
+* **Resultado:** só contratos comprados por este robô (`ordersRef`) entram no placar; resultado de outra tela, consulta avulsa ou repetido é ignorado. Liquidado = `is_sold` ou `status` `won`/`lost`/`sold` (`is_valid_to_sell` não indica fim). O stream é cancelado (`forget`) na liquidação. O dígito de saída vem de `exit_tick_display_value` (preserva o zero final).
+* **Dados da ordem:** stake, mercado e alvo são gravados na compra (`SettledOrder`) e passados a `settleContract`; editar a configuração durante o contrato não altera o histórico nem o `lastPayout`.
+* **Abortar, Reset, troca do Paper:** com ordem viva, zeram contadores mas mantêm a trava (log "a trava sai na liquidação"). Resultado atrasado de contrato abandonado entra no placar sem soltar a trava de uma ordem nova.
+* **Troca de conta:** recusada antes de zerar qualquer estado se houver ordem viva.
+* **Paper:** o trade simulado (800ms) é cancelado ao trocar o Paper, ao Abortar e no unmount; nunca cai no placar real.
+* **Conexão:** ids de proposta valem só na conexão que os criou. Nos eventos `close` e `trade.status` do `DerivService`, as propostas são descartadas e pedidas de novo quando o canal de trade volta. O indicador **WS** mostra OFFLINE quando o canal de trade cai (exceto no Paper); `isConnected` continua indicando só o canal de mercado (ticks).
+* **Entrada automática:** o gatilho agenda a compra em `setTimeout(0)`; ela só sai se o robô ainda estiver ligado na hora. No unmount, entradas agendadas, prazos e o paper pendente são cancelados, e respostas atrasadas não assinam nada.
 
 ---
 
@@ -593,7 +613,13 @@ npx vitest run src/__tests__/bearBot2AutoDigitFocus.test.ts
 # Executar testes de Interface React
 npx vitest run src/__tests__/bearBotUltra2.test.tsx
 npx vitest run src/__tests__/bearBotUltra2AutoDigitUI.test.tsx
+
+# Confiabilidade de ordens (ids BB2-xx), reconexão com DerivService real, controles e painéis
+npx vitest run src/__tests__/bearBot2Reliability.test.tsx src/__tests__/bearBot2Reconnect.test.tsx
+npx vitest run src/__tests__/bearBotUltra2Controls.test.tsx src/__tests__/bearBotUltra2Panels.test.tsx
 ```
+
+A tela, os painéis, `useBearBot2.ts`, `BearBot2Engine.ts` e `bearbot2.types.ts` estão no `include` de cobertura do `vitest.config.ts`, com piso de 90% por arquivo (linhas, statements e funções).
 
 ---
 
@@ -605,5 +631,5 @@ Ao realizar manutenções, melhorias ou alterações no Bear Bot Ultra 2, obede�
 2. **Respeite a sincronização de `config.digit`:** Tanto no Dígito Dinâmico (`differDynamicDigit`) quanto no Dígito Automático (`differAutoDigit`), `config.digit` e os mapas de estado (`autoDigitBySym`) devem ser sincronizados continuamente para garantir coerência entre UI, proposals e submissão de ordens.
 3. **Não altere contratos sem atualizar `buildLoserSet` e `isWinCheck`:** Essas duas funções em `bearbot2.types.ts` são a referência única de verdade para definir se um dígito é vencedor ou perdedor em qualquer modo.
 4. **Isolamento de Contagem em Loss Virtual:** Sempre utilize `ticksSinceReset[sym]` ao calcular janelas de Loss Virtual para evitar falsos disparos com dados históricos defasados.
-5. **Respeite o destravamento seguro (`abortPendingTrade`):** Em caso de erros de API ou abortos manuais, sempre utilize `abortPendingTrade()` para liberar a trava `tradeLock` sem registrar falsas derrotas ou avançar o Martingale indevidamente.
+5. **Respeite o destravamento seguro (`abortPendingTrade`):** Em caso de erros de API ou abortos manuais, sempre utilize `abortPendingTrade()` para liberar a trava `tradeLock` sem registrar falsas derrotas ou avançar o Martingale indevidamente. Nunca atribua `tradeLock = false` direto: toda liberação passa pela guarda de ordem viva (seção 13.1).
 6. **Mantenha os testes verdes:** Toda nova funcionalidade deve vir acompanhada de testes em `src/__tests__/` e aprovada via `npx vitest run src/__tests__/bearBot*`.

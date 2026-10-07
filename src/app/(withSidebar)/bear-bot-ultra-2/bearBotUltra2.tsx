@@ -36,9 +36,11 @@ function validateNumber(val: string, min: number, max: number, allowZero: boolea
 export default function BearBotUltra() {
   const {
     state, config, updateConfig, executeTrade, startBot, stopBot, abortOp,
-    resetStats, manualFire, exportCSV, isConnected, accountInfo, switchAccount,
+    resetStats, manualFire, exportCSV, isConnected, tradeReady, hasLiveOrder, accountInfo, switchAccount,
     getDynamicDifferDigit
   } = useBearBot();
+  // Fora do Paper, compra depende do canal de trade, não só do de mercado.
+  const wsOnline = isConnected && (config.paperMode || tradeReady);
   const activeAccount = accountInfo?.tokens?.find((t: any) => t.token === accountInfo.activeToken);
   const isAuthenticated = !!activeAccount;
   const tradesThisHourCount = state.tradesThisHour.filter((t) => t > Date.now() - 3_600_000).length;
@@ -192,6 +194,11 @@ export default function BearBotUltra() {
   const handleAccountToggle = async (isVirtual: boolean) => {
     const targetToken = accountInfo?.tokens?.find((t: any) => t.is_virtual === isVirtual)?.token;
     if (targetToken) {
+      // Recusa antes de zerar qualquer coisa: a troca derrubaria o acompanhamento.
+      if (hasLiveOrder()) {
+        toast.error("Há contrato em aberto. Aguarde a liquidação antes de trocar de conta.");
+        return;
+      }
       abortOp();
       if (config.autoOn) {
         stopBot();
@@ -252,8 +259,8 @@ export default function BearBotUltra() {
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] text-[#8593aa] uppercase tracking-wider">WS</span>
-            <span className={`font-bold font-mono text-xs ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
-              {isConnected ? '● ONLINE' : '● OFFLINE'}
+            <span className={`font-bold font-mono text-xs ${wsOnline ? 'text-green-400' : 'text-red-400'}`}>
+              {wsOnline ? '● ONLINE' : '● OFFLINE'}
             </span>
           </div>
 

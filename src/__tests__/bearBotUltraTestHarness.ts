@@ -8,6 +8,8 @@ export function createBearDeriv() {
   const observer = new Observer<any>();
   const fake = {
     observerInstance: observer,
+    isMarketConnected: true,
+    isTradeReady: true,
     // Cada payload enviado passa por aqui; o teste troca o roteamento.
     route: (payload: any): Promise<any> => Promise.resolve({ msg_type: Object.keys(payload)[0] }),
     send: vi.fn((payload: any) => fake.route(payload)),

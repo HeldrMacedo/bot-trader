@@ -42,6 +42,10 @@ export default defineConfig({
         'src/app/**/bottrader/*.tsx',
         // Bear Bot Ultra v1: compra, trava de operação e liquidação na tela.
         'src/app/**/bear-bot-ultra/*.tsx',
+        // Bear Bot Ultra 2: tela, painéis, hook de execução e motor.
+        'src/app/**/bear-bot-ultra-2/**/*.tsx',
+        'src/app/hooks/useBearBot2.ts',
+        'src/app/services/{BearBot2Engine,bearbot2.types}.ts',
       ],
       thresholds: {
         // Por arquivo: a média deixaria o motor, já bem coberto, carregar os

@@ -1,16 +1,16 @@
 # Graph Report - bot-trader  (2026-10-07)
 
 ## Corpus Check
-- 307 files · ~722,608 words
+- 311 files · ~727,783 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1807 nodes · 3284 edges · 134 communities (81 shown, 42 thin omitted)
+- 1838 nodes · 3381 edges · 139 communities (86 shown, 42 thin omitted)
 - Extraction: 95% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 146 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8cb10ad7`
+- Built from commit: `98540331`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -58,7 +58,7 @@
 - Score de Oportunidade
 - Holographic Trading Dashboard Visual
 - useAuth
-- DerivService.tsx
+- bearBotUltra.tsx
 - Bear Bot Ultra (v1)
 - BearBot2Engine.ts (motor desacoplado)
 - computeDynamicDifferDigit (spec contract)
@@ -78,7 +78,7 @@
 - differDynamicDigit (BotConfig flag)
 - Bear Bot Pro Logo Image
 - sharedRules.test.ts
-- BearBotDiffer.tsx
+- EngineState
 - middleware.ts
 - resetPassword.test.js
 - Gale (Martingale) Algorithm
@@ -115,6 +115,7 @@
 - next.config.mjs
 - nextjs
 - next
+- useModuleAccess
 - @prisma/client
 - react-icons
 - react-toastify
@@ -131,22 +132,26 @@
 - vitest.config.ts
 - BearDifferMath.ts
 - derivConfig.ts
-- DifferGenome
+- Manual Técnico de Arquitetura Bear Bot Differ
 - copyTrading.test.ts
 - MonitoringService Lifecycle
 - Corrigir o bloco "Testes antes de operar"
 - bearBot2Engine.test.ts
 - bearBot2FocusVirtualLossGate.test.ts
 - react-dom
+- bearBotUltra2Controls.test.tsx
+- getUser
+- bearBot2QuickBuy.test.ts
+- useBearDiffer.test.ts
 
 ## God Nodes (most connected - your core abstractions)
 1. `BearDifferEngine` - 99 edges
-2. `DerivService` - 88 edges
-3. `BearBotEngine` - 77 edges
+2. `DerivService` - 89 edges
+3. `BearBotEngine` - 79 edges
 4. `CopyTradingService` - 36 edges
-5. `WsListener` - 33 edges
-6. `TradeExecutor` - 32 edges
-7. `createEngine()` - 31 edges
+5. `createEngine()` - 33 edges
+6. `WsListener` - 33 edges
+7. `TradeExecutor` - 32 edges
 8. `EngineState` - 27 edges
 9. `createDifferEngine()` - 23 edges
 10. `DerivConnection` - 22 edges
@@ -156,12 +161,12 @@
   docs/superpowers/specs/2026-08-17-differ-dynamic-digit-design.md → src/app/(withSidebar)/bear-bot-ultra-2/score_oportunidade.md
 - `Motor 2.0 e Classificação das 17 Lógicas` --implements--> `BearDifferEngine`  [EXTRACTED]
   docs/doc_bear_bot_differ/README.md → src/app/services/BearDifferEngine.ts
+- `Controle FDR de Benjamini-Hochberg (q=0.10)` --implements--> `benjaminiHochberg()`  [EXTRACTED]
+  docs/doc_bear_bot_differ/README.md → src/app/services/BearDifferMath.ts
+- `Simulação de Ruína de Monte Carlo` --implements--> `simulateMonteCarloRuin()`  [EXTRACTED]
+  docs/doc_bear_bot_differ/README.md → src/app/services/BearDifferMath.ts
 - `SIMULADO/REAL Mode Switching` --semantically_similar_to--> `Quantity Loss Mode`  [INFERRED] [semantically similar]
   .claude/commands/monitoring.md → CLAUDE.md
-- `Strategy Cache (7-day TTL)` --semantically_similar_to--> `Semantic Extraction Cache`  [INFERRED] [semantically similar]
-  .claude/commands/trade-strategy.md → .agents/skills/graphify/SKILL.md
-- `Quantity Loss (demo losses before real entry)` --semantically_similar_to--> `Loss Virtual Modes (consec / accum)`  [INFERRED] [semantically similar]
-  src/app/(withSidebar)/bottrader/copy-trader-doc.md → docs/superpowers/specs/2026-08-25-contagem-sob-foco-design.md
 
 ## Import Cycles
 - None detected.
@@ -186,11 +191,11 @@
 - **Account Transaction/History Endpoint Family** — docs_documentacao_deriv_api_reference_docs_account_portfolio_portfolio, docs_documentacao_deriv_api_reference_docs_account_profit_table_profit_table, docs_documentacao_deriv_api_reference_docs_account_statement_statement, docs_documentacao_deriv_api_reference_docs_account_transaction_transaction, docs_documentacao_deriv_api_reference_docs_options_legacy_legacy_statement_legacy_statement [INFERRED 0.85]
 - **Connection Health and Session Hygiene Endpoints** — docs_documentacao_deriv_api_reference_docs_system_ping_ping, docs_documentacao_deriv_api_reference_docs_system_time_server_time, docs_documentacao_deriv_api_reference_docs_system_health_health_check, docs_documentacao_deriv_api_reference_docs_subscription_forget_forget, docs_documentacao_deriv_api_reference_docs_subscription_forget_all_forget_all [INFERRED 0.85]
 
-## Communities (134 total, 42 thin omitted)
+## Communities (139 total, 42 thin omitted)
 
 ### Community 0 - "WsListener"
-Cohesion: 0.14
-Nodes (4): WsListener, ContractInfo, DurationInfo, signalFor()
+Cohesion: 0.13
+Nodes (5): WsListener, ContractInfo, DurationInfo, listener(), signalFor()
 
 ### Community 2 - "Graphify Pipeline"
 Cohesion: 0.05
@@ -201,8 +206,8 @@ Cohesion: 0.13
 Nodes (3): CopyTradingService, createService(), createServiceWithEventControl()
 
 ### Community 4 - "BearBotEngine"
-Cohesion: 0.09
-Nodes (5): buildLoserSet(), TradePrep, VLMarketState, BearBotEngine, clampRateLimits()
+Cohesion: 0.08
+Nodes (4): TradePrep, VLMarketState, BearBotEngine, clampRateLimits()
 
 ### Community 5 - "Deriv Account & Markup API"
 Cohesion: 0.06
@@ -210,15 +215,15 @@ Nodes (49): Account Management WebSocket Endpoint Group, balance Endpoint, Clien
 
 ### Community 6 - "bearbot2.types.ts"
 Cohesion: 0.10
-Nodes (22): AI_MIN_SCORE_DEFAULT, BotMode, ComboPending, DerivAccount, DerivAuthState, DynamicDigitDetail, ExecMode, GaleMode (+14 more)
+Nodes (23): AI_MIN_SCORE_DEFAULT, AI_MODE_WEIGHTS, BotMode, ComboPending, DerivAccount, DerivAuthState, DynamicDigitDetail, ExecMode (+15 more)
 
 ### Community 7 - "devDependencies"
 Cohesion: 0.04
 Nodes (45): cross-env, eslint, eslint-config-next, @eslint/eslintrc, jsdom, devDependencies, cross-env, eslint (+37 more)
 
 ### Community 8 - "useBearDiffer.ts"
-Cohesion: 0.08
-Nodes (28): Fast Execution via Proposal Keeper, Live Tracking de Assertividade Virtual (virtStats), Next-Tick Settlement em Simulação, Paridade Funcional e Matemática Bear Differ, Relatório de Code Review Bear Bot Differ v3.5, Safety Guards e Gating de Modo Real, Contrato Differ na Deriv, Gestão de Martingale Normal e Parcial (+20 more)
+Cohesion: 0.10
+Nodes (22): Fast Execution via Proposal Keeper, Live Tracking de Assertividade Virtual (virtStats), Next-Tick Settlement em Simulação, Paridade Funcional e Matemática Bear Differ, Relatório de Code Review Bear Bot Differ v3.5, Safety Guards e Gating de Modo Real, Gatilho de Loss Virtual com Repick, Extração de Dígitos via Pip Size por Ativo (+14 more)
 
 ### Community 10 - "buy Endpoint"
 Cohesion: 0.06
@@ -229,36 +234,36 @@ Cohesion: 0.07
 Nodes (30): GET(), POST(), prisma, POST(), GET(), POST(), CopyTradingManager, UserCopyTrading (+22 more)
 
 ### Community 12 - "copyTraderUi.test.tsx"
-Cohesion: 0.06
-Nodes (32): useModuleAccess(), Page(), Page(), BearBotUltra(), Page(), BotTraderX(), Configure, Console (+24 more)
+Cohesion: 0.14
+Nodes (14): BotTraderX(), Configure, Console, RealAccount, Stats, VirtualAccount, HasAcessComponet(), BotTrade() (+6 more)
 
 ### Community 13 - "compilerOptions"
 Cohesion: 0.07
 Nodes (29): dom, dom.iterable, esnext, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules, **/*.ts (+21 more)
 
 ### Community 14 - "BearDifferEngine.ts"
-Cohesion: 0.06
-Nodes (36): AnomalyLogItem, AutoSource, BASE_GENOME, BiasTestResult, DEFAULT_DIFFER_CONFIG, DEFAULT_DIFFER_MARKETS, DifferAudit, DifferLogItem (+28 more)
+Cohesion: 0.07
+Nodes (26): AutoSource, BASE_GENOME, BiasTestResult, DEFAULT_DIFFER_CONFIG, DEFAULT_DIFFER_MARKETS, DifferAudit, LogicDef, LogicPick (+18 more)
 
 ### Community 15 - "DerivApiClient"
 Cohesion: 0.11
 Nodes (11): AnalysisResponse, ConfigResponse, ConfigUpdate, ConnectionRequest, DerivApiClient, MarketQuality, PerformanceStats, SymbolAnalysis (+3 more)
 
 ### Community 16 - "derivServiceTestHarness.ts"
-Cohesion: 0.11
-Nodes (23): bootBot(), reply(), seedLegacy(), buyContract(), reply(), POC, subscribeOn(), bootConnected() (+15 more)
+Cohesion: 0.10
+Nodes (26): bootBot(), lastSent(), readyProposal(), bootBot(), reply(), seedLegacy(), buyContract(), reply() (+18 more)
 
 ### Community 17 - "login/route.js"
 Cohesion: 0.12
 Nodes (16): getClientIp(), POST(), prisma, getClientIp(), POST(), prisma, GET(), prisma (+8 more)
 
 ### Community 18 - "bearBotUltraReliability.test.tsx"
-Cohesion: 0.16
-Nodes (13): boot(), bootWithOpenContract(), emit(), h, marketTick(), poc(), BearDeriv, buysOf() (+5 more)
+Cohesion: 0.12
+Nodes (19): boot(), bootWithOpenContract(), buy(), flush(), h, poc(), boot(), bootWithOpenContract() (+11 more)
 
 ### Community 20 - "copyTraderUnits.test.ts"
 Cohesion: 0.14
-Nodes (11): boot(), realBuys(), signal(), demoBuy(), FakeWs, flush(), installStorage(), resolveMock (+3 more)
+Nodes (9): boot(), realBuys(), signal(), demoBuy(), FakeWs, flush(), installStorage(), resolveMock (+1 more)
 
 ### Community 21 - "homeComponentsCoverage.test.tsx"
 Cohesion: 0.17
@@ -269,8 +274,8 @@ Cohesion: 0.15
 Nodes (17): configureTradeManager, Legacy Bridge Expert Skill, Legacy Rules Cache and History API, Legacy Script Load Order, Window Global Shims, Group Activation Logic, Gemini Model Selection by Group Count, Available Strategy Indicators (+9 more)
 
 ### Community 23 - "BotState"
-Cohesion: 0.13
-Nodes (16): BotConfig, BotState, DynamicDigitResult, MarketIntelligence, DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor(), HelpTip() (+8 more)
+Cohesion: 0.23
+Nodes (12): BotConfig, BotState, DynamicDigitResult, TradeLog, DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor(), IntelPanelProps (+4 more)
 
 ### Community 24 - "bearBotUltraFeatures.test.tsx"
 Cohesion: 0.13
@@ -293,8 +298,8 @@ Cohesion: 0.14
 Nodes (10): localStorageMock, MockAudioContext, mockExtractLastDigit, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend, mockSubscribe (+2 more)
 
 ### Community 29 - "ManualTrading.tsx"
-Cohesion: 0.18
-Nodes (11): Authentication, AuthenticationHandle, AccountSelectorProps, extractDigit(), getDecimalPlaces(), getSymbolLabel(), INITIAL_TICKS, SYMBOL_LABELS (+3 more)
+Cohesion: 0.12
+Nodes (19): AccountInfo, buyNotSent(), buyUnconfirmed(), DerivEventMap, InflightRequest, PendingRequest, TokenData, UserInfo (+11 more)
 
 ### Community 30 - "DerivService WebSocket Singleton"
 Cohesion: 0.33
@@ -321,15 +326,15 @@ Cohesion: 0.15
 Nodes (13): Bot Copy Trader (demo → real replication), Limite de Martingale (reset vs stop), Pause Time (cooldown between real trades), Quantity Loss (demo losses before real entry), Stake Multiple (Martingale multiplier), Stop Loss / Stop Win (real account limits), calculateNextStake Uses martingaleLevel, consecutiveLosses Scoped to Demo Only (+5 more)
 
 ### Community 36 - "MarketGrid.tsx"
-Cohesion: 0.12
-Nodes (14): AI_MODE_WEIGHTS, AIMode, AIWeights, DEFAULT_BOT_STATE, DEFAULT_CONFIG, AI_MODE_LABELS, AI_WEIGHT_FIELDS, getIntelColor() (+6 more)
+Cohesion: 0.11
+Nodes (15): AIMode, AIWeights, DEFAULT_BOT_STATE, DEFAULT_CONFIG, MarketIntelligence, AI_MODE_LABELS, AI_WEIGHT_FIELDS, getIntelColor() (+7 more)
 
 ### Community 37 - "createDifferEngine"
 Cohesion: 0.11
-Nodes (15): DifferConfig, DifferMarket, createDifferEngine(), ConfigSidebar(), ConfigSidebarProps, CAUSA, descreveMetrica(), nomeDaCausa() (+7 more)
+Nodes (14): DifferConfig, createDifferEngine(), CAUSA, descreveMetrica(), nomeDaCausa(), OperationTab(), OperationTabProps, primeiraFrase() (+6 more)
 
 ### Community 38 - "copyTradingService.ts"
-Cohesion: 0.17
+Cohesion: 0.14
 Nodes (7): SignalProcessor, DURATION_UNIT_MS, ErrorNotification, ErrorStats, BuyRequest, TradeParameters, TradeSignal
 
 ### Community 39 - "ZeeK 3.0 Trading Robot"
@@ -348,9 +353,9 @@ Nodes (12): Authentication Page Branding Asset, Businessman Holding Floating Scr
 Cohesion: 0.27
 Nodes (7): useAuth(), HomePage(), ProfilePage(), MarkupBreakdown, MarkupStatisticsData, MarkupStatisticsReport(), MarkupStatisticsPage()
 
-### Community 43 - "DerivService.tsx"
-Cohesion: 0.12
-Nodes (15): AccountInfo, buyNotSent(), buyUnconfirmed(), DerivEventMap, InflightRequest, PendingRequest, TokenData, UserInfo (+7 more)
+### Community 43 - "bearBotUltra.tsx"
+Cohesion: 0.10
+Nodes (17): BearBotUltra(), Market, MARKETS, Order, PatternState, TradeLog, VLMarketState, HistoryPage() (+9 more)
 
 ### Community 44 - "Bear Bot Ultra (v1)"
 Cohesion: 0.18
@@ -397,16 +402,16 @@ Cohesion: 0.36
 Nodes (9): Buy / Sell Signal Iconography, Candlestick Chart Panel (STOCKS), Blue / Green / Red Trading Palette, Flat Vector Stock-Art Illustration Style, Login Page Trading Illustration, Login Page Hero Artwork Slot, Lorem Ipsum Placeholder Asset Labels, Trading Dashboard Visual Motif (+1 more)
 
 ### Community 55 - "userService.js"
-Cohesion: 0.16
-Nodes (15): ForgotPasswordModal(), LoginPage(), Home(), updateUserProfile(), checkToken(), getUser(), logout(), registerUser() (+7 more)
+Cohesion: 0.27
+Nodes (8): ForgotPasswordModal(), LoginPage(), Home(), checkToken(), registerUser(), userLogin(), localStorageMock, mockFetch
 
 ### Community 57 - "CopyTradingService (uma instância por usuário)"
 Cohesion: 0.29
 Nodes (8): BotTrader (Bot Copy Trader), CopyTradingManager (singleton server-side), CopyTradingService (uma instância por usuário), Martingale (progressão geométrica), Reconexão automática de WebSockets, SignalProcessor, TradeSignal (símbolo, tipo, duração, barrier), WsListener (WebSocket conta demo)
 
 ### Community 58 - "bearBotUltra2.tsx"
-Cohesion: 0.12
-Nodes (13): TradeLog, BearBotUltra(), sanitizeDecimalInput(), validateNumber(), TradeLogComponent(), TradeLogProps, localStorageMock, MockAudioContext (+5 more)
+Cohesion: 0.11
+Nodes (17): buildLoserSet(), BearBotUltra(), sanitizeDecimalInput(), validateNumber(), HelpTip(), HelpTipProps, getIntelColor(), getRecLabel() (+9 more)
 
 ### Community 59 - "Inteligência de Multi-Mercado (Multi ON)"
 Cohesion: 0.29
@@ -424,9 +429,9 @@ Nodes (8): Bear Bot Ultra Module Branding, BEAR BOT Wordmark, Bearish Trading Br
 Cohesion: 0.29
 Nodes (5): ../app/api/shared-rules/route, BASE_RULE, makeRequest(), makeToken(), mocks
 
-### Community 63 - "BearBotDiffer.tsx"
-Cohesion: 0.10
-Nodes (19): StrategyCandidate, WatchStatus, BearBotDiffer(), PipelineTab(), PipelineTabProps, SystemTab(), SystemTabProps, ValidationTab() (+11 more)
+### Community 63 - "EngineState"
+Cohesion: 0.11
+Nodes (26): AnomalyLogItem, DifferLogItem, DifferMarket, DifferTradeRecord, WatchAlertItem, WatchEntry, WatchStatus, EngineState (+18 more)
 
 ### Community 64 - "middleware.ts"
 Cohesion: 0.29
@@ -441,8 +446,8 @@ Cohesion: 0.29
 Nodes (8): Proposal and Buy Contract Flow, Gale (Martingale) Algorithm, ManagementConfigData, Soros (Profit Reinvestment) Algorithm, TradeConfigData, Trade Configuration & Risk Management Skill, Pre-Start Config Validation, Deriv Contract Types
 
 ### Community 67 - "useBearBot2.ts"
-Cohesion: 0.10
-Nodes (17): extractLastDigit(), isTerminalContract(), useBearBot(), MARKETS, ProposalEntry, MockAudioContext, mockSend, mockSubscribe (+9 more)
+Cohesion: 0.17
+Nodes (11): extractLastDigit(), isTerminalContract(), OpenOrder, useBearBot(), MARKETS, ProposalEntry, SettledOrder, MockAudioContext (+3 more)
 
 ### Community 68 - "deriv_accounts (OAuth token snapshot)"
 Cohesion: 0.60
@@ -484,17 +489,21 @@ Nodes (4): Browser Window Glyph (title bar with three dots), Monochrome 16x16 UI
 Cohesion: 0.67
 Nodes (3): Document Page Glyph with Folded Corner, File Icon (SVG), Next.js Starter Template Icon Asset
 
+### Community 100 - "useModuleAccess"
+Cohesion: 0.24
+Nodes (8): useModuleAccess(), Page(), Page(), Page(), HasAcessComponet(), mockUseModuleAccess, mockUseModuleAccess, h
+
 ### Community 124 - "BearDifferMath.ts"
-Cohesion: 0.12
-Nodes (26): Pipeline Genético com Drift Test, Regras de Ouro de Gestão de Risco Differ, Controle FDR de Benjamini-Hochberg (q=0.10), Critério de Kelly Fracionário (Half & Quarter Kelly), Manual Técnico de Arquitetura Bear Bot Differ, Modelagem Estatística Pura (Lanczos, Chi2, Gamma, Binomial), Motor 2.0 e Classificação das 17 Lógicas, Esteira Genética e Validação Tripla (+18 more)
+Cohesion: 0.25
+Nodes (16): MonteCarloResult, benjaminiHochberg(), binomP(), calculateKelly(), chiP(), driftTest(), DriftTestResult, erfc() (+8 more)
 
 ### Community 125 - "derivConfig.ts"
 Cohesion: 0.32
 Nodes (9): buildDerivWsUrl(), DerivConnection, fetchAccountIdFromPat(), fetchOtpWebsocketUrl(), getDerivAppId(), isPatToken(), parseDerivToken(), ParsedToken (+1 more)
 
-### Community 126 - "DifferGenome"
-Cohesion: 0.25
-Nodes (4): Pontuação Composta de Dígitos (scoreAll), DifferGenome, MartingaleConfig, PipelineCandidate
+### Community 126 - "Manual Técnico de Arquitetura Bear Bot Differ"
+Cohesion: 0.10
+Nodes (19): Pipeline Genético com Drift Test, Contrato Differ na Deriv, Gestão de Martingale Normal e Parcial, Manual do Usuário Bear Bot Differ, Arquitetura das 8 Abas Analíticas, Regras de Ouro de Gestão de Risco Differ, Scanner de Vigilância Multivariado (5s), Separação de Responsabilidades (SoC) Bear Differ (+11 more)
 
 ### Community 127 - "copyTrading.test.ts"
 Cohesion: 0.20
@@ -511,6 +520,22 @@ Nodes (3): Comportamento dos campos, Corrigir o bloco "Testes antes de operar", 
 ### Community 130 - "bearBot2Engine.test.ts"
 Cohesion: 0.22
 Nodes (5): AI_WEIGHTS, AIModeName, feedABPattern(), seedLoserPressure(), seedPatternIntel()
+
+### Community 135 - "bearBotUltra2Controls.test.tsx"
+Cohesion: 0.23
+Nodes (7): blur(), change(), click(), clickTestId(), clickText(), h, inputOf()
+
+### Community 136 - "getUser"
+Cohesion: 0.33
+Nodes (7): updateUserProfile(), getUser(), logout(), Sidebar(), HomeLayout(), ProfileModal(), ProfileModalProps
+
+### Community 137 - "bearBot2QuickBuy.test.ts"
+Cohesion: 0.18
+Nodes (8): MockAudioContext, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend, mockSubscribe, mockSwitchAccount, registeredListeners
+
+### Community 138 - "useBearDiffer.test.ts"
+Cohesion: 0.33
+Nodes (5): mockListeners, mockObserver, mockSend, mockSubscribe, mockSwitchAccount
 
 ## Ambiguous Edges - Review These
 - `DerivService WebSocket Singleton` → `Deriv API Expert Skill`  [AMBIGUOUS]
@@ -529,8 +554,8 @@ Nodes (5): AI_WEIGHTS, AIModeName, feedABPattern(), seedLoserPressure(), seedPat
   public/window.svg · relation: semantically_similar_to
 
 ## Knowledge Gaps
-- **364 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+359 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 597 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **366 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+361 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 606 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **42 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
