@@ -112,20 +112,57 @@ No modo Differ, o robô pode aguardar padrões comportamentais nos dígitos ante
 
 ---
 
-## 7. Suíte de Testes Automatizados (Vitest)
+## 7. Confiabilidade de Ordens
 
-O Bear Bot Ultra possui cobertura de testes unitários integrados com Vitest e `@testing-library/react`.
+Regras que protegem a banca quando a rede, a corretora ou o usuário agem no meio de uma operação. Cada uma tem teste de regressão (ids `BBU-xx` nos testes).
 
-* **Arquivo de Testes:** [bearBotUltra.test.tsx](file:///home/helder/Desenvolvimento/bot-trader/src/__tests__/bearBotUltra.test.tsx)
-* **Comando para Execução:**
-  ```bash
-  npx vitest run src/__tests__/bearBotUltra.test.tsx
-  ```
-* **Cenários Testados:**
-  1. Renderização inicial dos componentes de UI e seleção de volatilidades/estratégias.
-  2. Alternância entre contas Real e Demo (Virtual).
-  3. Ligar e desligar o robô no modo automático.
-  4. Validação da regra de **Loss Virtual Acumulado**: simulação de ticks históricos com robô desligado, acionamento do robô, verificação do reset da janela (iniciando em `1/vlWindow`) e disparo correto da ordem quando o limite `vlQty` é atingido.
+### 7.1 Trava de operação (`tradeLock`) e ordem viva
+* **Ordem viva** é uma compra aguardando resposta (`ordersInFlight`) ou um contrato dentro do prazo de liquidação (`settleTimers`).
+* Enquanto houver ordem viva, nada solta a trava: nem **Reset**, nem **Pausar / Abortar** / **Zerar Gale**. A trava sai na liquidação do contrato (`finishTrade` recalcula `tradeLock = hasLiveOrder()`).
+* **Trocar de conta** com ordem viva é recusado antes de zerar qualquer estado.
+* Sem ordem viva (ex.: compra não confirmada ou contrato que estourou o prazo), **Pausar / Abortar** é a ação explícita que libera o robô.
+
+### 7.2 Compra
+* Recusa da corretora (erro comum) libera a próxima entrada.
+* `BuyUnconfirmed` (buy enviado sem resposta, vindo do `DerivService`): a ordem pode ter sido executada. A trava fica, o robô para e o usuário deve conferir o extrato antes de abortar.
+* **Combo** usa `Promise.allSettled`: perna comprada é sempre acompanhada até liquidar, mesmo se a outra for recusada ("COMBO parcial"). O resultado do combo soma só as pernas compradas.
+* Os dados da ordem (`Order`: tipo, stake, mercado, dígito) são gravados na compra. A liquidação registra esses valores, não os da tela, que podem ter mudado enquanto o contrato corria.
+
+### 7.3 Resultado do contrato
+* O acompanhamento usa `derivService.subscribe({ proposal_open_contract, contract_id })`. Só assim o `DerivService` reassina o contrato quando o canal de trade cai e volta. Na liquidação, o stream é cancelado (`forget`).
+* Só contratos comprados por este robô (`stateRef.contracts`) entram no placar. Resultado de outra tela ou consulta avulsa na mesma conta é ignorado, assim como resultado repetido.
+* Liquidado = `is_sold` ou `status` diferente de `open`. Mensagens do contrato ainda aberto não contam.
+* Auditoria (`audit_details`) é só exibição: ausente ou com menos de 3 ticks não impede a liquidação.
+* O dígito de saída vem de `exit_tick_display_value` (preserva o zero final); `exit_spot` é o fallback.
+* **Prazo:** sem resultado em `SETTLEMENT_TIMEOUT_MS` (60s), o robô para com toast de erro e faz uma consulta avulsa do contrato. Se a corretora já liquidou, o resultado entra normalmente. Um resultado que chegue depois do Abortar entra no placar sem soltar a trava de uma ordem nova.
+
+### 7.4 Conexão e ciclo de vida da tela
+* Ids de proposta só valem na conexão que os criou: nos eventos `close` e `open` do `DerivService`, `props` é descartado e, na reabertura, as propostas são pedidas de novo.
+* **Desligar Robô** e **Abortar** atualizam `stateRef.autoOn` na hora; o tick seguinte não dispara ordem.
+* Depois do unmount (`stateRef.alive = false`), respostas e timers atrasados não assinam propostas nem abrem acompanhamento de contrato; os prazos de liquidação são cancelados.
+* O botão de som é lido da ref (`stateRef.soundOn`), pois os sons tocam no listener de resultado criado no primeiro render.
+
+---
+
+## 8. Suíte de Testes Automatizados (Vitest)
+
+O Bear Bot Ultra possui cobertura de testes com Vitest e `@testing-library/react`, com piso de 90% por arquivo (linhas, statements e funções) definido em `vitest.config.ts`.
+
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `bearBotUltra.test.tsx` | Renderização, troca de conta, ligar/desligar, janela do loss virtual acumulado. |
+| `bearBotUltraReliability.test.tsx` | Trava, compra, liquidação, prazo, unmount (BBU-03 a BBU-12), com `DerivService` falso. |
+| `bearBotUltraReconnect.test.tsx` | Reconexão com o `DerivService` real sobre WebSocket falso (BBU-01, BBU-02). |
+| `bearBotUltraFeatures.test.tsx` | Propostas pré-abertas, martingale, stops, loss virtual, modos, multi-mercado, CSV, som. |
+| `bearBotUltraPage.test.tsx` | Controle de acesso da página. |
+| `bearBotUltraTestHarness.ts` | `DerivService` falso com observer real, ticks, contratos e áudio falsos. |
+
+```bash
+npx vitest run src/__tests__/bearBotUltra --exclude '.kilo/**'
+```
+
+> [!NOTE]
+> Os ramos de **gatilho por padrão** (`patTrigger`) e do modo de padrão sequencial (`patMode = 'seq'`) não têm controle na interface: `setPatTrigger` e `setPatMode` nunca são chamados. São as principais linhas sem cobertura.
 
 ---
 

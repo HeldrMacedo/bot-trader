@@ -35,6 +35,10 @@ const MARKETS: Market[] = [
     { sym: 'RDBULL', nm: 'Bull Market', pip: 4 },
 ];
 
+// Contrato de 1 tick liquida em segundos. Sem resultado neste prazo, o robô
+// para: seguir operando com o contrato sem acompanhamento esconderia a ordem.
+const SETTLEMENT_TIMEOUT_MS = 60_000;
+
 interface TradeLog {
     t: string;
     mercado: string;
@@ -46,6 +50,15 @@ interface TradeLog {
     resultado: 'WIN' | 'LOSS';
     lucro: string;
     acumulado: string;
+}
+
+// Dados da ordem no momento da compra: a liquidação registra estes valores,
+// não os da tela, que o usuário pode ter mudado enquanto o contrato corria.
+interface Order {
+    kind: string;
+    stake: number;
+    sym: string;
+    digit: number;
 }
 
 interface PatternState {
@@ -137,6 +150,7 @@ export default function BearBotUltra() {
         galeMode,
         galeParcels,
         multiOn,
+        soundOn,
         patReps,
         patMinForce,
         patTrigger,
@@ -152,13 +166,16 @@ export default function BearBotUltra() {
         lastPayout: 0.9,
         tradeLock: false,
         reqSeq: 1,
-        settled: {} as Record<string, boolean>,
+        // Contratos comprados por este robô e ainda não liquidados.
+        contracts: {} as Record<string, Order>,
+        settleTimers: {} as Record<string, ReturnType<typeof setTimeout>>,
+        ordersInFlight: 0,
         props: {} as Record<string, { id: string | null; ready: boolean; pending: boolean; ct: string; barrier: number }>,
         vlMState: {} as Record<string, VLMarketState>,
         patState: {} as Record<string, PatternState>,
         multiCand: {} as Record<string, { sym: string; b: number | null; score: number; force?: number }>,
         comboPending: null as { legs: number; won: number; results: number[] } | null,
-        pendingKind: null as { kind: string } | null,
+        alive: false,
         ticksSinceReset: {} as Record<string, number>,
         lastManualSwitch: 0,
     });
@@ -181,7 +198,8 @@ export default function BearBotUltra() {
     };
 
     const ensureProposal = (ct: string, barrier: number) => {
-        if (!stateRef.current.accountInfo) return;
+        // Timers e respostas atrasadas podem chegar depois de sair da tela.
+        if (!stateRef.current.alive || !stateRef.current.accountInfo) return;
         const key = propKey(ct, barrier);
         const p = stateRef.current.props[key];
         if (p && (p.id || p.pending)) return;
@@ -279,12 +297,26 @@ export default function BearBotUltra() {
             }
         });
 
+        // Ids de proposta valem só na conexão que os criou: após queda e
+        // reabertura, comprar com eles é rejeitado e o sinal se perde.
+        const subClose = derivService.observerInstance.on("close", () => {
+            stateRef.current.props = {};
+        });
+        const subOpen = derivService.observerInstance.on("open", () => {
+            stateRef.current.props = {};
+            refreshProposals();
+        });
+
         // Logger inicial
         addLogLine("Plataforma iniciada · Configure os parâmetros e ligue o robô.", "info");
 
+        stateRef.current.alive = true;
         return () => {
+            stateRef.current.alive = false;
             derivService.observerInstance.removeById(subUpdate);
             derivService.observerInstance.removeById(subProposal);
+            derivService.observerInstance.removeById(subClose);
+            derivService.observerInstance.removeById(subOpen);
             forgetAllProposals();
         };
     }, []);
@@ -307,6 +339,7 @@ export default function BearBotUltra() {
         stateRef.current.galeMode = galeMode;
         stateRef.current.galeParcels = galeParcels;
         stateRef.current.multiOn = multiOn;
+        stateRef.current.soundOn = soundOn;
         stateRef.current.patReps = patReps;
         stateRef.current.patMinForce = patMinForce;
         stateRef.current.patTrigger = patTrigger;
@@ -317,7 +350,7 @@ export default function BearBotUltra() {
         stateRef.current.accountInfo = accountInfo;
     }, [
         activeSym, mode, exec, digit, autoOn, vlOn, vlMode, vlQty, vlWindow,
-        stake, gale, stopLoss, stopWin, galeMode, galeParcels, multiOn,
+        stake, gale, stopLoss, stopWin, galeMode, galeParcels, multiOn, soundOn,
         patReps, patMinForce, patTrigger, patMode, wins, loss, pnl, accountInfo
     ]);
 
@@ -355,7 +388,8 @@ export default function BearBotUltra() {
     };
 
     const playTone = (freq: number, start: number, dur: number, type: OscillatorType, gainVal: number) => {
-        if (!soundOn) return;
+        // Lido da ref: os sons tocam no listener de resultado, criado no primeiro render.
+        if (!stateRef.current.soundOn) return;
         try {
             const ctx = getAudioCtx();
             if (ctx.state === "suspended") {
@@ -953,43 +987,93 @@ export default function BearBotUltra() {
     // Escutar retornos das compras e POC
     useEffect(() => {
         const handlePOCMsg = (data: any) => {
-            if (data.msg_type === "proposal_open_contract" && data.proposal_open_contract) {
-                const c = data.proposal_open_contract;
-                if (c.is_valid_to_sell === 1 || c.is_sold === 1 || c.status === 'won' || c.status === 'lost') {
-                    // Evitar processar duplicados
-                    const contractId = c.contract_id;
-                    if (derivService.getStorageDerivAccount()) {
-                        const cache = stateRef.current.settled;
-                        if (cache[contractId]) return;
-                        cache[contractId] = true;
-                    }
+            if (data.msg_type !== "proposal_open_contract" || !data.proposal_open_contract) return;
+            const c = data.proposal_open_contract;
+            // Só a liquidação conta: mensagens do contrato ainda aberto não podem
+            // marcá-lo como processado, senão o resultado real é descartado.
+            const isSettled = !!c.is_sold || (c.status !== undefined && c.status !== 'open');
+            if (!isSettled) return;
 
-                    let exitDig: number | null = null;
-                    let audit: { tick_previous: string; tick_start: string; tick_end: string; } | null = null;
-                    if (c.exit_spot !== undefined) {
-                        exitDig = Number(String(c.exit_spot).slice(-1));
-                    }
+            // Só contratos deste robô: outra tela ou consulta avulsa na mesma conta
+            // não mexe no placar nem libera a trava. Liquidado sai do mapa, então
+            // resultado repetido também é ignorado.
+            const contractId = c.contract_id;
+            const own = stateRef.current.contracts[contractId];
+            if (!own) return;
+            delete stateRef.current.contracts[contractId];
 
-                    if (c.audit_details) {
-                        const details = c.audit_details.all_ticks.filter((t: any) => t.tick_display_value !== undefined);
-                        audit = {
-                            'tick_previous': details[0].tick_display_value.slice(-1),
-                            'tick_start': details[1].tick_display_value.slice(-1),
-                            'tick_end': details[2].tick_display_value.slice(-1)
-                        }
-
-                        const isCombo = stateRef.current.pendingKind?.kind === 'combo';
-                        settleContract(c, Number(c.profit), isCombo, exitDig, audit);
-                    }
-                }
+            clearTimeout(stateRef.current.settleTimers[contractId]);
+            delete stateRef.current.settleTimers[contractId];
+            if (data.subscription?.id) {
+                derivService.send({ forget: data.subscription.id }).catch(() => { });
             }
+
+            // exit_spot é número e perde o zero final (1234.50 vira 1234.5); o
+            // valor exibido preserva a casa decimal do símbolo.
+            let exitDig: number | null = null;
+            const exitText = c.exit_tick_display_value ?? c.exit_spot;
+            if (exitText !== undefined) {
+                exitDig = Number(String(exitText).slice(-1));
+            }
+
+            // Auditoria é só exibição: ausente ou incompleta não impede a liquidação.
+            const details = (c.audit_details?.all_ticks || []).filter((t: any) => t.tick_display_value !== undefined);
+            const audit = details.length >= 3
+                ? {
+                    tick_previous: details[0].tick_display_value.slice(-1),
+                    tick_start: details[1].tick_display_value.slice(-1),
+                    tick_end: details[2].tick_display_value.slice(-1),
+                }
+                : null;
+
+            settleContract(own, Number(c.profit), exitDig, audit);
         };
 
         const listenerId = derivService.observerInstance.on("deriv.proposal_open_contract", handlePOCMsg);
         return () => {
             derivService.observerInstance.removeById(listenerId);
+            Object.values(stateRef.current.settleTimers).forEach(clearTimeout);
+            stateRef.current.settleTimers = {};
         };
     }, []);
+
+    // Acompanha o resultado via subscribe(): só assim o DerivService reassina o
+    // contrato quando o canal de trade cai e volta com a ordem em aberto.
+    const trackContract = (contractId: number, order: Order) => {
+        stateRef.current.contracts[contractId] = order;
+        derivService.subscribe({ proposal_open_contract: 1, contract_id: contractId })
+            .catch((e: any) => addLogLine(`Falha ao acompanhar contrato ${contractId}: ${e?.message || e}`, "lose"));
+        stateRef.current.settleTimers[contractId] = setTimeout(() => onSettlementTimeout(contractId), SETTLEMENT_TIMEOUT_MS);
+    };
+
+    // A trava continua: o contrato pode ter sido executado e ainda liquidar.
+    const onSettlementTimeout = (contractId: number) => {
+        delete stateRef.current.settleTimers[contractId];
+        if (!stateRef.current.contracts[contractId]) return;
+        toast.error(`Sem resultado do contrato ${contractId} da corretora. Robô parado: confira o extrato.`);
+        addLogLine(`Sem resultado do contrato ${contractId} em ${SETTLEMENT_TIMEOUT_MS / 1000}s · robô parado`, "lose");
+        stopRobo();
+        // Consulta avulsa: se a corretora já liquidou, a resposta entra pelo listener de POC.
+        derivService.send({ proposal_open_contract: 1, contract_id: contractId })
+            .catch((e: any) => addLogLine(`Consulta do contrato ${contractId} falhou: ${e?.message || e}`, "lose"));
+    };
+
+    // Ordem viva: compra aguardando resposta ou contrato dentro do prazo de
+    // liquidação. Enquanto houver uma, nada solta a trava de operação.
+    const hasLiveOrder = () =>
+        stateRef.current.ordersInFlight > 0 || Object.keys(stateRef.current.settleTimers).length > 0;
+
+    // BuyUnconfirmed: a ordem pode ter sido executada sem que se saiba o contrato.
+    // A trava fica e o robô para; só o Abortar, ação explícita, libera.
+    const onBuyFailed = (e: any, fallback: string) => {
+        toast.error(e?.message || fallback);
+        addLogLine(`${fallback}: ${e?.message}`, "lose");
+        if (e?.code === 'BuyUnconfirmed') {
+            stopRobo();
+            return;
+        }
+        stateRef.current.tradeLock = hasLiveOrder();
+    };
 
     // Lógica de Compra e Execução de Operações
     const fireTrade = async (kind: string) => {
@@ -1021,13 +1105,15 @@ export default function BearBotUltra() {
         else if (kind === 'under') ct = 'DIGITUNDER';
 
         stateRef.current.tradeLock = true;
-        stateRef.current.pendingKind = { kind };
+        stateRef.current.ordersInFlight++;
+        const order: Order = { kind, stake: stakeVal, sym: stateRef.current.activeSym, digit: stateRef.current.digit };
 
         // Compra rápida por proposta pré-aberta se disponível, senão fallback
         const p = getProp(ct, stateRef.current.digit);
 
+        let response: any;
         try {
-            const response = await (p
+            response = await (p
                 ? derivService.send({ buy: p.id, price: stakeVal })
                 : derivService.send({
                     buy: 1,
@@ -1044,100 +1130,106 @@ export default function BearBotUltra() {
                     }
                 })
             );
-
-            if (response.buy) {
-                addLogLine(`▶ ${kind.toUpperCase()} ${kind === 'differ' ? '≠' : kind === 'over' ? '>' : '<'}${stateRef.current.digit} · $${stakeVal} · ${stateRef.current.activeSym}${p ? ' ⚡' : ''}`, "info");
-
-                // Se compramos por proposta, invalidamos para forçar a recarga
-                if (p) {
-                    invalidateConsumedProposals();
-                    ensureProposal(ct, stateRef.current.digit);
-                }
-
-                // Subscrever no POC
-                derivService.send({
-                    proposal_open_contract: 1,
-                    contract_id: response.buy.contract_id,
-                    subscribe: 1
-                });
-            }
         } catch (e: any) {
-            stateRef.current.tradeLock = false;
-            toast.error(e.message || "Erro na compra");
-            addLogLine(`Erro na compra: ${e.message}`, "lose");
+            stateRef.current.ordersInFlight--;
+            onBuyFailed(e, "Erro na compra");
+            return;
+        }
+        stateRef.current.ordersInFlight--;
+        if (!stateRef.current.alive) return;
+
+        if (response.buy) {
+            addLogLine(`▶ ${kind.toUpperCase()} ${kind === 'differ' ? '≠' : kind === 'over' ? '>' : '<'}${stateRef.current.digit} · $${stakeVal} · ${stateRef.current.activeSym}${p ? ' ⚡' : ''}`, "info");
+
+            // Se compramos por proposta, invalidamos para forçar a recarga
+            if (p) {
+                invalidateConsumedProposals();
+                ensureProposal(ct, stateRef.current.digit);
+            }
+
+            trackContract(response.buy.contract_id, order);
         }
     };
 
     const fireCombo = async () => {
         const stakeVal = +stateRef.current.curStake.toFixed(2);
         stateRef.current.tradeLock = true;
-        stateRef.current.comboPending = { legs: 2, won: 0, results: [] };
-        stateRef.current.pendingKind = { kind: 'combo' };
+        stateRef.current.comboPending = null;
+        stateRef.current.ordersInFlight++;
+        const order: Order = { kind: 'combo', stake: stakeVal, sym: stateRef.current.activeSym, digit: stateRef.current.digit };
 
         const pO = getProp('DIGITOVER', 5);
         const pU = getProp('DIGITUNDER', 4);
 
-        try {
-            // Perna 1: Over 5
-            const buyOver = pO
-                ? derivService.send({ buy: pO.id, price: stakeVal })
-                : derivService.send({
-                    buy: 1,
-                    price: stakeVal,
-                    parameters: {
-                        amount: stakeVal,
-                        basis: 'stake',
-                        contract_type: 'DIGITOVER',
-                        currency: 'USD',
-                        duration: 1,
-                        duration_unit: 't',
-                        underlying_symbol: stateRef.current.activeSym,
-                        barrier: '5'
-                    }
-                });
-
-            // Perna 2: Under 4
-            const buyUnder = pU
-                ? derivService.send({ buy: pU.id, price: stakeVal })
-                : derivService.send({
-                    buy: 1,
-                    price: stakeVal,
-                    parameters: {
-                        amount: stakeVal,
-                        basis: 'stake',
-                        contract_type: 'DIGITUNDER',
-                        currency: 'USD',
-                        duration: 1,
-                        duration_unit: 't',
-                        underlying_symbol: stateRef.current.activeSym,
-                        barrier: '4'
-                    }
-                });
-
-            const [resOver, resUnder] = await Promise.all([buyOver, buyUnder]);
-
-            if (resOver.buy && resUnder.buy) {
-                addLogLine(`▶ COMBO Over>5 + Under<4 · $${stakeVal}×2 · ${stateRef.current.activeSym}${(pO && pU) ? ' ⚡' : ''}`, "info");
-
-                // Se compramos por propostas, invalidamos e recarregamos
-                if (pO || pU) {
-                    invalidateConsumedProposals();
-                    ensureProposal('DIGITOVER', 5);
-                    ensureProposal('DIGITUNDER', 4);
+        // Perna 1: Over 5
+        const buyOver = pO
+            ? derivService.send({ buy: pO.id, price: stakeVal })
+            : derivService.send({
+                buy: 1,
+                price: stakeVal,
+                parameters: {
+                    amount: stakeVal,
+                    basis: 'stake',
+                    contract_type: 'DIGITOVER',
+                    currency: 'USD',
+                    duration: 1,
+                    duration_unit: 't',
+                    underlying_symbol: stateRef.current.activeSym,
+                    barrier: '5'
                 }
+            });
 
-                derivService.send({ proposal_open_contract: 1, contract_id: resOver.buy.contract_id, subscribe: 1 });
-                derivService.send({ proposal_open_contract: 1, contract_id: resUnder.buy.contract_id, subscribe: 1 });
+        // Perna 2: Under 4
+        const buyUnder = pU
+            ? derivService.send({ buy: pU.id, price: stakeVal })
+            : derivService.send({
+                buy: 1,
+                price: stakeVal,
+                parameters: {
+                    amount: stakeVal,
+                    basis: 'stake',
+                    contract_type: 'DIGITUNDER',
+                    currency: 'USD',
+                    duration: 1,
+                    duration_unit: 't',
+                    underlying_symbol: stateRef.current.activeSym,
+                    barrier: '4'
+                }
+            });
+
+        // Cada perna decide por si: uma recusada não pode esconder a outra, que já
+        // foi paga e precisa de acompanhamento até liquidar.
+        const legs = await Promise.allSettled([buyOver, buyUnder]);
+        stateRef.current.ordersInFlight--;
+        if (!stateRef.current.alive) return;
+
+        const bought = legs
+            .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && !!r.value?.buy)
+            .map(r => r.value.buy.contract_id as number);
+        const failures = legs
+            .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+            .map(r => r.reason);
+
+        if (bought.length) {
+            stateRef.current.comboPending = { legs: bought.length, won: 0, results: [] };
+            addLogLine(bought.length === 2
+                ? `▶ COMBO Over>5 + Under<4 · $${stakeVal}×2 · ${stateRef.current.activeSym}${(pO && pU) ? ' ⚡' : ''}`
+                : `▶ COMBO parcial · só uma perna comprada · $${stakeVal} · ${stateRef.current.activeSym}`, "info");
+
+            // Se compramos por propostas, invalidamos e recarregamos
+            if (pO || pU) {
+                invalidateConsumedProposals();
+                ensureProposal('DIGITOVER', 5);
+                ensureProposal('DIGITUNDER', 4);
             }
-        } catch (e: any) {
-            stateRef.current.tradeLock = false;
-            stateRef.current.comboPending = null;
-            toast.error(e.message || "Erro no Combo");
+
+            bought.forEach(id => trackContract(id, order));
         }
+        failures.forEach(e => onBuyFailed(e, "Erro no Combo"));
     };
 
-    const settleContract = (c: any, profit: number, isCombo: boolean, exitDig: number | null, audit: { tick_previous: string, tick_start: string, tick_end: string } | null) => {
-        if (isCombo && stateRef.current.comboPending) {
+    const settleContract = (order: Order, profit: number, exitDig: number | null, audit: { tick_previous: string, tick_start: string, tick_end: string } | null) => {
+        if (order.kind === 'combo' && stateRef.current.comboPending) {
             const cp = stateRef.current.comboPending;
             cp.legs--;
             if (profit >= 0) cp.won++;
@@ -1147,27 +1239,27 @@ export default function BearBotUltra() {
 
             const net = cp.results.reduce((a, b) => a + b, 0);
             const bothLost = cp.won === 0;
-            finishTrade(net, bothLost, 'COMBO', exitDig, audit);
+            finishTrade(net, bothLost, 'COMBO', order, exitDig, audit);
             stateRef.current.comboPending = null;
             return;
         }
 
-        finishTrade(profit, profit < 0, (stateRef.current.pendingKind?.kind || '').toUpperCase(), exitDig, audit);
+        finishTrade(profit, profit < 0, order.kind.toUpperCase(), order, exitDig, audit);
     };
 
-    const finishTrade = (profit: number, isLoss: boolean, label: string, exitDig: number | null, audit: { tick_previous: string, tick_start: string, tick_end: string } | null) => {
+    const finishTrade = (profit: number, isLoss: boolean, label: string, order: Order, exitDig: number | null, audit: { tick_previous: string, tick_start: string, tick_end: string } | null) => {
         const nextPnl = +(stateRef.current.pnl + profit).toFixed(2);
         setPnl(nextPnl);
         stateRef.current.pnl = nextPnl;
 
-        const stakeUsed = stateRef.current.curStake;
+        const stakeUsed = order.stake;
         const dtxt = exitDig !== null ? ` · saiu ${exitDig}` : '';
 
         const newTrade: TradeLog = {
             t: new Date().toISOString(),
-            mercado: stateRef.current.activeSym,
+            mercado: order.sym,
             modo: label,
-            alvo: stateRef.current.digit,
+            alvo: order.digit,
             audit: audit !== null ? audit : null,
             saiu: exitDig !== null ? exitDig : '—',
             stake: stakeUsed.toFixed(2),
@@ -1222,7 +1314,7 @@ export default function BearBotUltra() {
             soundWin();
         }
 
-        stateRef.current.tradeLock = false;
+        stateRef.current.tradeLock = hasLiveOrder();
 
         // Invalida e recria as propostas (porque o stake mudou no gale/win)
         forgetAllProposals();
@@ -1267,18 +1359,32 @@ export default function BearBotUltra() {
         addLogLine(`🤖 Robô LIGADO · Modo ${mode.toUpperCase()}`, "win");
     };
 
+    // A ref vale já: o tick seguinte pode chegar antes do próximo render, que é
+    // quando o efeito de sincronização copiaria autoOn para a ref.
     const stopRobo = () => {
+        stateRef.current.autoOn = false;
         setAutoOn(false);
         addLogLine("🤖 Robô desligado", "info");
     };
 
+    // Soltar a trava com ordem viva abriria uma segunda ordem simultânea; ela
+    // sai sozinha na liquidação. Sem ordem viva (ex.: compra não confirmada),
+    // é aqui que o usuário libera o robô.
+    const releaseLockUnlessLive = () => {
+        stateRef.current.tradeLock = hasLiveOrder();
+        if (stateRef.current.tradeLock) {
+            addLogLine("Contrato em andamento · a trava sai na liquidação", "info");
+        }
+    };
+
     const abortOp = () => {
+        stateRef.current.autoOn = false;
         setAutoOn(false);
         stateRef.current.galeLevel = 0;
         stateRef.current.curStake = Number(stake) || 0;
         stateRef.current.lossAcum = 0;
         stateRef.current.parcelsLeft = 0;
-        stateRef.current.tradeLock = false;
+        releaseLockUnlessLive();
         vlReset();
         vlResetAllM();
         addLogLine("✋ Operação abortada · gale e contadores resetados", "info");
@@ -1294,7 +1400,7 @@ export default function BearBotUltra() {
         stateRef.current.curStake = Number(stake) || 0;
         stateRef.current.lossAcum = 0;
         stateRef.current.parcelsLeft = 0;
-        stateRef.current.tradeLock = false;
+        releaseLockUnlessLive();
         vlReset();
         vlResetAllM();
         addLogLine("Histórico e estatísticas resetados", "info");
@@ -1383,6 +1489,10 @@ export default function BearBotUltra() {
     const handleAccountToggle = async (isVirtual: boolean) => {
         const targetToken = accountInfo?.tokens.find(t => t.is_virtual === isVirtual)?.token;
         if (targetToken) {
+            if (hasLiveOrder()) {
+                toast.error("Há contrato em aberto. Aguarde a liquidação antes de trocar de conta.");
+                return;
+            }
             abortOp();
             toast.info(`Trocando para conta ${isVirtual ? "Virtual" : "Real"}...`);
             try {

@@ -40,6 +40,8 @@ export default defineConfig({
         'src/app/services/{wsListener,tradeExecutor,copyTradingService,signalProcessor,copyTradingManager,derivConfig}.ts',
         'src/app/api/{start,stop,status}/route.ts',
         'src/app/**/bottrader/*.tsx',
+        // Bear Bot Ultra v1: compra, trava de operação e liquidação na tela.
+        'src/app/**/bear-bot-ultra/*.tsx',
       ],
       thresholds: {
         // Por arquivo: a média deixaria o motor, já bem coberto, carregar os
