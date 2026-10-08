@@ -75,6 +75,8 @@ export interface TradeLog {
   lucro: string;
   acumulado: string;
   paper?: boolean;
+  /** Score de Oportunidade do mercado no momento da entrada. */
+  score?: number;
 }
 
 export interface PatternState {

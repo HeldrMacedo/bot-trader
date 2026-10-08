@@ -816,6 +816,7 @@ export default function BearBotUltra() {
                     <th className="py-2 px-3">Estratégia</th>
                     <th className="py-2 px-3">Alvo</th>
                     <th className="py-2 px-3">Saiu</th>
+                    <th className="py-2 px-3">Score</th>
                     <th className="py-2 px-3">Auditoria</th>
                     <th className="py-2 px-3">Stake</th>
                     <th className="py-2 px-3">Tipo</th>
@@ -832,6 +833,7 @@ export default function BearBotUltra() {
                         <td className="py-2 px-3 uppercase text-[10px]">{t.modo}</td>
                         <td className="py-2 px-3">{t.alvo}</td>
                         <td className="py-2 px-3">{t.saiu}</td>
+                        <td className="py-2 px-3">{t.score ?? '—'}</td>
                         <td className="py-2 px-3">
                           <span className="text-muted">{t.audit?.tick_previous}</span>-<span className="text-blue-500">{t.audit?.tick_start}</span>-<span className={`${t.resultado === 'WIN' ? 'text-green-400' : 'text-red-400'}`}>{t.audit?.tick_end}</span>
                         </td>
@@ -846,7 +848,7 @@ export default function BearBotUltra() {
                       </tr>
                     ))
                   ) : (
-                    <tr><td colSpan={10} className="py-8 text-center text-gray-500">Nenhum trade efetuado.</td></tr>
+                    <tr><td colSpan={11} className="py-8 text-center text-gray-500">Nenhum trade efetuado.</td></tr>
                   )}
                 </tbody>
               </table>

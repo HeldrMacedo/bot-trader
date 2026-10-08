@@ -150,6 +150,12 @@ export class BearBotEngine {
   private vlLossDigit: Record<string, number | null> = {};
   /** Dígito congelado no gatilho: barreira obrigatória até a liquidação/abort. */
   private lockedDigit: number | null = null;
+  /** Score de Oportunidade avaliado pelo gate da IA na última decisão, por mercado. */
+  private gateScore: Record<string, number> = {};
+  /** Score de Oportunidade no gatilho, antes do reset do VL zerar o pilar. */
+  private pendingEntryScore: number | null = null;
+  /** Score do gatilho congelado com o trade em aberto, gravado no resultado. */
+  private tradeEntryScore: number | null = null;
   private settled: Record<string, boolean> = {};
   private lastManualSwitch = 0;
   private listeners: Set<(state: BotState) => void> = new Set();
@@ -316,6 +322,7 @@ export class BearBotEngine {
   }
 
   private triggerAutoTrade() {
+    this.pendingEntryScore = this.gateScore[this.config.activeSym] ?? null;
     this.autoTradeListeners.forEach(cb => cb(this.config.mode));
   }
 
@@ -1107,7 +1114,11 @@ export class BearBotEngine {
   }
 
   private isAiGateOpen(sym: string): boolean {
-    const intel = this.state.marketIntel[sym];
+    // Recalcula no instante da decisão: o cache só é atualizado a cada 3 ticks e
+    // antes do tick atual mover o VL e o dígito alvo, então podia aprovar a
+    // entrada com um score antigo acima do mínimo e o real já abaixo dele.
+    const intel = this.computeMarketIntelligence(sym);
+    this.gateScore[sym] = intel.opportunityScore;
     const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
     // A market with too little history has no measurable score yet: fall through
     // instead of vetoing it, matching the no-intelligence-at-all case above.
@@ -1452,6 +1463,9 @@ export class BearBotEngine {
 
     // Paper and real both lock until settle/abort
     this.state.tradeLock = true;
+    this.tradeEntryScore = this.pendingEntryScore
+      ?? this.computeMarketIntelligence(this.config.activeSym).opportunityScore;
+    this.pendingEntryScore = null;
 
     if (this.config.paperMode) {
       if (kind === 'differ' && this.config.differDynamicDigit) {
@@ -1510,6 +1524,7 @@ export class BearBotEngine {
    */
   abortPendingTrade(reason?: string) {
     this.comboPending = null;
+    this.tradeEntryScore = null;
     this.clearDigitLock();
     if (this.state.tradeLock) {
       this.state.tradeLock = false;
@@ -1603,7 +1618,9 @@ export class BearBotEngine {
       saiu: exitDig !== null ? exitDig : '—', stake: stakeUsed.toFixed(2),
       resultado: isLoss ? 'LOSS' : 'WIN', lucro: profit.toFixed(2),
       acumulado: this.state.pnl.toFixed(2), paper: isPaper,
+      score: this.tradeEntryScore ?? undefined,
     };
+    this.tradeEntryScore = null;
     this.state.trades = [newTrade, ...this.state.trades].slice(0, 2000);
     this.recordTrade();
 
@@ -1722,6 +1739,7 @@ export class BearBotEngine {
         this.config.digit = this.computeDynamicDifferDigit(this.config.activeSym).digit;
       }
     }
+    this.pendingEntryScore = this.computeMarketIntelligence(this.config.activeSym).opportunityScore;
     if (this.config.vlOn) this.vlReset();
     return true;
   }
@@ -1772,9 +1790,9 @@ export class BearBotEngine {
   // ── Export ──
   exportTradesCSV(): string {
     if (!this.state.trades.length) return '';
-    const headers = ['data_hora', 'mercado', 'modo', 'alvo', 'saiu', 'stake', 'resultado', 'lucro', 'acumulado', 'paper'];
+    const headers = ['data_hora', 'mercado', 'modo', 'alvo', 'saiu', 'score', 'stake', 'resultado', 'lucro', 'acumulado', 'paper'];
     const rows = this.state.trades.map(t => [
-      t.t, t.mercado, t.modo, t.alvo, t.saiu, t.stake, t.resultado, t.lucro, t.acumulado, t.paper ? 'SIM' : 'NAO'
+      t.t, t.mercado, t.modo, t.alvo, t.saiu, t.score ?? '', t.stake, t.resultado, t.lucro, t.acumulado, t.paper ? 'SIM' : 'NAO'
     ].join(','));
     return headers.join(',') + '\n' + rows.join('\n');
   }

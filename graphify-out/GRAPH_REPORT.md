@@ -1,16 +1,16 @@
-# Graph Report - bot-trader  (2026-10-05)
+# Graph Report - bot-trader  (2026-10-08)
 
 ## Corpus Check
-- 287 files · ~698,298 words
+- 288 files · ~698,911 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1644 nodes · 2908 edges · 132 communities (81 shown, 41 thin omitted)
+- 1648 nodes · 2920 edges · 132 communities (81 shown, 41 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 138 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d6933d07`
+- Built from commit: `887547a8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -142,8 +142,8 @@
 1. `BearDifferEngine` - 99 edges
 2. `DerivService` - 85 edges
 3. `BearBotEngine` - 77 edges
-4. `CopyTradingService` - 32 edges
-5. `createEngine()` - 31 edges
+4. `createEngine()` - 33 edges
+5. `CopyTradingService` - 32 edges
 6. `WsListener` - 30 edges
 7. `EngineState` - 27 edges
 8. `TradeExecutor` - 25 edges
@@ -201,7 +201,7 @@ Nodes (3): CopyTradingService, createService(), createServiceWithEventControl()
 
 ### Community 4 - "BearBotEngine"
 Cohesion: 0.08
-Nodes (4): TradePrep, VLMarketState, BearBotEngine, clampRateLimits()
+Nodes (5): TradePrep, BearBotEngine, clampRateLimits(), getBestPattern(), wilsonLB()
 
 ### Community 5 - "Deriv Account & Markup API"
 Cohesion: 0.06
@@ -209,7 +209,7 @@ Nodes (49): Account Management WebSocket Endpoint Group, balance Endpoint, Clien
 
 ### Community 6 - "bearbot2.types.ts"
 Cohesion: 0.10
-Nodes (22): AI_MIN_SCORE_DEFAULT, BotMode, ComboPending, DerivAccount, DerivAuthState, DynamicDigitDetail, ExecMode, GaleMode (+14 more)
+Nodes (21): AI_MIN_SCORE_DEFAULT, BotMode, ComboPending, DerivAccount, DerivAuthState, DynamicDigitDetail, ExecMode, GaleMode (+13 more)
 
 ### Community 7 - "devDependencies"
 Cohesion: 0.04
@@ -268,8 +268,8 @@ Cohesion: 0.15
 Nodes (17): configureTradeManager, Legacy Bridge Expert Skill, Legacy Rules Cache and History API, Legacy Script Load Order, Window Global Shims, Group Activation Logic, Gemini Model Selection by Group Count, Available Strategy Indicators (+9 more)
 
 ### Community 23 - "BotState"
-Cohesion: 0.25
-Nodes (9): BotState, DynamicDigitResult, TradeLog, DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor(), MarketGridProps, TradeLogComponent() (+1 more)
+Cohesion: 0.14
+Nodes (16): BotConfig, BotState, buildLoserSet(), MarketIntelligence, TradeLog, HelpTip(), HelpTipProps, getIntelColor() (+8 more)
 
 ### Community 24 - "bearBot2QuickBuy.test.ts"
 Cohesion: 0.18
@@ -320,8 +320,8 @@ Cohesion: 0.15
 Nodes (13): Bot Copy Trader (demo → real replication), Limite de Martingale (reset vs stop), Pause Time (cooldown between real trades), Quantity Loss (demo losses before real entry), Stake Multiple (Martingale multiplier), Stop Loss / Stop Win (real account limits), calculateNextStake Uses martingaleLevel, consecutiveLosses Scoped to Demo Only (+5 more)
 
 ### Community 36 - "MarketGrid.tsx"
-Cohesion: 0.09
-Nodes (24): AI_MODE_WEIGHTS, AIMode, AIWeights, BotConfig, DEFAULT_BOT_STATE, DEFAULT_CONFIG, MarketIntelligence, HelpTip() (+16 more)
+Cohesion: 0.14
+Nodes (14): AI_MODE_WEIGHTS, AIMode, AIWeights, DEFAULT_BOT_STATE, DEFAULT_CONFIG, AI_MODE_LABELS, AI_WEIGHT_FIELDS, getIntelColor() (+6 more)
 
 ### Community 37 - "createDifferEngine"
 Cohesion: 0.11
@@ -376,8 +376,8 @@ Cohesion: 0.20
 Nodes (10): Anti-Cascade Reset (prevenção de disparos em cascata), Dígito Automático no Differ (differAutoDigit), Radar de Dígitos Dinâmicos (differDynamicDigit), Sub-Score de Resistência à Anomalia (15%), Sub-Score de Frequência Multi-Janela (40%), Sub-Score de Markov Inverso (30%), Sub-Score de Trigramas Inversos (15%), Contagem sob Foco (vlFocusOnly) (+2 more)
 
 ### Community 50 - "createEngine"
-Cohesion: 0.11
-Nodes (10): createEngine(), feedHighPressure(), runAuto(), feedHighPressure(), multiEngine(), runAuto(), feedHighPressure(), runAuto() (+2 more)
+Cohesion: 0.10
+Nodes (13): createEngine(), feedHighPressure(), runAuto(), feedHighPressure(), multiEngine(), runAuto(), feedHighPressure(), runAuto() (+5 more)
 
 ### Community 51 - "dependencies"
 Cohesion: 0.22
@@ -404,8 +404,8 @@ Cohesion: 0.29
 Nodes (8): BotTrader (Bot Copy Trader), CopyTradingManager (singleton server-side), CopyTradingService (uma instância por usuário), Martingale (progressão geométrica), Reconexão automática de WebSockets, SignalProcessor, TradeSignal (símbolo, tipo, duração, barrier), WsListener (WebSocket conta demo)
 
 ### Community 58 - "bearBotUltra2.tsx"
-Cohesion: 0.14
-Nodes (11): buildLoserSet(), BearBotUltra(), sanitizeDecimalInput(), validateNumber(), localStorageMock, MockAudioContext, mockDerivInstance, registeredListeners (+3 more)
+Cohesion: 0.12
+Nodes (14): DynamicDigitResult, BearBotUltra(), sanitizeDecimalInput(), validateNumber(), DynamicDigitPanel(), DynamicDigitPanelProps, getScoreColor(), localStorageMock (+6 more)
 
 ### Community 59 - "Inteligência de Multi-Mercado (Multi ON)"
 Cohesion: 0.29
@@ -528,8 +528,8 @@ Nodes (5): AI_WEIGHTS, AIModeName, feedABPattern(), seedLoserPressure(), seedPat
   public/window.svg · relation: semantically_similar_to
 
 ## Knowledge Gaps
-- **348 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+343 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 536 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **349 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+344 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 537 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
