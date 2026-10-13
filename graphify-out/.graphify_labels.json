@@ -22,7 +22,7 @@
   "20": "bearBotUltra2PostLoss.test.tsx",
   "21": "create_account Endpoint",
   "22": "translateStrategy Pipeline",
-  "23": "BotState",
+  "23": "BotConfig",
   "24": "bearBot2QuickBuy.test.ts",
   "25": "TradePlatform Architecture Overview",
   "26": "Remoção do parâmetro loginid (multi-conta)",
@@ -49,7 +49,7 @@
   "47": "CopyTradingManager",
   "48": "DerivService.tsx (singleton dois canais)",
   "49": "Radar de Dígitos Dinâmicos (differDynamicDigit)",
-  "50": "createEngine",
+  "50": "BearBot2Engine.ts",
   "51": "dependencies",
   "52": "trade_config_full",
   "53": "Bear Bot Ultra 10.0 Refactor Code Review",
@@ -130,5 +130,7 @@
   "128": "MonitoringService Lifecycle",
   "129": "Corrigir o bloco \"Testes antes de operar\"",
   "130": "bearBot2Engine.test.ts",
-  "131": "bearBot2FocusVirtualLossGate.test.ts"
+  "131": "bearBot2FocusVirtualLossGate.test.ts",
+  "132": "BotState",
+  "133": "erro.md"
 }

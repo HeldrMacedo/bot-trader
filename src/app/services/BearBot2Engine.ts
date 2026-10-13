@@ -1119,6 +1119,9 @@ export class BearBotEngine {
     // entrada com um score antigo acima do mínimo e o real já abaixo dele.
     const intel = this.computeMarketIntelligence(sym);
     this.gateScore[sym] = intel.opportunityScore;
+    // O card lê o mesmo cache: sem isso ele mostrava o score defasado enquanto a
+    // entrada era registrada com o recalculado, bem acima do que estava na tela.
+    this.state.marketIntel = { ...this.state.marketIntel, [sym]: intel };
     const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
     // A market with too little history has no measurable score yet: fall through
     // instead of vetoing it, matching the no-intelligence-at-all case above.

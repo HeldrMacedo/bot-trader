@@ -31,12 +31,14 @@ describe('marketIntel recompute throttle', () => {
     }
 
     // Buffer is now pinned at 120, so a length-based modulo would fire every tick.
-    let previous = engine.getState().marketIntel['R_100'].lastUpdate;
+    // Watch an unfocused market: the AI gate refreshes the focused one on every
+    // tick, but the all-markets recompute must stay throttled.
+    let previous = engine.getState().marketIntel['R_25'].lastUpdate;
     let recomputes = 0;
     for (let i = 131; i <= 160; i++) {
       vi.setSystemTime(i * 1000);
       engine.processTick('R_100', 100.0, i % 10);
-      const stamp = engine.getState().marketIntel['R_100'].lastUpdate;
+      const stamp = engine.getState().marketIntel['R_25'].lastUpdate;
       if (stamp !== previous) recomputes++;
       previous = stamp;
     }
@@ -192,15 +194,15 @@ describe('accum vlProgress denominator', () => {
   }
 
   it('measures progress against vlQty, not against the ticks seen so far', () => {
-    // 5 counted losses out of the 8 the gate requires. Scaling by the history
+    // 6 counted losses out of the 8 the gate requires. Scaling by the history
     // length instead would read as a full pillar on a gate that is still shut.
     const engine = seedAccum(8, 10, 6);
     const state = engine.getState();
 
     expect(state.vlCount).toBe(6);
-    // Intelligence recomputes every 3 ticks, before the current tick is counted,
-    // so this snapshot reflects 5 of the 8 losses the gate requires.
-    expect(state.marketIntel['R_100'].vlProgress).toBe(Math.round((5 / 8) * 100));
+    // The AI gate refreshes the focused market after the current tick is counted,
+    // so the panel shows the same 6 of 8 losses the gate sees.
+    expect(state.marketIntel['R_100'].vlProgress).toBe(Math.round((6 / 8) * 100));
   });
 
   it('never shows a full bar while the VL gate is still closed', () => {
