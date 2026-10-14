@@ -305,12 +305,13 @@ describe('BearBot2Engine AI modes (conservative / balanced / aggressive)', () =>
   });
 
   it('auto gate uses the score of the active aiMode', () => {
-    const make = (aiMode: AIModeName) => {
+    const make = (aiMode: AIModeName, aiMinScore = 40) => {
       const engine = createEngine({
         mode: 'over',
         digit: 2,
         vlOn: false,
         aiMode,
+        aiMinScore,
         exec: 'auto',
         autoOn: true,
         tradeCooldownMs: 0,
@@ -327,9 +328,16 @@ describe('BearBot2Engine AI modes (conservative / balanced / aggressive)', () =>
     const bal = make('balanced');
     const agg = make('aggressive');
 
-    expect(cons.fired).toBe(cons.score >= 40);
-    expect(bal.fired).toBe(bal.score >= 40);
-    expect(agg.fired).toBe(agg.score >= 40);
+    expect(cons.fired).toBe(cons.score === 40);
+    expect(bal.fired).toBe(bal.score === 40);
+    expect(agg.fired).toBe(agg.score === 40);
+
+    // Gate por igualdade: cada modo só entra com o mínimo igual ao próprio score.
+    expect(cons.score).not.toBe(bal.score);
+    expect(make('conservative', cons.score).fired).toBe(true);
+    expect(make('balanced', cons.score).fired).toBe(false);
+    expect(make('balanced', bal.score).fired).toBe(true);
+    expect(make('conservative', bal.score).fired).toBe(false);
   });
 });
 

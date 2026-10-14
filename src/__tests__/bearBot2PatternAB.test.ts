@@ -167,6 +167,7 @@ describe('BearBot2Engine - PADRÃO A→B (Differ Pattern)', () => {
         patMode: 'accum',
         patReps: 2,
         patMinForce: 95,
+        aiMinScore: 0,
       });
 
       for (let i = 0; i < 20; i++) {
@@ -240,6 +241,7 @@ describe('BearBot2Engine - PADRÃO A→B (Differ Pattern)', () => {
         vlOn: false,
         tradeCooldownMs: 0,
         activeSym: 'R_100',
+        aiMinScore: 0,
       });
 
       // Feed strong 4→8 pattern to R_50

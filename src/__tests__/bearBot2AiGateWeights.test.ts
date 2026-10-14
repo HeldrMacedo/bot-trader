@@ -3,7 +3,7 @@ import { createEngine } from '../app/services/BearBot2Engine';
 
 /**
  * Gate da IA: o Score de Oportunidade (ponderado pelos pesos dos pilares) deve
- * vetar a entrada automática quando estiver abaixo de 40. O veto valia apenas
+ * vetar a entrada automática quando for diferente do score mínimo (40 por padrão). O veto valia apenas
  * quando o Loss Virtual estava ligado e ainda contando — com o Loss Virtual
  * desligado, `vlGateOpenM` devolve `true` e anulava o gate, de modo que os pesos
  * não tinham efeito nenhum sobre a decisão de operar.
@@ -20,12 +20,13 @@ function feedHighPressure(engine: any, from: number, to: number) {
   }
 }
 
-function runAuto(aiWeights: { pressure: number; pattern: number; vl: number; sync: number }) {
+function runAuto(aiWeights: { pressure: number; pattern: number; vl: number; sync: number }, aiMinScore?: number) {
   const engine: any = createEngine({
     activeSym: SYM, mode: 'differ', digit: 3, exec: 'auto', autoOn: true,
     paperMode: true, vlOn: false, multiOn: false,
     tradeCooldownMs: 0, maxTradesHour: 10000,
     aiMode: 'custom', aiWeights,
+    ...(aiMinScore !== undefined ? { aiMinScore } : {}),
   });
   // Os 50 primeiros ticks são só histórico: sem dataReady o gate não tem score
   // para medir e deixa passar por definição. A contagem começa depois disso.
@@ -43,9 +44,15 @@ describe('gate da IA com Loss Virtual desligado', () => {
     expect(r.fires).toBe(0);
   });
 
-  it('libera a entrada quando os pesos levam o score para cima do limite', () => {
+  it('veta a entrada quando os pesos levam o score para cima do mínimo', () => {
     const r = runAuto({ pressure: 0, pattern: 0, vl: 1, sync: 0 });
-    expect(r.score).toBeGreaterThanOrEqual(40);
+    expect(r.score).toBeGreaterThan(40);
+    expect(r.fires).toBe(0);
+  });
+
+  it('libera a entrada quando o score ponderado é igual ao mínimo', () => {
+    const r = runAuto({ pressure: 0, pattern: 0, vl: 1, sync: 0 }, 100);
+    expect(r.score).toBe(100);
     expect(r.fires).toBeGreaterThan(0);
   });
 });

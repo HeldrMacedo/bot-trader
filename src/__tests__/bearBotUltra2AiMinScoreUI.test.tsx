@@ -69,9 +69,19 @@ describe('IntelPanel — Momento p/ Entrar segue o score mínimo', () => {
     expect(screen.getByText(/IA bloqueia entrada/)).toBeTruthy();
   });
 
-  it('não diz que a IA bloqueia quando o score está acima de um mínimo abaixo de 40', () => {
-    renderPanel(30, 20);
+  it('não diz que a IA bloqueia quando o score é igual a um mínimo abaixo de 40', () => {
+    renderPanel(20, 20);
     expect(screen.queryByText(/IA bloqueia entrada/)).toBeNull();
+  });
+
+  it('avisa que a IA bloqueia quando o score está acima do mínimo', () => {
+    renderPanel(65, 60);
+    expect(screen.getByText(/IA bloqueia entrada/)).toBeTruthy();
+  });
+
+  it('diz que a IA aprova quando o score é igual ao mínimo', () => {
+    renderPanel(70, 70);
+    expect(screen.getByText(/IA aprova entrada/)).toBeTruthy();
   });
 
   it('só diz que a IA aprova quando o score atinge o mínimo', () => {

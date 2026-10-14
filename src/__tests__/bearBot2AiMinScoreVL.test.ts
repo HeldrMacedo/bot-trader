@@ -72,7 +72,7 @@ describe('score mínimo do mercado em foco na Contagem sob Foco', () => {
     }
   }
 
-  it('não dispara no foco com VL confirmado só porque outro mercado passou do mínimo', () => {
+  it('não dispara no foco com VL confirmado só porque outro mercado está no mínimo', () => {
     const engine: any = createEngine({
       activeSym: SYM, mode: 'differ', digit: 3, exec: 'auto', autoOn: false,
       paperMode: true, vlOn: true, vlQty: 2, multiOn: true, vlFocusOnly: true,
@@ -84,16 +84,18 @@ describe('score mínimo do mercado em foco na Contagem sob Foco', () => {
     feedNoTarget(engine, 0, 60);
     // Troca manual recente do foco: o motor não pode mudar o foco por 3s, então o
     // candidato do outro mercado fica pendente enquanto o foco acumula VL.
-    engine.updateConfig({ activeSym: SYM, autoOn: true });
+    // O mínimo passa a ser exatamente o score do outro mercado para ele virar candidato.
+    const otherScore = engine.computeMarketIntelligence(OTHER).opportunityScore;
+    engine.updateConfig({ activeSym: SYM, autoOn: true, aiMinScore: otherScore });
     const fired = vi.fn();
     engine.onAutoTrade(fired);
     feedNoTarget(engine, 60, 61);
-    expect(engine.getState().marketIntel[OTHER].opportunityScore).toBeGreaterThanOrEqual(85);
+    expect(engine.getState().marketIntel[OTHER].opportunityScore).toBe(otherScore);
     expect(engine.multiCand[OTHER]).toBeDefined();
     // Dois 3 seguidos no foco: Loss Virtual de 2 consecutivos confirmado.
     engine.processTick(SYM, 100.03, 3);
     engine.processTick(SYM, 100.03, 3);
-    expect(engine.getState().marketIntel[SYM].opportunityScore).toBeLessThan(85);
+    expect(engine.getState().marketIntel[SYM].opportunityScore).not.toBe(otherScore);
     expect(fired).not.toHaveBeenCalled();
   });
 });

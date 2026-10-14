@@ -206,7 +206,7 @@ describe('BearBot2Engine · Gate de Loss Virtual sob Foco (Differ + Dígito Din�
   it('varredura aleatória multi-mercado: todo disparo tem perda virtual sob foco no dígito comprado', () => {
     vi.useRealTimers();
     const rnd = mulberry32(7);
-    const engine = createEngine({ ...baseConfig, vlQty: 1 });
+    const engine = createEngine({ ...baseConfig, vlQty: 1, aiMinScore: 0 });
 
     const mirror: Record<string, number[]> = {};
     MARKETS.forEach(m => { mirror[m.sym] = []; });

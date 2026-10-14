@@ -522,6 +522,19 @@
       "source_location": "L195"
     },
     {
+      "id": "src_app_services_bearbot2_types_botconfig",
+      "label": "BotConfig",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 132,
+      "community_name": "BotState",
+      "file_type": "code",
+      "norm_label": "botconfig",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L203"
+    },
+    {
       "id": "src_app_services_bearbot2_types_botstate",
       "label": "BotState",
       "_callable": true,
@@ -532,7 +545,7 @@
       "file_type": "code",
       "norm_label": "botstate",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L235"
+      "source_location": "L244"
     },
     {
       "id": "src_app_services_bearbot2_types_dynamicdigitresult",
@@ -545,7 +558,7 @@
       "file_type": "code",
       "norm_label": "dynamicdigitresult",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L159"
+      "source_location": "L168"
     },
     {
       "id": "src_app_services_bearbot2_types_tradelog",
@@ -558,7 +571,7 @@
       "file_type": "code",
       "norm_label": "tradelog",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L66"
+      "source_location": "L75"
     },
     {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_dynamicdigitpanel_dynamicdigitpanelprops",
@@ -572,6 +585,19 @@
       "norm_label": "dynamicdigitpanelprops",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/DynamicDigitPanel.tsx",
       "source_location": "L12"
+    },
+    {
+      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanelprops",
+      "label": "IntelPanelProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 132,
+      "community_name": "BotState",
+      "file_type": "code",
+      "norm_label": "intelpanelprops",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L6"
     },
     {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_marketgrid_marketgridprops",
@@ -1198,45 +1224,6 @@
       "source_location": "L20"
     },
     {
-      "id": "src_app_services_bearbot2_types_botconfig",
-      "label": "BotConfig",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "botconfig",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L194"
-    },
-    {
-      "id": "src_app_services_bearbot2_types_marketintelligence",
-      "label": "MarketIntelligence",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "marketintelligence",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L110"
-    },
-    {
-      "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanelprops",
-      "label": "IntelPanelProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "intelpanelprops",
-      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
-      "source_location": "L6"
-    },
-    {
       "id": "src_tests_bearbot2quickbuy_test_mockaudiocontext",
       "label": "MockAudioContext",
       "_callable": true,
@@ -1339,6 +1326,19 @@
       "norm_label": "aiweights",
       "source_file": "src/app/services/bearbot2.types.ts",
       "source_location": "L28"
+    },
+    {
+      "id": "src_app_services_bearbot2_types_marketintelligence",
+      "label": "MarketIntelligence",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "marketintelligence",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L119"
     },
     {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_helptip_helptipprops",
@@ -1494,7 +1494,7 @@
       "file_type": "code",
       "norm_label": "tradeprep",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L184"
+      "source_location": "L193"
     },
     {
       "id": "src_app_services_bearbot2_types_vlmarketstate",
@@ -1507,7 +1507,7 @@
       "file_type": "code",
       "norm_label": "vlmarketstate",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L98"
+      "source_location": "L107"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine",
@@ -1806,7 +1806,7 @@
       "file_type": "code",
       "norm_label": "combopending",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L143"
+      "source_location": "L152"
     },
     {
       "id": "src_app_services_bearbot2_types_derivaccount",
@@ -1819,7 +1819,7 @@
       "file_type": "code",
       "norm_label": "derivaccount",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L260"
+      "source_location": "L269"
     },
     {
       "id": "src_app_services_bearbot2_types_derivauthstate",
@@ -1832,7 +1832,7 @@
       "file_type": "code",
       "norm_label": "derivauthstate",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L268"
+      "source_location": "L277"
     },
     {
       "id": "src_app_services_bearbot2_types_dynamicdigitdetail",
@@ -1845,7 +1845,7 @@
       "file_type": "code",
       "norm_label": "dynamicdigitdetail",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L150"
+      "source_location": "L159"
     },
     {
       "id": "src_app_services_bearbot2_types_execmode",
@@ -1897,7 +1897,7 @@
       "file_type": "code",
       "norm_label": "multicandidate",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L136"
+      "source_location": "L145"
     },
     {
       "id": "src_app_services_bearbot2_types_patmode",
@@ -1923,7 +1923,7 @@
       "file_type": "code",
       "norm_label": "patternstate",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L82"
+      "source_location": "L91"
     },
     {
       "id": "src_app_services_bearbot2_types_postlossmode",
@@ -1949,7 +1949,7 @@
       "file_type": "code",
       "norm_label": "proposalstate",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L128"
+      "source_location": "L137"
     },
     {
       "id": "src_app_services_bearbot2_types_recoverystate",
@@ -1962,7 +1962,7 @@
       "file_type": "code",
       "norm_label": "recoverystate",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L103"
+      "source_location": "L112"
     },
     {
       "id": "src_app_services_bearbot2_types_tickdata",
@@ -1975,7 +1975,7 @@
       "file_type": "code",
       "norm_label": "tickdata",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L123"
+      "source_location": "L132"
     },
     {
       "id": "src_app_services_bearbot2_types_tradeleg",
@@ -1988,7 +1988,7 @@
       "file_type": "code",
       "norm_label": "tradeleg",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L175"
+      "source_location": "L184"
     },
     {
       "id": "src_app_services_bearbot2_types_vlmode",
@@ -2092,7 +2092,7 @@
       "file_type": "code",
       "norm_label": "proposalentry",
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L166"
+      "source_location": "L175"
     },
     {
       "id": "src_tests_bearbot2combolegs_test_mockaudiocontext",
@@ -4039,7 +4039,7 @@
       "file_type": "code",
       "norm_label": "loseonce()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L446"
+      "source_location": "L454"
     },
     {
       "id": "src_tests_bearbot2engine_test_scorefromspec",
@@ -4087,7 +4087,7 @@
       "file_type": "code",
       "norm_label": "settleopenover()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L336"
+      "source_location": "L344"
     },
     {
       "id": "src_tests_bearbot2engine_test_winonce",
@@ -4099,7 +4099,7 @@
       "file_type": "code",
       "norm_label": "winonce()",
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L451"
+      "source_location": "L459"
     },
     {
       "id": "src_tests_bearbot2focusvirtuallossgate_test_mulberry32",
@@ -4990,12 +4990,24 @@
       "source_location": "L21"
     },
     {
+      "id": "src_app_services_bearbot2_types_aiscorematches",
+      "label": "aiScoreMatches()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "IntelPanel.tsx",
+      "file_type": "code",
+      "norm_label": "aiscorematches()",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L71"
+    },
+    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getintelcolor",
       "label": "getIntelColor()",
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "BotConfig",
+      "community_name": "IntelPanel.tsx",
       "file_type": "code",
       "norm_label": "getintelcolor()",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
@@ -5007,7 +5019,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "BotConfig",
+      "community_name": "IntelPanel.tsx",
       "file_type": "code",
       "norm_label": "getreclabel()",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
@@ -5019,107 +5031,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "BotConfig",
+      "community_name": "IntelPanel.tsx",
       "file_type": "code",
       "norm_label": "intelpanel()",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
       "source_location": "L37"
-    },
-    {
-      "id": "src_tests_bearbotultra2aicustomweightsui_test_intelat",
-      "label": "intelAt()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "intelat()",
-      "source_file": "src/__tests__/bearBotUltra2AiCustomWeightsUI.test.tsx",
-      "source_location": "L94"
-    },
-    {
-      "id": "src_tests_bearbotultra2aicustomweightsui_test_rendergrid",
-      "label": "renderGrid()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "rendergrid()",
-      "source_file": "src/__tests__/bearBotUltra2AiCustomWeightsUI.test.tsx",
-      "source_location": "L12"
-    },
-    {
-      "id": "src_tests_bearbotultra2aiminscoreui_test_rendergrid",
-      "label": "renderGrid()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "rendergrid()",
-      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_tests_bearbotultra2aiminscoreui_test_renderpanel",
-      "label": "renderPanel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "renderpanel()",
-      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
-      "source_location": "L54"
-    },
-    {
-      "id": "src_tests_intelpaneltooltips_test_buildstate",
-      "label": "buildState()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "buildstate()",
-      "source_file": "src/__tests__/intelPanelTooltips.test.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_tests_marketgriddataready_test_buildstate",
-      "label": "buildState()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "buildstate()",
-      "source_file": "src/__tests__/marketGridDataReady.test.tsx",
-      "source_location": "L22"
-    },
-    {
-      "id": "src_tests_marketgriddataready_test_card",
-      "label": "card()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "card()",
-      "source_file": "src/__tests__/marketGridDataReady.test.tsx",
-      "source_location": "L32"
-    },
-    {
-      "id": "src_tests_marketgriddataready_test_intel",
-      "label": "intel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "intel()",
-      "source_file": "src/__tests__/marketGridDataReady.test.tsx",
-      "source_location": "L8"
     },
     {
       "id": "src_tests_bearbot2quickbuy_test_mockaudiocontext_creategain",
@@ -5662,28 +5578,100 @@
       "source_location": "L83"
     },
     {
-      "id": "src_tests_bearbot2aicustomweights_test_feed",
-      "label": "feed()",
+      "id": "src_tests_bearbotultra2aicustomweightsui_test_intelat",
+      "label": "intelAt()",
       "_callable": true,
       "_origin": "ast",
       "community": 36,
       "community_name": "MarketGrid.tsx",
       "file_type": "code",
-      "norm_label": "feed()",
-      "source_file": "src/__tests__/bearBot2AiCustomWeights.test.ts",
-      "source_location": "L14"
+      "norm_label": "intelat()",
+      "source_file": "src/__tests__/bearBotUltra2AiCustomWeightsUI.test.tsx",
+      "source_location": "L94"
     },
     {
-      "id": "src_tests_bearbot2aicustomweights_test_intelof",
-      "label": "intelOf()",
+      "id": "src_tests_bearbotultra2aicustomweightsui_test_rendergrid",
+      "label": "renderGrid()",
       "_callable": true,
       "_origin": "ast",
       "community": 36,
       "community_name": "MarketGrid.tsx",
       "file_type": "code",
-      "norm_label": "intelof()",
-      "source_file": "src/__tests__/bearBot2AiCustomWeights.test.ts",
-      "source_location": "L21"
+      "norm_label": "rendergrid()",
+      "source_file": "src/__tests__/bearBotUltra2AiCustomWeightsUI.test.tsx",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_tests_bearbotultra2aiminscoreui_test_rendergrid",
+      "label": "renderGrid()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "rendergrid()",
+      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_tests_bearbotultra2aiminscoreui_test_renderpanel",
+      "label": "renderPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "renderpanel()",
+      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
+      "source_location": "L54"
+    },
+    {
+      "id": "src_tests_intelpaneltooltips_test_buildstate",
+      "label": "buildState()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "buildstate()",
+      "source_file": "src/__tests__/intelPanelTooltips.test.tsx",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_tests_marketgriddataready_test_buildstate",
+      "label": "buildState()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "buildstate()",
+      "source_file": "src/__tests__/marketGridDataReady.test.tsx",
+      "source_location": "L22"
+    },
+    {
+      "id": "src_tests_marketgriddataready_test_card",
+      "label": "card()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "card()",
+      "source_file": "src/__tests__/marketGridDataReady.test.tsx",
+      "source_location": "L32"
+    },
+    {
+      "id": "src_tests_marketgriddataready_test_intel",
+      "label": "intel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "intel()",
+      "source_file": "src/__tests__/marketGridDataReady.test.tsx",
+      "source_location": "L8"
     },
     {
       "id": "src_tests_marketgridweighttooltips_test_rendercustom",
@@ -6007,7 +5995,7 @@
       "file_type": "code",
       "norm_label": ".abortop()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1699"
+      "source_location": "L1707"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_abortpendingtrade",
@@ -6019,7 +6007,7 @@
       "file_type": "code",
       "norm_label": ".abortpendingtrade()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1528"
+      "source_location": "L1536"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_addlog",
@@ -6043,7 +6031,7 @@
       "file_type": "code",
       "norm_label": ".buildbuypayload()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1443"
+      "source_location": "L1451"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_buildquickbuypayload",
@@ -6055,7 +6043,7 @@
       "file_type": "code",
       "norm_label": ".buildquickbuypayload()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1435"
+      "source_location": "L1443"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_canopentrade",
@@ -6127,7 +6115,7 @@
       "file_type": "code",
       "norm_label": ".comboalvo()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1607"
+      "source_location": "L1615"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_computedynamicdifferdigit",
@@ -6175,7 +6163,7 @@
       "file_type": "code",
       "norm_label": ".demotecombotosingle()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1542"
+      "source_location": "L1550"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_exporttradescsv",
@@ -6187,7 +6175,7 @@
       "file_type": "code",
       "norm_label": ".exporttradescsv()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1794"
+      "source_location": "L1802"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_finishtrade",
@@ -6199,7 +6187,19 @@
       "file_type": "code",
       "norm_label": ".finishtrade()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1613"
+      "source_location": "L1621"
+    },
+    {
+      "id": "src_app_services_bearbot2engine_bearbotengine_focusholdsaiscore",
+      "label": ".focusHoldsAiScore()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "BearBotEngine",
+      "file_type": "code",
+      "norm_label": ".focusholdsaiscore()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1136"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_getconfig",
@@ -6259,7 +6259,7 @@
       "file_type": "code",
       "norm_label": ".getproposalpayload()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1766"
+      "source_location": "L1774"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_getrequiredproposals",
@@ -6271,7 +6271,7 @@
       "file_type": "code",
       "norm_label": ".getrequiredproposals()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1775"
+      "source_location": "L1783"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_getstate",
@@ -6355,7 +6355,7 @@
       "file_type": "code",
       "norm_label": ".iscombopending()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1546"
+      "source_location": "L1554"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_isfeedfresh",
@@ -6391,7 +6391,7 @@
       "file_type": "code",
       "norm_label": ".manualfire()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1751"
+      "source_location": "L1759"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_marketanomaly",
@@ -6463,7 +6463,7 @@
       "file_type": "code",
       "norm_label": ".onnewtick()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1134"
+      "source_location": "L1142"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_preparecombo",
@@ -6475,7 +6475,7 @@
       "file_type": "code",
       "norm_label": ".preparecombo()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1500"
+      "source_location": "L1508"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_preparetrade",
@@ -6487,7 +6487,7 @@
       "file_type": "code",
       "norm_label": ".preparetrade()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1461"
+      "source_location": "L1469"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_processtick",
@@ -6523,7 +6523,7 @@
       "file_type": "code",
       "norm_label": ".resetstats()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1709"
+      "source_location": "L1717"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_resolvedynamicbarrier",
@@ -6535,7 +6535,7 @@
       "file_type": "code",
       "norm_label": ".resolvedynamicbarrier()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1760"
+      "source_location": "L1768"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_settlecontract",
@@ -6547,7 +6547,7 @@
       "file_type": "code",
       "norm_label": ".settlecontract()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1583"
+      "source_location": "L1591"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_simulatetrade",
@@ -6559,7 +6559,7 @@
       "file_type": "code",
       "norm_label": ".simulatetrade()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1550"
+      "source_location": "L1558"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_startbot",
@@ -6571,7 +6571,7 @@
       "file_type": "code",
       "norm_label": ".startbot()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1684"
+      "source_location": "L1692"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_stopbot",
@@ -6583,7 +6583,7 @@
       "file_type": "code",
       "norm_label": ".stopbot()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1697"
+      "source_location": "L1705"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_subscribe",
@@ -6619,7 +6619,7 @@
       "file_type": "code",
       "norm_label": ".tryfiremulticandidate()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1293"
+      "source_location": "L1301"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_trymanualfire",
@@ -6631,7 +6631,7 @@
       "file_type": "code",
       "norm_label": ".trymanualfire()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1725"
+      "source_location": "L1733"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_tryswitchmulticandidate",
@@ -6643,7 +6643,7 @@
       "file_type": "code",
       "norm_label": ".tryswitchmulticandidate()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1391"
+      "source_location": "L1399"
     },
     {
       "id": "src_app_services_bearbot2engine_bearbotengine_updateallintelligence",
@@ -7078,64 +7078,16 @@
       "source_location": "L73"
     },
     {
-      "id": "src_app_services_bearbot2_types_iswincheck",
-      "label": "isWinCheck()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "iswincheck()",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L352"
-    },
-    {
-      "id": "src_app_services_bearbot2_types_resolveaiweights",
-      "label": "resolveAIWeights()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "resolveaiweights()",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L51"
-    },
-    {
       "id": "src_app_services_bearbot2engine_createengine",
       "label": "createEngine()",
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "createengine()",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1804"
-    },
-    {
-      "id": "src_app_services_bearbot2engine_getbestpattern",
-      "label": "getBestPattern()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "getbestpattern()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L57"
-    },
-    {
-      "id": "src_app_services_bearbot2engine_wilsonlb",
-      "label": "wilsonLB()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "wilsonlb()",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L48"
+      "source_location": "L1812"
     },
     {
       "id": "src_tests_bearbot2aigateweights_test_feedhighpressure",
@@ -7143,7 +7095,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "feedhighpressure()",
       "source_file": "src/__tests__/bearBot2AiGateWeights.test.ts",
@@ -7155,7 +7107,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "runauto()",
       "source_file": "src/__tests__/bearBot2AiGateWeights.test.ts",
@@ -7167,7 +7119,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "feedhighpressure()",
       "source_file": "src/__tests__/bearBot2AiMinScore.test.ts",
@@ -7179,7 +7131,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "multiengine()",
       "source_file": "src/__tests__/bearBot2AiMinScore.test.ts",
@@ -7191,7 +7143,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "runauto()",
       "source_file": "src/__tests__/bearBot2AiMinScore.test.ts",
@@ -7203,7 +7155,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "feedhighpressure()",
       "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
@@ -7215,7 +7167,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "feednotarget()",
       "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
@@ -7227,7 +7179,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "runauto()",
       "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
@@ -7239,35 +7191,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "run()",
       "source_file": "src/__tests__/bearBot2CardScoreSync.test.ts",
       "source_location": "L14"
-    },
-    {
-      "id": "src_tests_bearbot2coveragegaps_test_feeddigits",
-      "label": "feedDigits()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "feeddigits()",
-      "source_file": "src/__tests__/bearBot2CoverageGaps.test.ts",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_tests_bearbot2coveragegaps_test_uniform",
-      "label": "uniform()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "uniform()",
-      "source_file": "src/__tests__/bearBot2CoverageGaps.test.ts",
-      "source_location": "L17"
     },
     {
       "id": "src_tests_bearbot2enginepostloss_test_loseonce",
@@ -7275,7 +7203,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "loseonce()",
       "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
@@ -7287,11 +7215,35 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "winonce()",
       "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
       "source_location": "L9"
+    },
+    {
+      "id": "src_tests_bearbot2entryscore_test_rng",
+      "label": "rng()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "createEngine",
+      "file_type": "code",
+      "norm_label": "rng()",
+      "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "src_tests_bearbot2entryscore_test_run",
+      "label": "run()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "createEngine",
+      "file_type": "code",
+      "norm_label": "run()",
+      "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
+      "source_location": "L19"
     },
     {
       "id": "src_tests_bearbot2intelaccuracy_test_feedabpattern",
@@ -7299,7 +7251,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "feedabpattern()",
       "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
@@ -7311,7 +7263,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "seedaccum()",
       "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
@@ -7323,23 +7275,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "seedfocusonly()",
       "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
       "source_location": "L98"
-    },
-    {
-      "id": "src_tests_bearbot2syncfreshness_test_feedabpattern",
-      "label": "feedABPattern()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "feedabpattern()",
-      "source_file": "src/__tests__/bearBot2SyncFreshness.test.ts",
-      "source_location": "L10"
     },
     {
       "id": "src_app_login_components_forgotpasswordmodal_forgotpasswordmodal",
@@ -7486,18 +7426,6 @@
       "source_location": "L165"
     },
     {
-      "id": "src_app_services_bearbot2_types_buildloserset",
-      "label": "buildLoserSet()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 58,
-      "community_name": "bearBotUltra2.tsx",
-      "file_type": "code",
-      "norm_label": "buildloserset()",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L339"
-    },
-    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_bearbotultra2_bearbotultra",
       "label": "BearBotUltra()",
       "_callable": true,
@@ -7580,6 +7508,126 @@
       "norm_label": ".createoscillator()",
       "source_file": "src/__tests__/bearBotUltra2ComboUI.test.tsx",
       "source_location": "L21"
+    },
+    {
+      "id": "src_app_services_bearbot2_types_buildloserset",
+      "label": "buildLoserSet()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "buildloserset()",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L348"
+    },
+    {
+      "id": "src_app_services_bearbot2_types_iswincheck",
+      "label": "isWinCheck()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "iswincheck()",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L361"
+    },
+    {
+      "id": "src_app_services_bearbot2_types_resolveaiweights",
+      "label": "resolveAIWeights()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "resolveaiweights()",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L51"
+    },
+    {
+      "id": "src_app_services_bearbot2engine_getbestpattern",
+      "label": "getBestPattern()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "getbestpattern()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L57"
+    },
+    {
+      "id": "src_app_services_bearbot2engine_wilsonlb",
+      "label": "wilsonLB()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "wilsonlb()",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L48"
+    },
+    {
+      "id": "src_tests_bearbot2aicustomweights_test_feed",
+      "label": "feed()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "feed()",
+      "source_file": "src/__tests__/bearBot2AiCustomWeights.test.ts",
+      "source_location": "L14"
+    },
+    {
+      "id": "src_tests_bearbot2aicustomweights_test_intelof",
+      "label": "intelOf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "intelof()",
+      "source_file": "src/__tests__/bearBot2AiCustomWeights.test.ts",
+      "source_location": "L21"
+    },
+    {
+      "id": "src_tests_bearbot2coveragegaps_test_feeddigits",
+      "label": "feedDigits()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "feeddigits()",
+      "source_file": "src/__tests__/bearBot2CoverageGaps.test.ts",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_tests_bearbot2coveragegaps_test_uniform",
+      "label": "uniform()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "uniform()",
+      "source_file": "src/__tests__/bearBot2CoverageGaps.test.ts",
+      "source_location": "L17"
+    },
+    {
+      "id": "src_tests_bearbot2syncfreshness_test_feedabpattern",
+      "label": "feedABPattern()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "feedabpattern()",
+      "source_file": "src/__tests__/bearBot2SyncFreshness.test.ts",
+      "source_location": "L10"
     },
     {
       "id": "src_tests_sharedrules_test_makeexpiredtoken",
@@ -7820,30 +7868,6 @@
       "norm_label": ".createoscillator()",
       "source_file": "src/__tests__/bearBot2ComboLegs.test.ts",
       "source_location": "L8"
-    },
-    {
-      "id": "src_tests_bearbot2entryscore_test_rng",
-      "label": "rng()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 67,
-      "community_name": "useBearBot2.ts",
-      "file_type": "code",
-      "norm_label": "rng()",
-      "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "src_tests_bearbot2entryscore_test_run",
-      "label": "run()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 67,
-      "community_name": "useBearBot2.ts",
-      "file_type": "code",
-      "norm_label": "run()",
-      "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
-      "source_location": "L19"
     },
     {
       "id": "src_app_api_forgot_password_route_generatesecuretoken",
@@ -8814,7 +8838,7 @@
       "file_type": "code",
       "norm_label": "query-string",
       "source_file": "package.json",
-      "source_location": "L35"
+      "source_location": "L36"
     },
     {
       "id": "query_string",
@@ -8825,7 +8849,7 @@
       "file_type": "concept",
       "norm_label": "query-string",
       "source_file": "package.json",
-      "source_location": "L35"
+      "source_location": "L36"
     },
     {
       "id": "package_dependencies_react",
@@ -8836,7 +8860,7 @@
       "file_type": "code",
       "norm_label": "react",
       "source_file": "package.json",
-      "source_location": "L36"
+      "source_location": "L37"
     },
     {
       "id": "react",
@@ -8847,7 +8871,7 @@
       "file_type": "concept",
       "norm_label": "react",
       "source_file": "package.json",
-      "source_location": "L36"
+      "source_location": "L37"
     },
     {
       "id": "package_dependencies_react_icons",
@@ -8858,7 +8882,7 @@
       "file_type": "code",
       "norm_label": "react-icons",
       "source_file": "package.json",
-      "source_location": "L38"
+      "source_location": "L39"
     },
     {
       "id": "react_icons",
@@ -8869,7 +8893,7 @@
       "file_type": "concept",
       "norm_label": "react-icons",
       "source_file": "package.json",
-      "source_location": "L38"
+      "source_location": "L39"
     },
     {
       "id": "package_dependencies_react_toastify",
@@ -8880,7 +8904,7 @@
       "file_type": "code",
       "norm_label": "react-toastify",
       "source_file": "package.json",
-      "source_location": "L39"
+      "source_location": "L40"
     },
     {
       "id": "react_toastify",
@@ -8891,7 +8915,7 @@
       "file_type": "concept",
       "norm_label": "react-toastify",
       "source_file": "package.json",
-      "source_location": "L39"
+      "source_location": "L40"
     },
     {
       "id": "package_dependencies_tensorflow_tfjs",
@@ -8902,7 +8926,7 @@
       "file_type": "code",
       "norm_label": "@tensorflow/tfjs",
       "source_file": "package.json",
-      "source_location": "L19"
+      "source_location": "L20"
     },
     {
       "id": "tensorflow_tfjs",
@@ -8913,7 +8937,7 @@
       "file_type": "concept",
       "norm_label": "@tensorflow/tfjs",
       "source_file": "package.json",
-      "source_location": "L19"
+      "source_location": "L20"
     },
     {
       "id": "package_dependencies_tensorflow_tfjs_backend_cpu",
@@ -8924,7 +8948,7 @@
       "file_type": "code",
       "norm_label": "@tensorflow/tfjs-backend-cpu",
       "source_file": "package.json",
-      "source_location": "L20"
+      "source_location": "L21"
     },
     {
       "id": "tensorflow_tfjs_backend_cpu",
@@ -8935,7 +8959,7 @@
       "file_type": "concept",
       "norm_label": "@tensorflow/tfjs-backend-cpu",
       "source_file": "package.json",
-      "source_location": "L20"
+      "source_location": "L21"
     },
     {
       "id": "package_dependencies_tensorflow_tfjs_backend_webgl",
@@ -8946,7 +8970,7 @@
       "file_type": "code",
       "norm_label": "@tensorflow/tfjs-backend-webgl",
       "source_file": "package.json",
-      "source_location": "L21"
+      "source_location": "L22"
     },
     {
       "id": "tensorflow_tfjs_backend_webgl",
@@ -8957,7 +8981,7 @@
       "file_type": "concept",
       "norm_label": "@tensorflow/tfjs-backend-webgl",
       "source_file": "package.json",
-      "source_location": "L21"
+      "source_location": "L22"
     },
     {
       "id": "package_dependencies_tensorflow_tfjs_converter",
@@ -8968,7 +8992,7 @@
       "file_type": "code",
       "norm_label": "@tensorflow/tfjs-converter",
       "source_file": "package.json",
-      "source_location": "L22"
+      "source_location": "L23"
     },
     {
       "id": "tensorflow_tfjs_converter",
@@ -8979,7 +9003,7 @@
       "file_type": "concept",
       "norm_label": "@tensorflow/tfjs-converter",
       "source_file": "package.json",
-      "source_location": "L22"
+      "source_location": "L23"
     },
     {
       "id": "package_dependencies_types_react_dom",
@@ -8990,7 +9014,7 @@
       "file_type": "code",
       "norm_label": "@types/react-dom",
       "source_file": "package.json",
-      "source_location": "L23"
+      "source_location": "L24"
     },
     {
       "id": "types_react_dom",
@@ -9001,7 +9025,7 @@
       "file_type": "concept",
       "norm_label": "@types/react-dom",
       "source_file": "package.json",
-      "source_location": "L23"
+      "source_location": "L24"
     },
     {
       "id": "package_dependencies_typescript",
@@ -9012,7 +9036,7 @@
       "file_type": "code",
       "norm_label": "typescript",
       "source_file": "package.json",
-      "source_location": "L41"
+      "source_location": "L42"
     },
     {
       "id": "typescript",
@@ -9023,7 +9047,7 @@
       "file_type": "concept",
       "norm_label": "typescript",
       "source_file": "package.json",
-      "source_location": "L41"
+      "source_location": "L42"
     },
     {
       "id": "src_app_api_modules_route",
@@ -9144,7 +9168,7 @@
       "file_type": "code",
       "norm_label": "uuid",
       "source_file": "package.json",
-      "source_location": "L42"
+      "source_location": "L43"
     },
     {
       "id": "uuid",
@@ -9155,7 +9179,7 @@
       "file_type": "concept",
       "norm_label": "uuid",
       "source_file": "package.json",
-      "source_location": "L42"
+      "source_location": "L43"
     },
     {
       "id": "package_dependencies_ws",
@@ -9166,7 +9190,7 @@
       "file_type": "code",
       "norm_label": "ws",
       "source_file": "package.json",
-      "source_location": "L43"
+      "source_location": "L44"
     },
     {
       "id": "ws",
@@ -9177,7 +9201,7 @@
       "file_type": "concept",
       "norm_label": "ws",
       "source_file": "package.json",
-      "source_location": "L43"
+      "source_location": "L44"
     },
     {
       "id": "src_app_api_deriv_auth_route",
@@ -10031,18 +10055,6 @@
       "source_location": "L1"
     },
     {
-      "id": "erro",
-      "label": "erro.md",
-      "_origin": "ast",
-      "community": 133,
-      "community_name": "erro.md",
-      "file_type": "document",
-      "node_kind": "page",
-      "norm_label": "erro.md",
-      "source_file": "erro.md",
-      "source_location": "L1"
-    },
-    {
       "id": "src_app_services_beardiffer_types",
       "label": "beardiffer.types.ts",
       "_origin": "ast",
@@ -10714,33 +10726,11 @@
       "source_location": "L65"
     },
     {
-      "id": "src_app_services_bearbot2_types_default_bot_state",
-      "label": "DEFAULT_BOT_STATE",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "default_bot_state",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L316"
-    },
-    {
-      "id": "src_app_services_bearbot2_types_default_config",
-      "label": "DEFAULT_CONFIG",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "default_config",
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L276"
-    },
-    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel",
       "label": "IntelPanel.tsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "BotConfig",
+      "community_name": "IntelPanel.tsx",
       "file_type": "code",
       "norm_label": "intelpanel.tsx",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
@@ -10751,66 +10741,11 @@
       "label": "PILLAR_HINTS",
       "_origin": "ast",
       "community": 23,
-      "community_name": "BotConfig",
+      "community_name": "IntelPanel.tsx",
       "file_type": "code",
       "norm_label": "pillar_hints",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
       "source_location": "L19"
-    },
-    {
-      "id": "src_tests_bearbotultra2aicustomweightsui_test",
-      "label": "bearBotUltra2AiCustomWeightsUI.test.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "bearbotultra2aicustomweightsui.test.tsx",
-      "source_file": "src/__tests__/bearBotUltra2AiCustomWeightsUI.test.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbotultra2aiminscoreui_test",
-      "label": "bearBotUltra2AiMinScoreUI.test.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "bearbotultra2aiminscoreui.test.tsx",
-      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_intelpaneltooltips_test",
-      "label": "intelPanelTooltips.test.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "intelpaneltooltips.test.tsx",
-      "source_file": "src/__tests__/intelPanelTooltips.test.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_intelpaneltooltips_test_pillars",
-      "label": "PILLARS",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "pillars",
-      "source_file": "src/__tests__/intelPanelTooltips.test.tsx",
-      "source_location": "L28"
-    },
-    {
-      "id": "src_tests_marketgriddataready_test",
-      "label": "marketGridDataReady.test.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "BotConfig",
-      "file_type": "code",
-      "norm_label": "marketgriddataready.test.tsx",
-      "source_file": "src/__tests__/marketGridDataReady.test.tsx",
-      "source_location": "L1"
     },
     {
       "id": "src_tests_bearbot2quickbuy_test",
@@ -11187,6 +11122,28 @@
       "source_location": "L39"
     },
     {
+      "id": "src_app_services_bearbot2_types_default_bot_state",
+      "label": "DEFAULT_BOT_STATE",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "default_bot_state",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L325"
+    },
+    {
+      "id": "src_app_services_bearbot2_types_default_config",
+      "label": "DEFAULT_CONFIG",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "default_config",
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L285"
+    },
+    {
       "id": "src_app_withsidebar_bear_bot_ultra_2_components_helptip",
       "label": "HelpTip.tsx",
       "_origin": "ast",
@@ -11231,15 +11188,48 @@
       "source_location": "L51"
     },
     {
-      "id": "src_tests_bearbot2aicustomweights_test",
-      "label": "bearBot2AiCustomWeights.test.ts",
+      "id": "src_tests_bearbotultra2aicustomweightsui_test",
+      "label": "bearBotUltra2AiCustomWeightsUI.test.tsx",
       "_origin": "ast",
       "community": 36,
       "community_name": "MarketGrid.tsx",
       "file_type": "code",
-      "norm_label": "bearbot2aicustomweights.test.ts",
-      "source_file": "src/__tests__/bearBot2AiCustomWeights.test.ts",
+      "norm_label": "bearbotultra2aicustomweightsui.test.tsx",
+      "source_file": "src/__tests__/bearBotUltra2AiCustomWeightsUI.test.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbotultra2aiminscoreui_test",
+      "label": "bearBotUltra2AiMinScoreUI.test.tsx",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "bearbotultra2aiminscoreui.test.tsx",
+      "source_file": "src/__tests__/bearBotUltra2AiMinScoreUI.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_intelpaneltooltips_test",
+      "label": "intelPanelTooltips.test.tsx",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "intelpaneltooltips.test.tsx",
+      "source_file": "src/__tests__/intelPanelTooltips.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_intelpaneltooltips_test_pillars",
+      "label": "PILLARS",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "pillars",
+      "source_file": "src/__tests__/intelPanelTooltips.test.tsx",
+      "source_location": "L28"
     },
     {
       "id": "src_tests_marketgridaimode_test",
@@ -11250,6 +11240,17 @@
       "file_type": "code",
       "norm_label": "marketgridaimode.test.tsx",
       "source_file": "src/__tests__/marketGridAiMode.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_marketgriddataready_test",
+      "label": "marketGridDataReady.test.tsx",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "MarketGrid.tsx",
+      "file_type": "code",
+      "norm_label": "marketgriddataready.test.tsx",
+      "source_file": "src/__tests__/marketGridDataReady.test.tsx",
       "source_location": "L1"
     },
     {
@@ -11638,22 +11639,11 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_services_bearbot2engine",
-      "label": "BearBot2Engine.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "bearbot2engine.ts",
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_tests_bearbot2aigateweights_test",
       "label": "bearBot2AiGateWeights.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2aigateweights.test.ts",
       "source_file": "src/__tests__/bearBot2AiGateWeights.test.ts",
@@ -11664,7 +11654,7 @@
       "label": "bearBot2AiMinScore.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2aiminscore.test.ts",
       "source_file": "src/__tests__/bearBot2AiMinScore.test.ts",
@@ -11675,7 +11665,7 @@
       "label": "bearBot2AiMinScoreVL.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2aiminscorevl.test.ts",
       "source_file": "src/__tests__/bearBot2AiMinScoreVL.test.ts",
@@ -11686,7 +11676,7 @@
       "label": "bearBot2AutoDigit.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2autodigit.test.ts",
       "source_file": "src/__tests__/bearBot2AutoDigit.test.ts",
@@ -11697,7 +11687,7 @@
       "label": "bearBot2AutoDigitFocus.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2autodigitfocus.test.ts",
       "source_file": "src/__tests__/bearBot2AutoDigitFocus.test.ts",
@@ -11708,32 +11698,10 @@
       "label": "bearBot2CardScoreSync.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2cardscoresync.test.ts",
       "source_file": "src/__tests__/bearBot2CardScoreSync.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2combo_test",
-      "label": "bearBot2Combo.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "bearbot2combo.test.ts",
-      "source_file": "src/__tests__/bearBot2Combo.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2coveragegaps_test",
-      "label": "bearBot2CoverageGaps.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "bearbot2coveragegaps.test.ts",
-      "source_file": "src/__tests__/bearBot2CoverageGaps.test.ts",
       "source_location": "L1"
     },
     {
@@ -11741,7 +11709,7 @@
       "label": "bearBot2DynamicDigit.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2dynamicdigit.test.ts",
       "source_file": "src/__tests__/bearBot2DynamicDigit.test.ts",
@@ -11752,7 +11720,7 @@
       "label": "bearBot2DynamicDigitVL.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2dynamicdigitvl.test.ts",
       "source_file": "src/__tests__/bearBot2DynamicDigitVL.test.ts",
@@ -11763,18 +11731,40 @@
       "label": "bearBot2EnginePostLoss.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2enginepostloss.test.ts",
       "source_file": "src/__tests__/bearBot2EnginePostLoss.test.ts",
       "source_location": "L1"
     },
     {
+      "id": "src_tests_bearbot2entryscore_test",
+      "label": "bearBot2EntryScore.test.ts",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "createEngine",
+      "file_type": "code",
+      "norm_label": "bearbot2entryscore.test.ts",
+      "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2entryscore_test_submodes",
+      "label": "SUBMODES",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "createEngine",
+      "file_type": "code",
+      "norm_label": "submodes",
+      "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
+      "source_location": "L62"
+    },
+    {
       "id": "src_tests_bearbot2intelaccuracy_test",
       "label": "bearBot2IntelAccuracy.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2intelaccuracy.test.ts",
       "source_file": "src/__tests__/bearBot2IntelAccuracy.test.ts",
@@ -11785,21 +11775,10 @@
       "label": "bearBot2PatternAB.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2patternab.test.ts",
       "source_file": "src/__tests__/bearBot2PatternAB.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2syncfreshness_test",
-      "label": "bearBot2SyncFreshness.test.ts",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "BearBot2Engine.ts",
-      "file_type": "code",
-      "norm_label": "bearbot2syncfreshness.test.ts",
-      "source_file": "src/__tests__/bearBot2SyncFreshness.test.ts",
       "source_location": "L1"
     },
     {
@@ -11807,7 +11786,7 @@
       "label": "bearBot2VlWindowNormalisation.test.ts",
       "_origin": "ast",
       "community": 50,
-      "community_name": "BearBot2Engine.ts",
+      "community_name": "createEngine",
       "file_type": "code",
       "norm_label": "bearbot2vlwindownormalisation.test.ts",
       "source_file": "src/__tests__/bearBot2VlWindowNormalisation.test.ts",
@@ -11822,7 +11801,7 @@
       "file_type": "code",
       "norm_label": "dependencies",
       "source_file": "package.json",
-      "source_location": "L15"
+      "source_location": "L16"
     },
     {
       "id": "package_dependencies_axios",
@@ -11833,7 +11812,7 @@
       "file_type": "code",
       "norm_label": "axios",
       "source_file": "package.json",
-      "source_location": "L24"
+      "source_location": "L25"
     },
     {
       "id": "package_dependencies_prisma_client",
@@ -11844,7 +11823,7 @@
       "file_type": "code",
       "norm_label": "@prisma/client",
       "source_file": "package.json",
-      "source_location": "L18"
+      "source_location": "L19"
     },
     {
       "id": "package_dependencies_react_dom",
@@ -11855,7 +11834,7 @@
       "file_type": "code",
       "norm_label": "react-dom",
       "source_file": "package.json",
-      "source_location": "L37"
+      "source_location": "L38"
     },
     {
       "id": "package_dependencies_resend",
@@ -11866,7 +11845,7 @@
       "file_type": "code",
       "norm_label": "resend",
       "source_file": "package.json",
-      "source_location": "L40"
+      "source_location": "L41"
     },
     {
       "id": "axios",
@@ -11877,7 +11856,7 @@
       "file_type": "concept",
       "norm_label": "axios",
       "source_file": "package.json",
-      "source_location": "L24"
+      "source_location": "L25"
     },
     {
       "id": "prisma_client",
@@ -11888,7 +11867,7 @@
       "file_type": "concept",
       "norm_label": "@prisma/client",
       "source_file": "package.json",
-      "source_location": "L18"
+      "source_location": "L19"
     },
     {
       "id": "react_dom",
@@ -11899,7 +11878,7 @@
       "file_type": "concept",
       "norm_label": "react-dom",
       "source_file": "package.json",
-      "source_location": "L37"
+      "source_location": "L38"
     },
     {
       "id": "resend",
@@ -11910,7 +11889,7 @@
       "file_type": "concept",
       "norm_label": "resend",
       "source_file": "package.json",
-      "source_location": "L40"
+      "source_location": "L41"
     },
     {
       "id": "src_app_login_components_forgotpasswordmodal",
@@ -12109,6 +12088,61 @@
       "norm_label": "ai_min_score_default",
       "source_file": "src/app/services/bearbot2.types.ts",
       "source_location": "L64"
+    },
+    {
+      "id": "src_app_services_bearbot2engine",
+      "label": "BearBot2Engine.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2engine.ts",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2aicustomweights_test",
+      "label": "bearBot2AiCustomWeights.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2aicustomweights.test.ts",
+      "source_file": "src/__tests__/bearBot2AiCustomWeights.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2combo_test",
+      "label": "bearBot2Combo.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2combo.test.ts",
+      "source_file": "src/__tests__/bearBot2Combo.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2coveragegaps_test",
+      "label": "bearBot2CoverageGaps.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2coveragegaps.test.ts",
+      "source_file": "src/__tests__/bearBot2CoverageGaps.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_tests_bearbot2syncfreshness_test",
+      "label": "bearBot2SyncFreshness.test.ts",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "bearbot2.types.ts",
+      "file_type": "code",
+      "norm_label": "bearbot2syncfreshness.test.ts",
+      "source_file": "src/__tests__/bearBot2SyncFreshness.test.ts",
+      "source_location": "L1"
     },
     {
       "id": "src_app_api_shared_rules_route",
@@ -12485,28 +12519,6 @@
       "source_location": "L24"
     },
     {
-      "id": "src_tests_bearbot2entryscore_test",
-      "label": "bearBot2EntryScore.test.ts",
-      "_origin": "ast",
-      "community": 67,
-      "community_name": "useBearBot2.ts",
-      "file_type": "code",
-      "norm_label": "bearbot2entryscore.test.ts",
-      "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_tests_bearbot2entryscore_test_submodes",
-      "label": "SUBMODES",
-      "_origin": "ast",
-      "community": 67,
-      "community_name": "useBearBot2.ts",
-      "file_type": "code",
-      "norm_label": "submodes",
-      "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
-      "source_location": "L60"
-    },
-    {
       "id": "src_tests_bearmarketdigits_test",
       "label": "bearMarketDigits.test.ts",
       "_origin": "ast",
@@ -12537,7 +12549,7 @@
       "file_type": "code",
       "norm_label": "devdependencies",
       "source_file": "package.json",
-      "source_location": "L45"
+      "source_location": "L46"
     },
     {
       "id": "package_devdependencies_cross_env",
@@ -12548,7 +12560,7 @@
       "file_type": "code",
       "norm_label": "cross-env",
       "source_file": "package.json",
-      "source_location": "L54"
+      "source_location": "L55"
     },
     {
       "id": "package_devdependencies_eslint",
@@ -12559,7 +12571,7 @@
       "file_type": "code",
       "norm_label": "eslint",
       "source_file": "package.json",
-      "source_location": "L55"
+      "source_location": "L56"
     },
     {
       "id": "package_devdependencies_eslint_config_next",
@@ -12570,7 +12582,7 @@
       "file_type": "code",
       "norm_label": "eslint-config-next",
       "source_file": "package.json",
-      "source_location": "L56"
+      "source_location": "L57"
     },
     {
       "id": "package_devdependencies_eslint_eslintrc",
@@ -12581,7 +12593,7 @@
       "file_type": "code",
       "norm_label": "@eslint/eslintrc",
       "source_file": "package.json",
-      "source_location": "L46"
+      "source_location": "L47"
     },
     {
       "id": "package_devdependencies_jsdom",
@@ -12592,7 +12604,7 @@
       "file_type": "code",
       "norm_label": "jsdom",
       "source_file": "package.json",
-      "source_location": "L57"
+      "source_location": "L58"
     },
     {
       "id": "package_devdependencies_postcss",
@@ -12603,7 +12615,7 @@
       "file_type": "code",
       "norm_label": "postcss",
       "source_file": "package.json",
-      "source_location": "L58"
+      "source_location": "L59"
     },
     {
       "id": "package_devdependencies_prisma",
@@ -12614,7 +12626,7 @@
       "file_type": "code",
       "norm_label": "prisma",
       "source_file": "package.json",
-      "source_location": "L59"
+      "source_location": "L60"
     },
     {
       "id": "package_devdependencies_tailwindcss",
@@ -12625,7 +12637,7 @@
       "file_type": "code",
       "norm_label": "tailwindcss",
       "source_file": "package.json",
-      "source_location": "L60"
+      "source_location": "L61"
     },
     {
       "id": "package_devdependencies_testing_library_jest_dom",
@@ -12636,7 +12648,7 @@
       "file_type": "code",
       "norm_label": "@testing-library/jest-dom",
       "source_file": "package.json",
-      "source_location": "L47"
+      "source_location": "L48"
     },
     {
       "id": "package_devdependencies_testing_library_react",
@@ -12647,7 +12659,7 @@
       "file_type": "code",
       "norm_label": "@testing-library/react",
       "source_file": "package.json",
-      "source_location": "L48"
+      "source_location": "L49"
     },
     {
       "id": "package_devdependencies_testing_library_user_event",
@@ -12658,7 +12670,7 @@
       "file_type": "code",
       "norm_label": "@testing-library/user-event",
       "source_file": "package.json",
-      "source_location": "L49"
+      "source_location": "L50"
     },
     {
       "id": "package_devdependencies_types_node",
@@ -12669,7 +12681,7 @@
       "file_type": "code",
       "norm_label": "@types/node",
       "source_file": "package.json",
-      "source_location": "L50"
+      "source_location": "L51"
     },
     {
       "id": "package_devdependencies_types_react",
@@ -12680,7 +12692,7 @@
       "file_type": "code",
       "norm_label": "@types/react",
       "source_file": "package.json",
-      "source_location": "L51"
+      "source_location": "L52"
     },
     {
       "id": "package_devdependencies_vitejs_plugin_react",
@@ -12691,7 +12703,7 @@
       "file_type": "code",
       "norm_label": "@vitejs/plugin-react",
       "source_file": "package.json",
-      "source_location": "L52"
+      "source_location": "L53"
     },
     {
       "id": "package_devdependencies_vitest",
@@ -12702,7 +12714,7 @@
       "file_type": "code",
       "norm_label": "vitest",
       "source_file": "package.json",
-      "source_location": "L61"
+      "source_location": "L62"
     },
     {
       "id": "package_devdependencies_vitest_coverage_v8",
@@ -12713,7 +12725,7 @@
       "file_type": "code",
       "norm_label": "@vitest/coverage-v8",
       "source_file": "package.json",
-      "source_location": "L53"
+      "source_location": "L54"
     },
     {
       "id": "package_name",
@@ -12779,7 +12791,7 @@
       "file_type": "code",
       "norm_label": "lint",
       "source_file": "package.json",
-      "source_location": "L9"
+      "source_location": "L10"
     },
     {
       "id": "package_scripts_postinstall",
@@ -12790,7 +12802,7 @@
       "file_type": "code",
       "norm_label": "postinstall",
       "source_file": "package.json",
-      "source_location": "L12"
+      "source_location": "L13"
     },
     {
       "id": "package_scripts_start",
@@ -12804,6 +12816,17 @@
       "source_location": "L8"
     },
     {
+      "id": "package_scripts_start_3001",
+      "label": "start:3001",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "devDependencies",
+      "file_type": "code",
+      "norm_label": "start:3001",
+      "source_file": "package.json",
+      "source_location": "L9"
+    },
+    {
       "id": "package_scripts_test",
       "label": "test",
       "_origin": "ast",
@@ -12812,7 +12835,7 @@
       "file_type": "code",
       "norm_label": "test",
       "source_file": "package.json",
-      "source_location": "L10"
+      "source_location": "L11"
     },
     {
       "id": "package_scripts_test_coverage",
@@ -12823,7 +12846,7 @@
       "file_type": "code",
       "norm_label": "test:coverage",
       "source_file": "package.json",
-      "source_location": "L13"
+      "source_location": "L14"
     },
     {
       "id": "package_scripts_test_watch",
@@ -12834,7 +12857,7 @@
       "file_type": "code",
       "norm_label": "test:watch",
       "source_file": "package.json",
-      "source_location": "L11"
+      "source_location": "L12"
     },
     {
       "id": "package_version",
@@ -12856,7 +12879,7 @@
       "file_type": "concept",
       "norm_label": "cross-env",
       "source_file": "package.json",
-      "source_location": "L54"
+      "source_location": "L55"
     },
     {
       "id": "eslint",
@@ -12867,7 +12890,7 @@
       "file_type": "concept",
       "norm_label": "eslint",
       "source_file": "package.json",
-      "source_location": "L55"
+      "source_location": "L56"
     },
     {
       "id": "eslint_config_next",
@@ -12878,7 +12901,7 @@
       "file_type": "concept",
       "norm_label": "eslint-config-next",
       "source_file": "package.json",
-      "source_location": "L56"
+      "source_location": "L57"
     },
     {
       "id": "eslint_eslintrc",
@@ -12889,7 +12912,7 @@
       "file_type": "concept",
       "norm_label": "@eslint/eslintrc",
       "source_file": "package.json",
-      "source_location": "L46"
+      "source_location": "L47"
     },
     {
       "id": "jsdom",
@@ -12900,7 +12923,7 @@
       "file_type": "concept",
       "norm_label": "jsdom",
       "source_file": "package.json",
-      "source_location": "L57"
+      "source_location": "L58"
     },
     {
       "id": "package_json_tailwindcss",
@@ -12911,7 +12934,7 @@
       "file_type": "concept",
       "norm_label": "tailwindcss",
       "source_file": "package.json",
-      "source_location": "L60"
+      "source_location": "L61"
     },
     {
       "id": "postcss",
@@ -12922,7 +12945,7 @@
       "file_type": "concept",
       "norm_label": "postcss",
       "source_file": "package.json",
-      "source_location": "L58"
+      "source_location": "L59"
     },
     {
       "id": "prisma",
@@ -12933,7 +12956,7 @@
       "file_type": "concept",
       "norm_label": "prisma",
       "source_file": "package.json",
-      "source_location": "L59"
+      "source_location": "L60"
     },
     {
       "id": "testing_library_jest_dom",
@@ -12944,7 +12967,7 @@
       "file_type": "concept",
       "norm_label": "@testing-library/jest-dom",
       "source_file": "package.json",
-      "source_location": "L47"
+      "source_location": "L48"
     },
     {
       "id": "testing_library_react",
@@ -12955,7 +12978,7 @@
       "file_type": "concept",
       "norm_label": "@testing-library/react",
       "source_file": "package.json",
-      "source_location": "L48"
+      "source_location": "L49"
     },
     {
       "id": "testing_library_user_event",
@@ -12966,7 +12989,7 @@
       "file_type": "concept",
       "norm_label": "@testing-library/user-event",
       "source_file": "package.json",
-      "source_location": "L49"
+      "source_location": "L50"
     },
     {
       "id": "types_node",
@@ -12977,7 +13000,7 @@
       "file_type": "concept",
       "norm_label": "@types/node",
       "source_file": "package.json",
-      "source_location": "L50"
+      "source_location": "L51"
     },
     {
       "id": "types_react",
@@ -12988,7 +13011,7 @@
       "file_type": "concept",
       "norm_label": "@types/react",
       "source_file": "package.json",
-      "source_location": "L51"
+      "source_location": "L52"
     },
     {
       "id": "vitejs_plugin_react",
@@ -12999,7 +13022,7 @@
       "file_type": "concept",
       "norm_label": "@vitejs/plugin-react",
       "source_file": "package.json",
-      "source_location": "L52"
+      "source_location": "L53"
     },
     {
       "id": "vitest",
@@ -13010,7 +13033,7 @@
       "file_type": "concept",
       "norm_label": "vitest",
       "source_file": "package.json",
-      "source_location": "L61"
+      "source_location": "L62"
     },
     {
       "id": "vitest_coverage_v8",
@@ -13021,7 +13044,7 @@
       "file_type": "concept",
       "norm_label": "@vitest/coverage-v8",
       "source_file": "package.json",
-      "source_location": "L53"
+      "source_location": "L54"
     },
     {
       "id": "eslint_config",
@@ -13472,7 +13495,7 @@
       "file_type": "code",
       "norm_label": "bcryptjs",
       "source_file": "package.json",
-      "source_location": "L25"
+      "source_location": "L26"
     },
     {
       "id": "bcryptjs",
@@ -13483,7 +13506,7 @@
       "file_type": "concept",
       "norm_label": "bcryptjs",
       "source_file": "package.json",
-      "source_location": "L25"
+      "source_location": "L26"
     },
     {
       "id": "package_dependencies_date_fns",
@@ -13494,7 +13517,7 @@
       "file_type": "code",
       "norm_label": "date-fns",
       "source_file": "package.json",
-      "source_location": "L26"
+      "source_location": "L27"
     },
     {
       "id": "date_fns",
@@ -13505,7 +13528,7 @@
       "file_type": "concept",
       "norm_label": "date-fns",
       "source_file": "package.json",
-      "source_location": "L26"
+      "source_location": "L27"
     },
     {
       "id": "package_dependencies_deriv_deriv_api",
@@ -13516,7 +13539,7 @@
       "file_type": "code",
       "norm_label": "@deriv/deriv-api",
       "source_file": "package.json",
-      "source_location": "L16"
+      "source_location": "L17"
     },
     {
       "id": "deriv_deriv_api",
@@ -13527,7 +13550,7 @@
       "file_type": "concept",
       "norm_label": "@deriv/deriv-api",
       "source_file": "package.json",
-      "source_location": "L16"
+      "source_location": "L17"
     },
     {
       "id": "package_dependencies_heroicons_react",
@@ -13538,7 +13561,7 @@
       "file_type": "code",
       "norm_label": "@heroicons/react",
       "source_file": "package.json",
-      "source_location": "L17"
+      "source_location": "L18"
     },
     {
       "id": "heroicons_react",
@@ -13549,7 +13572,7 @@
       "file_type": "concept",
       "norm_label": "@heroicons/react",
       "source_file": "package.json",
-      "source_location": "L17"
+      "source_location": "L18"
     },
     {
       "id": "package_dependencies_jose",
@@ -13560,7 +13583,7 @@
       "file_type": "code",
       "norm_label": "jose",
       "source_file": "package.json",
-      "source_location": "L27"
+      "source_location": "L28"
     },
     {
       "id": "jose",
@@ -13571,7 +13594,7 @@
       "file_type": "concept",
       "norm_label": "jose",
       "source_file": "package.json",
-      "source_location": "L27"
+      "source_location": "L28"
     },
     {
       "id": "package_dependencies_json_rules_engine",
@@ -13582,7 +13605,7 @@
       "file_type": "code",
       "norm_label": "json-rules-engine",
       "source_file": "package.json",
-      "source_location": "L28"
+      "source_location": "L29"
     },
     {
       "id": "json_rules_engine",
@@ -13593,7 +13616,7 @@
       "file_type": "concept",
       "norm_label": "json-rules-engine",
       "source_file": "package.json",
-      "source_location": "L28"
+      "source_location": "L29"
     },
     {
       "id": "package_dependencies_jsonwebtoken",
@@ -13604,7 +13627,7 @@
       "file_type": "code",
       "norm_label": "jsonwebtoken",
       "source_file": "package.json",
-      "source_location": "L29"
+      "source_location": "L30"
     },
     {
       "id": "jsonwebtoken",
@@ -13615,7 +13638,7 @@
       "file_type": "concept",
       "norm_label": "jsonwebtoken",
       "source_file": "package.json",
-      "source_location": "L29"
+      "source_location": "L30"
     },
     {
       "id": "package_dependencies_lucide_react",
@@ -13626,7 +13649,7 @@
       "file_type": "code",
       "norm_label": "lucide-react",
       "source_file": "package.json",
-      "source_location": "L30"
+      "source_location": "L31"
     },
     {
       "id": "lucide_react",
@@ -13637,7 +13660,7 @@
       "file_type": "concept",
       "norm_label": "lucide-react",
       "source_file": "package.json",
-      "source_location": "L30"
+      "source_location": "L31"
     },
     {
       "id": "package_dependencies_moment",
@@ -13648,7 +13671,7 @@
       "file_type": "code",
       "norm_label": "moment",
       "source_file": "package.json",
-      "source_location": "L31"
+      "source_location": "L32"
     },
     {
       "id": "moment",
@@ -13659,7 +13682,7 @@
       "file_type": "concept",
       "norm_label": "moment",
       "source_file": "package.json",
-      "source_location": "L31"
+      "source_location": "L32"
     },
     {
       "id": "package_dependencies_mysql2",
@@ -13670,7 +13693,7 @@
       "file_type": "code",
       "norm_label": "mysql2",
       "source_file": "package.json",
-      "source_location": "L32"
+      "source_location": "L33"
     },
     {
       "id": "mysql2",
@@ -13681,7 +13704,7 @@
       "file_type": "concept",
       "norm_label": "mysql2",
       "source_file": "package.json",
-      "source_location": "L32"
+      "source_location": "L33"
     },
     {
       "id": "next_config",
@@ -13714,7 +13737,7 @@
       "file_type": "code",
       "norm_label": "nextjs",
       "source_file": "package.json",
-      "source_location": "L34"
+      "source_location": "L35"
     },
     {
       "id": "nextjs",
@@ -13725,7 +13748,7 @@
       "file_type": "concept",
       "norm_label": "nextjs",
       "source_file": "package.json",
-      "source_location": "L34"
+      "source_location": "L35"
     },
     {
       "id": "package_dependencies_next",
@@ -13736,7 +13759,7 @@
       "file_type": "code",
       "norm_label": "next",
       "source_file": "package.json",
-      "source_location": "L33"
+      "source_location": "L34"
     },
     {
       "id": "package_json_next",
@@ -13747,7 +13770,7 @@
       "file_type": "concept",
       "norm_label": "next",
       "source_file": "package.json",
-      "source_location": "L33"
+      "source_location": "L34"
     },
     {
       "id": "docs_documentacao_deriv_api_reference_docs_subscription_forget_all_stream_types",
@@ -21781,7 +21804,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1702",
+      "source_location": "L1710",
       "weight": 1.0
     },
     {
@@ -21793,7 +21816,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1704",
+      "source_location": "L1712",
       "weight": 1.0
     },
     {
@@ -21805,7 +21828,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1705",
+      "source_location": "L1713",
       "weight": 1.0
     },
     {
@@ -21817,7 +21840,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1705",
+      "source_location": "L1713",
       "weight": 1.0
     },
     {
@@ -21829,7 +21852,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1706",
+      "source_location": "L1714",
       "weight": 1.0
     },
     {
@@ -21841,7 +21864,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1706",
+      "source_location": "L1714",
       "weight": 1.0
     },
     {
@@ -21853,7 +21876,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1531",
+      "source_location": "L1539",
       "weight": 1.0
     },
     {
@@ -21865,7 +21888,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1534",
+      "source_location": "L1542",
       "weight": 1.0
     },
     {
@@ -21877,7 +21900,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1535",
+      "source_location": "L1543",
       "weight": 1.0
     },
     {
@@ -22033,7 +22056,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1628",
+      "source_location": "L1636",
       "weight": 1.0
     },
     {
@@ -22045,7 +22068,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1641",
+      "source_location": "L1649",
       "weight": 1.0
     },
     {
@@ -22057,7 +22080,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1647",
+      "source_location": "L1655",
       "weight": 1.0
     },
     {
@@ -22069,7 +22092,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1660",
+      "source_location": "L1668",
       "weight": 1.0
     },
     {
@@ -22081,7 +22104,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1661",
+      "source_location": "L1669",
       "weight": 1.0
     },
     {
@@ -22093,7 +22116,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1679",
+      "source_location": "L1687",
       "weight": 1.0
     },
     {
@@ -22105,7 +22128,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1680",
+      "source_location": "L1688",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2engine_bearbotengine_focusholdsaiscore",
+      "target": "src_app_services_bearbot2_types_aiscorematches",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1138",
       "weight": 1.0
     },
     {
@@ -22141,7 +22176,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1780",
+      "source_location": "L1788",
       "weight": 1.0
     },
     {
@@ -22181,6 +22216,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_app_services_bearbot2engine_bearbotengine_isaigateopen",
+      "target": "src_app_services_bearbot2_types_aiscorematches",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1130",
+      "weight": 1.0
+    },
+    {
       "source": "src_app_services_bearbot2engine_bearbotengine_manualfire",
       "target": "src_app_services_bearbot2engine_bearbotengine_trymanualfire",
       "relation": "calls",
@@ -22189,7 +22236,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1752",
+      "source_location": "L1760",
       "weight": 1.0
     },
     {
@@ -22201,7 +22248,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1753",
+      "source_location": "L1761",
       "weight": 1.0
     },
     {
@@ -22237,7 +22284,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1135",
+      "source_location": "L1143",
       "weight": 1.0
     },
     {
@@ -22249,7 +22296,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1140",
+      "source_location": "L1148",
       "weight": 1.0
     },
     {
@@ -22261,7 +22308,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1143",
+      "source_location": "L1151",
       "weight": 1.0
     },
     {
@@ -22273,7 +22320,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1145",
+      "source_location": "L1153",
       "weight": 1.0
     },
     {
@@ -22285,7 +22332,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1148",
+      "source_location": "L1156",
       "weight": 1.0
     },
     {
@@ -22297,7 +22344,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1151",
+      "source_location": "L1159",
       "weight": 1.0
     },
     {
@@ -22309,7 +22356,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1181",
+      "source_location": "L1189",
       "weight": 1.0
     },
     {
@@ -22321,7 +22368,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1210",
+      "source_location": "L1218",
       "weight": 1.0
     },
     {
@@ -22333,7 +22380,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1211",
+      "source_location": "L1219",
       "weight": 1.0
     },
     {
@@ -22345,7 +22392,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1218",
+      "source_location": "L1226",
       "weight": 1.0
     },
     {
@@ -22357,7 +22404,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1221",
+      "source_location": "L1229",
       "weight": 1.0
     },
     {
@@ -22369,7 +22416,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1223",
+      "source_location": "L1231",
       "weight": 1.0
     },
     {
@@ -22381,7 +22428,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1225",
+      "source_location": "L1233",
       "weight": 1.0
     },
     {
@@ -22393,7 +22440,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1226",
+      "source_location": "L1234",
       "weight": 1.0
     },
     {
@@ -22405,7 +22452,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1240",
+      "source_location": "L1248",
       "weight": 1.0
     },
     {
@@ -22417,7 +22464,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1273",
+      "source_location": "L1281",
       "weight": 1.0
     },
     {
@@ -22429,7 +22476,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1502",
+      "source_location": "L1510",
       "weight": 1.0
     },
     {
@@ -22441,7 +22488,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1509",
+      "source_location": "L1517",
       "weight": 1.0
     },
     {
@@ -22453,7 +22500,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1510",
+      "source_location": "L1518",
       "weight": 1.0
     },
     {
@@ -22465,7 +22512,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1520",
+      "source_location": "L1528",
       "weight": 1.0
     },
     {
@@ -22477,7 +22524,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1463",
+      "source_location": "L1471",
       "weight": 1.0
     },
     {
@@ -22489,7 +22536,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1464",
+      "source_location": "L1472",
       "weight": 1.0
     },
     {
@@ -22501,7 +22548,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1470",
+      "source_location": "L1478",
       "weight": 1.0
     },
     {
@@ -22513,7 +22560,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1475",
+      "source_location": "L1483",
       "weight": 1.0
     },
     {
@@ -22525,7 +22572,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1477",
+      "source_location": "L1485",
       "weight": 1.0
     },
     {
@@ -22537,7 +22584,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1481",
+      "source_location": "L1489",
       "weight": 1.0
     },
     {
@@ -22549,7 +22596,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1493",
+      "source_location": "L1501",
       "weight": 1.0
     },
     {
@@ -22561,7 +22608,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1494",
+      "source_location": "L1502",
       "weight": 1.0
     },
     {
@@ -22621,7 +22668,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1714",
+      "source_location": "L1722",
       "weight": 1.0
     },
     {
@@ -22633,7 +22680,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1716",
+      "source_location": "L1724",
       "weight": 1.0
     },
     {
@@ -22645,7 +22692,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1717",
+      "source_location": "L1725",
       "weight": 1.0
     },
     {
@@ -22657,7 +22704,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1717",
+      "source_location": "L1725",
       "weight": 1.0
     },
     {
@@ -22669,7 +22716,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1718",
+      "source_location": "L1726",
       "weight": 1.0
     },
     {
@@ -22681,7 +22728,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1718",
+      "source_location": "L1726",
       "weight": 1.0
     },
     {
@@ -22693,7 +22740,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1762",
+      "source_location": "L1770",
       "weight": 1.0
     },
     {
@@ -22705,7 +22752,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1588",
+      "source_location": "L1596",
       "weight": 1.0
     },
     {
@@ -22717,7 +22764,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1597",
+      "source_location": "L1605",
       "weight": 1.0
     },
     {
@@ -22729,7 +22776,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1597",
+      "source_location": "L1605",
       "weight": 1.0
     },
     {
@@ -22741,7 +22788,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1578",
+      "source_location": "L1586",
       "weight": 1.0
     },
     {
@@ -22753,7 +22800,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1686",
+      "source_location": "L1694",
       "weight": 1.0
     },
     {
@@ -22765,7 +22812,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1687",
+      "source_location": "L1695",
       "weight": 1.0
     },
     {
@@ -22777,7 +22824,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1687",
+      "source_location": "L1695",
       "weight": 1.0
     },
     {
@@ -22789,7 +22836,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1689",
+      "source_location": "L1697",
       "weight": 1.0
     },
     {
@@ -22801,7 +22848,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1692",
+      "source_location": "L1700",
       "weight": 1.0
     },
     {
@@ -22813,7 +22860,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1693",
+      "source_location": "L1701",
       "weight": 1.0
     },
     {
@@ -22825,7 +22872,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1697",
+      "source_location": "L1705",
       "weight": 1.0
     },
     {
@@ -22837,7 +22884,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1697",
+      "source_location": "L1705",
       "weight": 1.0
     },
     {
@@ -22861,7 +22908,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1295",
+      "source_location": "L1303",
       "weight": 1.0
     },
     {
@@ -22873,7 +22920,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1299",
+      "source_location": "L1307",
       "weight": 1.0
     },
     {
@@ -22885,7 +22932,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1314",
+      "source_location": "L1322",
       "weight": 1.0
     },
     {
@@ -22897,7 +22944,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1317",
+      "source_location": "L1325",
       "weight": 1.0
     },
     {
@@ -22909,7 +22956,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1318",
+      "source_location": "L1326",
       "weight": 1.0
     },
     {
@@ -22921,7 +22968,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1333",
+      "source_location": "L1341",
       "weight": 1.0
     },
     {
@@ -22933,7 +22980,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1335",
+      "source_location": "L1343",
       "weight": 1.0
     },
     {
@@ -22945,7 +22992,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1336",
+      "source_location": "L1344",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2engine_bearbotengine_tryfiremulticandidate",
+      "target": "src_app_services_bearbot2engine_bearbotengine_focusholdsaiscore",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1351",
       "weight": 1.0
     },
     {
@@ -22957,7 +23016,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1727",
+      "source_location": "L1735",
       "weight": 1.0
     },
     {
@@ -22969,7 +23028,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1730",
+      "source_location": "L1738",
       "weight": 1.0
     },
     {
@@ -22981,7 +23040,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1731",
+      "source_location": "L1739",
       "weight": 1.0
     },
     {
@@ -22993,7 +23052,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1737",
+      "source_location": "L1745",
       "weight": 1.0
     },
     {
@@ -23005,7 +23064,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1742",
+      "source_location": "L1750",
       "weight": 1.0
     },
     {
@@ -23017,7 +23076,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1745",
+      "source_location": "L1753",
       "weight": 1.0
     },
     {
@@ -23029,7 +23088,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1746",
+      "source_location": "L1754",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2engine_bearbotengine_tryswitchmulticandidate",
+      "target": "src_app_services_bearbot2engine_bearbotengine_focusholdsaiscore",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1409",
       "weight": 1.0
     },
     {
@@ -23041,7 +23112,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1408",
+      "source_location": "L1416",
       "weight": 1.0
     },
     {
@@ -23053,7 +23124,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1418",
+      "source_location": "L1426",
       "weight": 1.0
     },
     {
@@ -23065,7 +23136,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1422",
+      "source_location": "L1430",
       "weight": 1.0
     },
     {
@@ -23365,7 +23436,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1804",
+      "source_location": "L1812",
       "weight": 1.0
     },
     {
@@ -27306,6 +27377,18 @@
     },
     {
       "source": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanel",
+      "target": "src_app_services_bearbot2_types_aiscorematches",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_intelpanel",
       "target": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel_getreclabel",
       "relation": "calls",
       "_origin": "ast",
@@ -27985,7 +28068,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/__tests__/bearBot2AiGateWeights.test.ts",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -29089,7 +29172,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -29101,7 +29184,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "weight": 1.0
     },
     {
@@ -29113,7 +29196,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -29125,7 +29208,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -29137,7 +29220,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L17",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -29149,7 +29232,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -29161,7 +29244,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -29173,7 +29256,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L29",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -29185,7 +29268,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -29197,7 +29280,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -29209,7 +29292,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -29221,7 +29304,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -29233,7 +29316,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L34",
+      "source_location": "L35",
       "weight": 1.0
     },
     {
@@ -29245,7 +29328,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -29257,7 +29340,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -29269,7 +29352,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -29281,7 +29364,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0
     },
     {
@@ -29293,7 +29376,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -29305,7 +29388,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L39",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -29317,7 +29400,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0
     },
     {
@@ -29329,7 +29412,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -29341,7 +29424,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -29353,7 +29436,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -29365,7 +29448,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -29377,7 +29460,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -29389,7 +29472,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L41",
+      "source_location": "L42",
       "weight": 1.0
     },
     {
@@ -29401,7 +29484,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L42",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
@@ -29413,7 +29496,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L43",
+      "source_location": "L44",
       "weight": 1.0
     },
     {
@@ -29425,7 +29508,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L54",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -29437,7 +29520,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L55",
+      "source_location": "L56",
       "weight": 1.0
     },
     {
@@ -29449,7 +29532,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0
     },
     {
@@ -29461,7 +29544,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L46",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -29473,7 +29556,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L57",
+      "source_location": "L58",
       "weight": 1.0
     },
     {
@@ -29485,7 +29568,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L58",
+      "source_location": "L59",
       "weight": 1.0
     },
     {
@@ -29497,7 +29580,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -29509,7 +29592,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -29521,7 +29604,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -29533,7 +29616,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L48",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -29545,7 +29628,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L49",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -29557,7 +29640,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -29569,7 +29652,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L51",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -29581,7 +29664,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L52",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -29593,7 +29676,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L61",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -29605,7 +29688,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "package.json",
-      "source_location": "L53",
+      "source_location": "L54",
       "weight": 1.0
     },
     {
@@ -29983,6 +30066,18 @@
     {
       "source": "src_app_services_bearbot2engine",
       "target": "src_app_services_bearbot2_types_ai_mode_weights",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2engine",
+      "target": "src_app_services_bearbot2_types_aiscorematches",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -31418,6 +31513,18 @@
       "context": "import",
       "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/DynamicDigitPanel.tsx",
       "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_withsidebar_bear_bot_ultra_2_components_intelpanel",
+      "target": "src_app_services_bearbot2_types_aiscorematches",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(withSidebar)/bear-bot-ultra-2/components/IntelPanel.tsx",
+      "source_location": "L3",
       "weight": 1.0
     },
     {
@@ -36963,7 +37070,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1751",
+      "source_location": "L1759",
       "weight": 1.0
     },
     {
@@ -36975,7 +37082,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1500",
+      "source_location": "L1508",
       "weight": 1.0
     },
     {
@@ -36987,7 +37094,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1461",
+      "source_location": "L1469",
       "weight": 1.0
     },
     {
@@ -37291,7 +37398,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L15",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -37335,7 +37442,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L45",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -37357,7 +37464,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -37368,7 +37475,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L17",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -37379,7 +37486,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -37390,7 +37497,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -37401,7 +37508,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -37412,7 +37519,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -37423,7 +37530,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -37434,7 +37541,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -37445,7 +37552,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -37456,7 +37563,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "weight": 1.0
     },
     {
@@ -37467,7 +37574,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -37478,7 +37585,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -37489,7 +37596,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -37500,7 +37607,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L29",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -37511,7 +37618,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -37522,7 +37629,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -37533,7 +37640,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -37544,7 +37651,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -37555,7 +37662,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L34",
+      "source_location": "L35",
       "weight": 1.0
     },
     {
@@ -37566,7 +37673,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -37577,7 +37684,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -37588,7 +37695,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0
     },
     {
@@ -37599,7 +37706,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -37610,7 +37717,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L39",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -37621,7 +37728,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0
     },
     {
@@ -37632,7 +37739,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L41",
+      "source_location": "L42",
       "weight": 1.0
     },
     {
@@ -37643,7 +37750,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L42",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
@@ -37654,7 +37761,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L43",
+      "source_location": "L44",
       "weight": 1.0
     },
     {
@@ -37665,7 +37772,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L46",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -37676,7 +37783,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -37687,7 +37794,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L48",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -37698,7 +37805,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L49",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -37709,7 +37816,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -37720,7 +37827,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L51",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -37731,7 +37838,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L52",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -37742,7 +37849,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L53",
+      "source_location": "L54",
       "weight": 1.0
     },
     {
@@ -37753,7 +37860,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L54",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -37764,7 +37871,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L55",
+      "source_location": "L56",
       "weight": 1.0
     },
     {
@@ -37775,7 +37882,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0
     },
     {
@@ -37786,7 +37893,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L57",
+      "source_location": "L58",
       "weight": 1.0
     },
     {
@@ -37797,7 +37904,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L58",
+      "source_location": "L59",
       "weight": 1.0
     },
     {
@@ -37808,7 +37915,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -37819,7 +37926,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -37830,12 +37937,12 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
-      "source_location": "L61",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
       "source": "package_scripts",
-      "target": "package_scripts_test",
+      "target": "package_scripts_lint",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -37846,7 +37953,7 @@
     },
     {
       "source": "package_scripts",
-      "target": "package_scripts_test_watch",
+      "target": "package_scripts_test",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -37857,7 +37964,7 @@
     },
     {
       "source": "package_scripts",
-      "target": "package_scripts_postinstall",
+      "target": "package_scripts_test_watch",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -37868,13 +37975,24 @@
     },
     {
       "source": "package_scripts",
-      "target": "package_scripts_test_coverage",
+      "target": "package_scripts_postinstall",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "package.json",
       "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "package_scripts",
+      "target": "package_scripts_test_coverage",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "package.json",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -37912,7 +38030,7 @@
     },
     {
       "source": "package_scripts",
-      "target": "package_scripts_lint",
+      "target": "package_scripts_start_3001",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -38550,13 +38668,24 @@
     },
     {
       "source": "src_app_services_bearbot2_types",
+      "target": "src_app_services_bearbot2_types_vlmarketstate",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L107",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2_types",
       "target": "src_app_services_bearbot2_types_recoverystate",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L103",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -38567,7 +38696,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L110",
+      "source_location": "L119",
       "weight": 1.0
     },
     {
@@ -38578,7 +38707,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L123",
+      "source_location": "L132",
       "weight": 1.0
     },
     {
@@ -38589,7 +38718,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L128",
+      "source_location": "L137",
       "weight": 1.0
     },
     {
@@ -38600,7 +38729,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L136",
+      "source_location": "L145",
       "weight": 1.0
     },
     {
@@ -38611,7 +38740,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L143",
+      "source_location": "L152",
       "weight": 1.0
     },
     {
@@ -38622,7 +38751,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L150",
+      "source_location": "L159",
       "weight": 1.0
     },
     {
@@ -38633,7 +38762,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L159",
+      "source_location": "L168",
       "weight": 1.0
     },
     {
@@ -38644,23 +38773,12 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L166",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_bearbot2_types",
-      "target": "src_app_services_bearbot2_types_tradeleg",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/services/bearbot2.types.ts",
       "source_location": "L175",
       "weight": 1.0
     },
     {
       "source": "src_app_services_bearbot2_types",
-      "target": "src_app_services_bearbot2_types_tradeprep",
+      "target": "src_app_services_bearbot2_types_tradeleg",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -38682,13 +38800,13 @@
     },
     {
       "source": "src_app_services_bearbot2_types",
-      "target": "src_app_services_bearbot2_types_botconfig",
+      "target": "src_app_services_bearbot2_types_tradeprep",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L194",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -38700,6 +38818,17 @@
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
       "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2_types",
+      "target": "src_app_services_bearbot2_types_botconfig",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L203",
       "weight": 1.0
     },
     {
@@ -38737,17 +38866,6 @@
     },
     {
       "source": "src_app_services_bearbot2_types",
-      "target": "src_app_services_bearbot2_types_botstate",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L235",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_bearbot2_types",
       "target": "src_app_services_bearbot2_types_postlossmode",
       "relation": "contains",
       "_origin": "ast",
@@ -38755,6 +38873,17 @@
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
       "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2_types",
+      "target": "src_app_services_bearbot2_types_botstate",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L244",
       "weight": 1.0
     },
     {
@@ -38776,7 +38905,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L260",
+      "source_location": "L269",
       "weight": 1.0
     },
     {
@@ -38787,18 +38916,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L268",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_bearbot2_types",
-      "target": "src_app_services_bearbot2_types_default_config",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L276",
+      "source_location": "L277",
       "weight": 1.0
     },
     {
@@ -38810,6 +38928,17 @@
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
       "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2_types",
+      "target": "src_app_services_bearbot2_types_default_config",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L285",
       "weight": 1.0
     },
     {
@@ -38831,7 +38960,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L316",
+      "source_location": "L325",
       "weight": 1.0
     },
     {
@@ -38842,7 +38971,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L339",
+      "source_location": "L348",
       "weight": 1.0
     },
     {
@@ -38853,7 +38982,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L352",
+      "source_location": "L361",
       "weight": 1.0
     },
     {
@@ -38891,24 +39020,24 @@
     },
     {
       "source": "src_app_services_bearbot2_types",
+      "target": "src_app_services_bearbot2_types_aiscorematches",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/bearbot2.types.ts",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2_types",
       "target": "src_app_services_bearbot2_types_tradelog",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L66",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_bearbot2_types",
-      "target": "src_app_services_bearbot2_types_patternstate",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L82",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -38924,13 +39053,13 @@
     },
     {
       "source": "src_app_services_bearbot2_types",
-      "target": "src_app_services_bearbot2_types_vlmarketstate",
+      "target": "src_app_services_bearbot2_types_patternstate",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/bearbot2.types.ts",
-      "source_location": "L98",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -38963,7 +39092,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1804",
+      "source_location": "L1812",
       "weight": 1.0
     },
     {
@@ -41691,7 +41820,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L336",
+      "source_location": "L344",
       "weight": 1.0
     },
     {
@@ -41702,7 +41831,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L446",
+      "source_location": "L454",
       "weight": 1.0
     },
     {
@@ -41713,7 +41842,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/__tests__/bearBot2Engine.test.ts",
-      "source_location": "L451",
+      "source_location": "L459",
       "weight": 1.0
     },
     {
@@ -41768,7 +41897,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/__tests__/bearBot2EntryScore.test.ts",
-      "source_location": "L60",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -43671,13 +43800,24 @@
     },
     {
       "source": "src_app_services_bearbot2engine_bearbotengine",
+      "target": "src_app_services_bearbot2engine_bearbotengine_focusholdsaiscore",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1136",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2engine_bearbotengine",
       "target": "src_app_services_bearbot2engine_bearbotengine_onnewtick",
       "relation": "method",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1134",
+      "source_location": "L1142",
       "weight": 1.0
     },
     {
@@ -43688,7 +43828,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1293",
+      "source_location": "L1301",
       "weight": 1.0
     },
     {
@@ -43699,7 +43839,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1391",
+      "source_location": "L1399",
       "weight": 1.0
     },
     {
@@ -43710,7 +43850,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1435",
+      "source_location": "L1443",
       "weight": 1.0
     },
     {
@@ -43721,7 +43861,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1443",
+      "source_location": "L1451",
       "weight": 1.0
     },
     {
@@ -43732,7 +43872,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1461",
+      "source_location": "L1469",
       "weight": 1.0
     },
     {
@@ -43743,7 +43883,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1500",
+      "source_location": "L1508",
       "weight": 1.0
     },
     {
@@ -43754,7 +43894,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1528",
+      "source_location": "L1536",
       "weight": 1.0
     },
     {
@@ -43765,7 +43905,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1542",
+      "source_location": "L1550",
       "weight": 1.0
     },
     {
@@ -43776,7 +43916,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1546",
+      "source_location": "L1554",
       "weight": 1.0
     },
     {
@@ -43787,7 +43927,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1550",
+      "source_location": "L1558",
       "weight": 1.0
     },
     {
@@ -43798,7 +43938,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1583",
+      "source_location": "L1591",
       "weight": 1.0
     },
     {
@@ -43809,7 +43949,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1607",
+      "source_location": "L1615",
       "weight": 1.0
     },
     {
@@ -43820,7 +43960,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1613",
+      "source_location": "L1621",
       "weight": 1.0
     },
     {
@@ -43842,7 +43982,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1684",
+      "source_location": "L1692",
       "weight": 1.0
     },
     {
@@ -43853,7 +43993,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1697",
+      "source_location": "L1705",
       "weight": 1.0
     },
     {
@@ -43864,7 +44004,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1699",
+      "source_location": "L1707",
       "weight": 1.0
     },
     {
@@ -43875,7 +44015,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1709",
+      "source_location": "L1717",
       "weight": 1.0
     },
     {
@@ -43886,7 +44026,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1725",
+      "source_location": "L1733",
       "weight": 1.0
     },
     {
@@ -43897,7 +44037,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1751",
+      "source_location": "L1759",
       "weight": 1.0
     },
     {
@@ -43908,18 +44048,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1760",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_services_bearbot2engine_bearbotengine",
-      "target": "src_app_services_bearbot2engine_bearbotengine_getproposalpayload",
-      "relation": "method",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1766",
+      "source_location": "L1768",
       "weight": 1.0
     },
     {
@@ -43935,13 +44064,24 @@
     },
     {
       "source": "src_app_services_bearbot2engine_bearbotengine",
+      "target": "src_app_services_bearbot2engine_bearbotengine_getproposalpayload",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/services/BearBot2Engine.ts",
+      "source_location": "L1774",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_services_bearbot2engine_bearbotengine",
       "target": "src_app_services_bearbot2engine_bearbotengine_getrequiredproposals",
       "relation": "method",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1775",
+      "source_location": "L1783",
       "weight": 1.0
     },
     {
@@ -43952,7 +44092,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/services/BearBot2Engine.ts",
-      "source_location": "L1794",
+      "source_location": "L1802",
       "weight": 1.0
     },
     {
@@ -55186,5 +55326,5 @@
       "source_file": "docs/documentacao_deriv/api_reference/docs/system.md"
     }
   ],
-  "built_at_commit": "919b0bbab0f559ab283afd944c65c711d78cbc04"
+  "built_at_commit": "42ce64170ae4cc4213a5d1e8808cd2e917fbf24d"
 }

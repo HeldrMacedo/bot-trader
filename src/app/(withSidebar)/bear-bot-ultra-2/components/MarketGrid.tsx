@@ -43,10 +43,10 @@ const WEIGHTS_HINT =
   + 'estiver aberta.';
 
 const MIN_SCORE_HINT =
-  'Score de Oportunidade mínimo para a IA liberar uma entrada automática (padrão 40). Abaixo dele a entrada é vetada, '
-  + 'exceto na Recuperação Ativa (após um loss real) ou com o Loss Virtual (ligado) já confirmado. Mais alto = menos entradas e '
-  + 'mais seletivas; 0 desliga o veto. No modo Múltiplos Mercados, o mercado em foco só é trocado por outro de score '
-  + 'maior enquanto estiver acima deste mínimo. Mercados ainda coletando histórico não são vetados.';
+  'Score de Oportunidade exato para a IA liberar uma entrada automática (padrão 40). A entrada só acontece com o score '
+  + 'igual a este valor; acima ou abaixo dele é vetada, exceto na Recuperação Ativa (após um loss real). 0 desliga o veto. '
+  + 'No modo Múltiplos Mercados, o mercado em foco só é mantido contra outro de score maior enquanto estiver exatamente '
+  + 'neste score. Mercados ainda coletando histórico não são vetados.';
 
 const AI_WEIGHT_FIELDS: { key: keyof AIWeights; label: string; hint: string }[] = [
   {

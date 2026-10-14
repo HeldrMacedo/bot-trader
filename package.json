@@ -6,6 +6,7 @@
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack",
     "start": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next start",
+    "start:3001": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next start -p 3001",
     "lint": "eslint \"src/app/(withSidebar)/bot-strategy/**/*.{ts,tsx}\"",
     "test": "vitest run",
     "test:watch": "vitest",

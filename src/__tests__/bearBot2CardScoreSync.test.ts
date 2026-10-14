@@ -16,7 +16,7 @@ function run(extra: Record<string, unknown>) {
     activeSym: SYM, mode: 'over', digit: 4, exec: 'auto', autoOn: true,
     paperMode: true, vlOn: true, vlQty: 2, multiOn: false,
     tradeCooldownMs: 0, maxTradesHour: 10000,
-    aiMode: 'balanced', aiMinScore: 50,
+    aiMode: 'balanced', aiMinScore: 60,
     ...extra,
   });
   let seed = 7;
@@ -40,7 +40,7 @@ describe('score do card x score da entrada', () => {
     const fires = run({});
     expect(fires.length).toBeGreaterThan(0);
     fires.forEach(f => {
-      expect(f.gate).toBeGreaterThanOrEqual(50);
+      expect(f.gate).toBe(60);
       expect(f.card).toBe(f.gate);
     });
   });

@@ -57,19 +57,23 @@ function run(extra: Record<string, unknown>) {
   return { engine, fired };
 }
 
+// Com o gate por igualdade, o Padrão A→B nunca dispara exatamente em 60 nesta
+// sequência aleatória: usa um mínimo que ele atinge para o teste ter entradas.
 const SUBMODES: Record<string, Record<string, unknown>> = {
   'Dígito fixo': {},
   'Dígito automático': { differAutoDigit: true },
-  'Padrão A→B': { patTrigger: true },
+  'Padrão A→B': { patTrigger: true, aiMinScore: 48 },
   'Dígito dinâmico': { differDynamicDigit: true },
 };
 
 describe('Multi-Mercado + Contagem sob Foco + VL 1 consecutivo + score mínimo 60', () => {
   for (const [name, extra] of Object.entries(SUBMODES)) {
-    it(`${name}: toda entrada tem score real >= mínimo`, () => {
+    const min = (extra.aiMinScore as number | undefined) ?? MIN;
+
+    it(`${name}: toda entrada tem score real igual ao mínimo`, () => {
       const { fired } = run(extra);
       expect(fired.length).toBeGreaterThan(0);
-      expect(fired.filter(s => s < MIN)).toEqual([]);
+      expect(fired.filter(s => s !== min)).toEqual([]);
     });
 
     it(`${name}: o resultado registra o score do momento da entrada`, () => {
@@ -78,7 +82,7 @@ describe('Multi-Mercado + Contagem sob Foco + VL 1 consecutivo + score mínimo 6
       expect(trades.length).toBe(fired.length);
       trades.forEach((t: any, i: number) => {
         expect(t.score).toBe(fired[i]);
-        expect(t.score).toBeGreaterThanOrEqual(MIN);
+        expect(t.score).toBe(min);
       });
     });
   }

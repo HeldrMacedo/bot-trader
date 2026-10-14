@@ -6,7 +6,7 @@ import {
   RecoveryState, TickData, ProposalState, DEFAULT_BOT_STATE,
   TradePrep, TradeLeg, buildLoserSet, isWinCheck,
   DynamicDigitDetail, DynamicDigitResult,
-  AI_MODE_WEIGHTS, AI_MIN_SCORE_DEFAULT, resolveAIWeights,
+  AI_MODE_WEIGHTS, AI_MIN_SCORE_DEFAULT, aiScoreMatches, resolveAIWeights,
 } from './bearbot2.types';
 
 function clampRateLimits(updates: Partial<BotConfig>): Partial<BotConfig> {
@@ -1127,7 +1127,15 @@ export class BearBotEngine {
     // instead of vetoing it, matching the no-intelligence-at-all case above.
     // O Loss Virtual confirmado não anula o veto: o score mínimo é avaliado
     // primeiro e o gate do VL é exigido à parte, em conjunto com este.
-    return !intel || !intel.dataReady || intel.opportunityScore >= this.config.aiMinScore || isRecovery;
+    return !intel || !intel.dataReady || aiScoreMatches(intel.opportunityScore, this.config.aiMinScore) || isRecovery;
+  }
+
+  // Mesmo critério do gate da IA, mas sobre o cache e sem recalcular: o foco só
+  // segura o candidato de score maior enquanto estiver exatamente no score mínimo
+  // ou ainda coletando histórico (sem score medido não há o que vetar).
+  private focusHoldsAiScore(sym: string): boolean {
+    const intel = this.state.marketIntel[sym];
+    return !intel || !intel.dataReady || aiScoreMatches(intel.opportunityScore, this.config.aiMinScore);
   }
 
   // ── On New Tick (Decision) ──
@@ -1340,7 +1348,7 @@ export class BearBotEngine {
       // 2. Otherwise, if another candidate has better score, evaluate switching focus to it
       if (pick.sym !== activeSym) {
         const curScore = this.state.marketIntel[activeSym]?.opportunityScore ?? 50;
-        if (pick.score <= curScore && curScore >= this.config.aiMinScore && !isRecovery) {
+        if (pick.score <= curScore && this.focusHoldsAiScore(activeSym) && !isRecovery) {
           return;
         }
         if (Date.now() - this.lastManualSwitch > 3000) {
@@ -1398,7 +1406,7 @@ export class BearBotEngine {
       const isRecovery = this.state.recovery.active && this.config.postLossMode === 'recover';
       if (this.config.vlFocusOnly && this.config.vlOn) {
         const curScore = this.state.marketIntel[this.config.activeSym]?.opportunityScore ?? 50;
-        if (pick.score <= curScore && curScore >= this.config.aiMinScore && !isRecovery) {
+        if (pick.score <= curScore && this.focusHoldsAiScore(this.config.activeSym) && !isRecovery) {
           return;
         }
       }

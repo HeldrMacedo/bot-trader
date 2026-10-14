@@ -60,8 +60,17 @@ export function resolveAIWeights(mode: AIMode, weights?: AIWeights): AIWeights {
   return { pressure: pressure / sum, pattern: pattern / sum, vl: vl / sum, sync: sync / sum };
 }
 
-/** Corte padrão do gate da IA: abaixo deste score a entrada automática é vetada. */
+/** Score padrão do gate da IA: só com o score exatamente igual a ele a entrada automática é liberada. */
 export const AI_MIN_SCORE_DEFAULT = 40;
+
+/**
+ * Gate da IA por igualdade: a entrada só é liberada quando o Score de Oportunidade
+ * é exatamente o score mínimo configurado (acima ou abaixo dele, veta). 0 segue
+ * desligando o veto.
+ */
+export function aiScoreMatches(score: number, minScore: number): boolean {
+  return minScore === 0 || score === minScore;
+}
 
 export interface TradeLog {
   t: string;

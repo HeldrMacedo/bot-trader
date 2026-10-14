@@ -257,7 +257,7 @@ $$\text{SyncScore} = \min\left(100, \text{round}\left(\frac{\text{Outros Mercado
 
 > [!IMPORTANT]
 > **Regra do AI Gate:**
-> No modo automático, o robô exige `OpportunityScore >= aiMinScore` para abrir ordens reais. O `aiMinScore` é editável no campo **Score mín.** do painel IA Cross-Market (0 a 100, padrão 40). Se o score for menor que o mínimo, a ordem é abortada, a menos que o robô esteja ativamente no modo pós-loss `recover` ou com gatilho de Loss Virtual satisfeito. No modo Múltiplos Mercados, o mesmo mínimo decide se o mercado em foco ainda segura o foco contra um candidato de score maior.
+> No modo automático, o robô exige `OpportunityScore === aiMinScore` para abrir ordens reais: só entra com o score exatamente igual ao mínimo, acima ou abaixo dele a ordem é abortada. O `aiMinScore` é editável no campo **Score mín.** do painel IA Cross-Market (0 a 100, padrão 40); `0` desliga o veto. A exceção é o modo pós-loss `recover`; o Loss Virtual é exigido à parte, em conjunto com o score. No modo Múltiplos Mercados, o mercado em foco só segura o foco contra um candidato de score maior enquanto estiver exatamente no score mínimo (ou ainda coletando histórico).
 
 ---
 

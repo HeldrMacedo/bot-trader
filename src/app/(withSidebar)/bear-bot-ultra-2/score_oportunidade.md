@@ -5,7 +5,7 @@ O **Score de Oportunidade** é o "cérebro" de inteligência quantitativa e esta
 ### 1. Para que ele serve?
 
 1. **Filtro de Proteção Automático (AI Gate):**
-   No motor do robô ([BearBot2Engine.ts](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts#L594)), o robô exige um **Score $\ge 40$** para autorizar uma entrada automática. Se o score estiver abaixo de 40 (mercado desfavorável/com anomalia), as entradas são **bloqueadas** para evitar perdas (a menos que esteja em modo de recuperação *recovery* pós-loss).
+   No motor do robô ([BearBot2Engine.ts](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts#L594)), o robô exige um **Score igual ao Score mín.** (padrão 40) para autorizar uma entrada automática. Com o score acima ou abaixo desse valor, as entradas são **bloqueadas** (a menos que esteja em modo de recuperação *recovery* pós-loss). `aiMinScore = 0` desliga o veto.
 
 2. **Seleção Inteligente no Modo Multi-Market:**
    No modo de múltiplos mercados (`multiOn: true`), o robô calcula o score para os 7 índices simultaneamente. Ele usa essa pontuação para selecionar e trocar automaticamente para o mercado que apresentar o **maior Score de Oportunidade**.
@@ -70,4 +70,4 @@ Quarto perfil. Os quatro pesos passam a vir de `config.aiWeights` e são editáv
 - Clicar em qualquer preset reescreve `aiWeights` com os valores daquele preset: voltar ao padrão é um clique.
 - Selecionar "Personalizado" semeia os pesos com os do preset ativo, então o score não salta no clique.
 
-O limiar do AI Gate (score ≥ `aiMinScore`, padrão 40, editável no campo **Score mín.**) **não** é afetado pelo modo de IA: os pesos decidem como o score é composto, o limiar decide o corte.
+O limiar do AI Gate (score = `aiMinScore`, padrão 40, editável no campo **Score mín.**) **não** é afetado pelo modo de IA: os pesos decidem como o score é composto, o limiar decide o corte.
