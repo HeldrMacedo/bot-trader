@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "prisma generate",
-    "test:coverage": "vitest run --coverage"
+  "test:coverage": "vitest run --coverage",
+  "test:score:coverage": "vitest run --config vitest.score.config.ts --coverage"
   },
   "dependencies": {
     "@deriv/deriv-api": "^1.0.15",

@@ -25,6 +25,24 @@ describe('MarketGrid — score mínimo de entrada', () => {
     expect((screen.getByTestId('ai-min-score') as HTMLInputElement).value).toBe('55');
   });
 
+  it('mostra Score igual por padrão e alterna para Score mín. ao marcar', () => {
+    const { updateConfig } = renderGrid();
+    const toggle = screen.getByTestId('ai-score-at-least') as HTMLInputElement;
+    expect(toggle.checked).toBe(false);
+    expect(screen.getByText('Score igual:')).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(updateConfig).toHaveBeenCalledWith({ aiScoreAtLeast: true });
+  });
+
+  it('mostra Score mín. marcado e permite voltar à igualdade', () => {
+    const { updateConfig } = renderGrid({ aiScoreAtLeast: true });
+    const toggle = screen.getByTestId('ai-score-at-least') as HTMLInputElement;
+    expect(toggle.checked).toBe(true);
+    expect(screen.getByText('Score mín.:')).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(updateConfig).toHaveBeenCalledWith({ aiScoreAtLeast: false });
+  });
+
   it('grava o mínimo editado como inteiro', () => {
     const { updateConfig } = renderGrid();
     fireEvent.change(screen.getByTestId('ai-min-score'), { target: { value: '65' } });
@@ -51,7 +69,7 @@ describe('MarketGrid — score mínimo de entrada', () => {
 });
 
 describe('IntelPanel — Momento p/ Entrar segue o score mínimo', () => {
-  function renderPanel(score: number, aiMinScore: number) {
+  function renderPanel(score: number, aiMinScore: number, aiScoreAtLeast = false) {
     const intel: MarketIntelligence = {
       sym: 'R_100', pressure: 20, patternStrength: 0, vlProgress: 100, syncScore: 0,
       opportunityScore: score, recommendation: 'neutral', dataReady: true, lastUpdate: Date.now(),
@@ -61,7 +79,7 @@ describe('IntelPanel — Momento p/ Entrar segue o score mínimo', () => {
       marketIntel: { R_100: intel },
       tickData: { R_100: { digits: Array.from({ length: 60 }, (_, i) => i % 10), price: 100.5 } },
     };
-    render(<IntelPanel config={{ ...DEFAULT_CONFIG, activeSym: 'R_100', aiMinScore }} state={state} />);
+    return render(<IntelPanel config={{ ...DEFAULT_CONFIG, activeSym: 'R_100', aiMinScore, aiScoreAtLeast }} state={state} />);
   }
 
   it('avisa que a IA bloqueia quando o score está abaixo de um mínimo acima de 40', () => {
@@ -87,5 +105,13 @@ describe('IntelPanel — Momento p/ Entrar segue o score mínimo', () => {
   it('só diz que a IA aprova quando o score atinge o mínimo', () => {
     renderPanel(65, 70);
     expect(screen.queryByText(/IA aprova entrada/)).toBeNull();
+  });
+
+  it('com o piso marcado aprova score superior e bloqueia score inferior', () => {
+    const { unmount } = renderPanel(70, 60, true);
+    expect(screen.getByText(/IA aprova entrada/)).toBeInTheDocument();
+    unmount();
+    renderPanel(59, 60, true);
+    expect(screen.getByText(/IA bloqueia entrada/)).toBeInTheDocument();
   });
 });

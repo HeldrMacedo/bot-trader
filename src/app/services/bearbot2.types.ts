@@ -60,17 +60,10 @@ export function resolveAIWeights(mode: AIMode, weights?: AIWeights): AIWeights {
   return { pressure: pressure / sum, pattern: pattern / sum, vl: vl / sum, sync: sync / sum };
 }
 
-/** Score padrão do gate da IA: só com o score exatamente igual a ele a entrada automática é liberada. */
+/** Score padrão do gate da IA. */
 export const AI_MIN_SCORE_DEFAULT = 40;
 
-/**
- * Gate da IA por igualdade: a entrada só é liberada quando o Score de Oportunidade
- * é exatamente o score mínimo configurado (acima ou abaixo dele, veta). 0 segue
- * desligando o veto.
- */
-export function aiScoreMatches(score: number, minScore: number): boolean {
-  return minScore === 0 || score === minScore;
-}
+export { aiScoreMatches, topOpportunityCandidate } from './bearbot2.score';
 
 export interface TradeLog {
   t: string;
@@ -236,8 +229,10 @@ export interface BotConfig {
   tradeCooldownMs: number;
   aiMode: AIMode;
   aiWeights: AIWeights;
-  /** Score de Oportunidade mínimo (0..100) para o gate da IA liberar a entrada automática. */
+  /** Score de Oportunidade configurado (0..100) para o gate da IA. */
   aiMinScore: number;
+  /** Aceita qualquer Score de Oportunidade maior ou igual ao valor configurado. */
+  aiScoreAtLeast: boolean;
   soundOn: boolean;
 }
 
@@ -319,6 +314,7 @@ export const DEFAULT_CONFIG: BotConfig = {
   aiMode: 'balanced',
   aiWeights: { ...AI_MODE_WEIGHTS.balanced },
   aiMinScore: AI_MIN_SCORE_DEFAULT,
+  aiScoreAtLeast: false,
   soundOn: true,
 };
 

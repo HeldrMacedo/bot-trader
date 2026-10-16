@@ -18,12 +18,13 @@ function feedHighPressure(engine: any, from: number, to: number) {
   }
 }
 
-function runAuto(aiWeights: { pressure: number; pattern: number; vl: number; sync: number }, aiMinScore?: number) {
+function runAuto(aiWeights: { pressure: number; pattern: number; vl: number; sync: number }, aiMinScore?: number, aiScoreAtLeast = false) {
   const engine: any = createEngine({
     activeSym: SYM, mode: 'differ', digit: 3, exec: 'auto', autoOn: true,
     paperMode: true, vlOn: false, multiOn: false,
     tradeCooldownMs: 0, maxTradesHour: 10000,
     aiMode: 'custom', aiWeights,
+    aiScoreAtLeast,
     ...(aiMinScore !== undefined ? { aiMinScore } : {}),
   });
   feedHighPressure(engine, 0, 50);
@@ -36,7 +37,18 @@ function runAuto(aiWeights: { pressure: number; pattern: number; vl: number; syn
 describe('score mínimo editável do gate da IA', () => {
   it('usa 40 como padrão', () => {
     expect(DEFAULT_CONFIG.aiMinScore).toBe(40);
+    expect(DEFAULT_CONFIG.aiScoreAtLeast).toBe(false);
     expect(createEngine().getConfig().aiMinScore).toBe(40);
+    expect(createEngine().getConfig().aiScoreAtLeast).toBe(false);
+  });
+
+  it('libera entrada acima do piso marcado e bloqueia o mesmo score por igualdade', () => {
+    const weights = { pressure: 0.5, pattern: 0, vl: 0.5, sync: 0 };
+    const exact = runAuto(weights, 40);
+    const floor = runAuto(weights, 40, true);
+    expect(exact.score).toBeGreaterThan(40);
+    expect(exact.fires).toBe(0);
+    expect(floor.fires).toBeGreaterThan(0);
   });
 
   it('veta a entrada quando o score fica abaixo do mínimo configurado', () => {
@@ -120,5 +132,37 @@ describe('score mínimo no modo Múltiplos Mercados', () => {
     feedHighPressure(engine, 0, 60);
     expect(engine.getState().marketIntel[SYM].opportunityScore).toBe(0);
     expect(engine.multiCand[SYM].score).toBeLessThan(50);
+  });
+
+  it('no manual, troca o foco quando outro mercado atinge o score e o candidato antigo deixa de corresponder', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(0);
+      const engine = createEngine({
+        activeSym: SYM, mode: 'differ', digit: 3, exec: 'manual',
+        multiOn: true, vlOn: false, aiMinScore: 100,
+        aiMode: 'custom', aiWeights: { pressure: 1, pattern: 0, vl: 0, sync: 0 },
+      }) as any;
+      const safeDigits = [0, 1, 2, 4, 5, 6, 7, 8, 9];
+      for (let i = 0; i < 60; i++) {
+        const d = safeDigits[i % safeDigits.length];
+        engine.processTick(SYM, 100 + d / 100, d);
+      }
+      expect(engine.getState().marketIntel[SYM].opportunityScore).toBe(100);
+      expect(engine.multiCand[SYM]).toBeDefined();
+
+      feedHighPressure(engine, 0, 120);
+      expect(engine.getState().marketIntel[SYM].opportunityScore).toBe(0);
+      for (let i = 0; i < 60; i++) {
+        const d = safeDigits[i % safeDigits.length];
+        engine.processTick('R_75', 75 + d / 100, d);
+      }
+      expect(engine.getState().marketIntel['R_75'].opportunityScore).toBe(100);
+      vi.setSystemTime(5000);
+      engine.processTick('R_75', 75.04, 4);
+      expect(engine.getConfig().activeSym).toBe('R_75');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

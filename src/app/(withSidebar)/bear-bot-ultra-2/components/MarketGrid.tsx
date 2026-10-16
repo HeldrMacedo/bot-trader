@@ -38,15 +38,14 @@ const AI_MODE_LABELS: Record<AIMode, string> = {
 const WEIGHTS_HINT =
   'Cada campo diz quanto aquele pilar pesa no Score de Oportunidade (0 a 100). Os valores são normalizados, '
   + 'então só a proporção importa: 50/50/50/50 dá o mesmo score que 25/25/25/25. Peso 0 remove o pilar da conta; '
-  + 'soma zero cai para o preset Equilibrado. O score resultante decide o veto de entrada automática (abaixo do '
-  + 'Score mínimo a IA bloqueia) e a disputa de foco no modo Múltiplos Mercados. Os pesos valem só enquanto a página '
+  + 'soma zero cai para o preset Equilibrado. O score resultante decide o veto de entrada automática conforme Score igual '
+  + 'ou Score mín. e a disputa de foco no modo Múltiplos Mercados. Os pesos valem só enquanto a página '
   + 'estiver aberta.';
 
 const MIN_SCORE_HINT =
-  'Score de Oportunidade exato para a IA liberar uma entrada automática (padrão 40). A entrada só acontece com o score '
-  + 'igual a este valor; acima ou abaixo dele é vetada, exceto na Recuperação Ativa (após um loss real). 0 desliga o veto. '
-  + 'No modo Múltiplos Mercados, o mercado em foco só é mantido contra outro de score maior enquanto estiver exatamente '
-  + 'neste score. Mercados ainda coletando histórico não são vetados.';
+  'Com o botão marcado, a IA aceita Score de Oportunidade maior ou igual ao valor digitado. Desmarcado, exige score '
+  + 'igual. 0 desliga o veto. Na Recuperação Ativa após um loss real, o gate de score é dispensado. '
+  + 'Em Múltiplos Mercados, a escolha entre candidatos segue o maior Score de Oportunidade.';
 
 const AI_WEIGHT_FIELDS: { key: keyof AIWeights; label: string; hint: string }[] = [
   {
@@ -121,8 +120,8 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1.5">
             <span className="text-[10px] text-[#8593aa] flex items-center gap-1.5">
-              Score mín.:
-              <HelpTip label="Score mínimo" hint={MIN_SCORE_HINT} idPrefix="min-score-hint" wide />
+              {config.aiScoreAtLeast ? 'Score mín.:' : 'Score igual:'}
+              <HelpTip label={config.aiScoreAtLeast ? 'Score mínimo' : 'Score igual'} hint={MIN_SCORE_HINT} idPrefix="min-score-hint" wide />
             </span>
             <input
               type="number"
@@ -133,6 +132,17 @@ export default function MarketGrid({ config, state, updateConfig }: MarketGridPr
               onChange={(e) => setMinScore(e.target.value)}
               className="w-14 bg-[#070b14] border border-[#2e3a52] text-white px-2 py-1 rounded-lg font-mono text-[10px] focus:outline-none focus:border-indigo-500"
             />
+          </label>
+          <label className="flex items-center gap-1 text-[10px] text-[#8593aa] cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid="ai-score-at-least"
+              aria-label="Aceitar score maior ou igual"
+              checked={config.aiScoreAtLeast}
+              onChange={(e) => updateConfig({ aiScoreAtLeast: e.target.checked })}
+              className="accent-indigo-500"
+            />
+            ≥
           </label>
           <span className="text-[10px] text-[#8593aa]">Modo IA:</span>
           <div className="flex bg-[#070b14] border border-[#2e3a52] rounded-lg p-0.5">

@@ -1,6 +1,6 @@
 "use client";
 
-import { BotConfig, BotState, MarketIntelligence, MARKETS, aiScoreMatches, buildLoserSet } from '../../../services/bearbot2.types';
+import { BotConfig, BotState, MARKETS, aiScoreMatches, buildLoserSet } from '../../../services/bearbot2.types';
 import HelpTip from './HelpTip';
 
 interface IntelPanelProps {
@@ -41,7 +41,7 @@ export default function IntelPanel({ config, state }: IntelPanelProps) {
   const lose = buildLoserSet(config.mode, config.digit, config.comboUnder, config.comboOver);
   // O bloqueio segue o mesmo corte do gate da IA no motor (config.aiMinScore).
   const minScore = config.aiMinScore;
-  const entryLevel = !intel || !aiScoreMatches(intel.opportunityScore, minScore) ? 'blocked'
+  const entryLevel = !intel || !aiScoreMatches(intel.opportunityScore, minScore, config.aiScoreAtLeast) ? 'blocked'
     : intel.opportunityScore >= Math.max(60, minScore) ? 'good' : 'mid';
 
   const getObservedRate = () => {
