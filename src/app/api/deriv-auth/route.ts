@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { describeTokenResponse } from '@/app/services/derivTokenDiagnostics';
 
 export async function POST(request: Request) {
   try {
@@ -38,6 +39,10 @@ export async function POST(request: Request) {
 
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
+
+    // TEMPORÁRIO: confirma se a Deriv devolve refresh_token e a validade do
+    // access token. Só nomes de campos e metadados — nunca valores de token.
+    console.log('[deriv-auth] token response:', describeTokenResponse(tokenData));
 
     // 2. Fetch accounts list
     const accountsResponse = await fetch('https://api.derivws.com/trading/v1/options/accounts', {

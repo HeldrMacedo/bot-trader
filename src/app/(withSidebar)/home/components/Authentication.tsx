@@ -23,6 +23,7 @@ const Authentication = forwardRef<AuthenticationHandle>((props, ref) => {
     handleLogout: () => {
       localStorage.removeItem("deriv_accounts");
       localStorage.removeItem("token_list");
+      localStorage.removeItem("active_token");
       setIsAuthenticated(false);
       setAccounts([]);
       setUserData(null);

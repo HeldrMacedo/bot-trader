@@ -294,6 +294,29 @@ export class DerivService {
     this.observer.emit("account.update", null);
   }
 
+  private handleExpiredOAuthSession() {
+    this.removeDerivAccount();
+    localStorage.removeItem(`${this.derivTokenScope}token_list`);
+    localStorage.removeItem(`${this.derivTokenScope}active_token`);
+    this.authorizeToken = null;
+    this.isAuthorized = false;
+    this.cleanAccountData();
+
+    this.observer.emit("auth.error", {
+      code: "TOKEN_EXPIRED",
+      message: "Sessão Deriv expirada",
+    });
+    toast.error("Sessão Deriv expirada. Faça login novamente.", { toastId: "deriv-token-expired" });
+
+    // Se o último redirect foi há pouco e o token novo já voltou inválido,
+    // parar aqui evita um loop de redirects para o OAuth.
+    const lastReauth = Number(sessionStorage.getItem("deriv_reauth_at") || 0);
+    if (Date.now() - lastReauth < 60_000) return;
+
+    sessionStorage.setItem("deriv_reauth_at", String(Date.now()));
+    this.loginDeriv();
+  }
+
   private createAccountStructureDynamic(
     vrt?: TokenData,
     crt?: TokenData,
@@ -547,19 +570,24 @@ export class DerivService {
         body: JSON.stringify({ accessToken, accountId }),
       })
         .then((res) => {
-          if (!res.ok) throw new Error('Failed to get OTP');
+          // 401 = access token OAuth vencido/inválido. Sem refresh token (o
+          // client não pode pedir `offline_access`), só um novo login resolve.
+          if (res.status === 401) {
+            this.handleExpiredOAuthSession();
+            return null;
+          }
+          if (!res.ok) throw new Error(`Failed to get OTP (${res.status})`);
           return res.json();
         })
         .then((otpData) => {
-          if (otpData.websocket_url) {
-            this.establishWebSocketConnection(otpData.websocket_url);
-          } else {
-            this.establishWebSocketConnection();
-          }
+          if (!otpData) return;
+          if (!otpData.websocket_url) throw new Error('OTP response without websocket_url');
+          this.establishWebSocketConnection(otpData.websocket_url);
         })
         .catch((err) => {
+          // Não cair no WebSocket legado: ele não autentica tokens OAuth.
           console.error('Failed to get OTP WebSocket URL:', err);
-          this.establishWebSocketConnection();
+          this.reconnect();
         });
     } else {
       this.establishWebSocketConnection();

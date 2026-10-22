@@ -249,7 +249,9 @@ export const TicksTest = () => {
   const handleLougout = () => {
     if (authenticationRef.current) {
       authenticationRef.current.handleLogout();
+      localStorage.removeItem("deriv_accounts");
       localStorage.removeItem("token_list");
+      localStorage.removeItem("active_token");
       window.location.reload();
     }
   };
