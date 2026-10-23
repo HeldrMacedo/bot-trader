@@ -1,22 +1,22 @@
-# Graph Report - bot-trader  (2026-10-14)
+# Graph Report - bot-trader  (2026-10-22)
 
 ## Corpus Check
-- 289 files · ~699,732 words
+- 296 files · ~701,955 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1653 nodes · 2934 edges · 133 communities (82 shown, 41 thin omitted)
+- 1694 nodes · 3001 edges · 132 communities (81 shown, 41 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 138 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `42ce6417`
+- Built from commit: `6e467390`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - WsListener
-- DerivService WebSocket Manager
+- DerivService
 - Graphify Pipeline
 - CopyTradingService
 - BearBotEngine
@@ -31,15 +31,15 @@
 - compilerOptions
 - BearDifferEngine.ts
 - DerivApiClient
-- bottraderx.tsx
+- bearBot2PhantomSettlement.test.ts
 - login/route.js
 - bearBotUltra2.test.tsx
 - DerivConnection
 - bearBotUltra2PostLoss.test.tsx
-- create_account Endpoint
+- derivServiceOtpAuth.test.ts
 - translateStrategy Pipeline
-- IntelPanel.tsx
-- bearBot2QuickBuy.test.ts
+- bottraderx.tsx
+- DifferGenome
 - TradePlatform Architecture Overview
 - Remoção do parâmetro loginid (multi-conta)
 - Canal Market Público (ws/public)
@@ -127,23 +127,22 @@
 - typescript
 - uuid
 - ws
+- derivTokenDiagnostics.ts
 - intelPanel.test.ts
 - Pending: Replace 2s Polling with SSE/WebSocket
 - BearDifferMath.ts
 - derivConfig.ts
-- DifferGenome
 - copyTrading.test.ts
 - MonitoringService Lifecycle
 - Corrigir o bloco "Testes antes de operar"
-- bearBot2Engine.test.ts
 - bearBot2FocusVirtualLossGate.test.ts
 - BotState
 
 ## God Nodes (most connected - your core abstractions)
 1. `BearDifferEngine` - 99 edges
-2. `DerivService` - 85 edges
-3. `BearBotEngine` - 78 edges
-4. `createEngine()` - 35 edges
+2. `DerivService` - 87 edges
+3. `BearBotEngine` - 79 edges
+4. `createEngine()` - 38 edges
 5. `CopyTradingService` - 32 edges
 6. `WsListener` - 30 edges
 7. `EngineState` - 27 edges
@@ -186,7 +185,7 @@
 - **Account Transaction/History Endpoint Family** — docs_documentacao_deriv_api_reference_docs_account_portfolio_portfolio, docs_documentacao_deriv_api_reference_docs_account_profit_table_profit_table, docs_documentacao_deriv_api_reference_docs_account_statement_statement, docs_documentacao_deriv_api_reference_docs_account_transaction_transaction, docs_documentacao_deriv_api_reference_docs_options_legacy_legacy_statement_legacy_statement [INFERRED 0.85]
 - **Connection Health and Session Hygiene Endpoints** — docs_documentacao_deriv_api_reference_docs_system_ping_ping, docs_documentacao_deriv_api_reference_docs_system_time_server_time, docs_documentacao_deriv_api_reference_docs_system_health_health_check, docs_documentacao_deriv_api_reference_docs_subscription_forget_forget, docs_documentacao_deriv_api_reference_docs_subscription_forget_all_forget_all [INFERRED 0.85]
 
-## Communities (133 total, 41 thin omitted)
+## Communities (132 total, 41 thin omitted)
 
 ### Community 0 - "WsListener"
 Cohesion: 0.14
@@ -210,19 +209,19 @@ Nodes (49): Account Management WebSocket Endpoint Group, balance Endpoint, Clien
 
 ### Community 6 - "bearbot2.types.ts"
 Cohesion: 0.10
-Nodes (23): AI_MIN_SCORE_DEFAULT, BotMode, buildLoserSet(), ComboPending, DerivAccount, DerivAuthState, DynamicDigitDetail, ExecMode (+15 more)
+Nodes (26): aiScoreMatches(), topOpportunityCandidate(), AI_MIN_SCORE_DEFAULT, BotMode, ComboPending, DerivAccount, DerivAuthState, DynamicDigitDetail (+18 more)
 
 ### Community 7 - "devDependencies"
 Cohesion: 0.04
-Nodes (46): cross-env, eslint, eslint-config-next, @eslint/eslintrc, jsdom, devDependencies, cross-env, eslint (+38 more)
+Nodes (47): cross-env, eslint, eslint-config-next, @eslint/eslintrc, jsdom, devDependencies, cross-env, eslint (+39 more)
 
 ### Community 8 - "useBearDiffer.ts"
 Cohesion: 0.08
 Nodes (28): Fast Execution via Proposal Keeper, Live Tracking de Assertividade Virtual (virtStats), Next-Tick Settlement em Simulação, Paridade Funcional e Matemática Bear Differ, Relatório de Code Review Bear Bot Differ v3.5, Safety Guards e Gating de Modo Real, Contrato Differ na Deriv, Gestão de Martingale Normal e Parcial (+20 more)
 
 ### Community 10 - "buy Endpoint"
-Cohesion: 0.10
-Nodes (33): forget_all Endpoint, forget vs forget_all Selection Guidance, Stream Types Enum (balance, candles, proposal, ticks, transaction), forget Endpoint, Subscription ID (subscription.id field), Subscription Management WebSocket, Health Check REST Endpoint (/v1/health), Health Polling Best Practices (30-60s, exponential backoff) (+25 more)
+Cohesion: 0.06
+Nodes (54): Demo vs Real Account Types, create_account Endpoint, Deriv REST Error Response Format (errors[] + meta), Options Account Object Schema, get_accounts Endpoint, Options OAuth2 Scopes (trade / account_manage), Options Setup REST API, Demo-Only Balance Reset Constraint ($10,000 default) (+46 more)
 
 ### Community 11 - "verifyAdminToken"
 Cohesion: 0.13
@@ -244,9 +243,9 @@ Nodes (36): AnomalyLogItem, AutoSource, BASE_GENOME, BiasTestResult, DEFAULT_DIF
 Cohesion: 0.11
 Nodes (11): AnalysisResponse, ConfigResponse, ConfigUpdate, ConnectionRequest, DerivApiClient, MarketQuality, PerformanceStats, SymbolAnalysis (+3 more)
 
-### Community 16 - "bottraderx.tsx"
-Cohesion: 0.22
-Nodes (8): BotTraderX(), Configure, Console, RealAccount, Stats, VirtualAccount, HasAcessComponet(), BotTrade()
+### Community 16 - "bearBot2PhantomSettlement.test.ts"
+Cohesion: 0.15
+Nodes (8): MockAudioContext, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend, mockSubscribe, mockSwitchAccount, registeredListeners
 
 ### Community 17 - "login/route.js"
 Cohesion: 0.12
@@ -260,21 +259,21 @@ Nodes (10): localStorageMock, MockAudioContext, mockExtractLastDigit, mockGetSto
 Cohesion: 0.15
 Nodes (10): localStorageMock, MockAudioContext, mockExtractLastDigit, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend, mockSubscribe (+2 more)
 
-### Community 21 - "create_account Endpoint"
-Cohesion: 0.13
-Nodes (21): Demo vs Real Account Types, create_account Endpoint, Deriv REST Error Response Format (errors[] + meta), Options Account Object Schema, get_accounts Endpoint, Options OAuth2 Scopes (trade / account_manage), Options Setup REST API, Demo-Only Balance Reset Constraint ($10,000 default) (+13 more)
+### Community 21 - "derivServiceOtpAuth.test.ts"
+Cohesion: 0.14
+Nodes (4): FakeWebSocket, MemoryStorage, seedOAuthSession(), toastError
 
 ### Community 22 - "translateStrategy Pipeline"
 Cohesion: 0.15
 Nodes (17): configureTradeManager, Legacy Bridge Expert Skill, Legacy Rules Cache and History API, Legacy Script Load Order, Window Global Shims, Group Activation Logic, Gemini Model Selection by Group Count, Available Strategy Indicators (+9 more)
 
-### Community 23 - "IntelPanel.tsx"
-Cohesion: 0.53
-Nodes (5): aiScoreMatches(), getIntelColor(), getRecLabel(), IntelPanel(), PILLAR_HINTS
+### Community 23 - "bottraderx.tsx"
+Cohesion: 0.22
+Nodes (8): BotTraderX(), Configure, Console, RealAccount, Stats, VirtualAccount, HasAcessComponet(), BotTrade()
 
-### Community 24 - "bearBot2QuickBuy.test.ts"
-Cohesion: 0.18
-Nodes (8): MockAudioContext, mockGetStorageDerivAccount, mockOn, mockRemoveById, mockSend, mockSubscribe, mockSwitchAccount, registeredListeners
+### Community 24 - "DifferGenome"
+Cohesion: 0.25
+Nodes (4): Pontuação Composta de Dígitos (scoreAll), DifferGenome, MartingaleConfig, PipelineCandidate
 
 ### Community 25 - "TradePlatform Architecture Overview"
 Cohesion: 0.13
@@ -322,7 +321,7 @@ Nodes (13): Bot Copy Trader (demo → real replication), Limite de Martingale (r
 
 ### Community 36 - "MarketGrid.tsx"
 Cohesion: 0.10
-Nodes (18): AI_MODE_WEIGHTS, AIMode, AIWeights, DEFAULT_BOT_STATE, DEFAULT_CONFIG, MarketIntelligence, HelpTip(), HelpTipProps (+10 more)
+Nodes (16): AI_MODE_WEIGHTS, AIMode, AIWeights, DEFAULT_BOT_STATE, DEFAULT_CONFIG, MarketIntelligence, AI_MODE_LABELS, AI_WEIGHT_FIELDS (+8 more)
 
 ### Community 37 - "createDifferEngine"
 Cohesion: 0.11
@@ -377,8 +376,8 @@ Cohesion: 0.20
 Nodes (10): Anti-Cascade Reset (prevenção de disparos em cascata), Dígito Automático no Differ (differAutoDigit), Radar de Dígitos Dinâmicos (differDynamicDigit), Sub-Score de Resistência à Anomalia (15%), Sub-Score de Frequência Multi-Janela (40%), Sub-Score de Markov Inverso (30%), Sub-Score de Trigramas Inversos (15%), Contagem sob Foco (vlFocusOnly) (+2 more)
 
 ### Community 50 - "createEngine"
-Cohesion: 0.09
-Nodes (14): createEngine(), feedHighPressure(), runAuto(), feedHighPressure(), multiEngine(), runAuto(), feedHighPressure(), runAuto() (+6 more)
+Cohesion: 0.07
+Nodes (19): createEngine(), feedHighPressure(), runAuto(), feedHighPressure(), multiEngine(), runAuto(), feedHighPressure(), runAuto() (+11 more)
 
 ### Community 51 - "dependencies"
 Cohesion: 0.22
@@ -405,8 +404,8 @@ Cohesion: 0.29
 Nodes (8): BotTrader (Bot Copy Trader), CopyTradingManager (singleton server-side), CopyTradingService (uma instância por usuário), Martingale (progressão geométrica), Reconexão automática de WebSockets, SignalProcessor, TradeSignal (símbolo, tipo, duração, barrier), WsListener (WebSocket conta demo)
 
 ### Community 58 - "bearBotUltra2.tsx"
-Cohesion: 0.15
-Nodes (10): BearBotUltra(), sanitizeDecimalInput(), validateNumber(), localStorageMock, MockAudioContext, mockDerivInstance, registeredListeners, localStorageMock (+2 more)
+Cohesion: 0.11
+Nodes (17): buildLoserSet(), BearBotUltra(), sanitizeDecimalInput(), validateNumber(), HelpTip(), HelpTipProps, getIntelColor(), getRecLabel() (+9 more)
 
 ### Community 59 - "Inteligência de Multi-Mercado (Multi ON)"
 Cohesion: 0.29
@@ -441,8 +440,8 @@ Cohesion: 0.29
 Nodes (8): Proposal and Buy Contract Flow, Gale (Martingale) Algorithm, ManagementConfigData, Soros (Profit Reinvestment) Algorithm, TradeConfigData, Trade Configuration & Risk Management Skill, Pre-Start Config Validation, Deriv Contract Types
 
 ### Community 67 - "useBearBot2.ts"
-Cohesion: 0.20
-Nodes (9): extractLastDigit(), isTerminalContract(), useBearBot(), MARKETS, ProposalEntry, MockAudioContext, mockSend, mockSubscribe (+1 more)
+Cohesion: 0.10
+Nodes (17): extractLastDigit(), isTerminalContract(), useBearBot(), MARKETS, ProposalEntry, MockAudioContext, mockSend, mockSubscribe (+9 more)
 
 ### Community 68 - "deriv_accounts (OAuth token snapshot)"
 Cohesion: 0.60
@@ -484,6 +483,10 @@ Nodes (4): Browser Window Glyph (title bar with three dots), Monochrome 16x16 UI
 Cohesion: 0.67
 Nodes (3): Document Page Glyph with Folded Corner, File Icon (SVG), Next.js Starter Template Icon Asset
 
+### Community 112 - "derivTokenDiagnostics.ts"
+Cohesion: 0.53
+Nodes (3): POST(), describeTokenResponse(), TokenResponseSummary
+
 ### Community 124 - "BearDifferMath.ts"
 Cohesion: 0.12
 Nodes (26): Pipeline Genético com Drift Test, Regras de Ouro de Gestão de Risco Differ, Controle FDR de Benjamini-Hochberg (q=0.10), Critério de Kelly Fracionário (Half & Quarter Kelly), Manual Técnico de Arquitetura Bear Bot Differ, Modelagem Estatística Pura (Lanczos, Chi2, Gamma, Binomial), Motor 2.0 e Classificação das 17 Lógicas, Esteira Genética e Validação Tripla (+18 more)
@@ -491,10 +494,6 @@ Nodes (26): Pipeline Genético com Drift Test, Regras de Ouro de Gestão de Risc
 ### Community 125 - "derivConfig.ts"
 Cohesion: 0.29
 Nodes (9): buildDerivWsUrl(), DerivConnection, fetchAccountIdFromPat(), fetchOtpWebsocketUrl(), getDerivAppId(), isPatToken(), parseDerivToken(), ParsedToken (+1 more)
-
-### Community 126 - "DifferGenome"
-Cohesion: 0.25
-Nodes (4): Pontuação Composta de Dígitos (scoreAll), DifferGenome, MartingaleConfig, PipelineCandidate
 
 ### Community 127 - "copyTrading.test.ts"
 Cohesion: 0.20
@@ -507,10 +506,6 @@ Nodes (8): Cooldown Ticks, MonitoringService Lifecycle, SIMULADO/REAL Mode Switc
 ### Community 129 - "Corrigir o bloco "Testes antes de operar""
 Cohesion: 0.50
 Nodes (3): Comportamento dos campos, Corrigir o bloco "Testes antes de operar", Modo automático e modo manual
-
-### Community 130 - "bearBot2Engine.test.ts"
-Cohesion: 0.22
-Nodes (5): AI_WEIGHTS, AIModeName, feedABPattern(), seedLoserPressure(), seedPatternIntel()
 
 ### Community 132 - "BotState"
 Cohesion: 0.24
@@ -533,8 +528,8 @@ Nodes (11): BotConfig, BotState, DynamicDigitResult, TradeLog, DynamicDigitPanel
   public/window.svg · relation: semantically_similar_to
 
 ## Knowledge Gaps
-- **350 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+345 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 538 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **360 isolated node(s):** `__filename`, `__dirname`, `compat`, `eslintConfig`, `paths` (+355 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 558 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions

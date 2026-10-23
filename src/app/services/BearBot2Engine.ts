@@ -156,6 +156,8 @@ export class BearBotEngine {
   private pendingEntryScore: number | null = null;
   /** Score do gatilho congelado com o trade em aberto, gravado no resultado. */
   private tradeEntryScore: number | null = null;
+  /** Stake enviado na compra; a entrada pode ser editada com o contrato aberto. */
+  private tradeStake: number | null = null;
   private settled: Record<string, boolean> = {};
   private lastManualSwitch = 0;
   private listeners: Set<(state: BotState) => void> = new Set();
@@ -1484,6 +1486,7 @@ export class BearBotEngine {
     this.tradeEntryScore = this.pendingEntryScore
       ?? this.computeMarketIntelligence(this.config.activeSym).opportunityScore;
     this.pendingEntryScore = null;
+    this.tradeStake = +this.state.curStake.toFixed(2);
 
     if (this.config.paperMode) {
       if (kind === 'differ' && this.config.differDynamicDigit) {
@@ -1543,6 +1546,7 @@ export class BearBotEngine {
   abortPendingTrade(reason?: string) {
     this.comboPending = null;
     this.tradeEntryScore = null;
+    this.tradeStake = null;
     this.clearDigitLock();
     if (this.state.tradeLock) {
       this.state.tradeLock = false;
@@ -1627,7 +1631,8 @@ export class BearBotEngine {
 
   private finishTrade(profit: number, isLoss: boolean, label: string, exitDig: number | string | null, audit: any, alvo: number | string = this.config.digit) {
     this.state.pnl = +(this.state.pnl + profit).toFixed(2);
-    const stakeUsed = this.state.curStake;
+    const stakeUsed = this.tradeStake ?? this.state.curStake;
+    this.tradeStake = null;
     const isPaper = this.config.paperMode;
 
     const newTrade: TradeLog = {

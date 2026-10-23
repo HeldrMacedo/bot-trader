@@ -277,15 +277,17 @@ export function useBearBot() {
     if (!isTerminalContract(contract)) return;
 
     const contractId = contract.contract_id != null ? Number(contract.contract_id) : null;
-    if (contractId != null) {
-      if (settledIdsRef.current.has(contractId)) return;
-      settledIdsRef.current.add(contractId);
-      // Limitar o tamanho do cache para evitar vazamento de memória
-      if (settledIdsRef.current.size > 100) {
-        const firstItem = settledIdsRef.current.values().next().value;
-        if (firstItem !== undefined) {
-          settledIdsRef.current.delete(firstItem);
-        }
+    // Only settle contracts bought by this hook: the shared socket replays old
+    // subscriptions on reconnect and carries POCs from other modules, which
+    // would otherwise show up as phantom trades and drive the gale.
+    if (contractId == null || !openContractsRef.current.has(contractId)) return;
+    if (settledIdsRef.current.has(contractId)) return;
+    settledIdsRef.current.add(contractId);
+    // Limitar o tamanho do cache para evitar vazamento de memória
+    if (settledIdsRef.current.size > 100) {
+      const firstItem = settledIdsRef.current.values().next().value;
+      if (firstItem !== undefined) {
+        settledIdsRef.current.delete(firstItem);
       }
     }
 
@@ -310,18 +312,15 @@ export function useBearBot() {
       }
     }
 
-    // Prefer per-contract leg kind (combo partial), else pending kind, else config.mode
-    let kind =
-      (contractId != null ? openContractsRef.current.get(contractId) : undefined)
-      || pendingKindRef.current
-      || engineRef.current.getConfig().mode;
+    // Per-contract leg kind (combo partial demotes to single-leg settlement)
+    let kind = openContractsRef.current.get(contractId)!;
 
     // Full combo uses kind 'combo' for both legs
     if (pendingKindRef.current === 'combo' && engineRef.current.isComboPending()) {
       kind = 'combo';
     }
 
-    if (contractId != null) openContractsRef.current.delete(contractId);
+    openContractsRef.current.delete(contractId);
 
     engineRef.current.settleContract(profit, isLoss, kind, exitDig, audit);
 
