@@ -1479,14 +1479,18 @@ export class DerivService {
   public async getProfitTableForAccount(
     token: string,
     limit: number = 50,
-    offset: number = 0
+    offset: number = 0,
+    range: { dateFrom?: number; dateTo?: number } = {}
   ): Promise<any> {
+    // dateFrom/dateTo are epoch seconds, as profit_table expects.
     const payload = {
       profit_table: 1,
       description: 1,
       sort: "DESC",
       limit,
       offset,
+      ...(range.dateFrom !== undefined && { date_from: range.dateFrom }),
+      ...(range.dateTo !== undefined && { date_to: range.dateTo }),
     };
 
     // Reaproveita a conexão principal quando for a conta ativa já autorizada
