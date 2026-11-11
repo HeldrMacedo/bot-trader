@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DerivService } from "@/app/services/DerivService";
 import { ChevronDownIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
 import { saveOperation } from "@/app/services/operationService";
+import { buildFinishedTrade, buildOperationRecord } from "./finishedTrade";
 import { toast } from "react-toastify";
 
 interface BuyTableProps {
@@ -42,6 +43,7 @@ const BuyTable = ({
       "deriv.proposal_open_contract",
       (data) => {
         if (data.proposal_open_contract?.contract_id === activeContractId) {
+          console.log(data.proposal_open_contract);
           const status = data.proposal_open_contract.status;
           onPurchaseStatusChange?.(status);
 
@@ -52,31 +54,11 @@ const BuyTable = ({
             const accounts = derivService.getStorageDerivAccount();
             const account = accounts && accounts[0];
             if (!account) return;
-            const details = data.proposal_open_contract.audit_details.all_ticks.filter((t: any) => t.tick_display_value !== undefined);
-            const finishedTradeList = {
-              amount: data.proposal_open_contract.buy_price,
-              barrier: handleBarrieType(data.proposal_open_contract),
-              contract_type: data.proposal_open_contract.contract_type,
-              finished: true,
-              id: data.proposal_open_contract.id,
-              market: data.proposal_open_contract.underlying,
-              profit: data.proposal_open_contract.profit,
-              resultBarrier:
-                data.proposal_open_contract.exit_spot?.slice(-1) ?? "",
-              status: status,
-              audit: {
-                'tick_previous': details[0].tick_display_value.slice(-1),
-                'tick_start': details[1].tick_display_value.slice(-1),
-                'tick_end': details[2].tick_display_value.slice(-1)
-              }
-            };
+            const finishedTradeList = buildFinishedTrade(data.proposal_open_contract);
 
             const token = localStorage.getItem("access_token");
             saveOperation({
-              account: account.name,
-              operationId: finishedTradeList.id,
-              deposit: finishedTradeList.amount,
-              result: finishedTradeList.profit,
+              ...buildOperationRecord(data.proposal_open_contract, account.name),
               token: token,
               isVirtual: isVirtual,
             });
@@ -102,17 +84,6 @@ const BuyTable = ({
       derivService.observerInstance.removeById(contractListener);
     };
   }, [buyResponseId]);
-
-  const handleBarrieType = (data: any) => {
-    if (
-      data.contract_type === "DIGITEVEN" ||
-      data.contract_type === "DIGITODD"
-    ) {
-      return data.contract_type === "DIGITEVEN" ? "Par" : "Ímpar";
-    }
-
-    return data.barrier;
-  };
 
   const handleBuy = async (contractType: string) => {
     setDisabledBuyButton(true);

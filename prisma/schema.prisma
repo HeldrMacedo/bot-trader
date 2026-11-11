@@ -48,8 +48,26 @@ model Operation {
   operationDate DateTime
   deposit       Float
   result        Float
+  outcome       String?  @db.VarChar(10) // "won" | "lost", from the profit sign
   userId        Int
   user          User     @relation(fields: [userId], references: [id])
+
+  // Deriv contract details (nullable: rows saved before these columns existed lack them)
+  contractId     String?   @unique @db.VarChar(32)
+  transactionId  String?   @db.VarChar(32)
+  derivAccountId String?   @db.VarChar(32)
+  symbol         String?   @db.VarChar(32)
+  contractType   String?   @db.VarChar(32)
+  barrier        String?   @db.VarChar(32)
+  payout         Float?
+  currency       String?   @db.VarChar(10)
+  entrySpot      String?   @db.VarChar(32)
+  exitSpot       String?   @db.VarChar(32)
+  exitDigit      Int?
+  purchaseTime   DateTime?
+  expiryTime     DateTime?
+  shortcode      String?   @db.VarChar(255)
+  audit          Json?
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
