@@ -607,3 +607,14 @@ Ao realizar manutenções, melhorias ou alterações no Bear Bot Ultra 2, obede�
 4. **Isolamento de Contagem em Loss Virtual:** Sempre utilize `ticksSinceReset[sym]` ao calcular janelas de Loss Virtual para evitar falsos disparos com dados históricos defasados.
 5. **Respeite o destravamento seguro (`abortPendingTrade`):** Em caso de erros de API ou abortos manuais, sempre utilize `abortPendingTrade()` para liberar a trava `tradeLock` sem registrar falsas derrotas ou avançar o Martingale indevidamente.
 6. **Mantenha os testes verdes:** Toda nova funcionalidade deve vir acompanhada de testes em `src/__tests__/` e aprovada via `npx vitest run src/__tests__/bearBot*`.
+
+---
+
+## Persistência de Operações Reais (tabela `Operation`)
+
+Todo contrato **real** comprado por este robô é gravado na tabela `Operation` ao ser liquidado, igual à tela de operação manual (`home`). A gravação usa `persistBotOperation(poc, accountInfo)` em `src/app/services/botOperationPersistence.ts`, que reaproveita `buildOperationRecord` e `saveOperation` (`POST /api/operation`).
+
+- **Só conta real:** o tipo de conta vem do token ativo (`accountInfo.activeToken`). Conta demo, Paper Trading ou conta não identificada não são gravadas.
+- **Só contratos do próprio robô:** POCs de outros módulos ou reenviados na reconexão do WebSocket são ignorados. Cada perna do Combo é gravada como uma operação.
+- **Sem duplicidade:** o robô grava cada `contract_id` uma vez, e a rota rejeita `operationId` repetido.
+- **Falha não trava o robô:** erro de rede ou POC incompleto vai para o console. PnL, martingale e trava de trade seguem normalmente.

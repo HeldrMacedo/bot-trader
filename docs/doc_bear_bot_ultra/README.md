@@ -130,3 +130,14 @@ O Bear Bot Ultra possui cobertura de testes unitários integrados com Vitest e `
 ---
 
 Este manual detalha o núcleo lógico e de arquitetura do robô. Ao alterar qualquer trecho do código, garanta que as sincronias entre `stateRef` e o WebSocket permaneçam seguras e livres de travas de renderização. 
+
+---
+
+## Persistência de Operações Reais (tabela `Operation`)
+
+Todo contrato **real** comprado por este robô é gravado na tabela `Operation` ao ser liquidado, igual à tela de operação manual (`home`). A gravação usa `persistBotOperation(poc, accountInfo)` em `src/app/services/botOperationPersistence.ts`, que reaproveita `buildOperationRecord` e `saveOperation` (`POST /api/operation`).
+
+- **Só conta real:** o tipo de conta vem do token ativo (`accountInfo.activeToken`). Conta demo, Paper Trading ou conta não identificada não são gravadas.
+- **Só contratos do próprio robô:** POCs de outros módulos ou reenviados na reconexão do WebSocket são ignorados. Cada perna do Combo é gravada como uma operação.
+- **Sem duplicidade:** o robô grava cada `contract_id` uma vez, e a rota rejeita `operationId` repetido.
+- **Falha não trava o robô:** erro de rede ou POC incompleto vai para o console. PnL, martingale e trava de trade seguem normalmente.

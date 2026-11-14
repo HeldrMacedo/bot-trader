@@ -309,6 +309,7 @@ export class TradeExecutor extends EventEmitter {
         }
 
         if (message.authorize) {
+          if (message.authorize.loginid) this.emit('loginid', message.authorize.loginid);
           this.emit('balance', message.authorize.balance || message.balance?.balance);
         }
 
@@ -317,6 +318,7 @@ export class TradeExecutor extends EventEmitter {
       }
 
       if (message.msg_type === 'balance') {
+        if (message.balance?.loginid) this.emit('loginid', message.balance.loginid);
         this.emit('balance', message.balance.balance);
       }
 

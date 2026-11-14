@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { DerivService, TokenData, AccountInfo } from "@/app/services/DerivService";
+import { persistBotOperation } from "@/app/services/botOperationPersistence";
 import { toast } from "react-toastify";
 import {
     CpuChipIcon,
@@ -153,6 +154,9 @@ export default function BearBotUltra() {
         tradeLock: false,
         reqSeq: 1,
         settled: {} as Record<string, boolean>,
+        // Contracts bought by this screen. The shared socket also carries POCs
+        // from other modules and replays old subscriptions on reconnect.
+        ownContracts: new Set<number>(),
         props: {} as Record<string, { id: string | null; ready: boolean; pending: boolean; ct: string; barrier: number }>,
         vlMState: {} as Record<string, VLMarketState>,
         patState: {} as Record<string, PatternState>,
@@ -956,13 +960,16 @@ export default function BearBotUltra() {
             if (data.msg_type === "proposal_open_contract" && data.proposal_open_contract) {
                 const c = data.proposal_open_contract;
                 if (c.is_valid_to_sell === 1 || c.is_sold === 1 || c.status === 'won' || c.status === 'lost') {
-                    // Evitar processar duplicados
+                    // Só liquida contratos comprados por esta tela
                     const contractId = c.contract_id;
-                    if (derivService.getStorageDerivAccount()) {
-                        const cache = stateRef.current.settled;
-                        if (cache[contractId]) return;
-                        cache[contractId] = true;
-                    }
+                    if (!stateRef.current.ownContracts.has(Number(contractId))) return;
+                    // Evitar processar duplicados
+                    const cache = stateRef.current.settled;
+                    if (cache[contractId]) return;
+                    cache[contractId] = true;
+                    stateRef.current.ownContracts.delete(Number(contractId));
+
+                    persistBotOperation(c, stateRef.current.accountInfo);
 
                     let exitDig: number | null = null;
                     let audit: { tick_previous: string; tick_start: string; tick_end: string; } | null = null;
@@ -970,17 +977,19 @@ export default function BearBotUltra() {
                         exitDig = Number(String(c.exit_spot).slice(-1));
                     }
 
-                    if (c.audit_details) {
-                        const details = c.audit_details.all_ticks.filter((t: any) => t.tick_display_value !== undefined);
+                    const details = (c.audit_details?.all_ticks || []).filter((t: any) => t.tick_display_value !== undefined);
+                    if (details.length >= 3) {
                         audit = {
                             'tick_previous': details[0].tick_display_value.slice(-1),
                             'tick_start': details[1].tick_display_value.slice(-1),
                             'tick_end': details[2].tick_display_value.slice(-1)
                         }
-
-                        const isCombo = stateRef.current.pendingKind?.kind === 'combo';
-                        settleContract(c, Number(c.profit), isCombo, exitDig, audit);
                     }
+
+                    // Liquida mesmo sem audit_details: o contrato já foi marcado como
+                    // processado acima, então pular aqui travaria o robô para sempre.
+                    const isCombo = stateRef.current.pendingKind?.kind === 'combo';
+                    settleContract(c, Number(c.profit), isCombo, exitDig, audit);
                 }
             }
         };
@@ -1046,6 +1055,7 @@ export default function BearBotUltra() {
             );
 
             if (response.buy) {
+                stateRef.current.ownContracts.add(Number(response.buy.contract_id));
                 addLogLine(`▶ ${kind.toUpperCase()} ${kind === 'differ' ? '≠' : kind === 'over' ? '>' : '<'}${stateRef.current.digit} · $${stakeVal} · ${stateRef.current.activeSym}${p ? ' ⚡' : ''}`, "info");
 
                 // Se compramos por proposta, invalidamos para forçar a recarga
@@ -1117,6 +1127,8 @@ export default function BearBotUltra() {
             const [resOver, resUnder] = await Promise.all([buyOver, buyUnder]);
 
             if (resOver.buy && resUnder.buy) {
+                stateRef.current.ownContracts.add(Number(resOver.buy.contract_id));
+                stateRef.current.ownContracts.add(Number(resUnder.buy.contract_id));
                 addLogLine(`▶ COMBO Over>5 + Under<4 · $${stakeVal}×2 · ${stateRef.current.activeSym}${(pO && pU) ? ' ⚡' : ''}`, "info");
 
                 // Se compramos por propostas, invalidamos e recarregamos

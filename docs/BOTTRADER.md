@@ -319,3 +319,15 @@ Cobertura: 249 testes cobrindo `shouldProcessSignal`, `handleDemoTransaction`, `
 - Delay de execução configurável
 - Master/Slave toggle
 - Solo trading mode
+
+---
+
+## Persistência de Operações Reais (tabela `Operation`)
+
+Todo contrato copiado para a conta real é gravado na tabela `Operation` ao ser liquidado, igual à tela de operação manual (`home`). Como o BotTrader roda no servidor, a gravação é feita direto pelo Prisma, sem passar por `POST /api/operation`:
+
+- `CopyTradingService.persistRealOperation()` monta o registro com `buildOperationRecord` e chama `saveRealOperation(userId, record)` (`src/app/services/operationRepository.ts`). O `userId` é o da sessão, vindo do JWT em `CopyTradingManager`.
+- A rota `/api/operation` e o repositório usam o mesmo conversor, `toOperationData` (`src/app/services/operationData.ts`), então os campos ficam idênticos nas duas origens.
+- O campo `account` recebe o loginid da conta real (ex.: `CR123456`), capturado pelo `TradeExecutor` nas mensagens `authorize`/`balance` e emitido como evento `loginid`. Se a Deriv ainda não informou o loginid, usa `BotTrader`.
+- **Não grava:** no `testMode` (que opera na conta demo), quando o loginid começa com `VRTC` ou quando o `contract_id` já existe na tabela.
+- **Falha não trava o bot:** o erro vai para o console e o guard `onTrade`, o martingale e os stops seguem normalmente.

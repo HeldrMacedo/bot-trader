@@ -410,3 +410,13 @@ O piso é **por arquivo** (`perFile: true`). Uma média deixaria o motor, já be
 
 **669 testes aprovados.** A falha de `sharedRules.test.ts` é anterior a este trabalho e não tem relação com o módulo: o arquivo importa `src/app/api/shared-rules/route`, que não existe no repositório.
 
+
+---
+
+## Persistência de Operações Reais (tabela `Operation`)
+
+Todo contrato **real** aberto pelo Differ (`opMode: 'real'`) é gravado na tabela `Operation` ao ser liquidado, igual à tela de operação manual (`home`). A gravação usa `persistBotOperation(poc, accountInfo)` em `src/app/services/botOperationPersistence.ts`, chamada em `useBearDiffer.ts` só para contratos presentes em `openContractsRef`.
+
+- **Só conta real:** conta demo, Paper ou conta não identificada não são gravadas.
+- **Sem duplicidade:** cada `contract_id` é gravado uma vez, e a rota rejeita `operationId` repetido.
+- **Falha não trava o robô:** erros de gravação vão para o console sem afetar a liquidação.

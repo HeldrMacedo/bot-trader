@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { BearBotEngine, createEngine } from '../services/BearBot2Engine';
 import { DerivService } from '../services/DerivService';
+import { persistBotOperation } from '../services/botOperationPersistence';
 import {
   BotConfig, BotState, MARKETS, ProposalEntry,
 } from '../services/bearbot2.types';
@@ -30,6 +31,10 @@ export function useBearBot() {
   const [config, setConfigState] = useState<BotConfig>(engineRef.current.getConfig());
   const [isConnected, setIsConnected] = useState(false);
   const [accountInfo, setAccountInfo] = useState<any>(null);
+  // Settlement runs inside a listener registered once; the ref gives it the
+  // account active now, not the one captured when the listener was created.
+  const accountInfoRef = useRef<any>(null);
+  accountInfoRef.current = accountInfo;
   const audioCtxRef = useRef<AudioContext | null>(null);
   const safetyTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   /** Kind used for settlement (single mode or 'combo'). */
@@ -321,6 +326,8 @@ export function useBearBot() {
     }
 
     openContractsRef.current.delete(contractId);
+
+    persistBotOperation(contract, accountInfoRef.current);
 
     engineRef.current.settleContract(profit, isLoss, kind, exitDig, audit);
 

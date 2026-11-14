@@ -3,6 +3,8 @@ import { SignalProcessor } from './signalProcessor';
 import { TradeExecutor } from './tradeExecutor';
 import { TradeSignal } from '../types/types';
 import { ErrorNotification } from '../types/errorTypes';
+import { saveRealOperation } from './operationRepository';
+import { buildOperationRecord } from '../(withSidebar)/home/components/finishedTrade';
 
 export class CopyTradingService {
   private wsListener: WsListener;
@@ -57,6 +59,8 @@ export class CopyTradingService {
   private authErrorInfo: { code: string; message: string; source: string } | null = null;
 
   private contract_id: any;
+  /** Deriv loginid of the account trades are copied to (CR..., VRTC...). */
+  private realLoginId: string | null = null;
 
   constructor(demoToken: string, realToken: string, sessionId?: string, configure?: any) {
     this.configure = configure;
@@ -284,7 +288,12 @@ export class CopyTradingService {
 
       // Libera guard APÓS resultado do trade real (como bool_89 = false no ZeekBot)
       this.onTrade = false;
+      this.persistRealOperation(transaction);
       this.processTransaction({ ...transaction, amount: transaction.profit }, false);
+    });
+
+    this.tradeExecutor.on('loginid', (loginid: string) => {
+      this.realLoginId = loginid;
     });
 
     // Handler de resultado da conta demo (sell)
@@ -351,6 +360,28 @@ export class CopyTradingService {
       this.addError('error', 'Conta Real Desabilitada', `${error.message} (${error.code})`, 'auth', error);
       this.stop();
     });
+  }
+
+  /**
+   * Records a settled contract in the Operation table, like the manual
+   * trading screen does. Skips test mode (it trades on the demo account) and
+   * virtual loginids. Fire-and-forget: a database failure must not stall
+   * the copy trading loop.
+   */
+  private persistRealOperation(transaction: any): void {
+    if (this.configure?.testMode) return;
+    if (this.realLoginId?.startsWith('VRTC')) return;
+    const userId = Number(this.sessionId);
+    if (!Number.isInteger(userId)) return;
+
+    try {
+      const record = buildOperationRecord(transaction, this.realLoginId || 'BotTrader');
+      saveRealOperation(userId, record).catch((error: any) => {
+        console.error(`[Session ${this.sessionId}] Falha ao salvar operação real:`, error);
+      });
+    } catch (error) {
+      console.error(`[Session ${this.sessionId}] Falha ao montar operação real:`, error);
+    }
   }
 
   private shouldProcessSignal(): boolean {

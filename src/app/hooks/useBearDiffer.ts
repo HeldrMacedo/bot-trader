@@ -5,6 +5,7 @@ import {
   EngineState,
 } from '../services/BearDifferEngine';
 import { DerivService } from '../services/DerivService';
+import { persistBotOperation } from '../services/botOperationPersistence';
 import { DifferConfig, PIP_FALLBACK } from '../services/beardiffer.types';
 
 export function extractDifferDigit(price: number, symbol: string): number | null {
@@ -25,6 +26,10 @@ export function useBearDiffer() {
   const [config, setConfigState] = useState<DifferConfig>(engineRef.current.getConfig());
   const [isConnected, setIsConnected] = useState(false);
   const [accountInfo, setAccountInfo] = useState<any>(null);
+  // Settlement runs inside a listener registered once; the ref gives it the
+  // account active now, not the one captured when the listener was created.
+  const accountInfoRef = useRef<any>(null);
+  accountInfoRef.current = accountInfo;
 
   const activeAccount = accountInfo?.tokens?.find(
     (t: any) => t.token === accountInfo.activeToken
@@ -400,6 +405,7 @@ export function useBearDiffer() {
         const open = openContractsRef.current.get(cid);
         if (open) {
           openContractsRef.current.delete(cid);
+          persistBotOperation(poc, accountInfoRef.current);
           const profit = Number(poc.profit);
           const isLoss = profit < 0;
           let exitDigit: number | null = null;
