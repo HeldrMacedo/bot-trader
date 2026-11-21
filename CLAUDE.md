@@ -1,129 +1,70 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Índice para agentes. **Curto de propósito** (máx. 120 linhas, validado em `src/__tests__/docsHarness.test.ts`).
+O sistema de registro é `docs/`. Comece por [docs/index.md](docs/index.md) e vá fundo só no que a tarefa pede.
 
-## Commands
+## O que é
+
+Plataforma de bots de trading em **Next.js 16 + React 19 + TypeScript** sobre a API WebSocket da [Deriv](https://deriv.com). Prisma + MySQL. Testes com vitest.
+
+## Comandos
 
 ```bash
-npm run dev       # Start dev server (allocates 4GB RAM for TensorFlow.js)
-npm run build     # Production build (uses webpack, not Turbopack)
-npm run start     # Start production server
-npm run lint      # ESLint (scoped to bot-strategy module only)
-npm test          # Run test suite (vitest)
-npm run test:watch # Watch mode for tests
+npm run dev            # dev server (4GB RAM, webpack)
+npm run build          # build de produção (webpack, sem Turbopack)
+npm test               # vitest run (toda a suíte)
+npm run test:watch     # vitest em watch
+npm run test:coverage  # cobertura (piso por arquivo, ver vitest.config.ts)
+npm run lint           # ESLint — ver dívida técnica: script aponta para módulo removido
 ```
 
-## Architecture Overview
+## Módulos (`src/app/(withSidebar)/`)
 
-This is a **Next.js 16 + React 19 trading bot platform** that integrates with the [Deriv](https://deriv.com) broker via WebSocket API. The project is mid-migration from a legacy Vanilla JS system (`public/legacy/js/`) to a modern TypeScript/React stack.
+| Módulo | Estado | Doc |
+|--------|--------|-----|
+| `bear-bot-ultra-2/` | Ativo | [docs/doc_bear_bot_ultra_2/README.md](docs/doc_bear_bot_ultra_2/README.md) |
+| `bear-bot-differ/` | Ativo | [docs/doc_bear_bot_differ/README.md](docs/doc_bear_bot_differ/README.md) |
+| `bear-bot-ultra/` | Ativo (v1) | [docs/doc_bear_bot_ultra/README.md](docs/doc_bear_bot_ultra/README.md) |
+| `bottrader/` | Ativo (Copy Trader, server-side) | [docs/BOTTRADER.md](docs/BOTTRADER.md) |
+| `home/`, `operations/`, `history/`, `reports/`, `profile/`, `users/` | Ativos (apoio) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 
-### Key Modules (`src/app/(withSidebar)/`)
+**Removidos** (não existem mais no código; não reintroduzir sem plano): `bot-strategy`, `trade-mind-pro`, `bot-analitico`, `advanced-bot`, `LegacyBridge`, `public/legacy/`, integração Gemini.
 
-| Module | Status | Description |
-|--------|--------|-------------|
-| `bot-strategy/` | **Discontinued** | Legacy trading bot — não usar, módulo descontinuado |
-| `trade-mind-pro/` | **Active** | AI-powered trading panel with Gemini integration |
-| `bot-analitico/` | Inactive | ML analytics with TensorFlow.js |
-| `advanced-bot/` | Inactive | Advanced bot features |
-| `bottrader/` | **Active** | Bot Copy Trader |
-| `bear-bot-ultra/` | **Active** | Bear Bot Ultra v1 |
-| `bear-bot-ultra-2/` | **Active** | Bear Bot Ultra 2 (v10.0 Refatorado) com IA Cross-Market & Dígitos Dinâmicos |
+## Onde está o quê
 
-### Core Architecture Patterns
+- Mapa de domínios, camadas e regras de dependência: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Princípios mecânicos inegociáveis: [docs/GOLDEN_PRINCIPLES.md](docs/GOLDEN_PRINCIPLES.md)
+- Qualidade por domínio e lacunas: [docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md)
+- Confiabilidade (WS, travas, timeouts): [docs/RELIABILITY.md](docs/RELIABILITY.md)
+- Segurança (auth, segredos): [docs/SECURITY.md](docs/SECURITY.md) e [docs/AUTH_ROUTES.md](docs/AUTH_ROUTES.md)
+- Deriv (OAuth, canais WS): [docs/DERIV_OAUTH_MIGRATION.md](docs/DERIV_OAUTH_MIGRATION.md); referência da API em `docs/documentacao_deriv/`
+- Planos de execução e dívida técnica: [docs/exec-plans/](docs/exec-plans/active/README.md)
 
-**Legacy Integration (`bot-strategy/services/LegacyBridge.ts`):**
-Legacy scripts from `public/legacy/js/` are loaded dynamically via `<script>` tags. Communication happens through `window` globals and `CustomEvent`s. Key shims: `CreditsManager` (infinite credits), `UserLevels` (VIP), `selectedSymbol`, `logConfig`.
+## Regras que o agente deve seguir
 
-**Deriv WebSocket (`src/app/services/DerivService.tsx`):**
-Singleton with **two channels**: (1) market public `wss://api.derivws.com/trading/v1/options/ws/public` for `ticks` / `ticks_history` (no auth); (2) trading OTP `.../ws/demo|real` for buy/proposal/balance. Do **not** use legacy `ws.derivws.com/websockets/v3` for tick streams (returns `InvalidSymbol` on synthetics). See `docs/DERIV_OAUTH_MIGRATION.md`.
+1. **Repositório é a fonte da verdade.** Decisão tomada em conversa que importa vira doc, plano ou teste no repo.
+2. **TDD sempre.** Teste falhando primeiro, depois a implementação. Mudança sem teste é incompleta.
+3. **Bug real achado na análise: corrigir direto**, sem pedir permissão (ver memória do usuário).
+4. **Lógica pura fora do React.** Engines (`BearBot2Engine`, `BearDifferEngine`) não importam React nem devem tocar `window` (BearBot2Engine ainda toca — dívida); hooks (`useBearBot2`, `useBearDiffer`) fazem a ponte com `DerivService`.
+5. **Deriv:** um singleton (`DerivService`) com dois canais — público (`ticks`, `ticks_history`, sem auth) e trading via OTP (`buy`/`proposal`/`balance`). Nunca usar `ws.derivws.com/websockets/v3` para ticks.
+6. **Persistência de operações:** hooks dos bots chamam `persistBotOperation` na liquidação; só conta **real**, nunca lança exceção.
+7. **Logout:** sempre `logout()` de `userService.js` (limpa localStorage e cookie).
+8. **Nunca** commitar tokens, `.env` ou dumps de `localStorage`. Ver [docs/SECURITY.md](docs/SECURITY.md).
+9. Ao terminar: rodar `npm test`; se mudou estrutura/doc, atualizar `docs/` no mesmo PR.
 
-**Monitoring & Probability (`bot-strategy/services/Monitoring.ts`):**
-Singleton with a 5-period weighted probability algorithm:
-- Periods: 1-10 (weight 5.0), 10-25 (2.5), 25-50 (1.0), 50-100 (0.5), 1-100 (0.5)
-- Applies saturation penalty if frequency > 15%, dynamic bias for repetitions, gap bonus for absences ≥ 10 ticks
+## Fluxo de trabalho
 
-**Strategy Translation Flow:**
-`translateStrategy()` resolves in order: JSON cached → rule code → history → translation cache → Gemini AI fallback. Results are saved to `strategy_cache_global` and `rules_history_*` in localStorage.
+- **Mudança pequena:** teste → código → `npm test`.
+- **Mudança complexa:** plano em `docs/exec-plans/active/` (com log de progresso e decisões) antes de codar; ao concluir, mover para `completed/`.
+- **Dívida encontrada e não resolvida:** registrar em [docs/exec-plans/tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md).
+- **Agente falhou?** Pergunte qual capacidade faltou (doc, ferramenta, teste/guard) e adicione ao repo — não só reprompte.
 
-**AI Integration (`trade-mind-pro/service/AdvancedGeminiService.ts` e `/api/gemini/route.ts`):**
-Google Gemini AI para geração e validação de estratégias. O módulo `bot-strategy` está descontinuado — toda integração com IA deve passar pelo endpoint `/api/gemini` diretamente. `GeminiStrategyValidator.ts` valida pré-condições no modo Estratégia padrão.
+## Banco e ambiente
 
-**Modo Avançado (`trade-mind-pro`) — json-rules-engine:**
-Quarto modo do AiChatPanel que aceita estratégias complexas em linguagem natural. A IA gera JSON no formato `json-rules-engine` com facts computados dinamicamente a cada tick (contagem de dígitos, sequências, frequência, ausência). O `AdvancedRulesEngine` subscreve `deriv.tick`, mantém rolling buffer de 200 ticks e avalia as regras. Ao bater uma condição, chama `window.tradeManager.executeTrade()`. Ver `docs/ADVANCED_MODE.md` para documentação completa, facts disponíveis e exemplos de estratégias.
-
-### Digit Precision by Symbol
-
-```
-R_100:           2 decimal places
-R_25, R_10:      3 decimal places
-RDBEAR, RDBULL:  4 decimal places
-JD*, 1HZ*:       2 decimal places
-Default:         4 decimal places
-```
-
-### Database
-
-Prisma ORM with MySQL. Schema in `prisma/schema.prisma`. Models: `User`, `Operation`, `Module`, `UserModule`. Run `prisma generate` is automated on `npm install`.
-
-### Environment Variables
-
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | MySQL connection string |
-| `NEXT_PUBLIC_APPID` | Deriv app ID (public, safe to expose) |
-| `JWT_SECRET` | JWT signing secret |
-| `NEXT_PUBLIC_DERIV_API_URL` | Deriv OAuth endpoint |
-
-### webpack Configuration
-
-Turbopack is explicitly disabled. The `next.config.mjs` has special webpack rules for TensorFlow.js: WASM headers (`COOP`/`COEP`), fallbacks for `fs`/`path`/`crypto`, and server-side externals for `utf-8-validate` and `bufferutil`.
-
-### What Is NOT Yet Migrated
-
-- Trade execution (TradeManager commented out in LegacyBridge)
-- Real headless monitoring (MonitoringView from legacy)
-- Results/performance dashboard (BotDashboard is a placeholder)
-- Automatic stop/limit system (StopMonitor)
-- Telegram integration
-
-See `docs/MIGRATION_ARCHITECTURE.md` and `docs/MIGRATION_DOCUMENTATION.md` for detailed migration guidance.
-See `docs/DERIV_OAUTH_MIGRATION.md` for OAuth 2.0 PKCE, trading OTP WebSocket, and the public market-data gateway for ticks.
-See `docs/ADVANCED_MODE.md` for the trade-mind-pro Advanced Mode (json-rules-engine) documentation.
-See `docs/AUTH_ROUTES.md` for authentication and route protection documentation.
-See `docs/BOTTRADER.md` for the BotTrader (Copy Trader) module documentation.
-See `docs/doc_bear_bot_ultra/README.md` for Bear Bot Ultra v1 documentation.
-See `docs/doc_bear_bot_ultra_2/README.md` for Bear Bot Ultra 2 (v10.0 Refatorado) comprehensive technical documentation.
-
-### Authentication & Route Protection
-
-**Dupla camada de proteção:**
-- `src/middleware.ts` — proteção server-side via cookie HttpOnly `auth_token` (Edge Runtime, usa `jose`)
-- `src/app/(withSidebar)/layout.js` — barreira client-side, redireciona para `/login` se `getUser()` falhar
-
-**Fluxo de login:** `POST /api/login` → gera JWT → seta cookie `auth_token` (HttpOnly, 8h) + `localStorage.access_token`
-
-**Logout:** sempre usar `logout()` de `userService.js` — limpa localStorage **e** cookie via `POST /api/logout`
-
-### BotTrader (Copy Trader)
-
-**Arquitetura server-side:** `CopyTradingManager` (singleton) → `CopyTradingService` (por usuário) → `WsListener` (demo WS) + `TradeExecutor` (real WS)
-
-**Modo Quantity Loss:** `quantityLoss=N` faz o bot aguardar N losses consecutivos na demo antes de entrar na real. Uma vez ativado (`isInRealMode=true`), permanece operando na real até sair um **win** — só então volta ao modo demo. Ver `docs/BOTTRADER.md`.
-
-**Martingale:** `stake(level) = initialValue × (1 + stakeMultiple)^level`. Win reseta nível; `maxMartingale` limita com ação `reset` (volta ao inicial) ou `stop` (encerra bot).
-
-**Guard onTrade:** previne dois trades reais simultâneos — equivalente ao `bool_89` do ZeekBot original.
-
-**Rotas públicas:** `/login`, `/api/login`, `/api/register`, `/api/forgot-password`, `/api/reset-password`, `/api/logout`
-
-**Runtime:** middleware usa `jose` (Edge-compatible); rotas de API usam `jsonwebtoken` (Node.js)
+Prisma/MySQL (`prisma/schema.prisma`: `User`, `SharedRule`, `Operation`, `Module`, `UserModule`). `prisma generate` roda no `npm install`.
+Variáveis: `DATABASE_URL`, `NEXT_PUBLIC_APPID`, `JWT_SECRET`, `NEXT_PUBLIC_DERIV_API_URL`.
+`next.config.mjs` desliga Turbopack e tem regras webpack para TensorFlow.js (dependência hoje sem uso — ver dívida técnica).
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+Existe grafo em `graphify-out/`. Para perguntas de código: `graphify query "<pergunta>"`, `graphify path "<A>" "<B>"`, `graphify explain "<conceito>"`. Após alterar código: `graphify update .`.

@@ -10,7 +10,7 @@ O sistema usa **JWT (HS256, 8h de validade)** com dupla camada de proteção:
 ### Fluxo de autenticação
 
 ```
-Usuário acessa /trade-mind-pro
+Usuário acessa /bottrader
         │
         ▼
   middleware.ts
@@ -84,15 +84,15 @@ Ativos estáticos (`_next/static`, `_next/image`, `favicon.ico`, `icons/`, `imag
 Todas as rotas **não listadas acima** exigem autenticação. Os módulos sob `(withSidebar)` incluem:
 
 - `/home`
-- `/trade-mind-pro`
+- `/bear-bot-ultra`
+- `/bear-bot-ultra-2`
+- `/bear-bot-differ`
 - `/bottrader`
 - `/profile`
 - `/operations`
 - `/users`
 - `/history`
 - `/reports`
-- `/advanced-bot`
-- `/bot-analitico`
 
 ---
 

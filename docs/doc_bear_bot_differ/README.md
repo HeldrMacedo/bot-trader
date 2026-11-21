@@ -69,7 +69,7 @@ src/
 
 ## 3. Fundamentação Matemática e Algoritmos Estatísticos (`BearDifferMath.ts`)
 
-A biblioteca [`BearDifferMath.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearDifferMath.ts) encapsula formulações estatísticas rigorosas implementadas em TypeScript puro, sem bibliotecas externas:
+A biblioteca [`BearDifferMath.ts`](../../src/app/services/BearDifferMath.ts) encapsula formulações estatísticas rigorosas implementadas em TypeScript puro, sem bibliotecas externas:
 
 ### 3.1. Aproximação Log-Gamma de Lanczos (`lgamma`)
 Para computar valores fatoriais e funções gama contínuas para números reais elevados sem overflow:
@@ -120,7 +120,7 @@ Compara a distribuição dos dígitos da primeira metade da amostra contra a seg
 
 ## 4. O Motor 2.0 e as 17 Lógicas de Análise (`BearDifferEngine.ts`)
 
-O coração operacional do módulo é a classe [`BearDifferEngine`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearDifferEngine.ts).
+O coração operacional do módulo é a classe [`BearDifferEngine`](../../src/app/services/BearDifferEngine.ts).
 
 ### 4.1. Arquitetura das 17 Lógicas
 O sistema subdivide sua inteligência analítica em 3 categorias:
@@ -269,7 +269,7 @@ O martingale (normal e parcelado) e os limites `stopLoss`/`stopWin` só correm q
 
 ## 5. Integração com a Deriv e Gerenciamento de Estado (`useBearDiffer.ts`)
 
-O hook [`useBearDiffer.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/hooks/useBearDiffer.ts) gerencia o ciclo de vida da conexão, a subscrição dos mercados e os disparos operacionais.
+O hook [`useBearDiffer.ts`](../../src/app/hooks/useBearDiffer.ts) gerencia o ciclo de vida da conexão, a subscrição dos mercados e os disparos operacionais.
 
 ### 5.1. Precisão Decimal e Extração de Dígitos por Símbolo
 Diferentes índices sintéticos da Deriv possuem diferentes quantidades de casas decimais. O hook utiliza mapeamento estrito:

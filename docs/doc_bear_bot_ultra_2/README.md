@@ -540,11 +540,11 @@ Para atingir execução de ordens com latência inferior a **10ms**, o Bear Bot 
 
 | Mecanismo de Segurança | Arquivo de Implementação | Descrição |
 | :--- | :--- | :--- |
-| **`tradeLock`** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Trava atômica que impede abertura de novas ordens enquanto houver uma operação em andamento ou pendente de liquidação. |
-| **`maxTradesHour`** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Limita a quantidade máxima de trades em uma janela deslizante de 60 minutos (1 a 500 trades/h). |
-| **`tradeCooldownMs`** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Impõe intervalo mínimo obrigatório entre o fim de uma operação e o início da próxima (0 a 600.000 ms). |
-| **`SAFETY_TIMEOUT_MS` (30s)** | [`useBearBot2.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/hooks/useBearBot2.ts) | Se a Deriv não enviar a confirmação de encerramento (`proposal_open_contract`) em 30 segundos, o bot destrava automaticamente chamando `abortPendingTrade`, sem afetar PnL ou Martingale. |
-| **Anti-Flicker Switch (3s)** | [`BearBot2Engine.ts`](file:///home/helder/Desenvolvimento/bot-trader/src/app/services/BearBot2Engine.ts) | Trava temporal de 3 segundos entre trocas automáticas de mercado na tela para evitar fadiga visual e oscilações concorrentes. |
+| **`tradeLock`** | [`BearBot2Engine.ts`](../../src/app/services/BearBot2Engine.ts) | Trava atômica que impede abertura de novas ordens enquanto houver uma operação em andamento ou pendente de liquidação. |
+| **`maxTradesHour`** | [`BearBot2Engine.ts`](../../src/app/services/BearBot2Engine.ts) | Limita a quantidade máxima de trades em uma janela deslizante de 60 minutos (1 a 500 trades/h). |
+| **`tradeCooldownMs`** | [`BearBot2Engine.ts`](../../src/app/services/BearBot2Engine.ts) | Impõe intervalo mínimo obrigatório entre o fim de uma operação e o início da próxima (0 a 600.000 ms). |
+| **`SAFETY_TIMEOUT_MS` (30s)** | [`useBearBot2.ts`](../../src/app/hooks/useBearBot2.ts) | Se a Deriv não enviar a confirmação de encerramento (`proposal_open_contract`) em 30 segundos, o bot destrava automaticamente chamando `abortPendingTrade`, sem afetar PnL ou Martingale. |
+| **Anti-Flicker Switch (3s)** | [`BearBot2Engine.ts`](../../src/app/services/BearBot2Engine.ts) | Trava temporal de 3 segundos entre trocas automáticas de mercado na tela para evitar fadiga visual e oscilações concorrentes. |
 
 ---
 

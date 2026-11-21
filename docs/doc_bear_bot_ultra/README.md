@@ -6,7 +6,7 @@ Este documento serve como referência técnica detalhada sobre o funcionamento i
 
 ## 1. Arquitetura e Estrutura de Estado
 
-O sistema está concentrado em um único componente React Client-Side: [page.tsx](file:///home/helder/Desenvolvimento/bot-trader/src/app/(withSidebar)/bear-bot-ultra/page.tsx).
+O sistema está concentrado em um único componente React Client-Side: [page.tsx](../../src/app/%28withSidebar%29/bear-bot-ultra/page.tsx).
 
 ### 1.1 Hydration e Rendering do Next.js
 Para evitar erros de inconsistência de hidratação (Hydration Mismatch) decorrentes do Next.js pré-renderizar no servidor partes dinâmicas (como horários, dados do local storage ou áudios), todos os elementos baseados em janelas de navegador (`window` / `localStorage`) ou inicializações dinâmicas devem ser carregados dentro de um gancho `useEffect` ou isolados do fluxo principal de renderização SSR.
@@ -116,7 +116,7 @@ No modo Differ, o robô pode aguardar padrões comportamentais nos dígitos ante
 
 O Bear Bot Ultra possui cobertura de testes unitários integrados com Vitest e `@testing-library/react`.
 
-* **Arquivo de Testes:** [bearBotUltra.test.tsx](file:///home/helder/Desenvolvimento/bot-trader/src/__tests__/bearBotUltra.test.tsx)
+* **Arquivo de Testes:** [bearBotUltra.test.tsx](../../src/__tests__/bearBotUltra.test.tsx)
 * **Comando para Execução:**
   ```bash
   npx vitest run src/__tests__/bearBotUltra.test.tsx
